@@ -186,27 +186,48 @@
 }
 
 /**
- * One figure below 760px, not two or three.
+ * Below 760px the row becomes a swipe.
  *
- * Not a taste call — it is where the arithmetic stops working. The slab hits
- * its 120px floor while the figures keep their proportions, so the width each
- * one needs stops shrinking with the viewport. Computed across widths, three
- * figures need 183px between slab centres and only get that at 760px and
- * above; at 375px they need 183 and have 154, and the row would span 465px in
- * a 375px window.
+ * Three abreast genuinely does not fit: the slab bottoms out at its floor while
+ * the figures keep their proportions, and at 375px three only clear each other
+ * with *zero* overhang — on 94px slabs, with the heads no longer breaking the
+ * top edge, which is the whole effect. Showing one instead was worse: two
+ * thirds of the set simply gone.
  *
- * A single figure at a usable size reads better than three overlapping ones,
- * and the full roster is directly below anyway.
+ * So the row keeps its full size and scrolls, snapping each figure to centre.
+ * All three are present, each at a usable size, and the next one peeking past
+ * the edge is what says there are more.
  */
 @media (max-width: 760px) {
   .kol-stage {
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x mandatory;
+    /**
+     * Wide enough that a figure never overlaps its neighbour — the same
+     * constraint as on desktop, just no longer bounded by the viewport.
+     *
+     * Sized against the widest pair, MARKINHO beside LUTZ, which needs 321px
+     * between slab centres at 375. Checked from 360 to 760: clears at every
+     * step with ~10px to spare.
+     */
+    gap: clamp(7rem, 32vw, 160px);
+    /* Lets the first and last snap to the centre rather than the edge. */
+    padding-inline: calc(50% - min(28vw, 130px));
     padding-top: clamp(56px, 17vw, 110px);
+    /* The bar is noise under a composition; the peeking figure is the affordance. */
+    scrollbar-width: none;
   }
-  .kol-plinth {
-    flex: 0 1 min(52vw, 240px);
-  }
-  .kol-plinth:not(:first-child) {
+
+  .kol-stage::-webkit-scrollbar {
     display: none;
+  }
+
+  .kol-plinth {
+    flex: 0 0 min(56vw, 260px);
+    scroll-snap-align: center;
   }
 }
 
