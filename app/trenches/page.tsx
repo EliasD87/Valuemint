@@ -267,6 +267,18 @@ function Result({ state }: { state: State }) {
  * carry the page, and showing all ten at once is what makes the ladder legible
  * before a visitor has connected anything.
  */
+/**
+ * The ten pieces, looping.
+ *
+ * A CSS keyframe per plate with a staggered negative delay, rather than a
+ * JavaScript index that advanced every few seconds. The index version was not
+ * really a loop: a plate leaving the fan was removed from the DOM and the one
+ * wrapping round reappeared at the front, so every cycle had a visible pop.
+ *
+ * Each plate now runs the same journey — rise out of the dark at the back,
+ * come to the front, drift up and away — offset in time so the fan is always
+ * populated and the wrap is never seen.
+ */
 function Descent({ reached }: { reached: number }) {
   return (
     <div className="tr-stack" aria-hidden="true">
@@ -277,8 +289,9 @@ function Descent({ reached }: { reached: number }) {
             className={`tr-plate${reached >= t.n ? " is-lit" : ""}`}
             style={{ ["--i" as string]: i, ["--tier" as string]: t.colour }}
           >
-            <Art src={tierImage(t)} sizes="(max-width: 900px) 30vw, 240px" />
+            <Art src={tierImage(t)} sizes="(max-width: 900px) 40vw, 320px" />
             <span className="tr-plate-n">{String(t.n).padStart(2, "0")}</span>
+            <span className="tr-plate-name">{t.name}</span>
           </div>
         ))}
       </div>

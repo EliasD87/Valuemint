@@ -40,7 +40,39 @@
 }
 
 @media (max-width: 900px) {
-  .tr-hero-grid {
+  /* Sits between the water gradient and the coloured glow, so the glow washes
+   over the chart rather than the chart sitting on top of everything. */
+.tr-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  opacity: 0.55;
+  mask-image: linear-gradient(180deg, transparent 0%, #000 22%, #000 68%, transparent 100%);
+}
+
+.tr-backdrop svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.tr-backdrop-word {
+  font-family: var(--display);
+  font-size: 210px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  fill: #ffffff;
+  fill-opacity: 0.028;
+}
+
+@media (max-width: 900px) {
+  .tr-backdrop-word {
+    font-size: 130px;
+  }
+}
+
+.tr-hero-grid {
     grid-template-columns: 1fr;
   }
 }
@@ -153,50 +185,92 @@
 .tr-stack {
   position: relative;
   min-height: clamp(300px, 44vw, 520px);
-  perspective: 900px;
-  perspective-origin: 50% 34%;
+  perspective: 1600px;
+  perspective-origin: 50% 50%;
   display: grid;
   place-items: center;
 }
 
 .tr-stack-inner {
   position: relative;
-  width: min(100%, 22rem);
+  width: min(74%, 19rem);
   aspect-ratio: 1;
   transform-style: preserve-3d;
   transform: rotateX(11deg) rotateZ(-3deg);
 }
 
+/**
+ * One journey, ten plates, offset in time.
+ *
+ * Every plate runs the same keyframes and differs only by a negative delay, so
+ * the fan is always full and the wrap-around is never visible. A plate rises
+ * out of the dark at the back, comes forward through the fan, then drifts up
+ * and away — 24s each, one arriving every 2.4s.
+ *
+ * This replaced a JavaScript index that advanced on a timer. That version
+ * removed a plate from the DOM when it left the fan and reinstated it at the
+ * front, which read as a pop rather than a loop.
+ */
 .tr-plate {
   position: absolute;
   inset: 0;
   border-radius: var(--r-xl);
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.13);
+  border: 1px solid rgba(255, 255, 255, 0.14);
   background: #0a1119;
-  /* Each step: further back, lower, and turned a little more. */
-  transform:
-    translate3d(calc(var(--i) * 5%), calc(var(--i) * 7.4%), calc(var(--i) * -104px))
-    rotate(calc(var(--i) * 1.6deg));
-  opacity: calc(1 - (var(--i) * 0.082));
-  filter: saturate(calc(1 - (var(--i) * 0.085))) brightness(calc(1 - (var(--i) * 0.062)))
-    blur(calc(var(--i) * 0.34px));
   box-shadow: 0 30px 70px -28px rgba(0, 0, 0, 0.95);
-  transition: transform var(--med), filter var(--med), box-shadow var(--med);
+  opacity: 0;
+  animation: tr-cycle 24s linear infinite;
+  animation-delay: calc(var(--i) * -2.4s);
+  will-change: transform, opacity;
 }
 
-/* The nearest plate is the reader's anchor, so it stays fully lit. */
-.tr-plate:first-child {
-  filter: none;
-  opacity: 1;
+@keyframes tr-cycle {
+  /* far back, deep in the dark */
+  0% {
+    transform: translate3d(58%, 20%, -520px) rotate(13deg) ;
+    opacity: 0;
+    filter: brightness(0.45) saturate(0.4);
+  }
+  8% {
+    opacity: 0.55;
+  }
+  /* working forward through the fan */
+  30% {
+    transform: translate3d(30%, 10%, -240px) rotate(6.5deg);
+    opacity: 0.8;
+    filter: brightness(0.75) saturate(0.7);
+  }
+  /* front and centre, fully lit — held briefly so it can be read */
+  46%,
+  58% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+    opacity: 1;
+    filter: none;
+  }
+  /* drifting up and away */
+  82% {
+    transform: translate3d(-26%, -16%, 260px) rotate(-7deg);
+    opacity: 0;
+    filter: brightness(1.1);
+  }
+  100% {
+    transform: translate3d(-26%, -16%, 260px) rotate(-7deg);
+    opacity: 0;
+    filter: brightness(1.1);
+  }
 }
 
+/* An earned tier keeps its glow as it passes the front. */
 .tr-plate.is-lit {
   border-color: color-mix(in srgb, var(--tier) 60%, transparent);
-  filter: none;
-  opacity: 1;
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--tier) 28%, transparent),
     0 34px 80px -30px var(--tier);
+}
+
+/* Slow the loop while a reader is looking at it, rather than stopping dead. */
+.tr-stack:hover .tr-plate {
+  animation-duration: 44s;
 }
 
 .tr-plate img {
@@ -220,30 +294,32 @@
   backdrop-filter: blur(4px);
 }
 
-/* Spread the shaft open on hover, so a reader can see what is down there. */
-.tr-stack:hover .tr-plate {
-  transform:
-    translate3d(calc(var(--i) * 7.5%), calc(var(--i) * 9.4%), calc(var(--i) * -128px))
-    rotate(calc(var(--i) * 2.4deg));
+.tr-plate-name {
+  position: absolute;
+  left: 0.85rem;
+  bottom: 0.8rem;
+  font-family: var(--display);
+  font-size: var(--step-1);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: #fff;
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.9);
 }
 
+/**
+ * No motion: no loop. The plates fan out statically instead, so the section
+ * still shows several pieces rather than a single frozen frame.
+ */
 @media (prefers-reduced-motion: reduce) {
   .tr-plate {
-    transition: none;
-  }
-  .tr-stack:hover .tr-plate {
+    animation: none;
+    opacity: calc(1 - (var(--i) * 0.19));
     transform:
-      translate3d(calc(var(--i) * 5%), calc(var(--i) * 7.4%), calc(var(--i) * -104px))
-      rotate(calc(var(--i) * 1.6deg));
+      translate3d(calc(var(--i) * 11%), calc(var(--i) * 3%), calc(var(--i) * -34px))
+      rotate(calc(var(--i) * 2.6deg));
   }
-}
-
-@media (max-width: 900px) {
-  .tr-stack {
-    min-height: 340px;
-  }
-  .tr-stack-inner {
-    width: min(86%, 17rem);
+  .tr-plate:nth-child(n + 6) {
+    display: none;
   }
 }
 
