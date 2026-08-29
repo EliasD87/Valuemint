@@ -130,8 +130,21 @@ textarea {
   padding: 0 var(--gutter);
 }
 
+/**
+ * Vertical only — `padding-block`, never the `padding` shorthand.
+ *
+ * `padding: <v> 0` also sets the horizontal padding to zero, and since almost
+ * every section is `class="page section"`, that quietly cancelled the
+ * `0 var(--gutter)` it inherits from `.page`. Same specificity, declared
+ * later, so `.section` won: 21 sections across the site had no side gutter at
+ * all, and every grid, heading and filter row inside them ran to the edge of
+ * the screen.
+ *
+ * Invisible on a desktop, where `--page-max` leaves margin anyway. On a phone
+ * there is no slack, so the whole site touched both edges.
+ */
 .section {
-  padding: clamp(2.75rem, 5.5vw, 4.5rem) 0;
+  padding-block: clamp(2.75rem, 5.5vw, 4.5rem);
 }
 
 .section + .section {
@@ -819,22 +832,40 @@ textarea {
     display: none;
   }
 
-  /* Side by side rather than stacked: two full-width buttons cost 106px and a
-     row costs 48px, for the same two taps. */
+  /**
+   * Stacked and full width, not a row.
+   *
+   * Squeezing them side by side to save ~55px was a false economy. `.btn` sets
+   * `white-space: nowrap`, so each button's min-content width is its whole
+   * label; two of them plus the gap made a 352px floor, and `1fr` is
+   * `minmax(auto, 1fr)` which cannot go below it. The hero's text column was
+   * forced to 352 inside a 335 content box, pushing the title, lede and buttons
+   * 17px past the gutter — the edge-to-edge look, caused by the fix meant to
+   * tidy the hero.
+   *
+   * Full-width stacked buttons are the ordinary phone pattern, cost nothing in
+   * min-content, and give a bigger target.
+   */
   .hero-actions.hero-actions {
     display: flex;
-    flex-direction: row;
-    /* `nowrap` matters: the buttons have wide min-content widths and were
-       wrapping back into two rows, which is the 106px this was meant to fix. */
-    flex-wrap: nowrap;
+    flex-direction: column;
+    align-items: stretch;
     gap: 0.5rem;
     width: 100%;
   }
 
+  /**
+   * No `white-space: nowrap` here, however tempting.
+   *
+   * `1fr` is `minmax(auto, 1fr)` and cannot shrink below its content's
+   * min-content width. Holding the labels on one line made that floor
+   * 172 + 172 + 8 = 352px inside a 335px content box, so the hero's whole text
+   * column — title, lede and buttons — was pushed 17px past the right gutter.
+   * A label that wraps to two lines is a taller button; a label that refuses to
+   * wrap is a broken page.
+   */
   .hero-actions.hero-actions > * {
-    flex: 1 1 0;
-    min-width: 0;
+    width: 100%;
     justify-content: center;
-    white-space: nowrap;
   }
 }

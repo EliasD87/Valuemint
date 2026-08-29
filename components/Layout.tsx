@@ -27,6 +27,19 @@ const NAV = [
   { to: "/manage", label: "Manage" },
 ];
 
+/**
+ * What the bottom tab bar already carries, and so what the phone menu must not
+ * repeat. See components/MobileTabs.tsx — this list is the one place the two
+ * are reconciled.
+ *
+ * Before this, a phone had three navigations on screen at once and every
+ * destination appeared two to five times: Explore was in the tabs, in the menu
+ * and three times over in the header. The menu now holds exactly what the tabs
+ * do not, so each place is reachable one way.
+ */
+const IN_TAB_BAR = new Set(["/", "/market", "/collections", "/portfolio"]);
+const SECONDARY_NAV = NAV.filter((item) => !IN_TAB_BAR.has(item.to));
+
 export function Layout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -130,8 +143,9 @@ export function Layout({ children }: { children: ReactNode }) {
           inert={!menuOpen}
           aria-hidden={!menuOpen}
         >
-          <nav className="mobile-nav-inner page" aria-label="Primary, compact">
-            {NAV.map((item) => (
+          <nav className="mobile-nav-inner page" aria-label="More destinations">
+            <p className="mobile-nav-caption">More</p>
+            {SECONDARY_NAV.map((item) => (
               <Link
                 key={item.to}
                 href={item.to}

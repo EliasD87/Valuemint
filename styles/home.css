@@ -427,9 +427,16 @@
   margin-top: 0.85rem;
 }
 
-/* Shared empty / prompt state, used by market and portfolio. */
+/**
+ * Shared empty / prompt state, used by market, portfolio and manage.
+ *
+ * `padding-block`, not the shorthand: this class is applied alongside `.page`,
+ * and `padding: <v> 0` would zero the horizontal gutter it inherits — the same
+ * collision `.section` had, which put every empty state hard against both
+ * edges of a phone.
+ */
 .market-empty {
-  padding: clamp(2.5rem, 6vw, 4.5rem) 0;
+  padding-block: clamp(2.5rem, 6vw, 4.5rem);
   display: flex;
   flex-direction: column;
   gap: 0.65rem;
