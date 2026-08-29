@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useAccount, useConnect } from "wagmi";
 import { Art } from "@/components/Art";
@@ -38,35 +38,38 @@ export default function Trenches() {
   const { connect, connectors, isPending: connecting } = useConnect();
   const [state, setState] = useState<State>({ kind: "idle" });
 
+  const check = useCallback(async (signal?: { cancelled: boolean }) => {
+    if (address === undefined) return;
+    setState({ kind: "checking" });
+    try {
+      const res = await fetch(`/api/eligibility/${address}`);
+      const body = await res.json();
+      if (signal?.cancelled === true) return;
+      if (!res.ok) {
+        setState({ kind: "error", message: body.error ?? "Could not check this wallet." });
+        return;
+      }
+      setState({ kind: "done", data: body as Eligibility });
+    } catch {
+      if (signal?.cancelled !== true) {
+        setState({ kind: "error", message: "Could not reach the check." });
+      }
+    }
+  }, [address]);
+
   useEffect(() => {
     if (address === undefined) {
       setState({ kind: "idle" });
       return;
     }
-    let cancelled = false;
-    setState({ kind: "checking" });
-
-    (async () => {
-      try {
-        const res = await fetch(`/api/eligibility/${address}`);
-        const body = await res.json();
-        if (cancelled) return;
-        if (!res.ok) {
-          setState({ kind: "error", message: body.error ?? "Could not check this wallet." });
-          return;
-        }
-        setState({ kind: "done", data: body as Eligibility });
-      } catch {
-        if (!cancelled) setState({ kind: "error", message: "Could not reach the check. Try again shortly." });
-      }
-    })();
-
     // A wallet switch mid-request must not let the old answer land on the new
     // address — that would show someone else's tier under your wallet.
+    const signal = { cancelled: false };
+    void check(signal);
     return () => {
-      cancelled = true;
+      signal.cancelled = true;
     };
-  }, [address]);
+  }, [address, check]);
 
   const reached = state.kind === "done" ? (state.data.tier?.n ?? 0) : 0;
 
@@ -107,7 +110,7 @@ export default function Trenches() {
                   </a>
                 </div>
               ) : (
-                <Result state={state} />
+                <Result state={state} onRetry={() => void check()} />
               )}
             </div>
           </div>
@@ -170,7 +173,7 @@ function TierCard({ tier, unlocked, isCurrent }: { tier: Tier; unlocked: boolean
   );
 }
 
-function Result({ state }: { state: State }) {
+function Result({ state, onRetry }: { state: State; onRetry: () => void }) {
   if (state.kind === "checking") {
     return (
       <div className="tr-result">
@@ -181,9 +184,35 @@ function Result({ state }: { state: State }) {
   }
 
   if (state.kind === "error") {
+    /**
+     * A failed lookup is not the reader's fault and should not look like their
+     * mistake. This used to be red text in a panel, which reads as "you have
+     * done something wrong" for what is almost always a service being briefly
+     * unreachable.
+     *
+     * So: neutral tone, say plainly that it is our side, offer the retry, and
+     * point at the thing they can still do — the ten pieces are on the page
+     * whether or not the check works.
+     */
     return (
-      <div className="tr-result">
-        <p className="tr-result-error">{state.message}</p>
+      <div className="tr-result tr-result-quiet">
+        <div className="tr-quiet-head">
+          <span className="tr-quiet-dot" aria-hidden="true" />
+          <b>The volume check is unavailable</b>
+        </div>
+        <p className="tr-quiet-body">
+          We could not reach SoDEX just now, so we can&rsquo;t tell you which depths you&rsquo;ve
+          earned yet. Nothing is lost — your volume is on their side, and your tiers will be
+          waiting whenever this comes back.
+        </p>
+        <div className="tr-quiet-actions">
+          <button className="btn" onClick={onRetry}>
+            Try again
+          </button>
+          <a className="btn tr-btn-ghost" href="#ladder">
+            See the ten meanwhile
+          </a>
+        </div>
       </div>
     );
   }

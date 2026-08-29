@@ -235,6 +235,42 @@
   perspective-origin: 50% 50%;
   display: grid;
   place-items: center;
+  isolation: isolate;
+}
+
+/**
+ * A shaft for the ring to turn inside.
+ *
+ * The plates were floating in flat black, so the whole right half read as
+ * empty between them — nothing said "this area is deliberate". A soft column
+ * of light gives the ring somewhere to be, and it dims toward the edges so the
+ * plates still emerge out of dark rather than sitting on a panel.
+ */
+.tr-stack::before {
+  content: "";
+  position: absolute;
+  inset: 4% 6%;
+  z-index: -1;
+  border-radius: 50% / 42%;
+  background:
+    radial-gradient(58% 52% at 50% 46%, rgba(255, 255, 255, 0.075), transparent 72%),
+    radial-gradient(38% 30% at 50% 88%, rgba(125, 211, 252, 0.06), transparent 76%);
+  filter: blur(18px);
+}
+
+/* The floor the shaft bottoms out on: a thin ellipse of light, so the column
+   reads as having a depth rather than fading into nothing. */
+.tr-stack::after {
+  content: "";
+  position: absolute;
+  left: 16%;
+  right: 16%;
+  bottom: 7%;
+  height: 8px;
+  z-index: -1;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(255, 255, 255, 0.16), transparent 78%);
+  filter: blur(5px);
 }
 
 .tr-stack-inner {
@@ -262,9 +298,10 @@
   inset: 0;
   border-radius: var(--r-xl);
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  background: #0e0e11;
-  box-shadow: 0 30px 70px -28px rgba(0, 0, 0, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: #131317;
+  box-shadow: 0 30px 70px -28px rgba(0, 0, 0, 0.95),
+    0 0 0 1px rgba(255, 255, 255, 0.05);
   /* Placed around the ring, then pushed out to its radius. */
   transform: rotateX(calc(var(--i) * 36deg)) translateZ(var(--radius));
   /* The far half of the ring faces away; hiding it keeps mirrored plates from
@@ -503,8 +540,55 @@
   text-decoration: underline;
   text-underline-offset: 3px;
 }
-.tr-result-error {
-  color: #ffb4ab;
+/* ---- a check that could not run -------------------------------------- */
+
+/**
+ * Deliberately not red. A lookup failing is our problem, not the reader's, and
+ * alarm colouring for a transient outage teaches people to distrust the page.
+ */
+.tr-result-quiet {
+  gap: 0.75rem;
+}
+
+.tr-quiet-head {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-size: var(--step-0);
+  color: #eaeaec;
+}
+
+.tr-quiet-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #d8a13a;
+  flex: none;
+  box-shadow: 0 0 0 3px rgba(216, 161, 58, 0.16);
+}
+
+.tr-quiet-body {
+  margin: 0;
+  font-size: var(--step--1);
+  line-height: 1.6;
+  color: #a1a1aa;
+}
+
+.tr-quiet-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin-top: 0.15rem;
+}
+
+.tr-quiet-actions .btn {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #f4f4f6;
+}
+.tr-quiet-actions .btn:hover:not(:disabled) {
+  border-color: rgba(255, 255, 255, 0.45);
+  background: rgba(255, 255, 255, 0.13);
 }
 
 .tr-result-fine {
