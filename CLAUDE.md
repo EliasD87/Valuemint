@@ -34,7 +34,7 @@ trenches-wip/ a parked feature, see below
 | ValueChain Genesis | `0x5Fadc59297e86aceA20Bff519aea0f9651Cdc90B` — 51/100 |
 | Trade Buddies | `0xe1C322BC972f78E78cfac98f71aA986C65D9C3bD` — 100/1000, 1 SOSO |
 | Hypno Plush | `0x01c28095bfffc9973Da4c4e8A34E9d5b6649C988` — 10/100, 5 SOSO |
-| The Trenches | `0xaAb0dC8f2835Ed903b35d2f52FF17c4bc92Bec19` — **claiming closed**, 0/50000 |
+| The Trenches | `0xaAb0dC8f2835Ed903b35d2f52FF17c4bc92Bec19` — **claiming open**, free, 0/50000 |
 
 `alpha` and `vv` were test collections. They still exist on chain — nothing can
 delete a deployed contract — and are hidden from every listing via
@@ -165,29 +165,24 @@ source maps, no exposed dotfiles.
 
 1. **Rate limiter → Vercel KV.** One new class, one changed export.
 2. **Contract verification** — blocked upstream; chase the SoDEX bug report.
-3. **Trenches** — contract **deployed to mainnet 2026-08-29**, claiming
-   **closed**, nothing minted. `0xaAb0dC8f2835Ed903b35d2f52FF17c4bc92Bec19`.
-   - Authoriser `0x3f65a80Dfc4043c14eDc75bD0B96Cd5258FA3283`. Its key is in
-     `contracts/.trenches-signer.generated` (gitignored) and belongs in Vercel
-     as `TRENCHES_SIGNER_KEY`. **Not** the deployer: it signs only, holds
-     nothing, and a leak is fixed with one `setAuthoriser` call.
-   - Verified after deploy: the app's signature recovers to exactly that
-     authoriser for the deployed address and chain 286623, so the contract
-     would accept it.
-   - **The app is not deployed yet**, so `baseURI` currently 404s
-     (`/api/metadata/sodex-trenches/…` returns "Unknown collection" live). Push
-     the web app before opening claims, or the first token minted has no
-     metadata.
-   - **To open claiming:** `OPEN=yes CONFIRM_MAINNET=yes npx hardhat run
-     scripts/open-trenches.ts --network valuechainMainnet`. This is the
-     irreversible step — a minted token is permanent.
-   - **Artwork settled.** Tier 1 was regenerated without the XRP mark and
-     re-pinned (`QmaRw3gCPDSJ4cErcLf9V8bUUKckC5UP8kTF8jBrmcoyJ8`). All ten are
-     square 1254x1254 and resolve. Backgrounds are deliberately unrelated to
-     the tier colours — raised and declined; the characters carry the ladder.
-     The image CID lives in `config/tiers.ts`, not on chain, so artwork can
-     still be changed after minting (marketplaces cache it for up to a week).
-   - The SoDEX logo now appears in the nav and the Trenches eyebrow.
+3. **Trenches** — **launched 2026-08-29.** Contract
+   `0xaAb0dC8f2835Ed903b35d2f52FF17c4bc92Bec19`, claiming **open**, app
+   deployed. Free; the claimant pays gas only.
+   - Authoriser `0x3f65a80Dfc4043c14eDc75bD0B96Cd5258FA3283`, key in
+     `contracts/.trenches-signer.generated` (gitignored) and in Vercel as
+     `TRENCHES_SIGNER_KEY`. **Not** the deployer: it signs only and holds
+     nothing, so a leak costs one `setAuthoriser` call.
+   - Proven in production: the live endpoint's signature recovers to exactly
+     that authoriser for chain 286623 and the deployed address. Caller cannot
+     name its own tier (sent `maxTier: 10`, got 7 back). No volume → 403.
+   - `setClaimOpen(false)` pauses claiming at any time; already-minted tokens
+     are permanent regardless.
+   - Artwork CIDs live in `config/tiers.ts`, not on chain, so a piece can be
+     re-imaged after minting — though marketplaces cache metadata for up to a
+     week. Tier 1 was replaced before launch to remove Ripple Labs' XRP mark.
+   - Tradeable on the marketplace with no special-casing (`list()` takes any
+     ERC-721; royalties via ERC-2981). It is not a factory collection, so
+     `config/known.ts` is what makes it appear on /collections and /market.
 
 
 4. **CSP** — complete it with nonces.

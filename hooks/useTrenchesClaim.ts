@@ -31,7 +31,13 @@ interface Authorisation {
   signature: `0x${string}`;
 }
 
-export function useTrenchesClaim() {
+/**
+ * @param earned The deepest tier this wallet has *earned*, from the eligibility
+ *        check. Required: asking the contract what is unclaimed out of all ten
+ *        would count tiers the wallet has no right to, and the button would
+ *        offer more pieces than the signature will actually mint.
+ */
+export function useTrenchesClaim(earned: number) {
   const { address } = useAccount();
   const [phase, setPhase] = useState<ClaimPhase>({ kind: "idle" });
 
@@ -46,9 +52,11 @@ export function useTrenchesClaim() {
   });
 
   /**
-   * Which tiers this wallet still has to take, read from the chain rather than
-   * inferred. A wallet that claimed on another device would otherwise be
-   * offered pieces it already holds, and the transaction would revert.
+   * Which tiers this wallet still has to take: unclaimed *and* earned.
+   *
+   * Read from the chain rather than inferred, so a wallet that claimed on
+   * another device is not offered pieces it already holds — and bounded by
+   * `earned`, so it is not offered pieces it has not reached.
    */
   const {
     data: owed,
@@ -57,8 +65,8 @@ export function useTrenchesClaim() {
   } = useReadContract({
     ...contract,
     functionName: "unclaimed",
-    args: address === undefined ? undefined : [address, 10],
-    query: { enabled: deployed && address !== undefined },
+    args: address === undefined ? undefined : [address, earned],
+    query: { enabled: deployed && address !== undefined && earned > 0 },
   });
 
   const { writeContractAsync, reset } = useWriteContract();

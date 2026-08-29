@@ -332,7 +332,7 @@ function Result({ state, onRetry }: { state: State; onRetry: () => void }) {
  * piece already held would send a transaction that reverts.
  */
 function ClaimButton({ earned }: { earned: number }) {
-  const { deployed, open, owedCount, loadingOwed, phase, claim, reset } = useTrenchesClaim();
+  const { deployed, open, owedCount, loadingOwed, phase, claim, reset } = useTrenchesClaim(earned);
 
   if (!deployed) {
     return (
