@@ -9,6 +9,7 @@ import {
 import { gatewayUrl } from "@/lib/pinning";
 import { TIERS, TIER_GATEWAY, formatVolume } from "@/config/tiers";
 import { TIER_STRIDE, TRENCHES_SLUG } from "@/config/trenches";
+import { KOLS, KOLS_GATEWAY, KOLS_SLUG, kolForToken } from "@/config/kols";
 import { filebaseGateway } from "@/lib/filebase";
 
 /**
@@ -139,6 +140,38 @@ export async function GET(
     return NextResponse.json({ error: "Token id must be a whole number." }, { status: 400 });
   }
   const tokenId = Number(id);
+
+  // --- the KOL portraits -------------------------------------------------
+  /**
+   * A growing set, so the roster lives in the app rather than a pinned
+   * manifest — see `config/kols.ts`. Token id is the entry's position, and a
+   * token minted beyond the current roster resolves to nothing until its entry
+   * is added, which is the honest answer rather than a placeholder.
+   */
+  if (collection === KOLS_SLUG) {
+    const kol = kolForToken(tokenId);
+    if (kol === undefined) {
+      return NextResponse.json({ error: "No such token in this collection." }, { status: 404 });
+    }
+
+    return NextResponse.json(
+      {
+        name: kol.name,
+        description:
+          `${kol.name} — one of one, made for the people who show up on SoDEX. ` +
+          `Given, never sold.`,
+        image: `${KOLS_GATEWAY}/${kol.image}`,
+        image_ipfs: `ipfs://${kol.image}`,
+        external_url: "https://www.valuemint.store/kols",
+        attributes: [
+          { trait_type: "Name", value: kol.name },
+          { trait_type: "Edition", value: "1 of 1" },
+          { trait_type: "Number", value: kol.n, display_type: "number" },
+        ],
+      },
+      { headers: CACHE_HEADERS },
+    );
+  }
 
   // --- the Trenches -----------------------------------------------------
   /**
