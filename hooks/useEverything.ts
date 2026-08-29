@@ -78,14 +78,46 @@ export function useEverything(perCollection = 30) {
     query: { enabled: collections.length > 0, refetchInterval: 30_000 },
   });
 
-  /** One flat list of every (collection, tokenId) worth loading. */
-  const slots: Array<{ collection: CollectionSummary; id: bigint }> = [];
+  /**
+   * Which ids exist, asked rather than assumed.
+   *
+   * This used to walk 1..totalSupply, which is only right for collections that
+   * happen to number their tokens that way. The Trenches encodes the tier in
+   * the id — its first token is 1000001 — so `ownerOf(1)` reverted, every slot
+   * came back empty, and the collection card showed no preview at all.
+   *
+   * `tokenByIndex` is the ERC-721 Enumerable answer and works whatever the
+   * numbering. A collection that is not Enumerable simply fails these calls,
+   * and the sequential guess below is kept as the fallback for those.
+   */
+  const indexSlots: Array<{ collection: CollectionSummary; index: number }> = [];
   collections.forEach((c, i) => {
     const entry = supplies?.[i];
     if (entry?.status !== "success") return;
 
     const count = Math.min(Number(entry.result as bigint), perCollection);
-    for (let n = 1; n <= count; n++) slots.push({ collection: c, id: BigInt(n) });
+    for (let n = 0; n < count; n++) indexSlots.push({ collection: c, index: n });
+  });
+
+  const { data: idsByIndex } = useReadContracts({
+    contracts: indexSlots.map((s) => ({
+      address: s.collection.address,
+      abi: enumerableAbi,
+      functionName: "tokenByIndex" as const,
+      args: [BigInt(s.index)],
+    })),
+    query: { enabled: indexSlots.length > 0, refetchInterval: 30_000 },
+  });
+
+  /** One flat list of every (collection, tokenId) worth loading. */
+  const slots: Array<{ collection: CollectionSummary; id: bigint }> = indexSlots.map((s, i) => {
+    const entry = idsByIndex?.[i];
+    return {
+      collection: s.collection,
+      // Not Enumerable, or the call has not landed yet: fall back to the old
+      // assumption, which is correct for every collection from our factory.
+      id: entry?.status === "success" ? (entry.result as bigint) : BigInt(s.index + 1),
+    };
   });
 
   const { data: chainData, isLoading: loadingChain } = useReadContracts({

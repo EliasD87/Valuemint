@@ -8,6 +8,7 @@ import { ERC721_INTERFACE_ID, enumerableAbi, erc165Abi } from "@/config/erc721";
 import { ValueChainMarketplaceAbi, deployment } from "@/config/contracts";
 import type { Listing } from "@/hooks/useCollection";
 import { useGenericTokens } from "@/hooks/useGenericTokens";
+import { useTokenIds } from "@/hooks/useTokenIds";
 import { MintPanel } from "@/components/MintPanel";
 import { TokenCard, TokenCardSkeleton } from "@/components/TokenCard";
 import { formatCount, shortAddress } from "@/lib/format";
@@ -59,12 +60,8 @@ export default function CollectionPage({ params }: { params: Promise<{ address: 
     ...on,
   });
 
-  const ids = useMemo(() => {
-    if (supply === undefined) return [];
-    const count = Number(supply as bigint);
-    // Cap the first page; a large collection should not fire thousands of reads.
-    return Array.from({ length: Math.min(count, 60) }, (_, i) => BigInt(i + 1));
-  }, [supply]);
+  // Cap the first page; a large collection should not fire thousands of reads.
+  const ids = useTokenIds(collection, supply as bigint | undefined, 60);
 
   const { tokens, isLoading } = useGenericTokens(collection, ids);
 

@@ -107,7 +107,13 @@ export function useTokens(ids: bigint[]) {
   return { tokens, isLoading: urisLoading || metaLoading, metadataReady: metadata !== undefined };
 }
 
-/** `[1n, 2n, … n]` — the ids of everything minted so far. */
+/**
+ * `[1n, 2n, … n]` — a *guess* at the ids of everything minted so far.
+ *
+ * Only correct for collections that number sequentially from 1. Prefer
+ * `useTokenIds`, which asks the contract via `tokenByIndex`; this remains for
+ * callers that have no contract handy.
+ */
 export function rangeOfIds(total: bigint | undefined): bigint[] {
   if (total === undefined || total === 0n) return [];
   return Array.from({ length: Number(total) }, (_, i) => BigInt(i + 1));
