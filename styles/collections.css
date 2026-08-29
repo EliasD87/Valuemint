@@ -1,0 +1,248 @@
+.coll-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(19rem, 100%), 1fr));
+  gap: 1rem;
+}
+
+.coll-card {
+  display: flex;
+  flex-direction: column;
+  /* The cover runs to the card's edge, so the card has to clip it to the same
+     radius. Padding moves inward, onto the body. */
+  overflow: hidden;
+  padding: 0;
+}
+
+.coll-card-body {
+  padding: 1rem 1.15rem 1.15rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  flex: 1;
+}
+
+/* ==================================================================== cover */
+
+/**
+ * Up to four pieces across the top of the card.
+ *
+ * `grid-auto-flow: column` with equal auto columns means one, two, three or
+ * four images all fill the width without a rule per case - a collection with a
+ * single piece gets one wide image rather than a quarter-width one floating in
+ * empty space.
+ */
+.coll-cover {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 1px;
+  height: 116px;
+  background: var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+/* Each slot is its own positioned box, which is what next/image's `fill`
+   needs, and it also clips the hover scale to one cell instead of the strip. */
+.coll-cover-cell {
+  position: relative;
+  overflow: hidden;
+  background: var(--paper-3);
+}
+
+.coll-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform var(--med);
+}
+
+.coll-card:hover .coll-cover img {
+  transform: scale(1.04);
+}
+
+/* Nothing minted yet. The card keeps its full height so a grid of cards stays
+   on one rhythm, and the initials still identify it. */
+.coll-cover[data-empty] {
+  grid-auto-flow: row;
+  place-items: center;
+  background: var(--sunken);
+}
+
+.coll-cover-empty {
+  font-family: var(--display);
+  font-optical-sizing: auto;
+  font-size: 2.1rem;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  color: var(--ink-3);
+}
+
+.coll-cover-skeleton {
+  width: 100%;
+  height: 100%;
+  border-radius: 0;
+}
+
+.coll-card-head {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.coll-card-name {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 0.05rem;
+}
+
+.coll-card-name b {
+  font-size: var(--step-0);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.coll-card-name span {
+  font-size: var(--step--2);
+}
+
+.coll-card-head .chip {
+  margin-left: auto;
+  flex: none;
+}
+
+.coll-card-stats {
+  margin-top: auto;
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--line);
+}
+
+.coll-card-stats > div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.coll-card-stats dt {
+  font-size: var(--step--3);
+  color: var(--ink-3);
+  font-weight: 600;
+}
+
+.coll-card-stats dd {
+  margin: 0;
+  font-size: var(--step--1);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.coll-cta {
+  margin-top: 2.5rem;
+  padding: clamp(1.5rem, 4vw, 2.5rem);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  background: var(--surface-2);
+}
+
+.coll-cta h3 {
+  font-size: var(--step-2);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
+.coll-cta p {
+  margin-top: 0.4rem;
+  max-width: 34rem;
+  font-size: var(--step--1);
+}
+
+.coll-intro {
+  max-width: 44rem;
+  font-size: var(--step--1);
+  margin-bottom: 1.5rem;
+}
+
+/* Paste-an-address escape hatch, for anything the explorer has not indexed. */
+.coll-import {
+  padding: 1.15rem;
+  margin-bottom: 2rem;
+}
+
+.coll-import-row {
+  display: flex;
+  gap: 0.6rem;
+  align-items: stretch;
+}
+
+.coll-import-row .input {
+  font-variant-numeric: tabular-nums;
+  font-size: var(--step--1);
+}
+
+.coll-import-row .btn {
+  flex: none;
+}
+
+.coll-warn {
+  padding: 0.85rem 1rem;
+  border-radius: var(--r-sm);
+  background: var(--warn-wash);
+  color: var(--warn);
+  font-size: var(--step--2);
+  line-height: 1.55;
+  margin-bottom: 1.5rem;
+}
+
+@media (max-width: 560px) {
+  .coll-import-row {
+    flex-direction: column;
+  }
+}
+
+/* The collection page is the hub: its pieces, with its own mint alongside. */
+.coll-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(min(19rem, 100%), 21rem);
+  gap: clamp(1.5rem, 4vw, 3rem);
+  align-items: start;
+}
+
+.coll-layout-main {
+  min-width: 0;
+}
+
+.coll-layout .mint-panel {
+  position: sticky;
+  top: calc(var(--header-h) + 1.25rem);
+}
+
+@media (max-width: 900px) {
+  .coll-layout {
+    grid-template-columns: 1fr;
+  }
+  .coll-layout .mint-panel {
+    position: static;
+    order: -1;
+  }
+}
+
+
+@media (prefers-reduced-motion: reduce) {
+  .coll-cover img {
+    transition: none;
+  }
+  .coll-card:hover .coll-cover img {
+    transform: none;
+  }
+}

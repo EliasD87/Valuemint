@@ -1,0 +1,646 @@
+@import "./tokens.css";
+
+/* ============================================================ reset + base */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: var(--step-0);
+  line-height: 1.58;
+  font-synthesis-weight: none;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+/**
+ * Headings carry the display face; everything else is the sans.
+ *
+ * Bricolage Grotesque is variable on an optical-size axis, so it tightens and
+ * gains character as it scales up - `font-optical-sizing: auto` is what makes
+ * that happen, and without it large headings render at the text-size drawing
+ * and look flat.
+ */
+h1,
+h2,
+h3,
+h4 {
+  margin: 0;
+  font-family: var(--display);
+  font-optical-sizing: auto;
+  font-weight: 700;
+  line-height: 1.06;
+  letter-spacing: -0.035em;
+  text-wrap: balance;
+}
+
+h1 {
+  letter-spacing: -0.045em;
+}
+
+/* Small headings sit close to body copy, where the display face's personality
+   turns into noise. They keep the weight but drop back to the sans. */
+h4,
+h5,
+h6 {
+  font-family: var(--sans);
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+
+p {
+  margin: 0;
+  text-wrap: pretty;
+}
+img {
+  max-width: 100%;
+  display: block;
+}
+a {
+  color: inherit;
+  text-decoration: none;
+}
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+  border-radius: var(--r-sm);
+}
+
+/* Pill controls need the ring to follow their own shape, or it draws a
+   rounded rectangle around a capsule. */
+.btn:focus-visible,
+.filt:focus-visible,
+.nav-link:focus-visible,
+.chip:focus-visible,
+.theme-toggle:focus-visible {
+  border-radius: var(--r-pill);
+}
+
+::selection {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) transparent;
+}
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--line-strong);
+  border-radius: var(--r-pill);
+  border: 3px solid var(--paper);
+}
+
+/* ================================================================= layout */
+
+.page {
+  max-width: var(--page-max);
+  margin: 0 auto;
+  padding: 0 var(--gutter);
+}
+
+.section {
+  padding: clamp(2.75rem, 5.5vw, 4.5rem) 0;
+}
+
+.section + .section {
+  padding-top: 0;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+}
+
+/* A section heading with an action on the right, as used throughout. */
+.head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem 1.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.5rem;
+}
+
+.head > div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.head h2 {
+  font-size: var(--step-3);
+}
+
+/* The eyebrow labels a heading, so it should read as attached to it. */
+.head .eyebrow + h2 {
+  margin-top: -0.1rem;
+}
+
+.head-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  /* A text link is only as tall as its line box - about 17px here - which is
+     well under the 24px of hit area a touch target needs. */
+  min-height: 24px;
+  font-size: var(--step--1);
+  font-weight: 600;
+  color: var(--ink-2);
+  transition: color var(--fast), gap var(--fast);
+}
+
+.head-link:hover {
+  color: var(--ink);
+  gap: 0.6rem;
+}
+
+/* ============================================================== typography */
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: var(--step--2);
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+/**
+ * Figures that line up in columns.
+ *
+ * This used to set a monospace face. It was applied to prices, counts, ids,
+ * addresses *and* plain status words like "Not listed", which dragged a
+ * code-editor voice into what is meant to read as a gallery. Tabular figures
+ * give the alignment that actually mattered; the face stays the sans.
+ */
+.mono {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1, "cv01" 1;
+  letter-spacing: -0.005em;
+}
+
+/* A wallet address or hash: still the sans, but tracked out a little so long
+   runs of hex stay countable. */
+.hex {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+  word-break: break-all;
+}
+
+/* A quieter eyebrow, for a section nested under the page's own heading. */
+.eyebrow-dim {
+  color: var(--ink-3);
+  font-weight: 600;
+  letter-spacing: 0.07em;
+}
+
+.muted {
+  color: var(--ink-2);
+}
+.dim {
+  color: var(--ink-3);
+}
+
+.lede {
+  font-size: var(--step-1);
+  line-height: 1.65;
+  color: var(--ink-2);
+  max-width: var(--measure);
+}
+
+/* ================================================================= buttons */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.65rem 1.25rem;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: var(--step--1);
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.005em;
+  white-space: nowrap;
+  transition: background var(--fast), border-color var(--fast), color var(--fast), box-shadow var(--fast),
+    transform var(--fast);
+}
+
+.btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.btn:hover:not(:disabled) {
+  border-color: var(--ink);
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Solid ink, as in the reference: the primary action is black, not coloured. */
+.btn-primary {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--paper);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--ink-hover);
+  border-color: var(--ink-hover);
+  box-shadow: var(--shadow-md);
+}
+
+/**
+ * The solid variant.
+ *
+ * Used by the wallet control, which is the one action a visitor must take
+ * before anything else on the site works. It had no rule, so it fell back to
+ * the outline `.btn` and read as a tertiary control.
+ */
+.btn-solid {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--paper);
+}
+
+.btn-solid:hover:not(:disabled) {
+  background: var(--ink-hover);
+  border-color: var(--ink-hover);
+  box-shadow: var(--shadow-md);
+}
+
+.btn-accent {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+
+.btn-accent:hover:not(:disabled) {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+
+.btn-lg {
+  padding: 0.85rem 1.7rem;
+  font-size: var(--step-0);
+}
+.btn-sm {
+  padding: 0.5rem 0.95rem;
+  font-size: var(--step--2);
+}
+.btn-block {
+  width: 100%;
+}
+
+/**
+ * The dark band.
+ *
+ * This band is dark in *both* themes, so everything inside it must be
+ * expressed with the --dark-* family only. Reaching for --paper or --ink here
+ * looks right in light mode and then collapses in dark, where --paper is
+ * near-black: the primary button turned dark-on-dark and the muted text turned
+ * near-black on near-black.
+ */
+/* `on-dark` is used two ways: on a band, and directly on a single control that
+   happens to sit on one. Both forms have to be matched, or a button carrying
+   the class itself silently keeps the page palette. */
+.on-dark:not(.btn) {
+  color: var(--dark-ink);
+}
+
+.on-dark .muted,
+.on-dark .dim,
+.on-dark .eyebrow {
+  color: var(--dark-ink-2);
+}
+
+.on-dark .btn,
+.btn.on-dark {
+  background: transparent;
+  border-color: var(--dark-line);
+  color: var(--dark-ink);
+}
+.on-dark .btn:hover:not(:disabled),
+.btn.on-dark:hover:not(:disabled) {
+  border-color: var(--dark-ink);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* Solid white on the band, in both themes - `--paper` would go near-black. */
+.on-dark .btn-primary,
+.btn-primary.on-dark {
+  background: var(--dark-ink);
+  border-color: var(--dark-ink);
+  color: var(--dark);
+}
+.on-dark .btn-primary:hover:not(:disabled),
+.btn-primary.on-dark:hover:not(:disabled) {
+  background: #ffffff;
+  border-color: #ffffff;
+  box-shadow: none;
+}
+
+/* ================================================================== chips */
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.22rem 0.6rem;
+  border-radius: var(--r-pill);
+  font-size: var(--step--3);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1.5;
+  background: var(--paper-3);
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+
+.chip-legendary {
+  background: var(--legendary-wash);
+  color: var(--legendary);
+}
+.chip-epic {
+  background: var(--epic-wash);
+  color: var(--epic);
+}
+.chip-rare {
+  background: var(--rare-wash);
+  color: var(--rare);
+}
+.chip-common {
+  background: var(--common-wash);
+  color: var(--common);
+}
+.chip-accent {
+  background: var(--accent-wash);
+  color: var(--accent);
+}
+.chip-up {
+  background: var(--up-wash);
+  color: var(--up);
+}
+
+/* ================================================================= panels */
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+}
+
+.card-hover {
+  transition: border-color var(--fast), box-shadow var(--med), transform var(--med);
+}
+.card-hover:hover {
+  border-color: var(--line-strong);
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-3px);
+}
+
+/* A drop shadow is nearly invisible against a dark ground, so the hover state
+   has to come from the edge instead - otherwise dark mode loses the feedback
+   entirely. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .card-hover:hover {
+    border-color: var(--ink-4);
+  }
+}
+:root[data-theme="dark"] .card-hover:hover {
+  border-color: var(--ink-4);
+}
+
+/* Nothing lifts or slides for anyone who has asked the system for less
+   motion; the colour feedback stays. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .card-hover:hover {
+    transform: none;
+  }
+}
+
+/* ================================================================== forms */
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.field label {
+  font-size: var(--step--1);
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.input {
+  width: 100%;
+  padding: 0.75rem 0.95rem;
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-sm);
+  font-size: var(--step-0);
+  transition: border-color var(--fast), box-shadow var(--fast);
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--ink);
+  box-shadow: 0 0 0 3px var(--ring);
+}
+
+.input::placeholder {
+  color: var(--ink-3);
+}
+
+.field-hint {
+  font-size: var(--step--2);
+  color: var(--ink-3);
+}
+
+/* ================================================================ utility */
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+.spread {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.wrap-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.skeleton {
+  background: var(--paper-3);
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--r-sm);
+}
+
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, var(--sheen), transparent);
+  animation: sweep 1.5s infinite;
+}
+
+@keyframes sweep {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+/* A horizontal rail that scrolls on small screens, used for chips and cards. */
+.rail {
+  display: flex;
+  gap: 0.6rem;
+  overflow-x: auto;
+  padding-bottom: 0.35rem;
+  scrollbar-width: none;
+}
+.rail::-webkit-scrollbar {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+
+/* ====================================================== responsive helpers */
+
+/**
+ * Text that is worth saying on a wide header and not worth the width on a
+ * phone: "Connect wallet" becomes "Connect", "Install MetaMask" becomes
+ * "Install". The header row is only about 375px on a small phone and has to
+ * hold a brand, a theme switch, the wallet and a menu button - the full labels
+ * pushed it 103px past the viewport.
+ */
+@media (max-width: 620px) {
+  .wide-only {
+    display: none;
+  }
+}
+
+
+/* ================================================== shared page components */
+
+/**
+ * A row of headline figures beneath a page heading.
+ *
+ * Three pages built this by taking the home page's full-width `.strip-inner`
+ * and overriding padding, justification and gap inline - the same three
+ * overrides each time. That is a component, not a one-off.
+ */
+.stats-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.85rem 2.5rem;
+  margin-bottom: 1.75rem;
+  padding-bottom: 1.15rem;
+  border-bottom: 1px solid var(--line);
+}
+
+/* A heading that opens a section *within* a page, below the page's own. */
+.head-sub {
+  margin-top: clamp(2.25rem, 4vw, 3rem);
+  margin-bottom: 1rem;
+}
+
+.head-sub h2,
+.head-sub h3 {
+  font-size: var(--step-2);
+}
+
+/* An empty state's actions want a little more air than its copy. */
+.market-empty .wrap-row {
+  margin-top: 0.5rem;
+}
+
+/* --- small utilities, for spacing that is genuinely local ---------------- */
+
+.mt-sm {
+  margin-top: 0.5rem;
+}
+.mt-md {
+  margin-top: 0.75rem;
+}
+.push-end {
+  margin-left: auto;
+}
+/* Flex children do not shrink below their content unless told to, which is
+   what breaks text-overflow: ellipsis inside a row. */
+.min-0 {
+  min-width: 0;
+}
+.stack-lg {
+  gap: 2.5rem;
+}

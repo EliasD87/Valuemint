@@ -1,0 +1,24 @@
+# Dependencies
+node_modules/
+
+# Build output
+.next/
+out/
+next-env.d.ts
+tsconfig.tsbuildinfo
+
+# Secrets. PINATA_JWT, FILEBASE_SECRET and the rest live in .env.local and must
+# never reach a remote. On Vercel these are set in Project Settings instead.
+.env
+.env.*
+!.env.example
+
+# Deploy tooling
+.vercel/
+
+# Editors / OS
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.log

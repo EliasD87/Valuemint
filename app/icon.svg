@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="ValueMint">
+  <!--
+    A struck disc bearing a V: a coin from a mint, which is what the name says.
+
+    The V is knocked out of a solid disc rather than drawn in strokes, because a
+    stroked letterform disappears at 16x16 in a browser tab. Solid mass with a
+    cut-out shape survives any size.
+
+    The letter sits fractionally above the geometric centre. A V carries its
+    weight along the top, so centring it by arithmetic makes it look low.
+
+    Both palettes are declared: a near-black disc vanishes against a dark
+    browser chrome, so the fills invert when the viewer's UI is dark.
+  -->
+  <style>
+    .disc { fill: #0e0e10; }
+    .letter { fill: #ffffff; }
+    @media (prefers-color-scheme: dark) {
+      .disc { fill: #f4f4f6; }
+      .letter { fill: #0c0c0e; }
+    }
+  </style>
+  <circle class="disc" cx="16" cy="16" r="16" />
+  <path class="letter" d="M9 9.5 L14.1 22 L17.9 22 L23 9.5 L19.5 9.5 L16 18.1 L12.5 9.5 Z" />
+</svg>

@@ -1,0 +1,148 @@
+.tcard {
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  transition: border-color var(--fast), box-shadow var(--med), transform var(--med);
+}
+
+.tcard:hover {
+  border-color: var(--line-strong);
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-3px);
+}
+
+.tcard-media {
+  position: relative;
+  aspect-ratio: 1;
+  overflow: hidden;
+  background: var(--paper-3);
+  border-bottom: 1px solid var(--line);
+}
+
+/* Dark artwork on a dark card has no edge of its own, so the media well gets
+   an inset hairline to keep the frame readable. */
+.tcard-media::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  box-shadow: inset 0 0 0 1px var(--ring);
+}
+
+.tcard-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 480ms var(--ease);
+}
+
+.tcard:hover .tcard-media img {
+  transform: scale(1.05);
+}
+
+.tcard-placeholder {
+  width: 100%;
+  height: 100%;
+  border-radius: 0;
+}
+
+.tcard-badges {
+  position: absolute;
+  inset: 0.55rem 0.55rem auto;
+  display: flex;
+  justify-content: space-between;
+  gap: 0.4rem;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.tcard-badges .chip {
+  box-shadow: var(--shadow-sm);
+}
+
+.tcard-body {
+  padding: 0.8rem 0.9rem 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.tcard-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.tcard-title {
+  min-width: 0;
+  flex: 1;
+  font-size: var(--step-0);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tcard-num {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+  font-size: var(--step--2);
+  color: var(--ink-3);
+}
+
+.tcard-foot {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--line);
+}
+
+.tcard-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.tcard-cell-end {
+  align-items: flex-end;
+  text-align: right;
+}
+
+.tcard-cell dt {
+  font-size: var(--step--3);
+  color: var(--ink-3);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1.4;
+}
+
+.tcard-cell dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+  font-size: var(--step--1);
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.tcard-price {
+  font-size: var(--step-0);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+
+/* The absence of a price is not a price. It reads back a step. */
+.tcard-none {
+  color: var(--ink-3);
+  font-weight: 500;
+}

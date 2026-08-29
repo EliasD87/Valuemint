@@ -1,0 +1,254 @@
+.token-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(min(24rem, 100%), 27rem);
+  gap: clamp(2rem, 5vw, 4rem);
+  align-items: start;
+}
+
+.token-figure {
+  margin: 0;
+  position: relative;
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: var(--paper-3);
+  position: sticky;
+  top: calc(var(--header-h) + 1.25rem);
+}
+
+/* Dark artwork against a dark page has no edge of its own. */
+.token-figure::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 1px var(--ring);
+}
+
+.token-figure img {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+}
+
+.token-placeholder {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 0;
+}
+
+.token-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.token-head {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.token-crumb {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  font-size: var(--step--1);
+  font-weight: 600;
+  color: var(--ink-3);
+}
+
+.token-crumb:hover {
+  color: var(--ink);
+}
+
+.token-title {
+  font-size: var(--step-3);
+  font-weight: 800;
+  letter-spacing: -0.035em;
+}
+
+.token-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.token-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
+  gap: 1px;
+  margin: 0;
+  background: var(--line);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  overflow: hidden;
+}
+
+.token-facts > div {
+  background: var(--surface);
+  padding: 0.8rem 0.95rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.token-facts dt {
+  font-size: var(--step--3);
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.token-facts dd {
+  margin: 0;
+  font-size: var(--step--1);
+  font-weight: 600;
+}
+
+/* ================================================================== panel */
+
+.token-panel {
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.token-panel-title {
+  font-weight: 700;
+  font-size: var(--step-1);
+  letter-spacing: -0.02em;
+}
+
+.token-price-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 0.9rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.token-price {
+  font-family: var(--display);
+  font-optical-sizing: auto;
+  font-size: var(--step-3);
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.token-split {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+  margin: 0;
+  padding: 0.85rem 0.9rem;
+  background: var(--surface-2);
+  border-radius: var(--r-sm);
+}
+
+.token-split > div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.token-split dt {
+  font-size: var(--step--3);
+  color: var(--ink-3);
+  font-weight: 600;
+}
+
+.token-split dd {
+  margin: 0;
+  font-size: var(--step--1);
+  font-weight: 600;
+}
+
+.token-note,
+.token-warn,
+.token-error {
+  font-size: var(--step--2);
+  line-height: 1.55;
+  border-radius: var(--r-sm);
+  padding: 0.7rem 0.8rem;
+}
+
+.token-note {
+  color: var(--ink-2);
+  background: var(--surface-2);
+}
+
+.token-warn {
+  color: var(--warn);
+  background: var(--warn-wash);
+}
+
+.token-error {
+  color: var(--danger);
+  background: var(--danger-wash);
+  word-break: break-word;
+}
+
+/* ================================================================= traits */
+
+.token-traits {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.token-trait-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
+  gap: 0.6rem;
+}
+
+.token-trait {
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  padding: 0.6rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.token-trait dt {
+  font-size: var(--step--3);
+  color: var(--ink-3);
+  font-weight: 600;
+}
+
+.token-trait dd {
+  margin: 0;
+  font-size: var(--step--1);
+  font-weight: 700;
+}
+
+.token-explorer {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 24px;
+  font-size: var(--step--1);
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+.token-explorer:hover {
+  color: var(--ink);
+}
+
+@media (max-width: 900px) {
+  .token-grid {
+    grid-template-columns: 1fr;
+  }
+  .token-figure {
+    position: static;
+  }
+}
