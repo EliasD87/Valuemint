@@ -107,9 +107,30 @@ export function useAllCollections() {
     };
   });
 
+  /**
+   * Loading means "nothing to show yet", not "some source is still talking".
+   *
+   * Discovery goes through Blockscout, which is a supplement: it finds ERC-721s
+   * that did not come from our factory, and it only ever *adds* to what the
+   * registry already knows. It is also slow and wildly inconsistent — measured
+   * at 5.0s, 0.54s and 1.3s on three consecutive calls for the same 1.6KB.
+   *
+   * Reporting it as loading made the whole grid wait for the slowest source on
+   * the page to display what the fastest already had: the home page holds
+   * skeletons while `isLoading` is true, so every visitor sat looking at empty
+   * cards for seconds while the factory collections were in hand.
+   *
+   * So once anything is known — from the factory registry, or `known.ts`, which
+   * needs no network at all — the page is not loading. Explorer results fold in
+   * when they arrive and the grid grows.
+   */
+  const haveSomething = merged.length > 0;
+
   return {
     collections,
-    isLoading: discovering || loadingState,
+    isLoading: !haveSomething && (discovering || loadingState),
+    /** True while Blockscout is still answering. The grid is usable regardless. */
+    stillDiscovering: discovering,
     explorerUnavailable: error !== null,
   };
 }

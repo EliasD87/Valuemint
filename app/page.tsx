@@ -186,7 +186,7 @@ export default function Home() {
             ? Array.from({ length: 10 }, (_, i) => <TokenCardSkeleton key={i} />)
             : visible
                 .slice(0, 20)
-                .map((token) => (
+                .map((token, i) => (
                   <TokenCard
                     key={`${token.collection}-${token.id}`}
                     token={token}
@@ -194,6 +194,8 @@ export default function Home() {
                     listing={token.listing}
                     owner={token.owner}
                     viewerAddress={address}
+                    // The first row or so is on screen before any scrolling.
+                    priority={i < 4}
                   />
                 ))}
         </div>

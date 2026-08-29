@@ -170,7 +170,12 @@ export function useEverything(perCollection = 30) {
   return {
     tokens,
     collections,
-    isLoading: loadingCollections || loadingChain || loadingMeta,
+    /**
+     * Only true with nothing on screen. `loadingMeta` in particular resolves
+     * per-token and would otherwise keep the whole grid in skeletons while the
+     * last slow gateway fetch finished.
+     */
+    isLoading: tokens.length === 0 && (loadingCollections || loadingChain || loadingMeta),
     /** True when at least one collection has more tokens than we loaded. */
     truncated: collections.some((_, i) => {
       const entry = supplies?.[i];

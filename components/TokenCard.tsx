@@ -4,6 +4,7 @@ import Link from "next/link";
 import type { LoadedToken } from "@/hooks/useTokens";
 import type { Listing } from "@/hooks/useCollection";
 import { formatSoso } from "@/lib/format";
+import { Art } from "@/components/Art";
 import "./TokenCard.css";
 
 interface Props {
@@ -13,9 +14,15 @@ interface Props {
   listing?: Listing;
   owner?: `0x${string}`;
   viewerAddress?: `0x${string}`;
+  /**
+   * Set on the handful of cards above the fold. Everything else stays lazy —
+   * marking a whole grid priority just moves the queue rather than shortening
+   * it.
+   */
+  priority?: boolean;
 }
 
-export function TokenCard({ token, collection, listing, owner, viewerAddress }: Props) {
+export function TokenCard({ token, collection, listing, owner, viewerAddress, priority = false }: Props) {
   const isYours =
     owner !== undefined &&
     viewerAddress !== undefined &&
@@ -26,7 +33,21 @@ export function TokenCard({ token, collection, listing, owner, viewerAddress }: 
     <Link href={`/token/${collection}/${token.id}`} className="tcard">
       <div className="tcard-media">
         {token.image !== undefined ? (
-          <img src={token.image} alt={token.design ?? `Token ${token.id}`} loading="lazy" decoding="async" />
+          /**
+           * Through `Art`, not a bare <img>.
+           *
+           * IPFS serves exactly what was pinned and nothing smaller, so a raw
+           * tag put the full original into a ~240px slot: measured at ~270KB
+           * and 2.5-3.3s per image from the gateway, times a dozen cards. The
+           * optimiser fetches once, resizes to the slot and caches, which is
+           * the whole reason `Art` exists — this card simply never used it.
+           */
+          <Art
+            src={token.image}
+            alt={token.design ?? `Token ${token.id}`}
+            sizes="(max-width: 560px) 50vw, (max-width: 1100px) 33vw, 260px"
+            priority={priority}
+          />
         ) : (
           <div className="tcard-placeholder skeleton" aria-hidden="true" />
         )}
