@@ -40,11 +40,25 @@
 
 .kol-eyebrow {
   margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
   font-size: var(--step--2);
   font-weight: 700;
   letter-spacing: 0.2em;
   text-transform: uppercase;
   color: #c4a3d8;
+}
+
+/* Says the set is not on chain yet, without pretending it is a countdown —
+   there is no date, because the list is what decides it. */
+.kol-flag {
+  padding: 0.22rem 0.6rem;
+  border-radius: var(--r-pill);
+  background: rgba(253, 224, 71, 0.16);
+  border: 1px solid rgba(253, 224, 71, 0.42);
+  color: #fde047;
+  letter-spacing: 0.12em;
 }
 
 .kol-title {

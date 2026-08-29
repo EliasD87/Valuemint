@@ -644,3 +644,78 @@ textarea {
 .stack-lg {
   gap: 2.5rem;
 }
+
+/* ===================================================== touch and handsets ===
+ *
+ * Everything below is conditioned on `(pointer: coarse), (max-width: 760px)`
+ * rather than width alone. A touch laptop at 1400px needs the bigger targets
+ * as much as a phone does, and a narrow desktop window with a mouse does not —
+ * width is a proxy for input method, and on its own it gets both wrong.
+ * ========================================================================== */
+
+/**
+ * iOS Safari zooms the page in when a text field smaller than 16px takes
+ * focus, and does not zoom back out afterwards — the rest of the session is
+ * spent at 1.3x with the layout off-screen. Fields here inherit `--step-0`,
+ * which is 15px: one pixel into that behaviour.
+ *
+ * `max()` rather than a flat 16px so anything deliberately larger keeps its
+ * size.
+ *
+ * `!important`, deliberately and for once correctly. This is a floor, not a
+ * preference: any component that sets a smaller size re-introduces the bug,
+ * and several already do at specificities that beat anything reasonable here —
+ * `.coll-import-row .input` sets 13px from a stylesheet that loads after this
+ * one, so an equal-specificity rule loses on order alone. Chasing that with
+ * ever-longer selectors would mean revisiting this every time a small input is
+ * added.
+ */
+@media (pointer: coarse), (max-width: 760px) {
+  input,
+  select,
+  textarea,
+  .input {
+    font-size: max(16px, 1em) !important;
+  }
+}
+
+/* 11px is below what is comfortable at arm's length on a handset. The bottom
+   of the scale closes up with the step above it rather than the whole ramp
+   shifting, which would push every heading around. */
+@media (max-width: 760px) {
+  :root {
+    --step--3: 0.75rem;
+  }
+}
+
+/**
+ * 44x44 targets.
+ *
+ * These links are laid out as `min-height: 24px`, which clears WCAG 2.2 AA
+ * (2.5.8 asks for 24x24) but is well under the 44pt Apple has recommended
+ * since the first iPhone, and it shows on the small standalone links — a
+ * breadcrumb, a "view all", an explorer link — where there is nothing nearby
+ * to catch a near miss.
+ *
+ * Raised by min-height rather than a transparent overlay because every one of
+ * these sits alone or in a stacked list, so there is no neighbour to collide
+ * with. The header controls are the exception and keep their overlay: that row
+ * is fixed at `--header-h`, which five other stylesheets measure against.
+ */
+@media (pointer: coarse), (max-width: 760px) {
+  .head-link,
+  .token-crumb,
+  .token-explorer,
+  .footer-col ul a,
+  .footer-col ul .mono {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
+
+  .filt,
+  .btn,
+  .btn-sm {
+    min-height: 44px;
+  }
+}

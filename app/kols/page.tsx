@@ -31,7 +31,10 @@ export default function Kols() {
         <div className="kol-deep" aria-hidden="true" />
 
         <div className="page kol-hero-inner">
-          <p className="kol-eyebrow">One of one</p>
+          <p className="kol-eyebrow">
+            <span className="kol-flag">Coming soon</span>
+            One of one
+          </p>
           <h1 className="kol-title">The people who show up</h1>
           <p className="kol-lede">
             Portraits of the regulars on SoDEX — the ones posting through every candle. Made
@@ -62,8 +65,9 @@ export default function Kols() {
           <div className="kol-roster-head">
             <h2>The roster</h2>
             <p>
-              {KOLS.length} so far. It grows whenever someone worth adding turns up — this is
-              not a closed set.
+              {KOLS.length} so far, and not minted yet — the list is still growing, and it is
+              worth waiting until it stops before anything is written to the chain. It grows
+              whenever someone worth adding turns up; this is not a closed set.
             </p>
           </div>
 
