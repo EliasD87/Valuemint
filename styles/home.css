@@ -34,6 +34,14 @@
   max-width: 15ch;
 }
 
+/* 1.03 is tighter than the display face's own glyph extents; on a phone the
+   overshoot lands on the lede below it. */
+@media (max-width: 700px) {
+  .hero-title {
+    line-height: 1.14;
+  }
+}
+
 .hero-lede {
   font-size: var(--step-1);
   line-height: 1.65;
@@ -69,6 +77,13 @@
   font-weight: 800;
   letter-spacing: -0.04em;
   line-height: 1;
+}
+
+/* Set solid, which is exactly where a figure's cap height overshoots its box. */
+@media (max-width: 700px) {
+  .hero-figure b {
+    line-height: 1.2;
+  }
 }
 
 .hero-figure span {

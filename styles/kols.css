@@ -203,6 +203,10 @@
  * narrowest phone up. Three need 662px, hence the third appearing at 700.
  */
 @media (max-width: 760px) {
+  .kol-title {
+    line-height: 1.14;
+  }
+
   .kol-stage {
     --slab: min(30vw, 150px);
 

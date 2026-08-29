@@ -73,10 +73,25 @@ export default function Home() {
     [grouped],
   );
 
-  const featured = useMemo(
-    () => interleave([...grouped.values()].map((g) => g.items.filter((t) => t.image !== undefined))),
-    [grouped],
-  );
+  /**
+   * Buyable first, then the rest.
+   *
+   * This is a marketplace front page, and a grid that opens with rows of "Not
+   * listed" buries the only pieces a visitor can act on. Anything with a
+   * listing therefore comes first.
+   *
+   * Each band is interleaved on its own rather than sorting the whole list,
+   * which keeps the reason `interleave` exists: one collection's items must not
+   * fill the grid before another's appear. So the listed pieces are mixed
+   * across collections, and the unlisted ones are mixed across collections
+   * beneath them.
+   */
+  const featured = useMemo(() => {
+    const withArt = [...grouped.values()].map((g) => g.items.filter((t) => t.image !== undefined));
+    const listed = withArt.map((items) => items.filter((t) => t.listing !== undefined));
+    const unlisted = withArt.map((items) => items.filter((t) => t.listing === undefined));
+    return [...interleave(listed), ...interleave(unlisted)];
+  }, [grouped]);
 
   /** Collections a visitor can mint from right now, cheapest first. */
   const mintable = useMemo(

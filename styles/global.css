@@ -42,6 +42,13 @@ h4 {
   font-family: var(--display);
   font-optical-sizing: auto;
   font-weight: 700;
+  /**
+   * Bricolage Grotesque has tall ascenders and deep descenders, so leading at
+   * or under ~1.06 puts glyphs outside their own line box. Harmless on a
+   * desktop where a heading sits alone with space around it; on a phone the
+   * same heading sits directly above a rule or inside a 163px card, and the
+   * overshoot reads as text escaping its box.
+   */
   line-height: 1.06;
   letter-spacing: -0.035em;
   text-wrap: balance;
@@ -867,5 +874,17 @@ textarea {
   .hero-actions.hero-actions > * {
     width: 100%;
     justify-content: center;
+  }
+}
+
+/* Headings get room for their own glyphs on a handset — see the note above. */
+@media (max-width: 700px) {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    line-height: 1.16;
   }
 }

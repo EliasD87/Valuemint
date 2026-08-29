@@ -355,3 +355,22 @@
     --tabbar-h: 56px;
   }
 }
+
+/**
+ * Display sizes for a handset.
+ *
+ * The top of the scale is `clamp(min, vw, max)`, and on a phone the `vw` term
+ * is so small that the *minimum* always wins — so every clamp was handing a
+ * 375px screen its desktop floor: 44px for an h1, 36px, 25.6px for a section
+ * heading. The scale never actually scaled down.
+ *
+ * These are the mobile floors, about a fifth smaller at the top where it shows
+ * most. The lower steps are already sized for reading and are left alone.
+ */
+@media (max-width: 700px) {
+  :root {
+    --step-3: 1.4375rem; /* 23px, was 25.6 */
+    --step-4: 1.75rem; /*   28px, was 36   */
+    --step-5: 2rem; /*      32px, was 44   */
+  }
+}
