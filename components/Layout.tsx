@@ -99,9 +99,8 @@ export function Layout({ children }: { children: ReactNode }) {
 
           <div className="header-actions">
             <ThemeToggle />
-            <Link className="btn btn-primary btn-sm header-cta" href="/create">
-              Create
-            </Link>
+            {/* No Create button here: the nav already has one, and two controls
+                to the same page competed for the same corner. */}
             <Wallet />
             <button
               ref={menuButton}

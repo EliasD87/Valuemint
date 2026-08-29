@@ -19,9 +19,9 @@ import "@/styles/kols.css";
 
 /** The three with transparent cutouts, in the order they read best together. */
 const FEATURED = [
-  { file: "markinho", name: "MARKINHO", tint: "var(--plinth-a)" },
-  { file: "lutz", name: "LUTZ", tint: "var(--plinth-b)" },
-  { file: "takimi", name: "TAKIMI", tint: "var(--plinth-c)" },
+  { file: "markinho", tint: "var(--plinth-a)" },
+  { file: "lutz", tint: "var(--plinth-b)" },
+  { file: "takimi", tint: "var(--plinth-c)" },
 ] as const;
 
 export default function Kols() {
@@ -52,7 +52,6 @@ export default function Kols() {
                 priority
                 sizes="(max-width: 760px) 44vw, 320px"
               />
-              <span className="kol-plinth-name">{f.name}</span>
             </div>
           ))}
         </div>

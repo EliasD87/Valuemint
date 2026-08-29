@@ -246,10 +246,9 @@
   .header-inner {
     gap: 0.6rem;
   }
-  /* The wide nav and the Create button both give way; Create is the first item
-     in the panel's reach anyway, and the wallet is what people came for. */
-  .nav,
-  .header-cta {
+  /* The wide nav gives way to the menu button; the wallet is what people came
+     for and stays. */
+  .nav {
     display: none;
   }
   .menu-button {

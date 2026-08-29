@@ -97,8 +97,12 @@
    */
   gap: clamp(2rem, 9vw, 130px);
   margin-top: clamp(2.5rem, 6vw, 4.5rem);
-  /* Room under the slabs for the names, which sit outside them. */
-  padding: 0 var(--gutter) clamp(2.75rem, 5vw, 3.75rem);
+  /**
+   * No bottom padding: the slabs sit *on* the edge where the hero ends and the
+   * roster begins, so the figures look planted on that line rather than
+   * floating above it with a strip of ground showing beneath.
+   */
+  padding: 0 var(--gutter);
   /* The figures rise out of the slabs, so the row needs headroom above it that
      no amount of margin on the figure itself can create. */
   padding-top: clamp(70px, 11vw, 150px);
@@ -123,6 +127,24 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.35);
 }
 
+/**
+ * Each figure rises into place on load, one after another.
+ *
+ * `translateY` and `opacity` only — both composited, so the slabs behind them
+ * are never re-laid-out. The stagger is what makes it read as three people
+ * stepping up rather than one block sliding.
+ */
+@keyframes kol-rise {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(26px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
 .kol-figure {
   position: absolute;
   left: 50%;
@@ -135,27 +157,18 @@
   /* Grounds the figure on the slab instead of floating over it. */
   filter: drop-shadow(0 18px 22px rgba(23, 8, 31, 0.55));
   pointer-events: none;
+  animation: kol-rise 760ms var(--ease) backwards;
 }
 
-/**
- * Below the slab, not on it.
- *
- * Inside the slab the label lands on the character's chest, and one of the
- * three wears a plain black t-shirt — a dark label there is invisible, and a
- * light one is invisible on the two bright gradients. Off the slab it sits on
- * the hero's own dark ground, where one colour works for all three.
- */
-.kol-plinth-name {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: calc(100% + 0.7rem);
-  text-align: center;
-  font-family: var(--display);
-  font-size: var(--step--2);
-  font-weight: 800;
-  letter-spacing: 0.14em;
-  color: #d7c4e4;
+/* Middle first, then the flanks — the eye lands on the centre anyway. */
+.kol-plinth:nth-child(2) .kol-figure {
+  animation-delay: 0ms;
+}
+.kol-plinth:nth-child(1) .kol-figure {
+  animation-delay: 110ms;
+}
+.kol-plinth:nth-child(3) .kol-figure {
+  animation-delay: 220ms;
 }
 
 /**
@@ -185,7 +198,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .kol-figure {
-    transition: none;
+    animation: none;
   }
 }
 
