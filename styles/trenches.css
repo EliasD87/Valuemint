@@ -1,0 +1,549 @@
+/**
+ * The Trenches.
+ *
+ * Dark in both themes, because the subject is depth and the artwork is meant to
+ * come out of it. Everything inside the hero therefore uses the --dark-* family,
+ * never --paper/--ink, which invert.
+ *
+ * Each tier passes its own colour down as `--tier`, so one set of rules covers
+ * all ten and a tier can be recoloured in config without touching layout.
+ */
+
+.tr {
+  --tier: var(--accent);
+}
+
+/* ===================================================================== hero */
+
+.tr-hero {
+  position: relative;
+  overflow: hidden;
+  background: #05070c;
+  color: var(--dark-ink);
+  isolation: isolate;
+  padding: clamp(2.5rem, 7vw, 6rem) 0 clamp(3rem, 8vw, 6rem);
+}
+
+.tr-hero-grid {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+  align-items: center;
+  gap: clamp(2rem, 5vw, 4rem);
+}
+
+.tr-hero-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1.15rem;
+}
+
+@media (max-width: 900px) {
+  .tr-hero-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Water column: light at the top, nothing at the bottom. */
+.tr-deep {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  background:
+    linear-gradient(180deg, #0d2438 0%, #08131f 34%, #05070c 72%, #04050a 100%);
+}
+
+/* Light shafts from a surface far above. Wide, soft, and slightly askew, so
+   they read as sunlight through water rather than a stage effect. */
+/**
+ * Ambient light in the water.
+ *
+ * Three broad washes drawn from the ends of the tier palette — cyan at the
+ * surface, violet mid-column, a bare hint of Leviathan's gold far down. Much
+ * stronger than the light shafts this replaced, which were so faint at 0.13
+ * that the hero read as flat black.
+ */
+.tr-glow {
+  position: absolute;
+  inset: -30% -20%;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(38% 46% at 14% 8%, rgba(56, 189, 248, 0.3), transparent 70%),
+    radial-gradient(44% 50% at 86% 26%, rgba(124, 58, 237, 0.34), transparent 72%),
+    radial-gradient(40% 40% at 62% 96%, rgba(245, 158, 11, 0.14), transparent 70%),
+    radial-gradient(60% 60% at 50% 50%, rgba(6, 182, 212, 0.08), transparent 75%);
+  filter: blur(24px);
+}
+
+
+
+.tr-eyebrow {
+  font-size: var(--step--2);
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: #7dd3fc;
+}
+
+.tr-title {
+  font-family: var(--display);
+  font-optical-sizing: auto;
+  font-size: clamp(2.6rem, 6.4vw, 5rem);
+  font-weight: 800;
+  letter-spacing: -0.05em;
+  line-height: 0.94;
+  margin: 0;
+  color: #f4f9ff;
+  text-wrap: balance;
+}
+
+/* One word carries the colour, as the reference does with its accent term. */
+.tr-title em {
+  font-style: normal;
+  background: linear-gradient(96deg, #7dd3fc 0%, #38bdf8 44%, #a78bfa 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.tr-lede {
+  font-size: var(--step-1);
+  line-height: 1.6;
+  color: #9fb6c9;
+  max-width: 42ch;
+}
+
+.tr-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+}
+
+/* Outlined companion to the solid primary, per the reference's pairing. */
+.tr-btn-ghost {
+  background: transparent;
+  border-color: rgba(255, 255, 255, 0.22);
+  color: #e8f2fa;
+}
+.tr-btn-ghost:hover:not(:disabled) {
+  border-color: #7dd3fc;
+  background: rgba(125, 211, 252, 0.08);
+}
+
+.tr-check {
+  margin-top: 0.6rem;
+  width: min(100%, 30rem);
+}
+
+/* =================================================================== stack */
+
+/**
+ * Ten plates descending into the dark.
+ *
+ * Real perspective rather than a flat stepped row: each plate sits further back
+ * on the Z axis, lower, and slightly rotated, so the column reads as a shaft
+ * going *into* the screen. On a page about depth that is the whole idea, and it
+ * is what the flat row I built first was missing.
+ *
+ * Depth cues compound — smaller, dimmer, less saturated, more blurred — because
+ * any one of them alone reads as a mistake rather than distance.
+ */
+.tr-stack {
+  position: relative;
+  min-height: clamp(300px, 44vw, 520px);
+  perspective: 900px;
+  perspective-origin: 50% 34%;
+  display: grid;
+  place-items: center;
+}
+
+.tr-stack-inner {
+  position: relative;
+  width: min(100%, 22rem);
+  aspect-ratio: 1;
+  transform-style: preserve-3d;
+  transform: rotateX(11deg) rotateZ(-3deg);
+}
+
+.tr-plate {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--r-xl);
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  background: #0a1119;
+  /* Each step: further back, lower, and turned a little more. */
+  transform:
+    translate3d(calc(var(--i) * 5%), calc(var(--i) * 7.4%), calc(var(--i) * -104px))
+    rotate(calc(var(--i) * 1.6deg));
+  opacity: calc(1 - (var(--i) * 0.082));
+  filter: saturate(calc(1 - (var(--i) * 0.085))) brightness(calc(1 - (var(--i) * 0.062)))
+    blur(calc(var(--i) * 0.34px));
+  box-shadow: 0 30px 70px -28px rgba(0, 0, 0, 0.95);
+  transition: transform var(--med), filter var(--med), box-shadow var(--med);
+}
+
+/* The nearest plate is the reader's anchor, so it stays fully lit. */
+.tr-plate:first-child {
+  filter: none;
+  opacity: 1;
+}
+
+.tr-plate.is-lit {
+  border-color: color-mix(in srgb, var(--tier) 60%, transparent);
+  filter: none;
+  opacity: 1;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--tier) 28%, transparent),
+    0 34px 80px -30px var(--tier);
+}
+
+.tr-plate img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.tr-plate-n {
+  position: absolute;
+  top: 0.7rem;
+  left: 0.8rem;
+  font-family: var(--display);
+  font-size: var(--step--1);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: var(--r-pill);
+  padding: 0.12rem 0.55rem;
+  backdrop-filter: blur(4px);
+}
+
+/* Spread the shaft open on hover, so a reader can see what is down there. */
+.tr-stack:hover .tr-plate {
+  transform:
+    translate3d(calc(var(--i) * 7.5%), calc(var(--i) * 9.4%), calc(var(--i) * -128px))
+    rotate(calc(var(--i) * 2.4deg));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tr-plate {
+    transition: none;
+  }
+  .tr-stack:hover .tr-plate {
+    transform:
+      translate3d(calc(var(--i) * 5%), calc(var(--i) * 7.4%), calc(var(--i) * -104px))
+      rotate(calc(var(--i) * 1.6deg));
+  }
+}
+
+@media (max-width: 900px) {
+  .tr-stack {
+    min-height: 340px;
+  }
+  .tr-stack-inner {
+    width: min(86%, 17rem);
+  }
+}
+
+/* ================================================================== result */
+
+.tr-result {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  padding: 1.35rem;
+  border-radius: var(--r-lg);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(8, 19, 31, 0.72);
+  backdrop-filter: blur(14px);
+  text-align: left;
+}
+
+.tr-result.is-found {
+  border-color: color-mix(in srgb, var(--tier) 42%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--tier) 16%, transparent),
+    0 30px 70px -34px var(--tier);
+}
+
+.tr-result-skeleton {
+  height: 3.6rem;
+  border-radius: var(--r-md);
+}
+
+.tr-result-head {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.tr-result-art {
+  position: relative;
+  display: block;
+  width: 72px;
+  height: 72px;
+  flex: none;
+  border-radius: var(--r-md);
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--tier) 45%, transparent);
+}
+
+.tr-result-label {
+  display: block;
+  font-size: var(--step--3);
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #8fa8bd;
+}
+
+.tr-result-name {
+  display: block;
+  font-family: var(--display);
+  font-optical-sizing: auto;
+  font-size: var(--step-3);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1.05;
+  color: var(--tier);
+}
+
+.tr-result-sub {
+  font-size: var(--step--1);
+  color: #9fb6c9;
+}
+
+.tr-result-figs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem 2rem;
+  margin: 0;
+  padding-top: 0.9rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.09);
+}
+
+.tr-result-figs > div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.tr-result-figs dt {
+  font-size: var(--step--3);
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #8fa8bd;
+}
+
+.tr-result-figs dd {
+  margin: 0;
+  font-size: var(--step-1);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: #f2f7fb;
+}
+
+.tr-result-next {
+  margin: 0;
+  font-size: var(--step--1);
+  color: #9fb6c9;
+  line-height: 1.5;
+}
+.tr-result-next b {
+  color: #f2f7fb;
+}
+
+.tr-result-none,
+.tr-result-error {
+  margin: 0;
+  font-size: var(--step-0);
+  line-height: 1.6;
+  color: #9fb6c9;
+}
+.tr-result-none b {
+  color: #f2f7fb;
+}
+.tr-result-none a {
+  color: #7dd3fc;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.tr-result-error {
+  color: #ffb4ab;
+}
+
+.tr-result-fine {
+  margin: 0;
+  font-size: var(--step--2);
+  color: #7f96a9;
+  line-height: 1.5;
+}
+
+/* =================================================================== tiles */
+
+/**
+ * The ten, running off both edges.
+ *
+ * Full bleed and horizontally scrolled rather than a tidy grid, so the set
+ * reads as continuing past the screen. Snap points stop it drifting to a
+ * half-shown card.
+ */
+.tr-rail {
+  display: flex;
+  gap: 1rem;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  padding: 0.25rem var(--gutter) 1.25rem;
+  /* Break out of the page container to the full viewport width. */
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) transparent;
+}
+
+.tr-rail > * {
+  flex: none;
+  width: clamp(15rem, 21vw, 18rem);
+  scroll-snap-align: start;
+}
+
+.tr-tile {
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  transition: border-color var(--fast), transform var(--med), box-shadow var(--med);
+}
+
+.tr-tile:hover {
+  transform: translateY(-3px);
+  border-color: var(--line-strong);
+  box-shadow: var(--shadow-lg);
+}
+
+.tr-tile-art {
+  position: relative;
+  aspect-ratio: 1;
+  overflow: hidden;
+  background: var(--paper-3);
+  border-bottom: 1px solid var(--line);
+}
+
+.tr-tile-art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  /* Locked depths are dimmed rather than hidden: seeing what is further down is
+     the point of a ladder. */
+  filter: saturate(0.25) brightness(0.82);
+  transition: filter var(--med), transform var(--med);
+}
+
+.tr-tile.is-unlocked .tr-tile-art img {
+  filter: none;
+}
+
+.tr-tile:hover .tr-tile-art img {
+  transform: scale(1.04);
+}
+
+.tr-tile-n {
+  position: absolute;
+  top: 0.55rem;
+  left: 0.6rem;
+  font-family: var(--display);
+  font-size: var(--step--2);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.55);
+  border-radius: var(--r-pill);
+  padding: 0.1rem 0.5rem;
+  backdrop-filter: blur(4px);
+}
+
+.tr-tile-flag {
+  position: absolute;
+  top: 0.55rem;
+  right: 0.6rem;
+  font-size: var(--step--3);
+  font-weight: 700;
+  color: #06131c;
+  background: var(--tier);
+  border-radius: var(--r-pill);
+  padding: 0.16rem 0.55rem;
+}
+
+.tr-tile-body {
+  padding: 0.85rem 0.95rem 0.9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1;
+}
+
+.tr-tile-body h3 {
+  font-family: var(--display);
+  font-optical-sizing: auto;
+  font-size: var(--step-1);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  margin: 0;
+  color: var(--ink);
+}
+
+.tr-tile.is-unlocked .tr-tile-body h3 {
+  color: var(--tier);
+}
+
+.tr-tile-body p {
+  font-size: var(--step--2);
+  color: var(--ink-3);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.tr-tile-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: auto;
+  padding: 0.7rem 0.95rem;
+  border-top: 1px solid var(--line);
+  background: var(--surface-2);
+  font-size: var(--step--2);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-2);
+}
+
+.tr-tile-state {
+  color: var(--ink-3);
+}
+
+.tr-tile.is-unlocked .tr-tile-state {
+  color: var(--tier);
+}
+
+.tr-note {
+  margin-top: 1.4rem;
+  font-size: var(--step--1);
+  color: var(--ink-3);
+  line-height: 1.65;
+  max-width: 60ch;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tr-tile,
+  .tr-tile-art img {
+    transition: none;
+  }
+  .tr-tile:hover {
+    transform: none;
+  }
+}

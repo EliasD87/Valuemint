@@ -12,6 +12,7 @@
  */
 export const OPTIMISED_IMAGE_HOSTS = [
   "lavender-tiny-loon-904.mypinata.cloud",
+  "ipfs.filebase.io",
   "gateway.pinata.cloud",
   "ipfs.io",
   "cloudflare-ipfs.com",
