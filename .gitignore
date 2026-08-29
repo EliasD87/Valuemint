@@ -22,3 +22,11 @@ Thumbs.db
 .vscode/
 .idea/
 *.log
+
+# Project notes for Claude. Local only.
+#
+# This is a working document: it records the security posture, the traps already
+# paid for, and the weaknesses not yet closed. That last part is the problem —
+# a public copy tells anyone exactly where the soft spots are. It carries no
+# credentials, but it should never have been pushed.
+CLAUDE.md
