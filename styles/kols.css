@@ -186,48 +186,48 @@
 }
 
 /**
- * Below 760px the row becomes a swipe.
+ * Phones: two figures, smaller, no sideways scrolling.
  *
- * Three abreast genuinely does not fit: the slab bottoms out at its floor while
- * the figures keep their proportions, and at 375px three only clear each other
- * with *zero* overhang — on 94px slabs, with the heads no longer breaking the
- * top edge, which is the whole effect. Showing one instead was worse: two
- * thirds of the set simply gone.
+ * The first attempt kept the figures at full size and let the row scroll. That
+ * showed all three but hid two of them behind a swipe nobody is told about,
+ * which is only marginally better than not drawing them.
  *
- * So the row keeps its full size and scrolls, snapping each figure to centre.
- * All three are present, each at a usable size, and the next one peeking past
- * the edge is what says there are more.
+ * Shrinking instead is what actually fits. The binding constraint is that a
+ * figure is much wider than the slab it stands on — sized to break the top
+ * edge, MARKINHO beside LUTZ needs 1.53 slab-widths between centres. So the gap
+ * is set as a fraction of the slab rather than of the viewport (0.55x, giving
+ * 1.55) and the clearance then holds at every width instead of only the one it
+ * was tuned at.
+ *
+ * Two span 344px at 360 and 358 at 375, so they fit with room from the
+ * narrowest phone up. Three need 662px, hence the third appearing at 700.
  */
 @media (max-width: 760px) {
   .kol-stage {
-    flex-wrap: nowrap;
-    justify-content: flex-start;
-    overflow-x: auto;
-    overscroll-behavior-x: contain;
-    scroll-snap-type: x mandatory;
-    /**
-     * Wide enough that a figure never overlaps its neighbour — the same
-     * constraint as on desktop, just no longer bounded by the viewport.
-     *
-     * Sized against the widest pair, MARKINHO beside LUTZ, which needs 321px
-     * between slab centres at 375. Checked from 360 to 760: clears at every
-     * step with ~10px to spare.
-     */
-    gap: clamp(7rem, 32vw, 160px);
-    /* Lets the first and last snap to the centre rather than the edge. */
-    padding-inline: calc(50% - min(28vw, 130px));
-    padding-top: clamp(56px, 17vw, 110px);
-    /* The bar is noise under a composition; the peeking figure is the affordance. */
-    scrollbar-width: none;
-  }
+    --slab: min(30vw, 150px);
 
-  .kol-stage::-webkit-scrollbar {
-    display: none;
+    flex-wrap: nowrap;
+    justify-content: center;
+    gap: calc(var(--slab) * 0.55);
+    /**
+     * No side gutter here, unlike every other row on the page. The figures
+     * overhang their slabs by design, so the pair spans 3.06 slab-widths — a
+     * gutter takes that out of the budget and pushes the outer figure past the
+     * edge, which is what happened at 375. They are meant to reach the edges.
+     */
+    padding-inline: 0;
+    padding-top: clamp(46px, 14vw, 88px);
   }
 
   .kol-plinth {
-    flex: 0 0 min(56vw, 260px);
-    scroll-snap-align: center;
+    flex: 0 0 var(--slab);
+  }
+}
+
+/* Below this the third has nowhere to stand without overlapping its neighbour. */
+@media (max-width: 699px) {
+  .kol-plinth:nth-child(3) {
+    display: none;
   }
 }
 
