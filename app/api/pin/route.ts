@@ -1,7 +1,18 @@
 import { NextResponse } from "next/server";
 import { assignDesigns, supplyOf, type DesignInput } from "@/lib/buildMetadata";
 import type { CollectionManifest, ManifestDesign } from "@/lib/collectionManifest";
-import { filebaseAvailable, pinFile, pinFiles } from "@/lib/filebase";
+import { filebaseAvailable, pinFile, pinFiles, verifyFilebase } from "@/lib/filebase";
+
+/**
+ * Whether artwork can be stored at all.
+ *
+ * Either backend will do. This used to require PINATA_JWT specifically, which
+ * meant a deployment configured with Filebase alone - the only backend new
+ * uploads actually use - refused every upload with "not configured".
+ */
+function storageAvailable(): boolean {
+  return filebaseAvailable() || pinningAvailable();
+}
 import { gatewayUrl, pinDirectory, pinningAvailable, verifyCredential } from "@/lib/pinning";
 import { authoriseUpload, precheckClaim } from "@/lib/uploadAuth";
 import { callerKey, limiter } from "@/lib/rateLimit";
@@ -65,7 +76,7 @@ const MAX_SUPPLY = 100_000;
 export async function GET(request: Request) {
   // Lets the creator be told up front whether uploads work at all, rather than
   // failing after they have chosen their artwork.
-  if (!pinningAvailable()) {
+  if (!storageAvailable()) {
     return NextResponse.json({ ready: false, reason: "not-configured" });
   }
 
@@ -81,13 +92,14 @@ export async function GET(request: Request) {
   if (probeCache !== undefined && now - probeCache.at < PROBE_TTL) {
     return NextResponse.json({ ready: probeCache.ready });
   }
-  const ready = await verifyCredential();
+  // Check whichever backend will actually be used, not always Pinata.
+  const ready = filebaseAvailable() ? (await verifyFilebase()).ok : await verifyCredential();
   probeCache = { at: now, ready };
   return NextResponse.json({ ready });
 }
 
 export async function POST(request: Request) {
-  if (!pinningAvailable()) {
+  if (!storageAvailable()) {
     return NextResponse.json(
       { error: "Uploads are not configured on this server." },
       { status: 503 },
