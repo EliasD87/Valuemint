@@ -18,7 +18,7 @@
 .tr-hero {
   position: relative;
   overflow: hidden;
-  background: #05070c;
+  background: #0a0a0c;
   color: var(--dark-ink);
   isolation: isolate;
   padding: clamp(2.5rem, 7vw, 6rem) 0 clamp(3rem, 8vw, 6rem);
@@ -77,46 +77,53 @@
   }
 }
 
-/* Water column: light at the top, nothing at the bottom. */
+/**
+ * Neutral dark, not a blue water column.
+ *
+ * The first version graded from #101013 — a distinctly blue navy — down to
+ * black, on the theory that the page is about depth. In practice it read as a
+ * blue wash behind artwork that is already full of colour, and the two fought.
+ * A neutral ground lets the pieces carry the colour instead.
+ */
 .tr-deep {
   position: absolute;
   inset: 0;
   z-index: -2;
-  background:
-    linear-gradient(180deg, #0d2438 0%, #08131f 34%, #05070c 72%, #04050a 100%);
+  background: linear-gradient(180deg, #101013 0%, #0b0b0d 46%, #08080a 100%);
 }
 
 /* Light shafts from a surface far above. Wide, soft, and slightly askew, so
    they read as sunlight through water rather than a stage effect. */
 /**
- * Ambient light in the water.
+ * A single soft pool of light behind the artwork.
  *
- * Three broad washes drawn from the ends of the tier palette — cyan at the
- * surface, violet mid-column, a bare hint of Leviathan's gold far down. Much
- * stronger than the light shafts this replaced, which were so faint at 0.13
- * that the hero read as flat black.
+ * Was three saturated washes in cyan, violet and gold. Against ten already
+ * colourful pieces that was noise, and it tinted the whole hero blue. One
+ * near-white pool, barely there, gives the stack something to sit against
+ * without adding a hue of its own.
  */
 .tr-glow {
   position: absolute;
-  inset: -30% -20%;
+  inset: -20%;
   z-index: -1;
   pointer-events: none;
   background:
-    radial-gradient(38% 46% at 14% 8%, rgba(56, 189, 248, 0.3), transparent 70%),
-    radial-gradient(44% 50% at 86% 26%, rgba(124, 58, 237, 0.34), transparent 72%),
-    radial-gradient(40% 40% at 62% 96%, rgba(245, 158, 11, 0.14), transparent 70%),
-    radial-gradient(60% 60% at 50% 50%, rgba(6, 182, 212, 0.08), transparent 75%);
-  filter: blur(24px);
+    radial-gradient(38% 44% at 72% 42%, rgba(255, 255, 255, 0.055), transparent 72%),
+    radial-gradient(46% 46% at 20% 18%, rgba(255, 255, 255, 0.03), transparent 70%);
+  filter: blur(20px);
 }
 
 
 
 .tr-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
   font-size: var(--step--2);
   font-weight: 700;
-  letter-spacing: 0.2em;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: #7dd3fc;
+  color: #8b8b93;
 }
 
 .tr-title {
@@ -127,7 +134,7 @@
   letter-spacing: -0.05em;
   line-height: 0.94;
   margin: 0;
-  color: #f4f9ff;
+  color: #f7f7f9;
   text-wrap: balance;
 }
 
@@ -143,7 +150,7 @@
 .tr-lede {
   font-size: var(--step-1);
   line-height: 1.6;
-  color: #9fb6c9;
+  color: #a1a1aa;
   max-width: 42ch;
 }
 
@@ -157,11 +164,11 @@
 .tr-btn-ghost {
   background: transparent;
   border-color: rgba(255, 255, 255, 0.22);
-  color: #e8f2fa;
+  color: #eaeaec;
 }
 .tr-btn-ghost:hover:not(:disabled) {
-  border-color: #7dd3fc;
-  background: rgba(125, 211, 252, 0.08);
+  border-color: rgba(255, 255, 255, 0.42);
+  background: rgba(255, 255, 255, 0.07);
 }
 
 .tr-check {
@@ -217,7 +224,7 @@
   border-radius: var(--r-xl);
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.14);
-  background: #0a1119;
+  background: #0e0e11;
   box-shadow: 0 30px 70px -28px rgba(0, 0, 0, 0.95);
   opacity: 0;
   animation: tr-cycle 24s linear infinite;
@@ -371,7 +378,7 @@
   font-weight: 600;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: #8fa8bd;
+  color: #8b8b93;
 }
 
 .tr-result-name {
@@ -387,7 +394,7 @@
 
 .tr-result-sub {
   font-size: var(--step--1);
-  color: #9fb6c9;
+  color: #a1a1aa;
 }
 
 .tr-result-figs {
@@ -410,7 +417,7 @@
   font-weight: 600;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  color: #8fa8bd;
+  color: #8b8b93;
 }
 
 .tr-result-figs dd {
@@ -418,17 +425,17 @@
   font-size: var(--step-1);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
-  color: #f2f7fb;
+  color: #f4f4f6;
 }
 
 .tr-result-next {
   margin: 0;
   font-size: var(--step--1);
-  color: #9fb6c9;
+  color: #a1a1aa;
   line-height: 1.5;
 }
 .tr-result-next b {
-  color: #f2f7fb;
+  color: #f4f4f6;
 }
 
 .tr-result-none,
@@ -436,10 +443,10 @@
   margin: 0;
   font-size: var(--step-0);
   line-height: 1.6;
-  color: #9fb6c9;
+  color: #a1a1aa;
 }
 .tr-result-none b {
-  color: #f2f7fb;
+  color: #f4f4f6;
 }
 .tr-result-none a {
   color: #7dd3fc;
@@ -453,7 +460,7 @@
 .tr-result-fine {
   margin: 0;
   font-size: var(--step--2);
-  color: #7f96a9;
+  color: #78787f;
   line-height: 1.5;
 }
 
@@ -548,7 +555,7 @@
   right: 0.6rem;
   font-size: var(--step--3);
   font-weight: 700;
-  color: #06131c;
+  color: #0e0e10;
   background: var(--tier);
   border-radius: var(--r-pill);
   padding: 0.16rem 0.55rem;
