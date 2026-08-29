@@ -203,20 +203,23 @@
   width: min(74%, 19rem);
   aspect-ratio: 1;
   transform-style: preserve-3d;
-  transform: rotateX(11deg) rotateZ(-3deg);
 }
 
 /**
- * One journey, ten plates, offset in time.
+ * Ten pieces rising out of the dark.
  *
- * Every plate runs the same keyframes and differs only by a negative delay, so
- * the fan is always full and the wrap-around is never visible. A plate rises
- * out of the dark at the back, comes forward through the fan, then drifts up
- * and away — 24s each, one arriving every 2.4s.
+ * Two layers of motion, because one alone reads as a conveyor belt:
  *
- * This replaced a JavaScript index that advanced on a timer. That version
- * removed a plate from the DOM when it left the fan and reinstated it at the
- * front, which read as a pop rather than a loop.
+ *   tr-rise  — each plate's own journey, from deep and small at the bottom
+ *              right, up through a focus point where it is sharp and fully
+ *              lit, then away over the viewer's shoulder.
+ *   tr-drift — a slow sway on the whole group, so the fan breathes like
+ *              something suspended in water rather than sliding on rails.
+ *
+ * The focus pull is what sells the depth: plates enter and leave blurred and
+ * dim, and are only sharp in the middle of the journey. That is a camera with
+ * a shallow depth of field, and it does more for the sense of distance than
+ * scale alone.
  */
 .tr-plate {
   position: absolute;
@@ -227,45 +230,74 @@
   background: #0e0e11;
   box-shadow: 0 30px 70px -28px rgba(0, 0, 0, 0.95);
   opacity: 0;
-  animation: tr-cycle 24s linear infinite;
-  animation-delay: calc(var(--i) * -2.4s);
-  will-change: transform, opacity;
+  animation: tr-rise 22s cubic-bezier(0.42, 0, 0.35, 1) infinite;
+  animation-delay: calc(var(--i) * -2.2s);
+  will-change: transform, opacity, filter;
 }
 
-@keyframes tr-cycle {
-  /* far back, deep in the dark */
+@keyframes tr-rise {
+  /* deep, small, and well out of focus */
   0% {
-    transform: translate3d(58%, 20%, -520px) rotate(13deg) ;
+    transform: translate3d(52%, 62%, -760px) rotate(10deg) ;
     opacity: 0;
-    filter: brightness(0.45) saturate(0.4);
+    filter: brightness(0.3) saturate(0.35) blur(4px);
   }
-  8% {
-    opacity: 0.55;
+  10% {
+    opacity: 0.5;
   }
-  /* working forward through the fan */
-  30% {
-    transform: translate3d(30%, 10%, -240px) rotate(6.5deg);
-    opacity: 0.8;
-    filter: brightness(0.75) saturate(0.7);
+  /* climbing, coming into focus */
+  32% {
+    transform: translate3d(22%, 26%, -300px) rotate(4.5deg);
+    opacity: 0.85;
+    filter: brightness(0.72) saturate(0.75) blur(1.4px);
   }
-  /* front and centre, fully lit — held briefly so it can be read */
-  46%,
-  58% {
+  /* held sharp at the front, long enough to actually be looked at */
+  50%,
+  62% {
     transform: translate3d(0, 0, 0) rotate(0deg);
     opacity: 1;
     filter: none;
   }
-  /* drifting up and away */
-  82% {
-    transform: translate3d(-26%, -16%, 260px) rotate(-7deg);
+  /* rising past the viewer, blurring out again */
+  86% {
+    transform: translate3d(-30%, -46%, 240px) rotate(-6deg);
     opacity: 0;
-    filter: brightness(1.1);
+    filter: brightness(1.2) blur(3px);
   }
   100% {
-    transform: translate3d(-26%, -16%, 260px) rotate(-7deg);
+    transform: translate3d(-30%, -46%, 240px) rotate(-6deg);
     opacity: 0;
-    filter: brightness(1.1);
+    filter: brightness(1.2) blur(3px);
   }
+}
+
+/* The whole shoal sways, on a period that does not divide evenly into the
+   rise, so the two never sync into an obvious pattern. */
+.tr-stack-inner {
+  animation: tr-drift 13s ease-in-out infinite;
+}
+
+@keyframes tr-drift {
+  0%,
+  100% {
+    transform: rotateX(9deg) rotateZ(-2deg) translate3d(0, 0, 0);
+  }
+  50% {
+    transform: rotateX(6deg) rotateZ(1.5deg) translate3d(1.5%, -2%, 0);
+  }
+}
+
+/**
+ * Hover holds the loop where it is.
+ *
+ * This used to change `animation-duration`, which makes the browser recompute
+ * every plate's position in its own timeline — and with negative delays they
+ * all jumped at once. Pausing freezes in place and resumes from the same
+ * frame, which is what "let me look at this" should do.
+ */
+.tr-stack:hover .tr-plate,
+.tr-stack:hover .tr-stack-inner {
+  animation-play-state: paused;
 }
 
 /* An earned tier keeps its glow as it passes the front. */
@@ -273,11 +305,6 @@
   border-color: color-mix(in srgb, var(--tier) 60%, transparent);
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--tier) 28%, transparent),
     0 34px 80px -30px var(--tier);
-}
-
-/* Slow the loop while a reader is looking at it, rather than stopping dead. */
-.tr-stack:hover .tr-plate {
-  animation-duration: 44s;
 }
 
 .tr-plate img {
@@ -314,16 +341,20 @@
 }
 
 /**
- * No motion: no loop. The plates fan out statically instead, so the section
- * still shows several pieces rather than a single frozen frame.
+ * No motion: no loop, no sway. The plates fan out statically so the section
+ * still shows several pieces rather than one frozen frame.
  */
 @media (prefers-reduced-motion: reduce) {
-  .tr-plate {
+  .tr-plate,
+  .tr-stack-inner {
     animation: none;
+  }
+  .tr-plate {
     opacity: calc(1 - (var(--i) * 0.19));
     transform:
       translate3d(calc(var(--i) * 11%), calc(var(--i) * 3%), calc(var(--i) * -34px))
       rotate(calc(var(--i) * 2.6deg));
+    filter: none;
   }
   .tr-plate:nth-child(n + 6) {
     display: none;
