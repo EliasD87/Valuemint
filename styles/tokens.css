@@ -138,6 +138,17 @@
   --page-max: 82rem;
   --measure: 32rem;
   --header-h: 72px;
+  /**
+   * Height of the fixed bottom tab bar. Zero on desktop, where there is no
+   * bar, so `calc(100svh - var(--header-h) - var(--tabbar-h))` is correct at
+   * every width without a media query at the call site.
+   *
+   * The responsive value lives here rather than beside the bar in Layout.css:
+   * this file loads last, so a `:root` declared anywhere else ties on
+   * specificity and loses on order — which is exactly what happened, leaving
+   * the Trenches hero 27px underneath the bar.
+   */
+  --tabbar-h: 0px;
 
   /* Shadows are almost absent by default; borders do the separating. */
   --shadow-sm: 0 1px 2px rgba(14, 14, 16, 0.05);
@@ -335,4 +346,12 @@
     fill 220ms var(--ease),
     box-shadow 220ms var(--ease) !important;
   transition-delay: 0s !important;
+}
+
+/* The tab bar appears at the same width the header's nav collapses. Kept with
+   the token rather than with the component, for the load-order reason above. */
+@media (max-width: 860px) {
+  :root {
+    --tabbar-h: 56px;
+  }
 }

@@ -6,6 +6,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Wallet } from "./Wallet";
 import { ThemeToggle } from "./ThemeToggle";
 import { SodexLogo } from "./SodexLogo";
+import { MobileTabs } from "./MobileTabs";
 import { deployment } from "@/config/contracts";
 import "./Layout.css";
 
@@ -155,6 +156,8 @@ export function Layout({ children }: { children: ReactNode }) {
       <main id="main">
         {children}
       </main>
+
+      <MobileTabs />
 
       <footer className="footer">
         <div className="footer-inner">

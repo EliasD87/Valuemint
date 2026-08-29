@@ -719,3 +719,122 @@ textarea {
     min-height: 44px;
   }
 }
+
+/* ==================================================== phones: card density ==
+ *
+ * Every card grid here is `repeat(auto-fill, minmax(min(Nrem, 100%), 1fr))`,
+ * which is right on a desktop and collapses on a phone: 15rem is 240px, two of
+ * those need 480px, and a 375px screen has ~335px of content width — so one
+ * column, and the card stretches to fill it. Twenty tokens then cost twelve
+ * screens of scrolling, one poster at a time.
+ *
+ * Two columns is what every marketplace app does on a handset, and it turns
+ * the same grid from scrolling into scanning. `minmax(0, 1fr)` rather than a
+ * rem floor so the columns divide whatever width there is instead of
+ * re-collapsing on a narrow device.
+ *
+ * The selectors are doubled. Each grid is defined in its own page stylesheet,
+ * which Next loads *after* this one, so a single class here ties on
+ * specificity and loses on order — the first version of this rule changed
+ * nothing at all. Doubling wins without reaching for `!important`, and keeps
+ * the whole mobile layout in one place to review rather than scattered across
+ * six files.
+ * ========================================================================== */
+
+@media (max-width: 700px) {
+  .grid-tokens.grid-tokens,
+  .coll-grid.coll-grid,
+  .manage-grid.manage-grid,
+  .manage-list.manage-list,
+  .studio-designs.studio-designs,
+  .kol-grid.kol-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.6rem;
+  }
+
+  /* Stat rails stay dense — three across reads as a summary, one per row reads
+     as a list of unrelated numbers. */
+  .manage-stats.manage-stats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/**
+ * At half width a card carries the same content in half the space, so the type
+ * and padding have to come down with it or every card turns into a wall of
+ * wrapped text. This is the density pass, not just a narrower card.
+ */
+@media (max-width: 700px) {
+  .tcard-body.tcard-body {
+    padding: 0.55rem 0.6rem 0.65rem;
+    gap: 0.3rem;
+  }
+
+  .tcard-title.tcard-title {
+    font-size: var(--step--2);
+  }
+
+  .tcard-num,
+  .tcard-foot dt,
+  .tcard-foot dd {
+    font-size: var(--step--3);
+  }
+
+  /* Two badges side by side do not fit across a half-width card. */
+  .tcard-badges {
+    gap: 0.25rem;
+  }
+
+  .tcard-badges .chip {
+    padding: 0.12rem 0.4rem;
+  }
+}
+
+/* ================================================== phones: the home hero ===
+ *
+ * 940px on an 812px screen — a full swipe of marketing before a single token.
+ * What survives is the headline, the live figures and the primary action; what
+ * goes is the decoration and the second paragraph.
+ *
+ * `.stage` is the orbiting plates. It is the most expensive thing on the page
+ * (three token images, each a gateway fetch) and on a phone it is stacked
+ * under the copy where it reads as three loading rectangles rather than as a
+ * composition. Hidden rather than shrunk: at this width there is no size at
+ * which it earns its cost.
+ * ========================================================================== */
+
+@media (max-width: 700px) {
+  .hero-inner.hero-inner {
+    padding-top: 1.75rem;
+    padding-bottom: 1.75rem;
+    gap: 1.25rem;
+  }
+
+  .hero-text.hero-text {
+    gap: 0.9rem;
+  }
+
+  .hero-lede.hero-lede,
+  .stage.stage {
+    display: none;
+  }
+
+  /* Side by side rather than stacked: two full-width buttons cost 106px and a
+     row costs 48px, for the same two taps. */
+  .hero-actions.hero-actions {
+    display: flex;
+    flex-direction: row;
+    /* `nowrap` matters: the buttons have wide min-content widths and were
+       wrapping back into two rows, which is the 106px this was meant to fix. */
+    flex-wrap: nowrap;
+    gap: 0.5rem;
+    width: 100%;
+  }
+
+  .hero-actions.hero-actions > * {
+    flex: 1 1 0;
+    min-width: 0;
+    justify-content: center;
+    white-space: nowrap;
+  }
+}
