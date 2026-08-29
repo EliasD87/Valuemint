@@ -1,0 +1,264 @@
+/* =========================================================== KOL showcase ===
+ *
+ * A committed dark band, like the Trenches hero, rather than a theme-aware one.
+ * The whole effect is cutout characters lit against a deep ground, and the same
+ * composition on a white page reads as three floating stickers. Every colour
+ * here is therefore stated outright — see the note in tokens.css about literals
+ * being right in one theme and wrong in the other; this section is the
+ * exception that has to declare itself.
+ * ========================================================================== */
+
+.kol-hero {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  padding: clamp(2rem, 5vw, 3.5rem) 0 0;
+  color: #f4f4f6;
+}
+
+/* Deep violet, pushed magenta at the horizon so the plinths sit in front of a
+   warm glow rather than on flat black. */
+.kol-deep {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(70% 55% at 50% 88%, rgba(214, 51, 168, 0.32), transparent 70%),
+    radial-gradient(90% 70% at 50% 120%, rgba(126, 34, 206, 0.45), transparent 72%),
+    linear-gradient(180deg, #17081f 0%, #1b0a26 55%, #240d31 100%);
+}
+
+.kol-hero-inner {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.7rem;
+  width: 100%;
+}
+
+.kol-eyebrow {
+  margin: 0;
+  font-size: var(--step--2);
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: #c4a3d8;
+}
+
+.kol-title {
+  margin: 0;
+  font-family: var(--display);
+  font-optical-sizing: auto;
+  font-size: clamp(1.9rem, 4.2vw, 3.1rem);
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  line-height: 1.05;
+  max-width: 18ch;
+  text-wrap: balance;
+  color: #fdfdfe;
+}
+
+.kol-lede {
+  margin: 0;
+  max-width: 52ch;
+  font-size: var(--step--1);
+  line-height: 1.6;
+  color: #cbb8d8;
+}
+
+/* ================================================================= plinths ==
+ *
+ * Each character stands in front of a rounded slab and breaks out over the top
+ * of it. That overlap is the entire effect, and it needs three things at once:
+ * the slab keeps a fixed aspect so the row stays even, the figure is anchored
+ * to the slab's *bottom* so heads of different heights all stand on one floor,
+ * and nothing clips — `overflow: hidden` here would cut the heads off, which is
+ * precisely backwards.
+ * ========================================================================== */
+
+.kol-stage {
+  --plinth-a: linear-gradient(155deg, #34d399 0%, #a3e635 48%, #fde047 100%);
+  --plinth-b: linear-gradient(155deg, #22d3ee 0%, #38bdf8 45%, #a78bfa 100%);
+  --plinth-c: linear-gradient(155deg, #fb7185 0%, #f472b6 45%, #fdba74 100%);
+
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  /**
+   * Wide gaps, and they are load-bearing rather than taste.
+   *
+   * The figures are bust crops with shoulders far wider than the slab they
+   * stand on — LUTZ's puffer jacket is nearly as wide as it is tall. Sized to
+   * rise above the slab, each figure overhangs its own slab by ~80px a side,
+   * so anything less than about 120px between slabs and the neighbours collide
+   * into one mass. Measured, then set.
+   */
+  gap: clamp(2rem, 9vw, 130px);
+  margin-top: clamp(2.5rem, 6vw, 4.5rem);
+  /* Room under the slabs for the names, which sit outside them. */
+  padding: 0 var(--gutter) clamp(2.75rem, 5vw, 3.75rem);
+  /* The figures rise out of the slabs, so the row needs headroom above it that
+     no amount of margin on the figure itself can create. */
+  padding-top: clamp(70px, 11vw, 150px);
+}
+
+.kol-plinth {
+  position: relative;
+  flex: 0 1 clamp(120px, 15vw, 230px);
+  aspect-ratio: 3 / 4;
+  border-radius: clamp(16px, 2.2vw, 30px);
+}
+
+/* The slab itself. Separate from `.kol-plinth` so the gradient can be masked
+   and shadowed without touching the positioning context the figure needs. */
+.kol-plinth-face {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--tint);
+  box-shadow:
+    0 30px 60px -28px rgba(0, 0, 0, 0.85),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+.kol-figure {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  /* Taller than the slab, which is what puts the head above its top edge. */
+  height: 130%;
+  width: auto;
+  max-width: none;
+  transform: translateX(-50%);
+  /* Grounds the figure on the slab instead of floating over it. */
+  filter: drop-shadow(0 18px 22px rgba(23, 8, 31, 0.55));
+  pointer-events: none;
+}
+
+/**
+ * Below the slab, not on it.
+ *
+ * Inside the slab the label lands on the character's chest, and one of the
+ * three wears a plain black t-shirt — a dark label there is invisible, and a
+ * light one is invisible on the two bright gradients. Off the slab it sits on
+ * the hero's own dark ground, where one colour works for all three.
+ */
+.kol-plinth-name {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 0.7rem);
+  text-align: center;
+  font-family: var(--display);
+  font-size: var(--step--2);
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  color: #d7c4e4;
+}
+
+/**
+ * One figure below 760px, not two or three.
+ *
+ * Not a taste call — it is where the arithmetic stops working. The slab hits
+ * its 120px floor while the figures keep their proportions, so the width each
+ * one needs stops shrinking with the viewport. Computed across widths, three
+ * figures need 183px between slab centres and only get that at 760px and
+ * above; at 375px they need 183 and have 154, and the row would span 465px in
+ * a 375px window.
+ *
+ * A single figure at a usable size reads better than three overlapping ones,
+ * and the full roster is directly below anyway.
+ */
+@media (max-width: 760px) {
+  .kol-stage {
+    padding-top: clamp(56px, 17vw, 110px);
+  }
+  .kol-plinth {
+    flex: 0 1 min(52vw, 240px);
+  }
+  .kol-plinth:not(:first-child) {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kol-figure {
+    transition: none;
+  }
+}
+
+/* ================================================================== roster == */
+
+.kol-roster-head {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: clamp(1.25rem, 3vw, 2rem);
+}
+
+.kol-roster-head h2 {
+  margin: 0;
+  font-family: var(--display);
+  font-size: var(--step-2);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--ink);
+}
+
+.kol-roster-head p {
+  margin: 0;
+  max-width: 56ch;
+  font-size: var(--step--1);
+  line-height: 1.6;
+  color: var(--ink-2);
+}
+
+.kol-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(clamp(140px, 20vw, 210px), 1fr));
+  gap: clamp(0.75rem, 1.8vw, 1.25rem);
+}
+
+.kol-card {
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  background: var(--surface);
+  transition: border-color var(--fast), transform var(--fast);
+}
+
+.kol-card:hover {
+  border-color: var(--line-strong);
+  transform: translateY(-2px);
+}
+
+.kol-card-art {
+  position: relative;
+  aspect-ratio: 1;
+  background: var(--surface-2);
+}
+
+.kol-card-foot {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.6rem 0.75rem;
+  border-top: 1px solid var(--line);
+}
+
+.kol-card-foot b {
+  font-family: var(--display);
+  font-size: var(--step--1);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+
+.kol-card-foot span {
+  font-size: var(--step--3);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-3);
+}
