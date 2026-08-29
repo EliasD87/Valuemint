@@ -34,6 +34,7 @@ trenches-wip/ a parked feature, see below
 | ValueChain Genesis | `0x5Fadc59297e86aceA20Bff519aea0f9651Cdc90B` — 51/100 |
 | Trade Buddies | `0xe1C322BC972f78E78cfac98f71aA986C65D9C3bD` — 100/1000, 1 SOSO |
 | Hypno Plush | `0x01c28095bfffc9973Da4c4e8A34E9d5b6649C988` — 10/100, 5 SOSO |
+| The Trenches | `0xaAb0dC8f2835Ed903b35d2f52FF17c4bc92Bec19` — **claiming closed**, 0/50000 |
 
 `alpha` and `vv` were test collections. They still exist on chain — nothing can
 delete a deployed contract — and are hidden from every listing via
@@ -52,6 +53,12 @@ the real collections actually cost.
 **Env on Vercel:** `FILEBASE_KEY`, `FILEBASE_SECRET`, `FILEBASE_BUCKET`,
 `PINATA_GATEWAY`. Optional: `PIN_MIN_BALANCE_SOSO` (0.001), `SITE_URL`.
 `PINATA_JWT` is no longer required. **Never prefix any with `NEXT_PUBLIC_`.**
+
+For the Trenches claim: `TRENCHES_SIGNER_KEY` (secret — the contract mints
+whatever it signs, so it is the whole collection; keep it off the deployer and
+rotate with `setAuthoriser` if it leaks) plus the public
+`NEXT_PUBLIC_TRENCHES_ADDRESS`. `NEXT_PUBLIC_TRENCHES_CHAIN_ID` defaults to
+286623 and is only set to point a local build at a local chain.
 
 ---
 
@@ -87,11 +94,30 @@ figures align with `tabular-nums`. Do not reintroduce a code face.
 
 ## Traps already paid for
 
-**Transitions freeze when the browser pane is hidden.** The page stops
-compositing, so `getComputedStyle` returns a transition's *start* value forever —
-even against an inline `!important`. Before measuring anything animated, inject
-`*{transition:none!important;animation:none!important}`. Hours went into
-"debugging" CSS that was never broken.
+**Transitions freeze when the browser pane is hidden — and the pane is always
+hidden.** The cause is our own security header: `frame-ancestors 'none'` stops
+the pane from framing the site, so it never composites. The console says so
+outright (`Framing 'http://localhost:5173/' violates ... frame-ancestors`).
+Consequences, all confirmed: screenshots do not render, `getComputedStyle`
+returns a transition's *start* value forever — even against an inline
+`!important` — and `setInterval` is intensively throttled, so a 4200ms rotation
+ticks about every 28s. Before measuring anything animated, inject
+`*{transition:none!important;animation:none!important}`; to prove an interval
+advances, sample across a minute or use a `MutationObserver` stored on `window`
+(the JS tool caps at 30s). Hours went into "debugging" CSS that was never
+broken. **Design work here is verified by measuring geometry and contrast, not
+by looking.**
+
+**`100vw` includes the scrollbar.** A full-bleed element sized `width: 100vw`
+inside a narrower content box overhangs by the scrollbar width and drags the
+whole document into horizontal scroll. `#ladder` carries `overflow-x: clip` for
+exactly this — `clip`, not `hidden`, so it does not become a scroll container
+and sticky still works.
+
+**A hero sized `min-height: 92vh` does not fit on screen.** It sits *below* a
+72px header, so it overshoots by the header's height. Cap it:
+`min(clamp(...), calc(100svh - var(--header-h) - 2px))`. The 2px is real — the
+header renders 73px because of its bottom border.
 
 **`tokenURI(1)` reverts when nothing is minted.** It is not a metadata check; a
 fresh collection is indistinguishable from one with no artwork. Use the
@@ -139,13 +165,31 @@ source maps, no exposed dotfiles.
 
 1. **Rate limiter → Vercel KV.** One new class, one changed export.
 2. **Contract verification** — blocked upstream; chase the SoDEX bug report.
-3. **Trenches** — parked in `trenches-wip/` with restore instructions. A free
-   tiered NFT for SoDEX traders, gated on all-time volume from
-   `net-data.sodex.dev`. The page works; the eligibility API is **written but
-   never proven** because that host never resolved from this machine. No claim
-   contract yet. Artwork was generated and rejected: portrait (the marketplace
-   crops to square, cutting the name and the lockup), colours that do not encode
-   the ladder, and an XRP trademark on tier 1.
+3. **Trenches** — contract **deployed to mainnet 2026-08-29**, claiming
+   **closed**, nothing minted. `0xaAb0dC8f2835Ed903b35d2f52FF17c4bc92Bec19`.
+   - Authoriser `0x3f65a80Dfc4043c14eDc75bD0B96Cd5258FA3283`. Its key is in
+     `contracts/.trenches-signer.generated` (gitignored) and belongs in Vercel
+     as `TRENCHES_SIGNER_KEY`. **Not** the deployer: it signs only, holds
+     nothing, and a leak is fixed with one `setAuthoriser` call.
+   - Verified after deploy: the app's signature recovers to exactly that
+     authoriser for the deployed address and chain 286623, so the contract
+     would accept it.
+   - **The app is not deployed yet**, so `baseURI` currently 404s
+     (`/api/metadata/sodex-trenches/…` returns "Unknown collection" live). Push
+     the web app before opening claims, or the first token minted has no
+     metadata.
+   - **To open claiming:** `OPEN=yes CONFIRM_MAINNET=yes npx hardhat run
+     scripts/open-trenches.ts --network valuechainMainnet`. This is the
+     irreversible step — a minted token is permanent.
+   - **Artwork settled.** Tier 1 was regenerated without the XRP mark and
+     re-pinned (`QmaRw3gCPDSJ4cErcLf9V8bUUKckC5UP8kTF8jBrmcoyJ8`). All ten are
+     square 1254x1254 and resolve. Backgrounds are deliberately unrelated to
+     the tier colours — raised and declined; the characters carry the ladder.
+     The image CID lives in `config/tiers.ts`, not on chain, so artwork can
+     still be changed after minting (marketplaces cache it for up to a week).
+   - The SoDEX logo now appears in the nav and the Trenches eyebrow.
+
+
 4. **CSP** — complete it with nonces.
 5. **`useTrade` default parameter** — remove the Genesis fallback.
 

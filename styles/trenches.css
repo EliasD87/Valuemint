@@ -15,152 +15,146 @@
 
 /* ===================================================================== hero */
 
+/**
+ * Headline centred at the top, artwork fanned across the bottom and running off
+ * the frame. The cards being cut by the edge is what gives the composition
+ * depth — a fan that fits entirely inside the viewport reads as a row of
+ * thumbnails instead.
+ */
 .tr-hero {
   position: relative;
   overflow: hidden;
   background: #0a0a0c;
   color: var(--dark-ink);
   isolation: isolate;
-  padding: clamp(2.5rem, 7vw, 6rem) 0 clamp(3rem, 8vw, 6rem);
-}
-
-.tr-hero-grid {
-  position: relative;
-  display: grid;
-  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
-  align-items: center;
-  gap: clamp(2rem, 5vw, 4rem);
-}
-
-.tr-hero-text {
+  padding: clamp(1.75rem, 4vw, 3rem) 0 clamp(2.5rem, 5vw, 4rem);
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  gap: 1.15rem;
+
+  /* The fan's band height is derived from the card, so the two can never
+     disagree — the card is absolutely positioned and would otherwise overlap
+     the result panel that now sits below it. */
+  --card-w: min(clamp(190px, 21vw, 300px), 30vh);
+  --card-h: calc(var(--card-w) + 3.25rem);
+  --card-drop: 2.75rem;
 }
 
-@media (max-width: 900px) {
-  /* Sits between the water gradient and the coloured glow, so the glow washes
-   over the chart rather than the chart sitting on top of everything. */
-.tr-backdrop {
+.tr-deep {
+  position: absolute;
+  inset: 0;
+  z-index: -3;
+  background: radial-gradient(120% 90% at 50% 0%, #141419 0%, #0b0b0e 52%, #08080a 100%);
+}
+
+/* Thin arcs sweeping up from below, as in the reference's line texture. */
+.tr-arcs {
   position: absolute;
   inset: 0;
   z-index: -2;
   pointer-events: none;
-  opacity: 0.55;
-  mask-image: linear-gradient(180deg, transparent 0%, #000 22%, #000 68%, transparent 100%);
 }
-
-.tr-backdrop svg {
+.tr-arcs svg {
   width: 100%;
   height: 100%;
   display: block;
 }
 
-.tr-backdrop-word {
-  font-family: var(--display);
-  font-size: 210px;
-  font-weight: 800;
-  letter-spacing: 0.06em;
-  fill: #ffffff;
-  fill-opacity: 0.028;
-}
-
-@media (max-width: 900px) {
-  .tr-backdrop-word {
-    font-size: 130px;
-  }
-}
-
-.tr-hero-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-/**
- * Neutral dark, not a blue water column.
- *
- * The first version graded from #101013 — a distinctly blue navy — down to
- * black, on the theory that the page is about depth. In practice it read as a
- * blue wash behind artwork that is already full of colour, and the two fought.
- * A neutral ground lets the pieces carry the colour instead.
- */
-.tr-deep {
-  position: absolute;
-  inset: 0;
-  z-index: -2;
-  background: linear-gradient(180deg, #101013 0%, #0b0b0d 46%, #08080a 100%);
-}
-
-/* Light shafts from a surface far above. Wide, soft, and slightly askew, so
-   they read as sunlight through water rather than a stage effect. */
-/**
- * A single soft pool of light behind the artwork.
- *
- * Was three saturated washes in cyan, violet and gold. Against ten already
- * colourful pieces that was noise, and it tinted the whole hero blue. One
- * near-white pool, barely there, gives the stack something to sit against
- * without adding a hue of its own.
- */
 .tr-glow {
   position: absolute;
   inset: -20%;
   z-index: -1;
   pointer-events: none;
   background:
-    radial-gradient(38% 44% at 72% 42%, rgba(255, 255, 255, 0.055), transparent 72%),
-    radial-gradient(46% 46% at 20% 18%, rgba(255, 255, 255, 0.03), transparent 70%);
-  filter: blur(20px);
+    radial-gradient(40% 34% at 50% 74%, rgba(255, 255, 255, 0.06), transparent 72%),
+    radial-gradient(30% 26% at 22% 16%, rgba(255, 255, 255, 0.028), transparent 70%);
+  filter: blur(22px);
 }
 
-
+.tr-hero-inner {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.8rem;
+  width: 100%;
+}
 
 .tr-eyebrow {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.55rem;
   font-size: var(--step--2);
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.2em;
   text-transform: uppercase;
   color: #8b8b93;
+}
+
+/**
+ * The hero is always dark, whatever the page theme, so the logo is pinned to
+ * SoDEX's dark-ground pair here rather than following the tokens. Left to the
+ * tokens it would render its black wordmark on this near-black ground in light
+ * mode and disappear.
+ */
+.tr-eyebrow-logo {
+  --sodex-ink: #ffffff;
+  --sodex-accent: #ff4f20;
+  height: 1.15rem;
+  width: auto;
+  display: block;
 }
 
 .tr-title {
   font-family: var(--display);
   font-optical-sizing: auto;
-  font-size: clamp(2.6rem, 6.4vw, 5rem);
+  font-size: clamp(1.9rem, 3.9vw, 3rem);
   font-weight: 800;
-  letter-spacing: -0.05em;
-  line-height: 0.94;
+  letter-spacing: -0.035em;
+  line-height: 1.05;
   margin: 0;
   color: #f7f7f9;
+  /* Keeps the centred headline clear of the seal at the left edge. */
+  max-width: 20ch;
   text-wrap: balance;
 }
 
-/* One word carries the colour, as the reference does with its accent term. */
-.tr-title em {
-  font-style: normal;
-  background: linear-gradient(96deg, #7dd3fc 0%, #38bdf8 44%, #a78bfa 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+/* The reference sets its body copy off to one side of the headline rather than
+   centring it under, which keeps the headline the only thing on the centre
+   line. */
+.tr-hero-side {
+  display: flex;
+  justify-content: flex-end;
+  width: 100%;
+  margin-top: 0.2rem;
 }
 
 .tr-lede {
-  font-size: var(--step-1);
-  line-height: 1.6;
+  font-size: var(--step--1);
+  line-height: 1.65;
   color: #a1a1aa;
-  max-width: 42ch;
+  max-width: 34ch;
+  text-align: left;
+}
+
+/* Below the fan now: the result reads as the answer to what the cards show. */
+.tr-check {
+  display: flex;
+  justify-content: center;
+  margin-top: clamp(1.25rem, 2.5vw, 2rem);
+  width: 100%;
+}
+.tr-check > * {
+  width: min(100%, 32rem);
 }
 
 .tr-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 0.7rem;
+  justify-content: center;
 }
 
-/* Outlined companion to the solid primary, per the reference's pairing. */
 .tr-btn-ghost {
   background: transparent;
   border-color: rgba(255, 255, 255, 0.22);
@@ -171,249 +165,213 @@
   background: rgba(255, 255, 255, 0.07);
 }
 
-.tr-check {
-  margin-top: 0.6rem;
-  width: min(100%, 30rem);
-}
-
-/* =================================================================== stack */
-
-/**
- * Ten plates descending into the dark.
- *
- * Real perspective rather than a flat stepped row: each plate sits further back
- * on the Z axis, lower, and slightly rotated, so the column reads as a shaft
- * going *into* the screen. On a page about depth that is the whole idea, and it
- * is what the flat row I built first was missing.
- *
- * Depth cues compound — smaller, dimmer, less saturated, more blurred — because
- * any one of them alone reads as a mistake rather than distance.
- */
-.tr-stack {
-  position: relative;
-  min-height: clamp(300px, 44vw, 520px);
-  perspective: 1600px;
-  perspective-origin: 50% 50%;
-  display: grid;
-  place-items: center;
-}
-
-.tr-stack-inner {
-  position: relative;
-  width: min(74%, 19rem);
-  aspect-ratio: 1;
-  transform-style: preserve-3d;
-}
-
-/**
- * A rolodex, turning through the depths.
- *
- * The ten plates sit on a vertical ring rather than a fan. The ring turns
- * steadily, so each piece climbs into view from below, squares up to the
- * viewer at the front of the arc, then tips away over the top — the shape of
- * something sinking past you, which is what the page is about.
- *
- * Why a ring rather than the fan it replaced: a fan has a front and a back, so
- * one plate is always the hero and the other nine are edges. On a ring every
- * plate gets the same turn at the front, which is the right treatment when all
- * ten are the point.
- *
- * Geometry, which has to be right or the plates cut through each other: ten
- * plates sit 36 degrees apart, so the radius must exceed half the plate height
- * divided by tan(18 degrees) — about 1.54x the height. A first pass used a
- * radius equal to the height and the neighbours intersected.
- *
- * Plate and radius are therefore sized from the same clamp, kept in that ratio
- * at both ends of the range.
- */
-.tr-stack {
-  position: relative;
-  /* Tall enough for the front plate at its perspective scale plus the arc
-     above and below it. */
-  min-height: clamp(380px, 52vw, 620px);
-  perspective: 1500px;
-  perspective-origin: 50% 50%;
-  display: grid;
-  place-items: center;
-  isolation: isolate;
-}
-
-/**
- * A shaft for the ring to turn inside.
- *
- * The plates were floating in flat black, so the whole right half read as
- * empty between them — nothing said "this area is deliberate". A soft column
- * of light gives the ring somewhere to be, and it dims toward the edges so the
- * plates still emerge out of dark rather than sitting on a panel.
- */
-.tr-stack::before {
-  content: "";
-  position: absolute;
-  inset: 4% 6%;
-  z-index: -1;
-  border-radius: 50% / 42%;
-  background:
-    radial-gradient(58% 52% at 50% 46%, rgba(255, 255, 255, 0.075), transparent 72%),
-    radial-gradient(38% 30% at 50% 88%, rgba(125, 211, 252, 0.06), transparent 76%);
-  filter: blur(18px);
-}
-
-/* The floor the shaft bottoms out on: a thin ellipse of light, so the column
-   reads as having a depth rather than fading into nothing. */
-.tr-stack::after {
-  content: "";
-  position: absolute;
-  left: 16%;
-  right: 16%;
-  bottom: 7%;
-  height: 8px;
-  z-index: -1;
-  border-radius: 50%;
-  background: radial-gradient(closest-side, rgba(255, 255, 255, 0.16), transparent 78%);
-  filter: blur(5px);
-}
-
-.tr-stack-inner {
-  position: relative;
-  /* Radius is 1.7x the plate edge. The binding constraint is the chord between
-     neighbouring plates, 2R·sin(18°), which must exceed the plate height —
-     that needs 1.62x, not the 1.54x the apothem formula suggests. At 1.6x the
-     neighbours overlapped by 2px. */
-  --plate: clamp(180px, 21vw, 236px);
-  --radius: clamp(306px, 35.7vw, 402px);
-  width: var(--plate);
-  height: var(--plate);
-  transform-style: preserve-3d;
-  animation: tr-turn 44s linear infinite;
-}
-
-@keyframes tr-turn {
-  to {
-    transform: rotateX(-360deg);
+@media (max-width: 820px) {
+  .tr-hero-side {
+    justify-content: center;
+  }
+  .tr-lede {
+    text-align: center;
   }
 }
 
-.tr-plate {
+/* ===================================================================== seal */
+
+.tr-seal {
   position: absolute;
-  inset: 0;
-  border-radius: var(--r-xl);
-  overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  background: #131317;
-  box-shadow: 0 30px 70px -28px rgba(0, 0, 0, 0.95),
-    0 0 0 1px rgba(255, 255, 255, 0.05);
-  /* Placed around the ring, then pushed out to its radius. */
-  transform: rotateX(calc(var(--i) * 36deg)) translateZ(var(--radius));
-  /* The far half of the ring faces away; hiding it keeps mirrored plates from
-     showing through the near ones. */
-  backface-visibility: hidden;
+  top: 0;
+  left: 0;
+  width: clamp(76px, 8vw, 104px);
+  height: clamp(76px, 8vw, 104px);
+  animation: tr-seal-spin 30s linear infinite;
 }
 
-/**
- * Light falls off around the ring.
- *
- * A plate at the front is lit; ones climbing in and tipping away are dimmer.
- * Without this the ring reads as flat and the turn is hard to follow, because
- * every plate looks equally close.
- */
-.tr-plate::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: rgba(6, 6, 8, 0.55);
-  animation: tr-shade 44s linear infinite;
-  animation-delay: calc(var(--i) * -4.4s);
-}
-
-@keyframes tr-shade {
-  0% {
-    opacity: 0.72;
-  }
-  /* front of the arc */
-  50% {
-    opacity: 0;
-  }
-  100% {
-    opacity: 0.72;
-  }
-}
-
-/**
- * Hover holds the ring where it is.
- *
- * This used to change `animation-duration`, which makes the browser recompute
- * every plate's position in its timeline — with negative delays they all
- * jumped at once. Pausing freezes in place and resumes from the same frame.
- */
-.tr-stack:hover .tr-stack-inner,
-.tr-stack:hover .tr-plate::after {
-  animation-play-state: paused;
-}
-
-/* An earned tier keeps its glow as it comes round. */
-.tr-plate.is-lit {
-  border-color: color-mix(in srgb, var(--tier) 60%, transparent);
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--tier) 28%, transparent),
-    0 34px 80px -30px var(--tier);
-}
-
-.tr-plate img {
+.tr-seal svg {
   width: 100%;
   height: 100%;
-  object-fit: cover;
 }
 
-.tr-plate-n {
+.tr-seal text {
+  font-size: 8.4px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  fill: #82828c;
+  text-transform: uppercase;
+}
+
+@keyframes tr-seal-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 1100px) {
+  .tr-seal {
+    display: none;
+  }
+}
+
+/* ====================================================================== fan */
+
+/**
+ * Five slots, ten cards.
+ *
+ * A card's position is a signed distance from centre — -2, -1, 0, 1, 2 — and
+ * anything further is parked below the fold at zero opacity. All ten stay
+ * mounted so the browser transitions them between slots; an earlier version
+ * unmounted cards leaving the fan and remounted them at the front, which read
+ * as a pop rather than a rotation.
+ */
+.tr-fan {
+  position: relative;
+  height: calc(var(--card-h) + var(--card-drop));
+  margin-top: clamp(1.25rem, 3vw, 2.25rem);
+  perspective: 1400px;
+}
+
+.tr-card {
   position: absolute;
-  top: 0.7rem;
-  left: 0.8rem;
-  z-index: 2;
+  left: 50%;
+  /* Sits `--card-drop` up from the band's floor, so the outer cards have room
+     to fall without reaching the result panel underneath. */
+  bottom: var(--card-drop);
+  width: var(--card-w);
+  border-radius: clamp(18px, 2vw, 28px);
+  overflow: hidden;
+  background: #17171c;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: 0 40px 90px -30px rgba(0, 0, 0, 0.95);
+  /* Slots spread sideways, drop away, and rotate out from the centre card. */
+  transform:
+    translateX(calc(-50% + var(--slot) * 23vw))
+    translateY(calc(var(--abs) * var(--card-drop) / 2))
+    rotate(calc(var(--slot) * 8deg))
+    scale(calc(1 - var(--abs) * 0.1));
+  opacity: calc(1 - var(--abs) * 0.22);
+  transition: transform 900ms var(--ease), opacity 900ms var(--ease),
+    box-shadow 900ms var(--ease), border-color 900ms var(--ease);
+}
+
+/* Parked cards wait below the frame, so entering and leaving the fan is a
+   slide from off-screen rather than a fade-in on the spot. */
+.tr-card.is-parked {
+  opacity: 0;
+  transform:
+    translateX(calc(-50% + var(--slot) * 23vw))
+    translateY(60%)
+    rotate(calc(var(--slot) * 8deg))
+    scale(0.8);
+}
+
+.tr-card.is-centre {
+  opacity: 1;
+  box-shadow: 0 50px 110px -34px rgba(0, 0, 0, 1);
+}
+
+.tr-card.is-lit {
+  border-color: color-mix(in srgb, var(--tier) 62%, transparent);
+  box-shadow: 0 50px 110px -34px rgba(0, 0, 0, 1),
+    0 0 0 1px color-mix(in srgb, var(--tier) 30%, transparent);
+}
+
+.tr-card-art {
+  position: relative;
+  aspect-ratio: 1;
+  overflow: hidden;
+  background: #101014;
+}
+
+/* The reference's footer bar: what it is on the left, what it costs on the
+   right. */
+.tr-card-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+  padding: 0.75rem 0.95rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.09);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.tr-card-bar b {
+  display: block;
   font-family: var(--display);
-  font-size: var(--step--1);
+  font-size: var(--step-0);
   font-weight: 800;
+  letter-spacing: -0.025em;
+  color: #f4f4f6;
+  line-height: 1.15;
+}
+
+.tr-card-bar span {
+  font-size: var(--step--3);
+  color: #8b8b93;
+}
+
+.tr-card.is-lit .tr-card-bar b {
+  color: var(--tier);
+}
+
+.tr-card-min {
+  flex: none;
+  font-size: var(--step--2);
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
-  color: #fff;
-  background: rgba(0, 0, 0, 0.5);
-  border-radius: var(--r-pill);
-  padding: 0.12rem 0.55rem;
-  backdrop-filter: blur(4px);
-}
-
-.tr-plate-name {
-  position: absolute;
-  left: 0.85rem;
-  bottom: 0.8rem;
-  z-index: 2;
-  font-family: var(--display);
-  font-size: var(--step-1);
-  font-weight: 800;
-  letter-spacing: -0.03em;
-  color: #fff;
-  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.9);
+  color: #a1a1aa;
 }
 
 /**
- * No motion: no ring. It flattens to a static fan, so the section still shows
- * several pieces rather than one plate with nine hidden behind it.
+ * Short laptops (1366x768 and friends). Every measurement here is driven by
+ * viewport *width*, so on a wide-but-short screen the copy keeps its full size
+ * while the space under it disappears. The card is already capped at 30vh;
+ * this trims the rhythm around it.
  */
-@media (prefers-reduced-motion: reduce) {
-  .tr-stack-inner {
-    animation: none;
+@media (min-width: 900px) and (max-height: 850px) {
+  .tr-hero {
+    padding-top: clamp(1.25rem, 2.5vw, 2rem);
+    --card-w: min(clamp(190px, 21vw, 300px), 27vh);
   }
-  .tr-plate {
-    backface-visibility: visible;
-    opacity: calc(1 - (var(--i) * 0.19));
+  .tr-fan {
+    margin-top: 1rem;
+  }
+  .tr-hero-inner {
+    gap: 0.6rem;
+  }
+  .tr-lede {
+    font-size: var(--step--2);
+  }
+}
+
+@media (max-width: 720px) {
+  .tr-hero {
+    --card-w: min(72vw, 300px);
+    --card-drop: 2rem;
+  }
+  .tr-card {
     transform:
-      translate3d(calc(var(--i) * 11%), calc(var(--i) * 3%), calc(var(--i) * -34px))
-      rotate(calc(var(--i) * 2.6deg));
+      translateX(calc(-50% + var(--slot) * 34vw))
+      translateY(calc(var(--abs) * var(--card-drop) / 2))
+      rotate(calc(var(--slot) * 6deg))
+      scale(calc(1 - var(--abs) * 0.14));
   }
-  .tr-plate::after {
+  /* Only the centre card and its immediate neighbours read at this width. */
+  .tr-card:not(.is-centre) {
+    opacity: calc(0.5 - var(--abs) * 0.18);
+  }
+  .tr-card.is-parked {
+    transform:
+      translateX(calc(-50% + var(--slot) * 34vw))
+      translateY(60%)
+      rotate(calc(var(--slot) * 6deg))
+      scale(0.8);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tr-card {
+    transition: none;
+  }
+  .tr-seal {
     animation: none;
-    opacity: 0;
-  }
-  .tr-plate:nth-child(n + 6) {
-    display: none;
   }
 }
 
@@ -426,7 +384,7 @@
   padding: 1.35rem;
   border-radius: var(--r-lg);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(8, 19, 31, 0.72);
+  background: rgba(23, 23, 28, 0.82);
   backdrop-filter: blur(14px);
   text-align: left;
 }
@@ -525,27 +483,33 @@
   color: #f4f4f6;
 }
 
-.tr-result-none,
-.tr-result-error {
-  margin: 0;
-  font-size: var(--step-0);
-  line-height: 1.6;
-  color: #a1a1aa;
-}
-.tr-result-none b {
-  color: #f4f4f6;
-}
-.tr-result-none a {
-  color: #7dd3fc;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-/* ---- a check that could not run -------------------------------------- */
-
 /**
- * Deliberately not red. A lookup failing is our problem, not the reader's, and
- * alarm colouring for a transient outage teaches people to distrust the page.
+ * The empty state borrows the found state's frame, tinted by the first tier's
+ * colour rather than the earned one — the same object, in a different
+ * condition.
  */
+.tr-result.is-empty {
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+/* Stands in for the artwork at the same size, so the two heads line up. */
+.tr-result-mark {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 72px;
+  height: 72px;
+  border-radius: var(--r-md);
+  font-family: var(--display);
+  font-size: var(--step-1);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  color: color-mix(in srgb, var(--tier) 80%, #ffffff);
+  border: 1px dashed color-mix(in srgb, var(--tier) 45%, transparent);
+  background: color-mix(in srgb, var(--tier) 9%, transparent);
+}
+
 .tr-result-quiet {
   gap: 0.75rem;
 }
@@ -591,10 +555,31 @@
   background: rgba(255, 255, 255, 0.13);
 }
 
+.tr-claim-failed,
+.tr-claim-done {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.tr-claim-msg {
+  margin: 0;
+  font-size: var(--step--1);
+  line-height: 1.55;
+  color: #c9c9d0;
+}
+.tr-claim-done .tr-claim-msg {
+  color: color-mix(in srgb, var(--tier) 72%, #ffffff);
+}
+.tr-claim-msg a {
+  color: inherit;
+  text-underline-offset: 3px;
+}
+
 .tr-result-fine {
   margin: 0;
   font-size: var(--step--2);
-  color: #78787f;
+  color: #8b8b93;
   line-height: 1.5;
 }
 
@@ -613,11 +598,17 @@
   overflow-x: auto;
   scroll-snap-type: x mandatory;
   padding: 0.25rem var(--gutter) 1.25rem;
-  /* Break out of the page container to the full viewport width. */
+  /* Break out of the page container to the full viewport width. `100vw`
+     includes the scrollbar, so the parent has to clip the few px of overhang —
+     see `#ladder` below. */
   width: 100vw;
   margin-left: calc(50% - 50vw);
   scrollbar-width: thin;
   scrollbar-color: var(--line-strong) transparent;
+}
+
+#ladder {
+  overflow-x: clip;
 }
 
 .tr-rail > * {

@@ -150,6 +150,12 @@
   --med: 300ms var(--ease);
 
   color-scheme: light;
+  /* SoDEX's own logo colours. They ship a black-wordmark file for light grounds
+     and a white-wordmark file for dark; these are those two files' exact values,
+     so the inlined logo reproduces the official artwork rather than tinting it. */
+  --sodex-ink: #000000;
+  --sodex-accent: #FF7637;
+
 }
 
 /* ==========================================================================
@@ -227,6 +233,10 @@
     --shadow-art: 0 30px 60px -24px rgba(0, 0, 0, 0.9);
 
     color-scheme: dark;
+    /* SoDEX dark-ground variant. */
+    --sodex-ink: #ffffff;
+    --sodex-accent: #FF4F20;
+
   }
 }
 
@@ -298,6 +308,10 @@
   --shadow-art: 0 30px 60px -24px rgba(0, 0, 0, 0.9);
 
   color-scheme: dark;
+  /* SoDEX dark-ground variant. */
+  --sodex-ink: #ffffff;
+  --sodex-accent: #FF4F20;
+
 }
 
 /**

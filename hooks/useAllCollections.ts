@@ -6,6 +6,7 @@ import { ValueChainCollectionAbi, deployment } from "@/config/contracts";
 import { useRegistry } from "@/hooks/useRegistry";
 import { useDiscoveredCollections } from "@/hooks/useDiscovery";
 import { isHidden } from "@/config/hidden";
+import { KNOWN_COLLECTIONS } from "@/config/known";
 
 export interface CollectionSummary {
   address: `0x${string}`;
@@ -23,9 +24,10 @@ export interface CollectionSummary {
 /**
  * Every collection on the chain, with its live state.
  *
- * Two sources, because each misses what the other has: the block explorer indexes
- * any ERC-721 but is slow to notice new ones, and the factory registry knows
- * everything made here the instant it exists. Merged by address.
+ * Three sources, because each misses what the others have: the block explorer
+ * indexes any ERC-721 but is slow to notice new ones, the factory registry knows
+ * everything made here the instant it exists, and `known.ts` covers what is in
+ * neither — contracts deployed straight from a script. Merged by address.
  *
  * This is the single place the rest of the app asks "what collections are there" -
  * pages that hardcoded one address were the reason the marketplace kept behaving
@@ -37,6 +39,17 @@ export function useAllCollections() {
 
   const merged = useMemo(() => {
     const byAddress = new Map<string, CollectionSummary>();
+
+    // Lowest precedence: real registry and explorer data overwrite these
+    // placeholder names if either knows the collection.
+    for (const c of KNOWN_COLLECTIONS) {
+      byAddress.set(c.address.toLowerCase(), {
+        address: c.address,
+        name: c.name,
+        symbol: c.symbol,
+        fromFactory: false,
+      });
+    }
 
     for (const c of discovered ?? []) {
       byAddress.set(c.address.toLowerCase(), {

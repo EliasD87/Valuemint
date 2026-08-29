@@ -282,6 +282,62 @@
   }
 }
 
+/* ================================================================ targets */
+
+/**
+ * Touch targets for the header controls.
+ *
+ * They are drawn between 26px (the theme switch) and 38px (the wallet button
+ * and the menu button), all under the 44x44 floor in WCAG 2.5.5 and Apple's
+ * HIG. The row has the room - it is 72px tall - but growing the controls is
+ * not on the table: `--header-h` is what every sticky rail on the site offsets
+ * itself by (collections.css, create.css, mint.css, token.css) and where the
+ * menu scrim starts. A taller row moves all of them, silently and elsewhere.
+ *
+ * So each control keeps the size it is drawn at and gets a transparent 44x44
+ * area centred on it. The pseudo-element is out of flow, so it costs no
+ * layout in either direction: the header is still exactly `--header-h` tall
+ * and the row is no wider.
+ *
+ * The area has to cover the control's *border* box, not just reach it. These
+ * are pills, and a border-radius is clipped out of hit testing too - the top
+ * right of the Create button is already dead at its own corner. An absolutely
+ * positioned box resolves 100% against the padding box, which stops one border
+ * short on each side, so the extra 2px is what closes that corner.
+ *
+ * The expansions are sized not to collide. The two that grow sideways are the
+ * brand mark below 620px, where the wordmark is hidden and 28px becomes 44px,
+ * and the menu button at 38px - 8px and 3px per side, against a 20px gutter on
+ * the outside and a 9.6px gap to the wallet on the inside. Hit areas that
+ * overlap only move the ambiguity somewhere harder to see.
+ */
+.header .brand,
+.header-actions > .theme-toggle,
+.header-actions > .btn,
+.header-actions > .menu-button,
+.header-actions .wallet-trigger {
+  position: relative;
+}
+
+/* Scoped with `>` on purpose: `.wallet` sits in this row, and the buttons in
+   its dropdown are stacked 6.4px apart. A 44px area on each of those would
+   overlap its neighbours. */
+.header .brand::after,
+.header-actions > .theme-toggle::after,
+.header-actions > .btn::after,
+.header-actions > .menu-button::after,
+.header-actions .wallet-trigger::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: calc(100% + 2px);
+  height: calc(100% + 2px);
+  min-width: 44px;
+  min-height: 44px;
+}
+
 /* =================================================================== footer */
 
 .footer {
@@ -450,4 +506,47 @@
   .menu-bars i {
     transition: none;
   }
+}
+
+/* ============================================================== nav mark */
+
+/**
+ * The SoDEX symbol beside the Trenches label.
+ *
+ * Sized to the cap height of the label rather than the line box, so it sits
+ * with the text instead of enlarging the row — `--header-h` is a sticky offset
+ * five other stylesheets measure against, and the Trenches hero subtracts it
+ * from the viewport.
+ */
+/**
+ * Deliberately does NOT make `.nav-link` a flex container.
+ *
+ * The active-page indicator is `.nav-link.is-active::after`, a block laid out
+ * in normal flow with `margin: … auto …` so it centres *under* the label. Turn
+ * the link into a flex row and that indicator becomes a sibling of the text —
+ * an orange dash floating to the right of the word instead of an underline.
+ * (It also overrode `.mobile-nav-link`'s own `display: flex`, costing those
+ * links their full width.)
+ *
+ * So the mark is an inline element instead, which sits in the text flow in the
+ * desktop nav and behaves as a flex item in the mobile nav, where the row
+ * already is flex.
+ */
+.nav-mark {
+  width: 1.05em;
+  height: 1.05em;
+  margin-right: 0.4rem;
+  vertical-align: -0.2em;
+  flex: none;
+  /* Dimmed with the label, and brought up with it on hover and when active, so
+     the symbol never sits brighter than the word it belongs to. */
+  opacity: 0.75;
+  transition: opacity 160ms var(--ease);
+}
+
+.nav-link:hover .nav-mark,
+.nav-link.is-active .nav-mark,
+.mobile-nav-link:hover .nav-mark,
+.mobile-nav-link.is-active .nav-mark {
+  opacity: 1;
 }

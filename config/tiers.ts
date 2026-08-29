@@ -25,7 +25,7 @@ export interface Tier {
 }
 
 export const TIERS: Tier[] = [
-  { n: 1, name: "Ripple", min: 0, colour: "#7dd3fc", image: "Qmcm4fdXCwvnu1tjbZbbhSzHdHJMtxyfFJWa4cnzeG3Kbx", blurb: "You showed up and traded." },
+  { n: 1, name: "Ripple", min: 0, colour: "#7dd3fc", image: "QmaRw3gCPDSJ4cErcLf9V8bUUKckC5UP8kTF8jBrmcoyJ8", blurb: "You showed up and traded." },
   { n: 2, name: "Wake", min: 1_000, colour: "#38bdf8", image: "QmQUVQTkCcRB5GndhpEds3pu45FNK4Nfoc9AfX2zZ2qZr8", blurb: "Enough to leave a mark behind you." },
   { n: 3, name: "Swell", min: 10_000, colour: "#22d3ee", image: "QmcZrXvsX8FhSFD6y2U4JWpxq2pRZn5G475CNh8RzpvQPK", blurb: "Not a visitor any more." },
   { n: 4, name: "Current", min: 50_000, colour: "#06b6d4", image: "QmZhR1M4Tmnu42Qgz5c5EcjCBJK7JVaTjgXuRNM2LfkiDq", blurb: "Moving with real force." },

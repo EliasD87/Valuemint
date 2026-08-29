@@ -4,7 +4,9 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useAccount, useConnect } from "wagmi";
 import { Art } from "@/components/Art";
+import { SodexLogo } from "@/components/SodexLogo";
 import { TIERS, formatVolume, tierImage, type Tier } from "@/config/tiers";
+import { useTrenchesClaim } from "@/hooks/useTrenchesClaim";
 import "@/styles/trenches.css";
 
 /**
@@ -77,55 +79,59 @@ export default function Trenches() {
     <div className="tr">
       <section className="tr-hero">
         <div className="tr-deep" aria-hidden="true" />
+        <Arcs />
         <div className="tr-glow" aria-hidden="true" />
 
-        <div className="page tr-hero-grid">
-          <div className="tr-hero-text">
-            <p className="tr-eyebrow">SoDEX × ValueMint</p>
-            <h1 className="tr-title">
-              How deep
-              <br />
-              have you <em>traded</em>?
-            </h1>
+        <div className="page tr-hero-inner">
+          <Seal />
+
+          <p className="tr-eyebrow">
+            <SodexLogo variant="full" className="tr-eyebrow-logo" title="SoDEX" />
+            <span aria-hidden="true">×</span>
+            <span>ValueMint</span>
+          </p>
+          <h1 className="tr-title">How deep have you traded?</h1>
+
+          <div className="tr-hero-side">
             <p className="tr-lede">
               Ten depths of the SoDEX leaderboard, free to whoever earned them. Take the one
-              you&rsquo;re at and every one you passed through.
+              you&rsquo;re at and every one you passed through — then come back when you go deeper.
             </p>
-
-            <div className="tr-check">
-              {!isConnected ? (
-                <div className="tr-actions">
-                  <button
-                    className="btn btn-primary btn-lg"
-                    disabled={connecting}
-                    onClick={() => {
-                      const injected = connectors.find((c) => c.id === "injected");
-                      if (injected !== undefined) connect({ connector: injected });
-                    }}
-                  >
-                    {connecting ? "Check your wallet…" : "Find your depth"}
-                  </button>
-                  <a className="btn btn-lg tr-btn-ghost" href="#ladder">
-                    See the ten
-                  </a>
-                </div>
-              ) : (
-                <Result state={state} onRetry={() => void check()} />
-              )}
-            </div>
           </div>
-
-          <Descent reached={reached} />
         </div>
-      </section>
 
-      <section className="section" id="ladder">
-        <div className="page head">
-          <div>
-            <p className="eyebrow">The ladder</p>
-            <h2>Ten depths</h2>
-          </div>
-          <span className="dim">Volume, not rank — so a piece never stops being true</span>
+        <Fan reached={reached} />
+
+        <div className="page tr-check">
+          {!isConnected ? (
+            <div className="tr-actions">
+              <button
+                className="btn btn-primary btn-lg"
+                disabled={connecting}
+                onClick={() => {
+                  const injected = connectors.find((c) => c.id === "injected");
+                  if (injected !== undefined) connect({ connector: injected });
+                }}
+              >
+                {connecting ? "Check your wallet…" : "Find your depth"}
+              </button>
+              <a className="btn btn-lg tr-btn-ghost" href="#ladder">
+                See the ten
+              </a>
+            </div>
+          ) : (
+            <Result state={state} onRetry={() => void check()} />
+          )}
+        </div>
+    </section>
+
+    <section className="section" id="ladder">
+      <div className="page head">
+        <div>
+          <p className="eyebrow">The ladder</p>
+          <h2>Ten depths</h2>
+        </div>
+        <span className="dim">Volume, not rank — so a piece never stops being true</span>
         </div>
 
         {/* Full bleed, running off both edges: the set should feel like it
@@ -221,15 +227,45 @@ function Result({ state, onRetry }: { state: State; onRetry: () => void }) {
   const { data } = state;
 
   if (!data.found || data.tier === null) {
+    /**
+     * Built with the same anatomy as the found state — marker, label, name,
+     * blurb, action — so the two read as the same object in two conditions
+     * rather than a result and a fallback paragraph.
+     *
+     * The marker is a numeral rather than Ripple's artwork on purpose: that
+     * piece currently carries an XRP logo, and this is the one place it would
+     * be shown at size to someone who has not earned it.
+     */
+    const first = TIERS.find((t) => t.n === 1)!;
     return (
-      <div className="tr-result">
-        <p className="tr-result-none">
-          No SoDEX trading found for this wallet. One trade is all it takes to reach{" "}
-          <b>Ripple</b> — start on{" "}
-          <a href="https://sodex.com" target="_blank" rel="noreferrer noopener">
-            SoDEX
-          </a>{" "}
-          and come back.
+      <div className="tr-result is-empty" style={{ ["--tier" as string]: first.colour }}>
+        <div className="tr-result-head">
+          <span className="tr-result-mark" aria-hidden="true">
+            01
+          </span>
+          <div>
+            <span className="tr-result-label">Nothing here yet</span>
+            <b className="tr-result-name">{first.name}</b>
+            <span className="tr-result-sub">{first.blurb}</span>
+          </div>
+        </div>
+
+        <p className="tr-result-next">
+          We found no SoDEX trading for this wallet. <b>One trade</b> is all the first depth
+          asks — come back afterwards and it will be here.
+        </p>
+
+        <a
+          className="btn btn-primary btn-lg btn-block"
+          href="https://sodex.com"
+          target="_blank"
+          rel="noreferrer noopener"
+        >
+          Start trading on SoDEX
+        </a>
+        <p className="tr-result-fine">
+          Already traded on another wallet? Connect that one instead — depths follow the wallet
+          that earned them.
         </p>
       </div>
     );
@@ -279,13 +315,78 @@ function Result({ state, onRetry }: { state: State; onRetry: () => void }) {
         <p className="tr-result-next">Nothing above you. You&rsquo;ve reached the bottom.</p>
       )}
 
-      <button className="btn btn-primary btn-lg btn-block" disabled>
-        Claim {claimable} {claimable === 1 ? "piece" : "pieces"} — opens at launch
-      </button>
+      <ClaimButton earned={claimable} />
       <p className="tr-result-fine">
         Each depth can be claimed once per wallet. Claiming costs gas only, a fraction of a cent.
       </p>
     </div>
+  );
+}
+
+/**
+ * The claim control, in every state it can be in.
+ *
+ * `earned` is what the wallet has *reached*; `owedCount` is what it has not yet
+ * *taken*, read from the contract. They differ the moment someone claims on
+ * another device, and the on-chain number is the one that governs — offering a
+ * piece already held would send a transaction that reverts.
+ */
+function ClaimButton({ earned }: { earned: number }) {
+  const { deployed, open, owedCount, loadingOwed, phase, claim, reset } = useTrenchesClaim();
+
+  if (!deployed) {
+    return (
+      <button className="btn btn-primary btn-lg btn-block" disabled>
+        Claim {earned} {earned === 1 ? "piece" : "pieces"} — opens at launch
+      </button>
+    );
+  }
+
+  if (phase.kind === "error") {
+    return (
+      <div className="tr-claim-failed">
+        <p className="tr-claim-msg">{phase.message}</p>
+        <button className="btn btn-lg btn-block" onClick={reset}>
+          Try again
+        </button>
+      </div>
+    );
+  }
+
+  if (phase.kind === "done" || owedCount === 0) {
+    return (
+      <div className="tr-claim-done">
+        <p className="tr-claim-msg">
+          {phase.kind === "done" ? "Claimed." : "You already hold every depth you’ve earned."}{" "}
+          <Link href="/portfolio">See them in your wallet</Link>.
+        </p>
+      </div>
+    );
+  }
+
+  const busy = phase.kind !== "idle";
+  const label =
+    phase.kind === "authorising"
+      ? "Checking your volume…"
+      : phase.kind === "signing"
+        ? "Confirm in your wallet…"
+        : phase.kind === "confirming"
+          ? "Claiming…"
+          : null;
+
+  const count = owedCount ?? earned;
+
+  return (
+    <button
+      className="btn btn-primary btn-lg btn-block"
+      onClick={() => void claim()}
+      disabled={busy || !open || loadingOwed}
+    >
+      {label ??
+        (!open
+          ? "Claiming opens shortly"
+          : `Claim ${count} ${count === 1 ? "piece" : "pieces"}`)}
+    </button>
   );
 }
 
@@ -308,22 +409,97 @@ function Result({ state, onRetry }: { state: State; onRetry: () => void }) {
  * come to the front, drift up and away — offset in time so the fan is always
  * populated and the wrap is never seen.
  */
-function Descent({ reached }: { reached: number }) {
+/**
+ * Five cards fanned across the bottom, bleeding off the frame.
+ *
+ * All ten stay mounted and only their slot changes, so the browser transitions
+ * between positions instead of elements appearing and vanishing. An earlier
+ * version unmounted cards as they left the fan and remounted them at the front,
+ * which read as a pop rather than a rotation.
+ *
+ * Slot is a signed distance from the centre, so a card is at -2, -1, 0, 1 or 2
+ * and anything further is parked below the fold. That mapping is what lets the
+ * set rotate in either direction without a seam at the wrap.
+ */
+function Fan({ reached }: { reached: number }) {
+  const [centre, setCentre] = useState(0);
+
+  useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const t = window.setInterval(() => setCentre((c) => (c + 1) % TIERS.length), 4200);
+    return () => window.clearInterval(t);
+  }, []);
+
   return (
-    <div className="tr-stack" aria-hidden="true">
-      <div className="tr-stack-inner">
-        {TIERS.map((t, i) => (
+    <div className="tr-fan" aria-hidden="true">
+      {TIERS.map((t, i) => {
+        let slot = i - centre;
+        if (slot > TIERS.length / 2) slot -= TIERS.length;
+        if (slot < -TIERS.length / 2) slot += TIERS.length;
+        const parked = Math.abs(slot) > 2;
+
+        return (
           <div
             key={t.n}
-            className={`tr-plate${reached >= t.n ? " is-lit" : ""}`}
-            style={{ ["--i" as string]: i, ["--tier" as string]: t.colour }}
+            className={`tr-card${reached >= t.n ? " is-lit" : ""}${slot === 0 ? " is-centre" : ""}${parked ? " is-parked" : ""}`}
+            style={{ ["--slot" as string]: slot, ["--abs" as string]: Math.abs(slot), ["--tier" as string]: t.colour, zIndex: 10 - Math.abs(slot) }}
           >
-            <Art src={tierImage(t)} sizes="(max-width: 900px) 40vw, 320px" />
-            <span className="tr-plate-n">{String(t.n).padStart(2, "0")}</span>
-            <span className="tr-plate-name">{t.name}</span>
+            <div className="tr-card-art">
+              <Art src={tierImage(t)} sizes="(max-width: 900px) 60vw, 380px" />
+            </div>
+            <div className="tr-card-bar">
+              <div>
+                <b>{t.name}</b>
+                <span>Depth {String(t.n).padStart(2, "0")}</span>
+              </div>
+              <span className="tr-card-min mono">
+                {t.min === 0 ? "Any trade" : formatVolume(t.min)}
+              </span>
+            </div>
           </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/** The rim-lettered seal, as in the reference's rotating badge. */
+function Seal() {
+  return (
+    <div className="tr-seal" aria-hidden="true">
+      <svg viewBox="0 0 120 120">
+        <defs>
+          <path id="tr-seal-arc" d="M60,60 m-42,0 a42,42 0 1,1 84,0 a42,42 0 1,1 -84,0" />
+        </defs>
+        <text>
+          <textPath href="#tr-seal-arc">
+            {"SODEX · THE TRENCHES · VALUEMINT · TEN DEPTHS · "}
+          </textPath>
+        </text>
+      </svg>
+    </div>
+  );
+}
+
+/** Thin arcs sweeping the ground, as in the reference's line texture. */
+function Arcs() {
+  return (
+    <div className="tr-arcs" aria-hidden="true">
+      <svg viewBox="0 0 1400 800" preserveAspectRatio="xMidYMid slice">
+        {Array.from({ length: 16 }, (_, i) => (
+          <ellipse
+            key={i}
+            cx="700"
+            cy={880 + i * 6}
+            rx={520 + i * 56}
+            ry={300 + i * 30}
+            fill="none"
+            stroke="#ffffff"
+            strokeOpacity={0.05 - i * 0.0022}
+            strokeWidth="1"
+          />
         ))}
-      </div>
+      </svg>
     </div>
   );
 }

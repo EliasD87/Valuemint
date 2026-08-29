@@ -5,15 +5,21 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Wallet } from "./Wallet";
 import { ThemeToggle } from "./ThemeToggle";
+import { SodexLogo } from "./SodexLogo";
 import { deployment } from "@/config/contracts";
 import "./Layout.css";
 
+/**
+ * `mark` puts the SoDEX symbol beside a nav label. Only Trenches carries one:
+ * that page is entirely about their leaderboard, and a symbol on any other
+ * entry would read as SoDEX branding the marketplace itself.
+ */
 const NAV = [
   { to: "/", label: "Explore", end: true },
   { to: "/mint", label: "Mint" },
   { to: "/collections", label: "Collections" },
   { to: "/market", label: "Market" },
-  { to: "/trenches", label: "Trenches" },
+  { to: "/trenches", label: "Trenches", mark: true },
   { to: "/create", label: "Create" },
   { to: "/portfolio", label: "Portfolio" },
   { to: "/manage", label: "Manage" },
@@ -84,6 +90,7 @@ export function Layout({ children }: { children: ReactNode }) {
                 className={`nav-link${isActive(item) ? " is-active" : ""}`}
                 aria-current={isActive(item) ? "page" : undefined}
               >
+                {"mark" in item ? <SodexLogo variant="mark" className="nav-mark" /> : null}
                 {item.label}
               </Link>
             ))}
@@ -130,6 +137,7 @@ export function Layout({ children }: { children: ReactNode }) {
                 className={`mobile-nav-link${isActive(item) ? " is-active" : ""}`}
                 aria-current={isActive(item) ? "page" : undefined}
               >
+                {"mark" in item ? <SodexLogo variant="mark" className="nav-mark" /> : null}
                 {item.label}
               </Link>
             ))}

@@ -7,6 +7,8 @@ import {
   type ManifestDesign,
 } from "@/lib/collectionManifest";
 import { gatewayUrl } from "@/lib/pinning";
+import { TIERS, TIER_GATEWAY, formatVolume } from "@/config/tiers";
+import { TIER_STRIDE, TRENCHES_SLUG } from "@/config/trenches";
 import { filebaseGateway } from "@/lib/filebase";
 
 /**
@@ -137,6 +139,47 @@ export async function GET(
     return NextResponse.json({ error: "Token id must be a whole number." }, { status: 400 });
   }
   const tokenId = Number(id);
+
+  // --- the Trenches -----------------------------------------------------
+  /**
+   * Alone among the collections here, a Trenches token's design is not decided
+   * by a shuffle — it is decided by the volume the claimant had, and recorded
+   * on chain at claim time. The tier is encoded in the token id
+   * (`tier * TIER_STRIDE + serial`), so it is readable without an RPC call and
+   * cannot drift from what the contract minted.
+   */
+  if (collection === TRENCHES_SLUG) {
+    const tierNumber = Math.floor(tokenId / TIER_STRIDE);
+    const serial = tokenId % TIER_STRIDE;
+    const tier = TIERS.find((t) => t.n === tierNumber);
+
+    if (tier === undefined || serial < 1) {
+      return NextResponse.json({ error: "No such token in this collection." }, { status: 404 });
+    }
+
+    return NextResponse.json(
+      {
+        name: `${tier.name} #${serial}`,
+        description:
+          `${tier.blurb} Depth ${tierNumber} of ${TIERS.length} in The Trenches — earned by ` +
+          `all-time SoDEX trading volume and claimed on chain, so the tier this wallet holds ` +
+          `is the tier it earned.`,
+        image: `${TIER_GATEWAY}/${tier.image}`,
+        image_ipfs: `ipfs://${tier.image}`,
+        external_url: "https://www.valuemint.store/trenches",
+        attributes: [
+          { trait_type: "Depth", value: tier.name },
+          { trait_type: "Depth Number", value: tierNumber, display_type: "number" },
+          {
+            trait_type: "Volume Threshold",
+            value: tier.min === 0 ? "Any trade" : formatVolume(tier.min),
+          },
+          { trait_type: "Serial", value: serial, display_type: "number" },
+        ],
+      },
+      { headers: CACHE_HEADERS },
+    );
+  }
 
   // --- collections shipped with the app ---------------------------------
   const baked = BAKED_IN[collection];
