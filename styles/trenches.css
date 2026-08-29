@@ -206,21 +206,57 @@
 }
 
 /**
- * Ten pieces rising out of the dark.
+ * A rolodex, turning through the depths.
  *
- * Two layers of motion, because one alone reads as a conveyor belt:
+ * The ten plates sit on a vertical ring rather than a fan. The ring turns
+ * steadily, so each piece climbs into view from below, squares up to the
+ * viewer at the front of the arc, then tips away over the top — the shape of
+ * something sinking past you, which is what the page is about.
  *
- *   tr-rise  — each plate's own journey, from deep and small at the bottom
- *              right, up through a focus point where it is sharp and fully
- *              lit, then away over the viewer's shoulder.
- *   tr-drift — a slow sway on the whole group, so the fan breathes like
- *              something suspended in water rather than sliding on rails.
+ * Why a ring rather than the fan it replaced: a fan has a front and a back, so
+ * one plate is always the hero and the other nine are edges. On a ring every
+ * plate gets the same turn at the front, which is the right treatment when all
+ * ten are the point.
  *
- * The focus pull is what sells the depth: plates enter and leave blurred and
- * dim, and are only sharp in the middle of the journey. That is a camera with
- * a shallow depth of field, and it does more for the sense of distance than
- * scale alone.
+ * Geometry, which has to be right or the plates cut through each other: ten
+ * plates sit 36 degrees apart, so the radius must exceed half the plate height
+ * divided by tan(18 degrees) — about 1.54x the height. A first pass used a
+ * radius equal to the height and the neighbours intersected.
+ *
+ * Plate and radius are therefore sized from the same clamp, kept in that ratio
+ * at both ends of the range.
  */
+.tr-stack {
+  position: relative;
+  /* Tall enough for the front plate at its perspective scale plus the arc
+     above and below it. */
+  min-height: clamp(380px, 52vw, 620px);
+  perspective: 1500px;
+  perspective-origin: 50% 50%;
+  display: grid;
+  place-items: center;
+}
+
+.tr-stack-inner {
+  position: relative;
+  /* Radius is 1.7x the plate edge. The binding constraint is the chord between
+     neighbouring plates, 2R·sin(18°), which must exceed the plate height —
+     that needs 1.62x, not the 1.54x the apothem formula suggests. At 1.6x the
+     neighbours overlapped by 2px. */
+  --plate: clamp(180px, 21vw, 236px);
+  --radius: clamp(306px, 35.7vw, 402px);
+  width: var(--plate);
+  height: var(--plate);
+  transform-style: preserve-3d;
+  animation: tr-turn 44s linear infinite;
+}
+
+@keyframes tr-turn {
+  to {
+    transform: rotateX(-360deg);
+  }
+}
+
 .tr-plate {
   position: absolute;
   inset: 0;
@@ -229,78 +265,56 @@
   border: 1px solid rgba(255, 255, 255, 0.14);
   background: #0e0e11;
   box-shadow: 0 30px 70px -28px rgba(0, 0, 0, 0.95);
-  opacity: 0;
-  animation: tr-rise 22s cubic-bezier(0.42, 0, 0.35, 1) infinite;
-  animation-delay: calc(var(--i) * -2.2s);
-  will-change: transform, opacity, filter;
+  /* Placed around the ring, then pushed out to its radius. */
+  transform: rotateX(calc(var(--i) * 36deg)) translateZ(var(--radius));
+  /* The far half of the ring faces away; hiding it keeps mirrored plates from
+     showing through the near ones. */
+  backface-visibility: hidden;
 }
 
-@keyframes tr-rise {
-  /* deep, small, and well out of focus */
+/**
+ * Light falls off around the ring.
+ *
+ * A plate at the front is lit; ones climbing in and tipping away are dimmer.
+ * Without this the ring reads as flat and the turn is hard to follow, because
+ * every plate looks equally close.
+ */
+.tr-plate::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: rgba(6, 6, 8, 0.55);
+  animation: tr-shade 44s linear infinite;
+  animation-delay: calc(var(--i) * -4.4s);
+}
+
+@keyframes tr-shade {
   0% {
-    transform: translate3d(52%, 62%, -760px) rotate(10deg) ;
-    opacity: 0;
-    filter: brightness(0.3) saturate(0.35) blur(4px);
+    opacity: 0.72;
   }
-  10% {
-    opacity: 0.5;
-  }
-  /* climbing, coming into focus */
-  32% {
-    transform: translate3d(22%, 26%, -300px) rotate(4.5deg);
-    opacity: 0.85;
-    filter: brightness(0.72) saturate(0.75) blur(1.4px);
-  }
-  /* held sharp at the front, long enough to actually be looked at */
-  50%,
-  62% {
-    transform: translate3d(0, 0, 0) rotate(0deg);
-    opacity: 1;
-    filter: none;
-  }
-  /* rising past the viewer, blurring out again */
-  86% {
-    transform: translate3d(-30%, -46%, 240px) rotate(-6deg);
-    opacity: 0;
-    filter: brightness(1.2) blur(3px);
-  }
-  100% {
-    transform: translate3d(-30%, -46%, 240px) rotate(-6deg);
-    opacity: 0;
-    filter: brightness(1.2) blur(3px);
-  }
-}
-
-/* The whole shoal sways, on a period that does not divide evenly into the
-   rise, so the two never sync into an obvious pattern. */
-.tr-stack-inner {
-  animation: tr-drift 13s ease-in-out infinite;
-}
-
-@keyframes tr-drift {
-  0%,
-  100% {
-    transform: rotateX(9deg) rotateZ(-2deg) translate3d(0, 0, 0);
-  }
+  /* front of the arc */
   50% {
-    transform: rotateX(6deg) rotateZ(1.5deg) translate3d(1.5%, -2%, 0);
+    opacity: 0;
+  }
+  100% {
+    opacity: 0.72;
   }
 }
 
 /**
- * Hover holds the loop where it is.
+ * Hover holds the ring where it is.
  *
  * This used to change `animation-duration`, which makes the browser recompute
- * every plate's position in its own timeline — and with negative delays they
- * all jumped at once. Pausing freezes in place and resumes from the same
- * frame, which is what "let me look at this" should do.
+ * every plate's position in its timeline — with negative delays they all
+ * jumped at once. Pausing freezes in place and resumes from the same frame.
  */
-.tr-stack:hover .tr-plate,
-.tr-stack:hover .tr-stack-inner {
+.tr-stack:hover .tr-stack-inner,
+.tr-stack:hover .tr-plate::after {
   animation-play-state: paused;
 }
 
-/* An earned tier keeps its glow as it passes the front. */
+/* An earned tier keeps its glow as it comes round. */
 .tr-plate.is-lit {
   border-color: color-mix(in srgb, var(--tier) 60%, transparent);
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--tier) 28%, transparent),
@@ -317,6 +331,7 @@
   position: absolute;
   top: 0.7rem;
   left: 0.8rem;
+  z-index: 2;
   font-family: var(--display);
   font-size: var(--step--1);
   font-weight: 800;
@@ -332,6 +347,7 @@
   position: absolute;
   left: 0.85rem;
   bottom: 0.8rem;
+  z-index: 2;
   font-family: var(--display);
   font-size: var(--step-1);
   font-weight: 800;
@@ -341,20 +357,23 @@
 }
 
 /**
- * No motion: no loop, no sway. The plates fan out statically so the section
- * still shows several pieces rather than one frozen frame.
+ * No motion: no ring. It flattens to a static fan, so the section still shows
+ * several pieces rather than one plate with nine hidden behind it.
  */
 @media (prefers-reduced-motion: reduce) {
-  .tr-plate,
   .tr-stack-inner {
     animation: none;
   }
   .tr-plate {
+    backface-visibility: visible;
     opacity: calc(1 - (var(--i) * 0.19));
     transform:
       translate3d(calc(var(--i) * 11%), calc(var(--i) * 3%), calc(var(--i) * -34px))
       rotate(calc(var(--i) * 2.6deg));
-    filter: none;
+  }
+  .tr-plate::after {
+    animation: none;
+    opacity: 0;
   }
   .tr-plate:nth-child(n + 6) {
     display: none;
