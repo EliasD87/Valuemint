@@ -6,39 +6,61 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Wallet } from "./Wallet";
 import { ThemeToggle } from "./ThemeToggle";
 import { SodexLogo } from "./SodexLogo";
-import { MobileTabs } from "./MobileTabs";
 import { deployment } from "@/config/contracts";
 import "./Layout.css";
 
 /**
- * `mark` puts the SoDEX symbol beside a nav label. Only Trenches carries one:
- * that page is entirely about their leaderboard, and a symbol on any other
- * entry would read as SoDEX branding the marketplace itself.
+ * The navigation, grouped.
+ *
+ * Nine destinations is too many to read as a list. On a phone they now sit in
+ * a drawer, where there is room to say what each group *is* — so the grouping
+ * earns its keep there, and the desktop header simply flattens it back into a
+ * row.
+ *
+ * The flattened order is deliberately the order the header has always had, so
+ * grouping the drawer changed nothing on desktop.
+ *
+ * `mark` puts the SoDEX symbol beside a label. Only Trenches carries one: that
+ * page is entirely about their leaderboard, and a symbol anywhere else would
+ * read as SoDEX branding the marketplace itself.
  */
-const NAV = [
-  { to: "/", label: "Explore", end: true },
-  { to: "/mint", label: "Mint" },
-  { to: "/collections", label: "Collections" },
-  { to: "/market", label: "Market" },
-  { to: "/trenches", label: "Trenches", mark: true },
-  { to: "/kols", label: "KOLs" },
-  { to: "/create", label: "Create" },
-  { to: "/portfolio", label: "Portfolio" },
-  { to: "/manage", label: "Manage" },
+interface NavItem {
+  to: string;
+  label: string;
+  /** Match the path exactly. Only "/" needs it; everything else prefix-matches. */
+  end?: boolean;
+  /** Show the SoDEX symbol beside the label. */
+  mark?: boolean;
+}
+
+const NAV_GROUPS: { caption: string; items: NavItem[] }[] = [
+  {
+    caption: "Marketplace",
+    items: [
+      { to: "/", label: "Explore", end: true },
+      { to: "/mint", label: "Mint" },
+      { to: "/collections", label: "Collections" },
+      { to: "/market", label: "Market" },
+    ],
+  },
+  {
+    caption: "Drops",
+    items: [
+      { to: "/trenches", label: "Trenches", mark: true },
+      { to: "/kols", label: "KOLs" },
+    ],
+  },
+  {
+    caption: "Yours",
+    items: [
+      { to: "/create", label: "Create" },
+      { to: "/portfolio", label: "Portfolio" },
+      { to: "/manage", label: "Manage" },
+    ],
+  },
 ];
 
-/**
- * What the bottom tab bar already carries, and so what the phone menu must not
- * repeat. See components/MobileTabs.tsx — this list is the one place the two
- * are reconciled.
- *
- * Before this, a phone had three navigations on screen at once and every
- * destination appeared two to five times: Explore was in the tabs, in the menu
- * and three times over in the header. The menu now holds exactly what the tabs
- * do not, so each place is reachable one way.
- */
-const IN_TAB_BAR = new Set(["/", "/market", "/collections", "/portfolio"]);
-const SECONDARY_NAV = NAV.filter((item) => !IN_TAB_BAR.has(item.to));
+const NAV: NavItem[] = NAV_GROUPS.flatMap((group) => group.items);
 
 export function Layout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
@@ -46,21 +68,49 @@ export function Layout({ children }: { children: ReactNode }) {
   const menuButton = useRef<HTMLButtonElement>(null);
   const panel = useRef<HTMLDivElement>(null);
 
-  const isActive = (item: (typeof NAV)[number]) =>
+  const isActive = (item: NavItem) =>
     item.end === true ? pathname === item.to : pathname.startsWith(item.to);
 
-  // Navigating is the commonest way to leave the menu, and the panel does not
+  // Navigating is the commonest way to leave the drawer, and it does not
   // unmount on a route change, so it has to close itself.
   useEffect(() => setMenuOpen(false), [pathname]);
 
   useEffect(() => {
     if (!menuOpen) return;
 
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key !== "Escape") return;
+    const close = () => {
       setMenuOpen(false);
       menuButton.current?.focus();
     };
+
+    /**
+     * The drawer covers the page, so focus has to be held inside it. Without
+     * this, tabbing walks straight out into the page underneath — which is
+     * still there, still focusable, and now invisible behind the scrim.
+     */
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") return close();
+      if (e.key !== "Tab" || panel.current === null) return;
+
+      const focusable = panel.current.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), input, select, textarea, [tabindex]:not([tabindex="-1"])',
+      );
+      if (focusable.length === 0) return;
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (first === undefined || last === undefined) return;
+      const here = document.activeElement;
+
+      if (e.shiftKey && (here === first || here === panel.current)) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && here === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+
     const onPointer = (e: PointerEvent) => {
       const t = e.target as Node;
       if (panel.current?.contains(t) === true || menuButton.current?.contains(t) === true) return;
@@ -70,10 +120,14 @@ export function Layout({ children }: { children: ReactNode }) {
     document.addEventListener("keydown", onKey);
     document.addEventListener("pointerdown", onPointer);
 
-    // The panel scrolls with the page behind it otherwise, which on a phone
-    // reads as the menu sliding away on its own.
+    // The page scrolls behind the drawer otherwise, which reads as the menu
+    // sliding away on its own.
     const { overflow } = document.body.style;
     document.body.style.overflow = "hidden";
+
+    // Move focus in, so a keyboard or screen reader lands where the drawer is
+    // rather than continuing from the button behind it.
+    panel.current?.querySelector<HTMLElement>("a[href], button")?.focus();
 
     return () => {
       document.removeEventListener("keydown", onKey);
@@ -105,16 +159,16 @@ export function Layout({ children }: { children: ReactNode }) {
                 className={`nav-link${isActive(item) ? " is-active" : ""}`}
                 aria-current={isActive(item) ? "page" : undefined}
               >
-                {"mark" in item ? <SodexLogo variant="mark" className="nav-mark" /> : null}
+                {item.mark === true ? <SodexLogo variant="mark" className="nav-mark" /> : null}
                 {item.label}
               </Link>
             ))}
           </nav>
 
           <div className="header-actions">
+            {/* Below 940 this hides and the drawer carries the switch instead,
+                so the phone header is only brand, wallet and the menu. */}
             <ThemeToggle />
-            {/* No Create button here: the nav already has one, and two controls
-                to the same page competed for the same corner. */}
             <Wallet />
             <button
               ref={menuButton}
@@ -128,37 +182,79 @@ export function Layout({ children }: { children: ReactNode }) {
               <span className="menu-bars" aria-hidden="true">
                 <i />
                 <i />
+                <i />
               </span>
             </button>
           </div>
         </div>
-
-        {/* Always rendered so the panel can animate, and so its links stay in
-            the accessibility tree in a predictable place. `inert` keeps them
-            out of the tab order while it is shut. */}
-        <div
-          id="mobile-nav"
-          className="mobile-nav"
-          ref={panel}
-          inert={!menuOpen}
-          aria-hidden={!menuOpen}
-        >
-          <nav className="mobile-nav-inner page" aria-label="More destinations">
-            <p className="mobile-nav-caption">More</p>
-            {SECONDARY_NAV.map((item) => (
-              <Link
-                key={item.to}
-                href={item.to}
-                className={`mobile-nav-link${isActive(item) ? " is-active" : ""}`}
-                aria-current={isActive(item) ? "page" : undefined}
-              >
-                {"mark" in item ? <SodexLogo variant="mark" className="nav-mark" /> : null}
-                {item.label}
-              </Link>
-            ))}
-          </nav>
-        </div>
       </header>
+
+      {/**
+       * The drawer, and the whole of the phone navigation.
+       *
+       * A sibling of the header rather than a child: it is full height and
+       * fixed, and nesting it inside a sticky, bordered bar meant fighting that
+       * bar's own box for every pixel of it.
+       *
+       * Always rendered, so it can animate and so its links keep a stable place
+       * in the accessibility tree. `inert` is what takes them out of the tab
+       * order while it is shut — which also makes the focus trap above safe,
+       * since there is nothing to trap until it opens.
+       */}
+      <div
+        id="mobile-nav"
+        className="drawer"
+        ref={panel}
+        inert={!menuOpen}
+        aria-hidden={!menuOpen}
+        data-open={menuOpen ? "" : undefined}
+      >
+        <div className="drawer-head">
+          <Link href="/" className="brand" aria-label="ValueMint, home">
+            <span className="brand-mark" aria-hidden="true">
+              <Mark />
+            </span>
+            <span className="brand-name">ValueMint</span>
+          </Link>
+          <button
+            type="button"
+            className="drawer-close"
+            aria-label="Close menu"
+            onClick={() => {
+              setMenuOpen(false);
+              menuButton.current?.focus();
+            }}
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M6 6l12 12M18 6L6 18" />
+            </svg>
+          </button>
+        </div>
+
+        <nav className="drawer-nav" aria-label="Primary">
+          {NAV_GROUPS.map((group) => (
+            <div className="drawer-group" key={group.caption}>
+              <p className="drawer-caption">{group.caption}</p>
+              {group.items.map((item) => (
+                <Link
+                  key={item.to}
+                  href={item.to}
+                  className={`drawer-link${isActive(item) ? " is-active" : ""}`}
+                  aria-current={isActive(item) ? "page" : undefined}
+                >
+                  {item.mark === true ? <SodexLogo variant="mark" className="nav-mark" /> : null}
+                  <span>{item.label}</span>
+                </Link>
+              ))}
+            </div>
+          ))}
+        </nav>
+
+        <div className="drawer-foot">
+          <ThemeToggle />
+          <span className="drawer-chain">ValueChain · 286623</span>
+        </div>
+      </div>
 
       <div
         className="menu-scrim"
@@ -167,11 +263,7 @@ export function Layout({ children }: { children: ReactNode }) {
         onClick={() => setMenuOpen(false)}
       />
 
-      <main id="main">
-        {children}
-      </main>
-
-      <MobileTabs />
+      <main id="main">{children}</main>
 
       <footer className="footer">
         <div className="footer-inner">

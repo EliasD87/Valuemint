@@ -30,3 +30,6 @@ Thumbs.db
 # a public copy tells anyone exactly where the soft spots are. It carries no
 # credentials, but it should never have been pushed.
 CLAUDE.md
+
+# Internal design notes — kept locally, not published.
+ARCHITECTURE.md

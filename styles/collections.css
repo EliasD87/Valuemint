@@ -291,6 +291,10 @@
   /* Label left, figure right — the figure now has the whole card to sit in. */
   .coll-card-stats > div {
     display: flex;
+    /* The base rule stacks these in a column; without resetting that here the
+       label sat above its figure and each card spent six lines on three
+       numbers. */
+    flex-direction: row;
     align-items: baseline;
     justify-content: space-between;
     gap: 0.5rem;

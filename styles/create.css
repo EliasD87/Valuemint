@@ -27,6 +27,9 @@
 }
 
 .create-steps li button {
+  /* These are the wizard's own navigation, tapped as often as Continue.
+     They drew at 40px, under the 44px floor in WCAG 2.5.5. */
+  min-height: 44px;
   display: inline-flex;
   align-items: center;
   gap: 0.55rem;

@@ -349,6 +349,17 @@ function Hero({ deck }: { deck: DeckCard[] }) {
     <section className="hx">
       <div className="hx-deep" aria-hidden="true" />
 
+      {/*
+        Three drifting lights. Purely atmospheric, so it is hidden from the
+        accessibility tree and takes no pointer events — and every one of them
+        stops for anyone who asks for reduced motion.
+      */}
+      <div className="hx-aurora" aria-hidden="true">
+        <i className="hx-orb hx-orb-a" />
+        <i className="hx-orb hx-orb-b" />
+        <i className="hx-orb hx-orb-c" />
+      </div>
+
       <div className="page hx-inner">
 
         <h1 className="hx-title">

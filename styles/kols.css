@@ -141,24 +141,6 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.35);
 }
 
-/**
- * Each figure rises into place on load, one after another.
- *
- * `translateY` and `opacity` only — both composited, so the slabs behind them
- * are never re-laid-out. The stagger is what makes it read as three people
- * stepping up rather than one block sliding.
- */
-@keyframes kol-rise {
-  from {
-    opacity: 0;
-    transform: translateX(-50%) translateY(26px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
-  }
-}
-
 .kol-figure {
   position: absolute;
   left: 50%;
@@ -171,18 +153,9 @@
   /* Grounds the figure on the slab instead of floating over it. */
   filter: drop-shadow(0 18px 22px rgba(23, 8, 31, 0.55));
   pointer-events: none;
-  animation: kol-rise 760ms var(--ease) backwards;
-}
-
-/* Middle first, then the flanks — the eye lands on the centre anyway. */
-.kol-plinth:nth-child(2) .kol-figure {
-  animation-delay: 0ms;
-}
-.kol-plinth:nth-child(1) .kol-figure {
-  animation-delay: 110ms;
-}
-.kol-plinth:nth-child(3) .kol-figure {
-  animation-delay: 220ms;
+  /* No entrance animation. It began at `opacity: 0` with `backwards` fill, so
+     the figures were visible only if the animation ran - see the note in
+     hero.css, where the same pattern left the whole deck blank. */
 }
 
 /**

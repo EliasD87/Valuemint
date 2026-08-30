@@ -58,6 +58,22 @@
   font-weight: 600;
 }
 
+/**
+ * The narrowest phones let the label take a second line.
+ *
+ * At 320 the two-column strip gives each pair a 130px cell, and the longest -
+ * "2.5% marketplace fee" - needs 138. `nowrap` made it overrun its own box.
+ *
+ * Only below 360, because at 375 every pair fits on one line and wrapping there
+ * would break a row that is currently even. The grid row grows to the tallest
+ * cell, so the pairs stay aligned either way.
+ */
+@media (max-width: 360px) {
+  .strip-item {
+    white-space: normal;
+  }
+}
+
 /* ============================================================== collections */
 
 .coll-rail {
@@ -116,6 +132,42 @@
   font-variant-numeric: tabular-nums;
   font-size: var(--step--2);
   color: var(--ink-3);
+}
+
+/**
+ * Phones: the rail becomes a list.
+ *
+ * As a rail it clipped the second collection mid-word at the right edge, with
+ * nothing to say more existed - the same trap the navigation had before it
+ * moved into the drawer. A swipe nobody is told about is not an affordance.
+ *
+ * There are four collections, and four full-width rows fit in the space the
+ * rail took anyway. Every one is now visible, and each row is a whole tap
+ * target instead of a 199px pill floating in a scroll container.
+ */
+@media (max-width: 700px) {
+  .coll-rail {
+    flex-wrap: wrap;
+    overflow-x: visible;
+    gap: 0.5rem;
+    padding-bottom: 0;
+  }
+
+  .coll-pill {
+    flex: 1 1 100%;
+    /* Comfortably over the 44px floor; as a pill it measured 43. */
+    min-height: 48px;
+    padding-right: 0.9rem;
+  }
+
+  /* Takes the slack so the ticker sits on the right edge, and truncates rather
+     than pushing it off - "ValueChain Genesis" is wider than the room here. */
+  .coll-pill b {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 }
 
 /* ================================================================= grids */

@@ -27,17 +27,33 @@ import { OPTIMISED_IMAGE_HOSTS } from "./lib/media";
  * That deserves its own pass with nonces rather than a guess bundled into a
  * security fix.
  */
+/**
+ * `frame-ancestors 'none'` also blocks the local preview pane from framing the
+ * dev server, which means the page never composites: screenshots come back
+ * blank, `getComputedStyle` returns every transition's start value forever, and
+ * intervals are throttled to a crawl. Design work then has to be done blind, by
+ * measuring geometry instead of looking at the page.
+ *
+ * So in development only, the site is framable from localhost. Production is
+ * untouched — `next build` and `next start` both set NODE_ENV to production, so
+ * the deployed site keeps 'none' and the `X-Frame-Options: DENY` below.
+ */
+const isDev = process.env.NODE_ENV !== "production";
+
 const securityHeaders = [
   {
     key: "Content-Security-Policy",
     value: [
-      "frame-ancestors 'none'",
+      isDev ? "frame-ancestors 'self' http://localhost:* http://127.0.0.1:*" : "frame-ancestors 'none'",
       "object-src 'none'",
       "base-uri 'self'",
       "form-action 'self'",
     ].join("; "),
   },
-  { key: "X-Frame-Options", value: "DENY" },
+  // X-Frame-Options has no origin list — it is DENY or nothing — and it would
+  // override the CSP above for the pane, so in development it is simply not
+  // sent. Every browser that matters honours frame-ancestors.
+  ...(isDev ? [] : [{ key: "X-Frame-Options", value: "DENY" }]),
   { key: "X-Content-Type-Options", value: "nosniff" },
   // Referrers leak the page a visitor came from to every explorer and IPFS
   // gateway the site links out to.

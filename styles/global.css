@@ -23,7 +23,20 @@ body {
   font-synthesis-weight: none;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  overflow-x: hidden;
+  /**
+   * `clip`, not `hidden`.
+   *
+   * Both stop sideways scrolling, but `overflow-x: hidden` computes overflow-y
+   * to `auto`, and that turns the body into its own scroll container. The
+   * document then scrolls *inside* the body rather than the viewport, which
+   * measured here as `window.scrollY` clamping at 60px on a 5373px page — so
+   * anchor links, scroll restoration and any script that reads scroll position
+   * were all reading a number that stops rising almost immediately.
+   *
+   * `clip` does not establish a scroll container, so the viewport keeps the
+   * scroll and the horizontal clamp still holds. Same reason `#ladder` uses it.
+   */
+  overflow-x: clip;
 }
 
 /**
@@ -154,8 +167,8 @@ textarea {
   padding-block: clamp(2.75rem, 5.5vw, 4.5rem);
 }
 
-/* A phone screen is short and already gives 56px to the tab bar; 44px of air
-   per section boundary made pages feel hollow. */
+/* A phone screen is short, and 44px of air per section boundary made pages feel
+   hollow rather than spacious. */
 @media (max-width: 700px) {
   .section {
     padding-block: 2.25rem;
@@ -181,10 +194,25 @@ textarea {
   margin-bottom: 1.5rem;
 }
 
+/* The title stack: eyebrow above heading. */
 .head > div {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+}
+
+/**
+ * ...but only that one.
+ *
+ * The rule above matches *any* div placed in a head, and /market puts its sort
+ * buttons there. They became a 94px column of one-per-row chips - three
+ * controls stacked down the page when all three fit across it with room over.
+ *
+ * Two classes beat one class and one type, so this needs no !important.
+ */
+.head > .wrap-row {
+  flex-direction: row;
+  align-items: center;
 }
 
 .head h2 {
@@ -775,7 +803,6 @@ textarea {
 
 @media (max-width: 700px) {
   .grid-tokens.grid-tokens,
-  .coll-grid.coll-grid,
   .manage-grid.manage-grid,
   .manage-list.manage-list,
   .studio-designs.studio-designs,
@@ -783,6 +810,20 @@ textarea {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.6rem;
   }
+
+  /**
+   * `.coll-grid` is deliberately NOT in that list.
+   *
+   * Two across suits a tile that is mostly one picture. A collection card is
+   * not that: it carries a four-up cover strip, a name, a status chip and three
+   * label-and-figure rows. Forced to 161px each, the four covers became 40px
+   * slivers and a wrapped name pushed one card's figures a line out of step
+   * with its neighbour's, so the pair never lined up.
+   *
+   * Left alone it falls back to its own `minmax(19rem, 1fr)`, which is one
+   * column on a phone - and one card with the full width gives the covers 84px
+   * each and the stats room to sit on one line.
+   */
 
   /* Stat rails stay dense — three across reads as a summary, one per row reads
      as a list of unrelated numbers. */

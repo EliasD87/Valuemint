@@ -42,6 +42,9 @@
   --hx-card: var(--surface);
   --hx-card-line: var(--line-strong);
   --hx-shadow: 0 34px 70px -30px rgba(14, 14, 16, 0.22);
+  --hx-orb-1: rgba(99, 102, 241, 0.09);
+  --hx-orb-2: rgba(255, 92, 0, 0.07);
+  --hx-orb-3: rgba(56, 189, 248, 0.06);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -53,6 +56,9 @@
     --hx-card: #17171c;
     --hx-card-line: rgba(255, 255, 255, 0.14);
     --hx-shadow: 0 34px 70px -30px rgba(0, 0, 0, 0.95);
+    --hx-orb-1: rgba(129, 140, 248, 0.3);
+    --hx-orb-2: rgba(255, 122, 51, 0.22);
+    --hx-orb-3: rgba(56, 189, 248, 0.24);
   }
 }
 
@@ -64,6 +70,124 @@
   --hx-card: #17171c;
   --hx-card-line: rgba(255, 255, 255, 0.14);
   --hx-shadow: 0 34px 70px -30px rgba(0, 0, 0, 0.95);
+  --hx-orb-1: rgba(129, 140, 248, 0.3);
+  --hx-orb-2: rgba(255, 122, 51, 0.22);
+  --hx-orb-3: rgba(56, 189, 248, 0.24);
+}
+
+/* ---------------------------------------------------------------- aurora ---
+ *
+ * Three soft lights drifting behind everything, on the ground and under the
+ * deck.
+ *
+ * The effect rests on the three periods being mutually prime — 37s, 43s and
+ * 53s. Matched or harmonic durations give a loop a beat you start to see once
+ * you have looked at it twice; these only realign every 23 hours, so the ground
+ * never visibly repeats.
+ *
+ * Only `transform` and `opacity` are animated, so this runs on the compositor
+ * and cannot touch layout. The soft edge is the gradient's own falloff rather
+ * than a `filter: blur()`, which would repaint an 840px surface every frame.
+ *
+ * No `will-change`: an infinite transform animation already gets its own layer
+ * in every current engine, and the hint would only pin the memory for three
+ * large surfaces that never stop.
+ * ------------------------------------------------------------------------- */
+
+.hx-aurora {
+  position: absolute;
+  /* Wider than the section, so an orb's travel never drags its edge into view. */
+  inset: -10% -5%;
+  /* With the ground at -2 too, DOM order decides: ground, then light, then the
+     grid at -1 over both. */
+  z-index: -2;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/**
+ * One gradient for all three, tinted by --c.
+ *
+ * Four stops rather than two. `C 0%, transparent 68%` ramps the alpha linearly,
+ * and a linear ramp is what makes a soft gradient still read as a *blob* with a
+ * findable edge. Real light falls off fast near the source and slowly at the
+ * limit, so the mid stops drop to 55% then 20% of the alpha before reaching
+ * nothing — the same total spread, but no perceptible boundary.
+ */
+.hx-orb {
+  position: absolute;
+  display: block;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    var(--c) 0%,
+    color-mix(in srgb, var(--c), transparent 45%) 30%,
+    color-mix(in srgb, var(--c), transparent 80%) 56%,
+    transparent 76%
+  );
+}
+
+.hx-orb-a {
+  top: -12%;
+  left: 6%;
+  width: 46vw;
+  height: 46vw;
+  max-width: 760px;
+  max-height: 760px;
+  --c: var(--hx-orb-1);
+  animation: hx-drift-a 37s ease-in-out infinite;
+}
+
+.hx-orb-b {
+  bottom: -18%;
+  right: 2%;
+  width: 52vw;
+  height: 52vw;
+  max-width: 840px;
+  max-height: 840px;
+  --c: var(--hx-orb-2);
+  animation: hx-drift-b 43s ease-in-out infinite;
+}
+
+/**
+ * The centred one. `translate` rather than a -50% inside the keyframes: a
+ * transform keyframe *replaces* the rule's transform, so centring done that way
+ * survives only as long as the animation runs — and vanishes for exactly the
+ * people who asked for reduced motion, dropping the orb 270px off centre. The
+ * independent property composes instead of competing.
+ */
+.hx-orb-c {
+  /* Low, so it pools behind the deck and the cards read as lit from the floor
+     they stand on. Higher up it sat squarely behind the lede, where a soft
+     shape is still a shape. */
+  top: 44%;
+  left: 50%;
+  translate: -50% 0;
+  width: 38vw;
+  height: 38vw;
+  max-width: 620px;
+  max-height: 620px;
+  --c: var(--hx-orb-3);
+  animation: hx-drift-c 53s ease-in-out infinite;
+}
+
+/* Travel is in percentages of each orb, so it scales with the viewport instead
+   of being an imperceptible nudge on a desktop and a lurch on a phone. */
+@keyframes hx-drift-a {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  33% { transform: translate3d(9%, 7%, 0) scale(1.09); }
+  66% { transform: translate3d(-6%, 11%, 0) scale(0.95); }
+}
+
+@keyframes hx-drift-b {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  40% { transform: translate3d(-10%, -8%, 0) scale(1.1); }
+  70% { transform: translate3d(5%, -3%, 0) scale(0.93); }
+}
+
+@keyframes hx-drift-c {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(-7%, -9%, 0) scale(1.13); }
 }
 
 /**
@@ -197,7 +321,10 @@
  */
 .hx-float {
   position: absolute;
-  z-index: 3;
+  /* Above the deck, whose cards run to z-index 10. On a desktop the tags sit
+     beside the copy and never meet a card, so 3 was enough; on a phone they sit
+     *on* the deck, and at 3 they disappeared behind it. */
+  z-index: 12;
   padding: 0.3rem 0.7rem;
   border-radius: var(--r-pill);
   font-size: var(--step--3);
@@ -207,18 +334,40 @@
   box-shadow: 0 10px 24px -12px rgba(0, 0, 0, 0.9);
 }
 
+/**
+ * The two tags breathe on different periods, and the second starts four seconds
+ * into its own cycle. Two things rising and falling together read as one
+ * mechanism, which is the tell that makes an ambient effect look canned.
+ *
+ * The resting tilt uses the independent `rotate` property, so it holds whether
+ * or not the animation runs; the keyframes then add only a small rotation on
+ * top of it. Putting the tilt in a `transform` keyframe instead would leave the
+ * tags sitting flat for reduced-motion readers.
+ */
 .hx-float-a {
   top: clamp(120px, 17vw, 210px);
   left: clamp(0.75rem, 7vw, 8rem);
   background: #7dd3fc;
-  transform: rotate(-8deg);
+  rotate: -8deg;
+  animation: hx-bob-a 11s ease-in-out infinite;
 }
 
 .hx-float-b {
   top: clamp(170px, 23vw, 280px);
   right: clamp(0.75rem, 7vw, 8rem);
   background: #fda4af;
-  transform: rotate(7deg);
+  rotate: 7deg;
+  animation: hx-bob-b 13s ease-in-out -4s infinite;
+}
+
+@keyframes hx-bob-a {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-9px) rotate(1.5deg); }
+}
+
+@keyframes hx-bob-b {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-7px) rotate(1.5deg); }
 }
 
 /* --- the deck ------------------------------------------------------------ *
@@ -264,6 +413,26 @@
   z-index: calc(10 - var(--abs));
   transition: transform 420ms var(--ease), box-shadow 420ms var(--ease),
     border-color 420ms var(--ease);
+  /**
+   * No entrance animation here, deliberately.
+   *
+   * There was one - the cards dealt out from a near-centred stack, staggered
+   * outward. It began at `opacity: 0` with `animation-fill-mode: backwards`,
+   * which means the resting, visible state was reachable *only* by the
+   * animation actually running to completion.
+   *
+   * Caught in the browser: all four cards sat at `opacity: 0` in the deal's
+   * first frame, `playState` reporting "running" while `currentTime` stayed at
+   * 0 for seconds on end. A freshly created probe element using the same
+   * keyframes behaved identically, so it was never about these cards.
+   *
+   * The mechanism matters less than the shape of the failure. An entrance that
+   * starts from hidden makes content depend on an animation, and anything that
+   * keeps that animation from advancing - a tab backgrounded during load, a
+   * device throttling frames, a compositor that never gets a frame to start it
+   * against - leaves the hero permanently empty. A 640ms flourish is not worth
+   * that risk, so the cards simply render where they belong.
+   */
 }
 
 .hx-card.is-centre {
@@ -343,9 +512,99 @@
   .hx-card-body {
     padding: 0.45rem 0.55rem 0.55rem;
   }
+
+  /**
+   * The two tags move down onto the deck.
+   *
+   * On a desktop they sit beside the copy, which is a centred column with empty
+   * margins either side. A phone has no such margins - the copy runs the full
+   * width - so at the same offsets the tags landed squarely on the lede, one
+   * over "Deploy your own collection" and the other over "settles in seconds".
+   * Both were unreadable.
+   *
+   * Anchored from the bottom rather than the top, because the distance from the
+   * section's end to the deck is fixed, while the distance from its start
+   * depends on how many lines the headline and lede happen to take.
+   */
+  .hx-float-a {
+    top: auto;
+    bottom: 130px;
+    left: 0.5rem;
+  }
+
+  .hx-float-b {
+    top: auto;
+    bottom: 72px;
+    right: 0.5rem;
+  }
+
+  /**
+   * One column, equal width. Side by side they do not fit, and centred at their
+   * own widths they read as two unrelated objects - 240px against 296px, with
+   * neither edge lining up with anything.
+   */
+  .hx-actions {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.55rem;
+  }
+
+  .hx-actions .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* The tags now live in the space this gap used to open up. */
+  .hx-deck {
+    margin-top: 1.35rem;
+  }
+
+  /**
+   * Two drifting surfaces, not three. On a phone the third overlaps the other
+   * two almost entirely — it costs a composited layer the size of the screen
+   * and adds nothing you can see.
+   */
+  .hx-orb-c {
+    display: none;
+  }
+
+  /**
+   * The remaining two grow, because a viewport fraction is the wrong unit for
+   * atmosphere. 46vw is 662px of wash on a desktop but 173px on a phone, and
+   * since the gradient is transparent by 68% of its radius that leaves a ~60px
+   * glow reading as a smudge rather than light. Sized against the screen
+   * instead, the ground looks the same on both.
+   */
+  .hx-orb-a {
+    width: 105vw;
+    height: 105vw;
+    left: -22%;
+  }
+
+  .hx-orb-b {
+    width: 118vw;
+    height: 118vw;
+    right: -26%;
+  }
 }
 
+/**
+ * All of the above is decoration, so all of it goes for anyone who asks for
+ * reduced motion: the drift, the bob and the deal.
+ *
+ * Nothing needs restating: every resting position — the fan's transform, the
+ * orb's centring, the tags' tilt — is declared outside the keyframes, so
+ * turning the animations off lands the whole composition exactly where it
+ * belongs. That is the point of the split.
+ */
 @media (prefers-reduced-motion: reduce) {
+  .hx-orb,
+  .hx-float-a,
+  .hx-float-b {
+    animation: none;
+  }
+
   .hx-card,
   .hx-card:hover {
     transition: none;

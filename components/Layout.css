@@ -119,15 +119,13 @@
 /* ========================================================== compact header */
 
 /**
- * Below 940px the seven primary links do not fit. They used to become a
- * horizontally scrolling rail, which technically kept them reachable but gave
- * no sign that anything lay past the right edge - so on a phone the site
- * looked like it had four pages.
+ * Below 940px the nine primary links do not fit, and they move into the drawer.
  *
- * They move into a panel instead. The panel is always in the DOM so it can
- * animate and so its links keep a stable place in the accessibility tree;
- * `inert` (set in Layout.tsx) is what keeps them out of the tab order while it
- * is shut.
+ * The drawer is the *only* phone navigation. It replaced a bottom tab bar that
+ * carried four of the nine: two navigations on screen at once meant every
+ * destination had to be assigned to exactly one of them, the split had to be
+ * re-reconciled every time a page was added, and the bar sat over the bottom of
+ * every page for its whole height.
  */
 
 .menu-button {
@@ -139,7 +137,7 @@
   border-radius: var(--r-pill);
   border: 1px solid var(--line-strong);
   background: var(--surface);
-  transition: border-color var(--fast), background var(--fast);
+  transition: border-color var(--fast), background var(--fast), opacity var(--fast);
 }
 
 .menu-button:hover {
@@ -148,54 +146,152 @@
 
 .menu-bars {
   display: grid;
-  gap: 4px;
-  width: 16px;
+  gap: 3.5px;
+  width: 17px;
 }
 
 .menu-bars i {
   display: block;
-  height: 1.5px;
+  height: 1.6px;
   border-radius: 2px;
   background: var(--ink);
   transition: transform var(--med), opacity var(--fast);
 }
 
-.header[data-menu-open] .menu-bars i:first-child {
-  transform: translateY(2.75px) rotate(45deg);
-}
-.header[data-menu-open] .menu-bars i:last-child {
-  transform: translateY(-2.75px) rotate(-45deg);
-}
-
-.mobile-nav {
-  display: none;
-  overflow: hidden;
-  border-top: 1px solid var(--line);
-  background: var(--surface);
-  /* Animating max-height rather than height keeps the panel's own content
-     height authoritative, so adding a link later needs no CSS change. */
-  max-height: 0;
+/**
+ * While the drawer is open the button gets out of the way.
+ *
+ * It used to fold its three bars into a cross. That put two X's on screen at
+ * once - one here and one in the drawer's own head, 40px apart with a scrim
+ * between them - and neither looked like the real control.
+ *
+ * `opacity` rather than `display: none`, because closing returns focus to this
+ * button: a display-none element cannot take focus, and the keyboard would have
+ * been dropped back at the top of the document instead.
+ */
+.header[data-menu-open] .menu-button {
   opacity: 0;
-  transition: max-height var(--med), opacity var(--fast);
+  pointer-events: none;
 }
 
-.header[data-menu-open] .mobile-nav {
-  max-height: 70vh;
-  opacity: 1;
-  overflow-y: auto;
-}
+/* ===================================================================== drawer
+ *
+ * Slides in from the left, full height, over everything.
+ *
+ * `translateX(-100%)` rather than an animated width or max-height: a transform
+ * composites, so the panel slides at the refresh rate instead of re-laying out
+ * its own contents every frame. It also keeps the panel at its real width while
+ * shut, which is what lets the links inside be measured and hold a stable place
+ * in the accessibility tree.
+ *
+ * `visibility` is what removes it from hit testing between animations. A
+ * transformed element is still on the page, and without this the shut drawer
+ * swallowed taps down the left edge of every phone screen.
+ * ========================================================================= */
 
-.mobile-nav-inner {
-  display: flex;
+.drawer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  z-index: 60;
+  display: none;
   flex-direction: column;
-  padding-top: 0.5rem;
-  padding-bottom: 0.9rem;
+  width: min(86vw, 340px);
+  background: var(--surface);
+  border-right: 1px solid var(--line);
+  box-shadow: 0 0 60px -12px rgba(0, 0, 0, 0.45);
+  transform: translateX(-100%);
+  visibility: hidden;
+  transition: transform 280ms var(--ease), visibility 0s linear 280ms;
+  /* A notch and a home indicator both intrude on a full-height panel. */
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
-/* Says what this panel is, now that it is the secondary set rather than the
-   whole navigation. */
-.mobile-nav-caption {
-  margin: 0 0 0.35rem;
+.drawer[data-open] {
+  transform: translateX(0);
+  visibility: visible;
+  transition: transform 280ms var(--ease), visibility 0s;
+}
+
+.drawer-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  height: var(--header-h);
+  padding: 0 1rem 0 1.15rem;
+  border-bottom: 1px solid var(--line);
+  flex: none;
+}
+
+/* The wordmark is hidden in the phone header to buy width; in here there is
+   room, and the drawer needs to say what site it belongs to. */
+.drawer .brand-name {
+  display: inline;
+}
+
+.drawer-close {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  flex: none;
+  margin-right: -0.35rem;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--ink-2);
+  transition: color var(--fast), border-color var(--fast);
+}
+
+.drawer-close:hover {
+  color: var(--ink);
+  border-color: var(--ink-3);
+}
+
+/* Drawn at 40 to sit comfortably beside the wordmark, hit at 44 to clear the
+   WCAG 2.5.5 floor. Out of flow, so the head is no taller for it - the same
+   trick the header controls use, but this one is not in that row. */
+.drawer-close::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 44px;
+  height: 44px;
+}
+
+.drawer-close svg {
+  width: 17px;
+  height: 17px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+}
+
+/* The list scrolls, not the drawer, so the head and foot stay put. */
+.drawer-nav {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0.85rem 0.9rem 1.1rem;
+}
+
+.drawer-group + .drawer-group {
+  margin-top: 1.15rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--line);
+}
+
+.drawer-caption {
+  margin: 0 0 0.3rem;
+  padding-left: 0.7rem;
   font-size: var(--step--3);
   font-weight: 700;
   letter-spacing: 0.16em;
@@ -203,45 +299,75 @@
   color: var(--ink-3);
 }
 
-.mobile-nav-link {
+.drawer-link {
+  position: relative;
   display: flex;
   align-items: center;
+  gap: 0.55rem;
   min-height: 48px;
-  padding: 0 0.25rem;
-  font-size: var(--step-1);
+  padding: 0 0.7rem;
+  border-radius: var(--r-md);
+  font-size: var(--step-0);
   font-weight: 600;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.01em;
   color: var(--ink-2);
-  border-bottom: 1px solid var(--line);
-  transition: color var(--fast), padding-left var(--fast);
+  transition: color var(--fast), background var(--fast);
 }
 
-.mobile-nav-link:last-child {
-  border-bottom: 0;
-}
-
-.mobile-nav-link:hover {
+.drawer-link:hover {
   color: var(--ink);
-  padding-left: 0.6rem;
+  background: var(--surface-2);
 }
 
-.mobile-nav-link.is-active {
+/**
+ * The current page is a filled row, not a tinted word.
+ *
+ * The list this replaced marked the active link with a bar in the gutter, which
+ * on a grouped list reads as a bracket around the whole group rather than a
+ * mark on one row - so the fill carries it and the bar only confirms.
+ */
+.drawer-link.is-active {
   color: var(--ink);
+  background: var(--surface-2);
 }
 
-.mobile-nav-link.is-active::before {
+.drawer-link.is-active::after {
   content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
   width: 3px;
-  height: 15px;
-  margin-right: 0.6rem;
+  height: 20px;
   border-radius: var(--r-pill);
   background: var(--accent);
 }
 
+.drawer-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex: none;
+  padding: 0.85rem 1.15rem;
+  border-top: 1px solid var(--line);
+  background: var(--surface-2);
+}
+
+.drawer-chain {
+  font-size: var(--step--3);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Full viewport, not below the header: the drawer covers the header too, so a
+   scrim starting at --header-h left a live strip across the top. */
 .menu-scrim {
   position: fixed;
-  inset: var(--header-h) 0 0;
-  z-index: 30;
+  inset: 0;
+  z-index: 55;
   background: var(--scrim);
   opacity: 0;
   pointer-events: none;
@@ -265,13 +391,19 @@
   .menu-button {
     display: grid;
   }
-  .mobile-nav {
-    display: block;
+  .drawer {
+    display: flex;
+  }
+  /* The switch moves into the drawer, leaving the phone header as brand,
+     wallet and menu - three things, not four. */
+  .header-actions > .theme-toggle {
+    display: none;
   }
 }
 
 @media (min-width: 941px) {
-  .menu-scrim {
+  .menu-scrim,
+  .drawer {
     display: none;
   }
 }
@@ -535,12 +667,12 @@
  * in normal flow with `margin: … auto …` so it centres *under* the label. Turn
  * the link into a flex row and that indicator becomes a sibling of the text —
  * an orange dash floating to the right of the word instead of an underline.
- * (It also overrode `.mobile-nav-link`'s own `display: flex`, costing those
- * links their full width.)
+ * (It also overrode `.drawer-link`'s own `display: flex`, costing those links
+ * their full width.)
  *
  * So the mark is an inline element instead, which sits in the text flow in the
- * desktop nav and behaves as a flex item in the mobile nav, where the row
- * already is flex.
+ * desktop nav and behaves as a flex item in the drawer, where the row already
+ * is flex.
  */
 .nav-mark {
   width: 1.05em;
@@ -556,102 +688,7 @@
 
 .nav-link:hover .nav-mark,
 .nav-link.is-active .nav-mark,
-.mobile-nav-link:hover .nav-mark,
-.mobile-nav-link.is-active .nav-mark {
+.drawer-link:hover .nav-mark,
+.drawer-link.is-active .nav-mark {
   opacity: 1;
-}
-
-/* ==================================================== the bottom tab bar ===
- *
- * Shown only where the top nav is hidden, so the two can never both be on
- * screen claiming to be the navigation. The breakpoint is therefore the same
- * one the header already uses to collapse.
- * ========================================================================== */
-
-.tabbar {
-  display: none;
-}
-
-@media (max-width: 860px) {
-  .tabbar {
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    /**
-     * Below the menu scrim (30) and the header (40), which is what the menu
-     * panel lives inside. Above it, the bar stayed lit and clickable on top of
-     * an open menu — two navigations on screen at once, one of them dimmed.
-     * Still above page content, which sits at the default z-index.
-     */
-    z-index: 25;
-    display: grid;
-    grid-auto-flow: column;
-    grid-auto-columns: 1fr;
-    background: color-mix(in srgb, var(--paper) 86%, transparent);
-    backdrop-filter: blur(18px) saturate(1.4);
-    border-top: 1px solid var(--line);
-    /* Home-indicator gap on iPhones. Without it the labels sit under the bar
-       the OS draws over the bottom of the screen. */
-    padding-bottom: env(safe-area-inset-bottom, 0px);
-  }
-
-  .tabbar-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 0.2rem;
-    /* Comfortably over the 44px floor even before the safe-area padding. */
-    min-height: var(--tabbar-h);
-    padding: 0.4rem 0.25rem;
-    font-size: var(--step--3);
-    font-weight: 600;
-    letter-spacing: -0.01em;
-    color: var(--ink-3);
-    transition: color var(--fast);
-  }
-
-  .tabbar-item svg {
-    width: 22px;
-    height: 22px;
-    fill: none;
-    stroke: currentColor;
-    stroke-width: 1.7;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-  }
-
-  .tabbar-item.is-active {
-    color: var(--ink);
-  }
-
-  /* The active tab is marked by a rule at the very top of its own column,
-     which reads as a tab rather than as a highlighted button. */
-  .tabbar-item.is-active::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    width: 26px;
-    height: 2px;
-    border-radius: 0 0 2px 2px;
-    background: var(--accent);
-    transform: translateY(-100%);
-  }
-
-  .tabbar-item {
-    position: relative;
-  }
-  .tabbar-item.is-active::before {
-    transform: none;
-  }
-
-  /**
-   * Clear the bar. A fixed element is out of flow, so without this the last
-   * card, the footer's final row and any bottom-anchored control sit
-   * underneath it — reachable only by over-scrolling.
-   */
-  body {
-    padding-bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom, 0px));
-  }
 }

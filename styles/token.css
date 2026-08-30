@@ -252,3 +252,21 @@
     position: static;
   }
 }
+
+/**
+ * A last item with no partner spans the row instead of leaving a hole.
+ *
+ * Both of these grids hold an odd count on a phone - three facts, five traits -
+ * and each cell is a bordered, filled box. The odd one out therefore left a
+ * visible empty box beside it that read as content failing to load rather than
+ * as the end of a list.
+ *
+ * Scoped to the two-column layout: on a desktop these run three across, where
+ * an odd last item is simply the third in its row.
+ */
+@media (max-width: 700px) {
+  .token-facts > div:last-child:nth-child(odd),
+  .token-trait-grid > *:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+  }
+}
