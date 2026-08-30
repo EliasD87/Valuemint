@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { assignDesigns, supplyOf, type DesignInput } from "@/lib/buildMetadata";
 import type { CollectionManifest, ManifestDesign } from "@/lib/collectionManifest";
 import { filebaseAvailable, pinFile, pinFiles, verifyFilebase } from "@/lib/filebase";
+import { optimiseArtwork } from "@/lib/optimiseArtwork";
 
 /**
  * Whether artwork can be stored at all.
@@ -205,7 +206,18 @@ export async function POST(request: Request) {
 
   // --- images ---------------------------------------------------------------
   const files: Array<{ name: string; content: Uint8Array; type: string }> = [];
+  /**
+   * Original upload name to the name actually stored.
+   *
+   * Optimising can change the extension — a PNG becomes .webp or .jpg — and the
+   * incoming `designs[].file` still names the original. Every lookup keyed on a
+   * filename has to go through this, or a design points at a file that was
+   * never stored under that name.
+   */
+  const renamed = new Map<string, string>();
   let total = 0;
+  let bytesIn = 0;
+  let bytesOut = 0;
 
   for (const image of images) {
     if (image.size > MAX_FILE_BYTES) {
@@ -223,12 +235,41 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "That upload is too large in total." }, { status: 400 });
     }
 
-    files.push({
-      // Names are normalised so they survive every gateway and filesystem intact.
-      name: image.name.toLowerCase().replace(/[^a-z0-9.]+/g, "-"),
-      content: new Uint8Array(await image.arrayBuffer()),
-      type: image.type,
-    });
+    // Names are normalised so they survive every gateway and filesystem intact.
+    const normalised = image.name.toLowerCase().replace(/[^a-z0-9.]+/g, "-");
+
+    /**
+     * Shrunk here, at the only moment it can be. A CID addresses exact bytes,
+     * so once this is pinned the file is that size forever — for the storage
+     * allowance and for every visitor who loads it.
+     */
+    const optimised = await optimiseArtwork(
+      normalised,
+      new Uint8Array(await image.arrayBuffer()),
+      image.type,
+    );
+
+    /**
+     * Re-encoding can make two different uploads collide: "art.png" and
+     * "art.jpg" both become "art.jpg", the second overwrites the first in the
+     * bucket, and two designs end up pointing at one image. Disambiguate before
+     * anything is stored.
+     */
+    let storedName = optimised.name;
+    if (files.some((f) => f.name === storedName)) {
+      const dot = storedName.lastIndexOf(".");
+      const base = dot === -1 ? storedName : storedName.slice(0, dot);
+      const ext = dot === -1 ? "" : storedName.slice(dot);
+      let n = 2;
+      while (files.some((f) => f.name === `${base}-${n}${ext}`)) n++;
+      storedName = `${base}-${n}${ext}`;
+    }
+
+    bytesIn += optimised.originalBytes;
+    bytesOut += optimised.optimisedBytes;
+    if (storedName !== normalised) renamed.set(normalised, storedName);
+
+    files.push({ name: storedName, content: optimised.content, type: optimised.type });
   }
 
   try {
@@ -254,9 +295,11 @@ export async function POST(request: Request) {
       );
 
       designs = (config.designs as DesignInput[]).map((d) => {
-        const cid = cidByFile.get(d.file);
+        // The stored name, which optimising may have re-extensioned.
+        const file = renamed.get(d.file) ?? d.file;
+        const cid = cidByFile.get(file);
         if (cid === undefined) throw new Error(`"${d.file}" was not among the uploaded images.`);
-        return { ...d, cid };
+        return { ...d, file, cid };
       });
 
       gateway = FILEBASE_GATEWAY;
@@ -309,6 +352,17 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       storage: filebaseAvailable() ? "filebase" : "pinata",
+      /**
+       * What the resize actually saved. Reported so the creator can see their
+       * 40MB of PNGs became 3MB, and so a regression here shows up as a number
+       * rather than a slowly filling bucket.
+       */
+      optimised: {
+        bytesIn,
+        bytesOut,
+        saved: bytesIn - bytesOut,
+        percent: bytesIn === 0 ? 0 : Math.round((1 - bytesOut / bytesIn) * 100),
+      },
       images: stored,
       manifest: pinnedManifest,
       // The contract concatenates `baseURI + tokenId`, so this must end in a
