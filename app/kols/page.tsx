@@ -20,7 +20,9 @@ import "@/styles/kols.css";
 /** The three with transparent cutouts, in the order they read best together. */
 const FEATURED = [
   { file: "markinho", tint: "var(--plinth-a)" },
-  { file: "lutz", tint: "var(--plinth-b)" },
+  // Versioned filename: the artwork was replaced, and the image optimiser
+  // caches by source URL — same path with different bytes serves the old cut.
+  { file: "lutz-v2", tint: "var(--plinth-b)" },
   { file: "takimi", tint: "var(--plinth-c)" },
 ] as const;
 

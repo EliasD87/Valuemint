@@ -34,7 +34,7 @@ export const KOLS: Kol[] = [
   { n: 3, name: "ELIAS", image: "Qmb7cBjWjstatn3QZXj1wfvBv23BtmttEPfJyAmWBBdNG7" },
   { n: 4, name: "FARMERCIST", image: "QmadRf1XfZRqUhHZe3NLDbJv7RTqaXC9wwv2Dch7mZNVyM" },
   { n: 5, name: "KENG NOOR", image: "QmQjpADdjRv1YtY4UrHYNAWZ9gJsUodgC4Zg5SVkp19YSH" },
-  { n: 6, name: "LUTZ", image: "QmPrWGaq88qNFofq17EqaDuuFooyLhrzL6Y6FjodXXcSoU" },
+  { n: 6, name: "LUTZ", image: "QmQ4LmfH4StkAmNLxHfmuz2CKbyJPqvRqiUWzLd2QjxUsC" },
   { n: 7, name: "MARKINHO", image: "Qmdkz4kNgUmShMnaAE3oegwomQV45UgjUCka4qvJTEscZq" },
   { n: 8, name: "MICK", image: "QmZMufXR1z6QAFE83r9sRiqKBSsDPXhDLb8gFajvpuiHYV" },
   { n: 9, name: "SKIDO", image: "QmRJoNdX43yLpTUMfxt77eCtvNs585Ra5wqcncoyMhnbyP" },
