@@ -1,4 +1,6 @@
 .tcard {
+  /* The stretched link below positions against this. */
+  position: relative;
   display: flex;
   flex-direction: column;
   background: var(--surface);
@@ -145,4 +147,83 @@
 .tcard-none {
   color: var(--ink-3);
   font-weight: 500;
+}
+
+
+/* ------------------------------------------------------------ card actions */
+
+/**
+ * The card's own link, stretched invisibly over the whole card.
+ *
+ * This replaced an anchor wrapped around every child, which made the card one
+ * big link and left no valid place for the offer button - a button inside an
+ * anchor is invalid HTML. An overlay keeps the entire card clickable while
+ * letting a real control sit on top of it.
+ */
+.tcard-hit {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+
+.tcard-offer-row {
+  position: relative;
+  /* Above the stretched link, or the button would never receive the click. */
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  margin-top: 0.7rem;
+  padding-top: 0.65rem;
+  border-top: 1px solid var(--line);
+  font-size: var(--step--3);
+}
+
+.tcard-offer-best {
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tcard-offer-best b {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.tcard-offer-none {
+  color: var(--ink-3);
+}
+
+.tcard-offer-btn {
+  flex: none;
+  position: relative;
+  min-height: 30px;
+  padding: 0.25rem 0.75rem;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  font-size: var(--step--3);
+  font-weight: 700;
+  color: var(--ink);
+  transition: border-color var(--fast), background var(--fast);
+}
+
+.tcard-offer-btn:hover {
+  background: var(--surface-2);
+  border-color: var(--ink-3);
+}
+
+/* Drawn small so it does not compete with the artwork, hit at 44 like every
+   other control on the site. */
+.tcard-offer-btn::after {
+  content: "";
+  position: absolute;
+  inset: 50% auto auto 50%;
+  transform: translate(-50%, -50%);
+  width: calc(100% + 8px);
+  height: 44px;
 }

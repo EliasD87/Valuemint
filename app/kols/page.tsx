@@ -34,13 +34,19 @@ export default function Kols() {
 
         <div className="page kol-hero-inner">
           <p className="kol-eyebrow">
-            <span className="kol-flag">Coming soon</span>
+            <span className="kol-flag">Not minted yet</span>
             One of one
           </p>
           <h1 className="kol-title">The people who show up</h1>
           <p className="kol-lede">
             Portraits of the regulars on SoDEX — the ones posting through every candle. Made
-            for them, given to them. Never minted, never for sale.
+            for them, given to them. Never for sale.
+          </p>
+          {/* Replaces a bare "coming soon", which sets an expectation of a date
+              that does not exist. This says what the state actually is and why. */}
+          <p className="kol-note">
+            The list is still open. Nothing is written to the chain until it stops
+            growing, so anyone worth adding can still be added.
           </p>
         </div>
 
@@ -64,15 +70,6 @@ export default function Kols() {
 
       <section className="section" id="roster">
         <div className="page">
-          <div className="kol-roster-head">
-            <h2>The roster</h2>
-            <p>
-              {KOLS.length} so far, and not minted yet — the list is still growing, and it is
-              worth waiting until it stops before anything is written to the chain. It grows
-              whenever someone worth adding turns up; this is not a closed set.
-            </p>
-          </div>
-
           <div className="kol-grid">
             {KOLS.map((k) => (
               <article className="kol-card" key={k.n}>

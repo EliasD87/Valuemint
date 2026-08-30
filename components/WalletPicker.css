@@ -1,0 +1,191 @@
+/* ============================================================ wallet picker
+ *
+ * A small dialog, not a full-screen takeover. Choosing a wallet is a step on
+ * the way to something else, and it should not feel like leaving the page.
+ * ========================================================================== */
+
+.wp-scrim {
+  position: fixed;
+  inset: 0;
+  /* Above the header (40) and the drawer's scrim (55), below the drawer (60)
+     — the two are never open together, but the order should still be sane. */
+  z-index: 58;
+  background: var(--scrim);
+}
+
+.wp {
+  position: fixed;
+  z-index: 59;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(92vw, 26rem);
+  max-height: min(80svh, 40rem);
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  box-shadow: 0 32px 70px -24px rgba(0, 0, 0, 0.55);
+  overflow: hidden;
+}
+
+.wp-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1rem 1rem 1.25rem;
+  border-bottom: 1px solid var(--line);
+  flex: none;
+}
+
+.wp-head h2 {
+  margin: 0;
+  font-size: var(--step-0);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.wp-close {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  flex: none;
+  position: relative;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--ink-2);
+}
+
+.wp-close:hover {
+  color: var(--ink);
+  border-color: var(--ink-3);
+}
+
+/* Drawn at 34, hit at 44. */
+.wp-close::after {
+  content: "";
+  position: absolute;
+  inset: 50% auto auto 50%;
+  transform: translate(-50%, -50%);
+  width: 44px;
+  height: 44px;
+}
+
+.wp-close svg {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+}
+
+.wp-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.75rem;
+  overflow-y: auto;
+}
+
+.wp-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  /* Comfortably over the touch floor without needing a hit-area trick — this
+     is a list of tap targets and nothing else. */
+  min-height: 56px;
+  padding: 0.6rem 0.75rem;
+  border-radius: var(--r-md);
+  border: 1px solid transparent;
+  background: transparent;
+  text-align: left;
+  transition: background var(--fast), border-color var(--fast);
+}
+
+.wp-item:hover:not(:disabled) {
+  background: var(--surface-2);
+  border-color: var(--line);
+}
+
+.wp-item:disabled {
+  opacity: 0.55;
+}
+
+.wp-mark {
+  width: 28px;
+  height: 28px;
+  flex: none;
+  border-radius: 7px;
+  object-fit: cover;
+  display: grid;
+  place-items: center;
+  background: var(--paper-3);
+  font-size: var(--step--2);
+  font-weight: 800;
+  color: var(--ink-2);
+}
+
+.wp-mark-qr svg {
+  width: 17px;
+  height: 17px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+}
+
+.wp-name {
+  display: flex;
+  flex-direction: column;
+  gap: 0.05rem;
+  flex: 1;
+  min-width: 0;
+  font-size: var(--step--1);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+
+.wp-sub {
+  font-size: var(--step--3);
+  font-weight: 500;
+  line-height: 1.35;
+  color: var(--ink-3);
+}
+
+/* Says the wallet is present in this browser, which is the one thing the list
+   knows that the person might not. */
+.wp-tag {
+  flex: none;
+  padding: 0.1rem 0.5rem;
+  border-radius: var(--r-pill);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  font-size: var(--step--3);
+  font-weight: 600;
+  color: var(--ink-3);
+}
+
+.wp-empty,
+.wp-error {
+  margin: 0;
+  padding: 0.85rem 1.25rem 1rem;
+  font-size: var(--step--2);
+  line-height: 1.5;
+  color: var(--ink-3);
+}
+
+.wp-empty a {
+  color: var(--ink);
+  text-decoration: underline;
+}
+
+.wp-error {
+  color: var(--danger, #c2273d);
+  border-top: 1px solid var(--line);
+}

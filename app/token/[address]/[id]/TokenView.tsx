@@ -1,12 +1,13 @@
 "use client";
 
-import { use, useState } from "react";
+import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import { useAccount, useReadContract } from "wagmi";
 import { ValueChainCollectionAbi, ValueChainMarketplaceAbi, deployment } from "@/config/contracts";
 import { useTokenMetadata, trait } from "@/hooks/useCollection";
 import { usePreviewSale, useTrade } from "@/hooks/useTrade";
 import { Offers } from "@/components/Offers";
+import { TxResult } from "@/components/TxResult";
 import { ShareLink } from "@/components/ShareLink";
 import { formatSoso, resolveMediaUrl, shortAddress } from "@/lib/format";
 import "@/styles/token.css";
@@ -70,12 +71,29 @@ export function TokenView({
     );
   }
 
+  // The receipt is the only honest signal that state has changed.
+  useEffect(() => {
+    if (trade.isSuccess) afterAction();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [trade.isSuccess, trade.hash]);
+
   const isOwner =
     owner !== undefined && address !== undefined && (owner as string).toLowerCase() === address.toLowerCase();
   const listed = listing !== undefined && (listing as { seller: string }).seller !== "0x0000000000000000000000000000000000000000";
   const listPrice = listed ? (listing as { price: bigint }).price : 0n;
   const image = resolveMediaUrl(metadata?.image);
 
+  /**
+   * Re-read the chain when a receipt lands — never when a button is clicked.
+   *
+   * This used to be called synchronously in each click handler, immediately
+   * after `writeContract`. That call is fire-and-forget, so the refetch ran in
+   * the same tick: before the wallet prompt had even been answered, let alone
+   * before a block was mined. `isApprovedForAll` therefore still read false,
+   * the button still said "Approve marketplace", and the obvious response was
+   * to press it again — which is exactly the double approval that showed up in
+   * real use. The approval had worked the first time; the page never noticed.
+   */
   const afterAction = () => {
     void refetchListing();
     void trade.refetchApproval();
@@ -151,7 +169,6 @@ export function TokenView({
                     disabled={trade.busy}
                     onClick={() => {
                       trade.cancel(tokenId);
-                      afterAction();
                     }}
                   >
                     {trade.busy ? "Cancelling…" : "Cancel listing"}
@@ -162,7 +179,6 @@ export function TokenView({
                     disabled={trade.busy || active !== true || address === undefined}
                     onClick={() => {
                       trade.buy(tokenId, listPrice);
-                      afterAction();
                     }}
                   >
                     {address === undefined
@@ -219,7 +235,6 @@ export function TokenView({
                       disabled={trade.busy}
                       onClick={() => {
                         trade.approve();
-                        afterAction();
                       }}
                     >
                       {trade.busy ? "Approving…" : "Approve marketplace"}
@@ -231,7 +246,6 @@ export function TokenView({
                     disabled={trade.busy || preview.price <= 0n}
                     onClick={() => {
                       trade.list(tokenId, price);
-                      afterAction();
                     }}
                   >
                     {trade.signing ? "Confirm in wallet…" : trade.confirming ? "Listing…" : "List for sale"}
@@ -245,13 +259,13 @@ export function TokenView({
               </p>
             )}
 
-            {trade.error !== null ? (
-              <p className="token-error">
-                {/rejected|denied|User denied/i.test(trade.error.message)
-                  ? "You cancelled the transaction."
-                  : trade.error.message.slice(0, 180)}
-              </p>
-            ) : null}
+            <TxResult
+              hash={trade.hash}
+              confirming={trade.confirming}
+              success={trade.isSuccess}
+              error={trade.error}
+              successLabel={listed ? "Done" : "Listed"}
+            />
           </div>
 
           {collection === undefined ? null : (

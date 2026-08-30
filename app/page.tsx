@@ -3,8 +3,8 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useAccount } from "wagmi";
-import { useChainStats } from "@/hooks/useChainStats";
 import { useEverything } from "@/hooks/useEverything";
+import { useListingFeed } from "@/hooks/useListingFeed";
 import { useCollectionArt } from "@/hooks/useCollectionArt";
 import { Art } from "@/components/Art";
 import type { ChainToken } from "@/hooks/useEverything";
@@ -41,8 +41,19 @@ function interleave<T>(groups: T[][]): T[] {
 
 export default function Home() {
   const { address } = useAccount();
-  const stats = useChainStats();
   const { tokens, collections, isLoading } = useEverything(12);
+
+  /**
+   * The listings, read from events rather than sampled.
+   *
+   * `useEverything(12)` walks the first twelve tokens of each collection by
+   * index, which is a cheap way to fill a grid and a hopeless way to find what
+   * is for sale: Genesis's listed pieces are #51 to #54, so none of them was
+   * ever in the sample. The grid opened with six rows of "Not listed" and the
+   * For sale filter read zero while /market showed four — the ordering below
+   * was already correct and simply had nothing to order.
+   */
+  const { tokens: listedTokens } = useListingFeed();
   const { artFor } = useCollectionArt();
   const [filter, setFilter] = useState<Filter>("all");
 
@@ -110,11 +121,31 @@ export default function Home() {
    * beneath them.
    */
   const featured = useMemo(() => {
-    const withArt = [...grouped.values()].map((g) => g.items.filter((t) => t.image !== undefined));
-    const listed = withArt.map((items) => items.filter((t) => t.listing !== undefined));
-    const unlisted = withArt.map((items) => items.filter((t) => t.listing === undefined));
-    return [...interleave(listed), ...interleave(unlisted)];
-  }, [grouped]);
+    const key = (t: ChainToken) => `${t.collection.toLowerCase()}-${t.id}`;
+
+    /**
+     * Live listings first, whatever their token id.
+     *
+     * Grouped by collection and interleaved, so one collection with ten
+     * listings cannot fill the grid before another's first one appears - the
+     * same reason `interleave` exists for the sampled tokens below.
+     */
+    const forSale = listedTokens.filter((t) => t.active && t.image !== undefined);
+    const byCollection = new Map<string, ChainToken[]>();
+    for (const t of forSale) {
+      const k = t.collection.toLowerCase();
+      byCollection.set(k, [...(byCollection.get(k) ?? []), t]);
+    }
+    const listed = interleave([...byCollection.values()]);
+
+    // Anything already shown as a listing must not appear again below it.
+    const shown = new Set(listed.map(key));
+    const unlisted = [...grouped.values()].map((g) =>
+      g.items.filter((t) => t.image !== undefined && !shown.has(key(t))),
+    );
+
+    return [...listed, ...interleave(unlisted)];
+  }, [grouped, listedTokens]);
 
   /** Collections a visitor can mint from right now, cheapest first. */
   const mintable = useMemo(
@@ -134,29 +165,6 @@ export default function Home() {
   return (
     <>
       <Hero deck={deck} />
-
-      <section className="strip">
-        <div className="strip-inner">
-          <span className="strip-item">
-            <b>2s</b> block time
-          </span>
-          <span className="strip-item">
-            <b>0.008</b> gwei gas
-          </span>
-          <span className="strip-item">
-            <b>{formatCount(BigInt(stats.collections))}</b> collections
-          </span>
-          <span className="strip-item">
-            <b>{formatCount(stats.minted)}</b> pieces minted
-          </span>
-          <span className="strip-item">
-            <b>{stats.openMints}</b> minting now
-          </span>
-          <span className="strip-item">
-            <b>{Number(stats.protocolFeeBps) / 100}%</b> marketplace fee
-          </span>
-        </div>
-      </section>
 
       <section className="page section">
         <div className="head">

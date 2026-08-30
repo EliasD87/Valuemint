@@ -1,27 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect } from "react";
 import { useAccount } from "wagmi";
-import { formatEther, parseEther } from "viem";
 import { useOffers } from "@/hooks/useOffers";
-import { useTrade, useWsoso } from "@/hooks/useTrade";
+import { useTrade } from "@/hooks/useTrade";
 import { formatSoso, shortAddress } from "@/lib/format";
+import { OfferForm } from "@/components/OfferForm";
+import { TxResult } from "@/components/TxResult";
 import "./Offers.css";
 
-/** Expiry choices, in days. Zero is the contract's "no expiry". */
-const WINDOWS = [
-  { label: "1 day", days: 1 },
-  { label: "1 week", days: 7 },
-  { label: "1 month", days: 30 },
-  { label: "No expiry", days: 0 },
-];
-
-function expiryFor(days: number): bigint {
-  if (days === 0) return 0n;
-  return BigInt(Math.floor(Date.now() / 1000) + days * 86_400);
-}
-
-function whenExpires(expiry: bigint): string {
+export function whenExpires(expiry: bigint): string {
   if (expiry === 0n) return "no expiry";
   const secs = Number(expiry) - Math.floor(Date.now() / 1000);
   if (secs <= 0) return "expired";
@@ -32,18 +20,18 @@ function whenExpires(expiry: bigint): string {
 }
 
 /**
- * Offers on one token.
+ * Offers on one token: what stands, and the form to add to it.
  *
  * The contract has had `makeOffer`, `acceptOffer` and `withdrawOffer` since it
  * was deployed, with expiry and slippage guards, and nothing in the app ever
- * called them. Until now an unlisted token was a dead end that said "only its
- * owner can list it" — which is true, and useless to someone who wants to buy it.
+ * called them. Until recently an unlisted token was a dead end that said only
+ * its owner could list it - true, and useless to someone who wants to buy it.
  *
  * Offers are denominated in WSOSO because the marketplace refuses native ones:
  * an allowance leaves the money in the bidder's wallet, so an offer can stand
- * indefinitely without the marketplace ever holding funds. That costs the bidder
- * a wrap and an approval the first time, which is what the ladder below walks
- * them through rather than failing at the last step.
+ * indefinitely without the marketplace ever holding funds.
+ *
+ * The form itself lives in `OfferForm`, shared with the dialog a card opens.
  */
 export function Offers({
   collection,
@@ -58,26 +46,20 @@ export function Offers({
 }) {
   const { isConnected } = useAccount();
   const { offers, mine, refetch } = useOffers(collection, tokenId);
+
+  /** Only accept and withdraw run from here; the form owns its own writes. */
   const trade = useTrade(collection);
-
-  const [amount, setAmount] = useState("");
-  const [days, setDays] = useState(7);
-
-  const wanted = (() => {
-    try {
-      return parseEther(amount || "0");
-    } catch {
-      return 0n;
-    }
-  })();
-
-  const wsoso = useWsoso(wanted);
 
   const after = () => {
     onChange();
     void refetch();
-    wsoso.refetch();
   };
+
+  // On the receipt, never on the click - see the note in TokenView.
+  useEffect(() => {
+    if (trade.isSuccess) after();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [trade.isSuccess, trade.hash]);
 
   return (
     <div className="offers">
@@ -85,7 +67,7 @@ export function Offers({
         <p className="eyebrow">Offers</p>
         {offers.length > 0 ? (
           <span className="offers-count">
-            {offers.length} live · best {formatSoso(offers[0]!.price)} WSOSO
+            {offers.length} live &middot; best {formatSoso(offers[0]!.price)} WSOSO
           </span>
         ) : null}
       </div>
@@ -107,13 +89,10 @@ export function Offers({
                   type="button"
                   className="btn btn-primary btn-sm"
                   disabled={trade.busy}
-                  onClick={() => {
-                    // The price seen is passed as the floor: a bidder can
-                    // overwrite their own offer downward, and the contract
-                    // reverts rather than settling at the lower number.
-                    trade.acceptOffer(tokenId, o.bidder, o.price);
-                    after();
-                  }}
+                  /* The price seen is passed as the floor: a bidder can overwrite
+                     their own offer downward, and the contract reverts rather
+                     than settling at the lower number. */
+                  onClick={() => trade.acceptOffer(tokenId, o.bidder, o.price)}
                 >
                   Accept
                 </button>
@@ -122,10 +101,7 @@ export function Offers({
                   type="button"
                   className="btn btn-sm"
                   disabled={trade.busy}
-                  onClick={() => {
-                    trade.withdrawOffer(tokenId);
-                    after();
-                  }}
+                  onClick={() => trade.withdrawOffer(tokenId)}
                 >
                   Withdraw
                 </button>
@@ -137,98 +113,26 @@ export function Offers({
         </ul>
       )}
 
+      {/* Accepting or withdrawing reports here; the form reports inside itself. */}
+      <TxResult
+        hash={trade.hash}
+        confirming={trade.confirming}
+        success={trade.isSuccess}
+        error={trade.error}
+        successLabel="Done"
+      />
+
       {isOwner || !isConnected ? null : (
-        <div className="offers-make">
-          <p className="offers-make-title">{mine === undefined ? "Make an offer" : "Replace your offer"}</p>
-
-          <div className="offers-fields">
-            <label className="offers-amount">
-              <span className="offers-label">Amount</span>
-              <div className="field-suffix">
-                <input
-                  inputMode="decimal"
-                  placeholder="0.00"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ""))}
-                />
-                <span>WSOSO</span>
-              </div>
-            </label>
-
-            <label className="offers-expiry">
-              <span className="offers-label">Expires</span>
-              <select value={days} onChange={(e) => setDays(Number(e.target.value))}>
-                {WINDOWS.map((w) => (
-                  <option key={w.label} value={w.days}>
-                    {w.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
-
-          <p className="offers-balance">
-            You hold <b className="mono">{formatEther(wsoso.balance)}</b> WSOSO
+        <div className="offers-make-wrap">
+          <p className="offers-make-title">
+            {mine === undefined ? "Make an offer" : "Replace your offer"}
           </p>
-
-          {/*
-            One step is shown at a time, in the order the chain requires: wrap,
-            then allow, then offer. Showing all three at once invites the last
-            one to be pressed first and fail in the wallet with a revert nobody
-            can read.
-          */}
-          {wanted > 0n && wsoso.needsWrap ? (
-            <button
-              type="button"
-              className="btn btn-primary btn-block"
-              disabled={wsoso.busy}
-              onClick={() => {
-                wsoso.wrap(formatEther(wsoso.shortfall));
-                after();
-              }}
-            >
-              {wsoso.busy ? "Wrapping…" : `Wrap ${formatEther(wsoso.shortfall)} SOSO first`}
-            </button>
-          ) : wanted > 0n && wsoso.needsAllowance ? (
-            <button
-              type="button"
-              className="btn btn-primary btn-block"
-              disabled={wsoso.busy}
-              onClick={() => {
-                wsoso.allow();
-                after();
-              }}
-            >
-              {wsoso.busy ? "Approving…" : "Allow the marketplace to use WSOSO"}
-            </button>
-          ) : (
-            <button
-              type="button"
-              className="btn btn-primary btn-block"
-              disabled={trade.busy || wanted <= 0n}
-              onClick={() => {
-                trade.makeOffer(tokenId, amount, expiryFor(days));
-                after();
-              }}
-            >
-              {trade.signing
-                ? "Confirm in wallet…"
-                : trade.confirming
-                  ? "Placing…"
-                  : mine === undefined
-                    ? "Place offer"
-                    : "Replace offer"}
-            </button>
-          )}
-
-          <p className="offers-note">
-            Your WSOSO stays in your wallet. It only moves if the owner accepts, and you
-            can withdraw the offer at any time before that.
-          </p>
-
-          {wsoso.error !== null ? (
-            <p className="token-error">{wsoso.error.message.slice(0, 160)}</p>
-          ) : null}
+          <OfferForm
+            collection={collection}
+            tokenId={tokenId}
+            replacing={mine !== undefined}
+            onDone={after}
+          />
         </div>
       )}
     </div>

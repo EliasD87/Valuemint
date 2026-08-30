@@ -1,0 +1,76 @@
+/* ================================================================ tx result */
+
+.txr {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.85rem 0 0;
+  padding: 0.7rem 0.85rem;
+  border-radius: var(--r-md);
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  font-size: var(--step--2);
+  line-height: 1.5;
+}
+
+.txr a {
+  color: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.txr strong {
+  font-weight: 700;
+}
+
+/* Confirmed. Green, because this is the one moment the person is looking for
+   reassurance rather than information. */
+.txr-good {
+  border-color: color-mix(in srgb, var(--up, #047857) 40%, var(--line));
+  background: color-mix(in srgb, var(--up, #047857) 8%, var(--surface));
+  color: var(--ink);
+}
+
+/* In flight. Deliberately neutral: nothing has gone right or wrong yet. */
+.txr-wait {
+  color: var(--ink-2);
+}
+
+/* A cancelled signature is a choice, so it gets no alarm colour at all. */
+.txr-quiet {
+  color: var(--ink-3);
+}
+
+.txr-bad {
+  border-color: color-mix(in srgb, var(--down, #c2273d) 40%, var(--line));
+  background: color-mix(in srgb, var(--down, #c2273d) 8%, var(--surface));
+  color: var(--ink);
+  /* Wallet errors arrive as one enormous unbroken token. */
+  overflow-wrap: anywhere;
+}
+
+.txr-spin {
+  width: 13px;
+  height: 13px;
+  flex: none;
+  border-radius: 50%;
+  border: 2px solid var(--line-strong);
+  border-top-color: var(--ink-2);
+  animation: txr-spin 800ms linear infinite;
+}
+
+@keyframes txr-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* The spinner is the only thing here that moves, and it is decoration — the
+   words already say what is happening. */
+@media (prefers-reduced-motion: reduce) {
+  .txr-spin {
+    animation: none;
+  }
+}

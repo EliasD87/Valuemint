@@ -1,6 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
+import { useAccount } from "wagmi";
+import { useAllOffers, offerKey } from "@/hooks/useAllOffers";
+import { OfferDialog } from "@/components/OfferDialog";
 import type { LoadedToken } from "@/hooks/useTokens";
 import type { Listing } from "@/hooks/useCollection";
 import { formatSoso } from "@/lib/format";
@@ -23,14 +27,38 @@ interface Props {
 }
 
 export function TokenCard({ token, collection, listing, owner, viewerAddress, priority = false }: Props) {
+  const { isConnected } = useAccount();
   const isYours =
     owner !== undefined &&
     viewerAddress !== undefined &&
     owner.toLowerCase() === viewerAddress.toLowerCase();
   const tier = token.tier?.toLowerCase() ?? "common";
 
+  /**
+   * One query for the whole marketplace, shared by every card. React Query
+   * collapses the identical key, so a grid of twenty cards costs one log scan
+   * rather than twenty.
+   */
+  const allOffers = useAllOffers();
+  const offer = allOffers.get(offerKey(collection, token.id));
+  const [offering, setOffering] = useState(false);
+
+  /**
+   * The card used to be a single `<Link>` wrapping everything, which left
+   * nowhere valid to put a button: a button inside an anchor is invalid HTML
+   * and the click handling is ambiguous even where browsers tolerate it.
+   *
+   * So the card is a container now, with the link stretched invisibly across it
+   * and the offer button sitting above that overlay. The whole card is still
+   * one target; the button is a smaller one on top of it.
+   */
   return (
-    <Link href={`/token/${collection}/${token.id}`} className="tcard">
+    <article className="tcard">
+      <Link
+        href={`/token/${collection}/${token.id}`}
+        className="tcard-hit"
+        aria-label={`${token.design ?? "Token"} #${token.id.toString()}`}
+      />
       <div className="tcard-media">
         {token.image !== undefined ? (
           /**
@@ -75,8 +103,41 @@ export function TokenCard({ token, collection, listing, owner, viewerAddress, pr
             </dd>
           </div>
         </dl>
+
+        {/*
+          Offers matter most on tokens that are *not* listed, where buying is
+          not an option - and until now the only route to one was navigating
+          into the token page, which nobody discovers. Owners see the standing
+          bid rather than a button: they accept on the token page, where the
+          slippage guard and the full list of bidders live.
+        */}
+        <div className="tcard-offer-row">
+          {offer !== undefined ? (
+            <span className="tcard-offer-best">
+              {offer.count > 1 ? `${offer.count} offers · ` : ""}
+              best <b className="mono">{formatSoso(offer.best)}</b>
+            </span>
+          ) : (
+            <span className="tcard-offer-none">No offers</span>
+          )}
+
+          {isConnected && !isYours ? (
+            <button type="button" className="tcard-offer-btn" onClick={() => setOffering(true)}>
+              Offer
+            </button>
+          ) : null}
+        </div>
       </div>
-    </Link>
+
+      {offering ? (
+        <OfferDialog
+          collection={collection}
+          tokenId={token.id}
+          name={token.design ?? `#${token.id.toString()}`}
+          onClose={() => setOffering(false)}
+        />
+      ) : null}
+    </article>
   );
 }
 

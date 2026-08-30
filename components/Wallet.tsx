@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useAccount, useBalance, useChainId, useConnect, useDisconnect, useSwitchChain } from "wagmi";
 import { valuechain } from "@/config/chain";
 import { formatSoso, shortAddress } from "@/lib/format";
+import { WalletPicker } from "./WalletPicker";
 import "./Wallet.css";
 
 /**
@@ -17,7 +18,9 @@ import "./Wallet.css";
 export function Wallet() {
   const { address, isConnected } = useAccount();
   const chainId = useChainId();
-  const { connect, connectors, isPending } = useConnect();
+  // `connect` and the connector list moved into WalletPicker; only the pending
+  // flag is still read here, to disable the button while a connection is open.
+  const { isPending } = useConnect();
   const { disconnect } = useDisconnect();
   const { switchChain, isPending: isSwitching } = useSwitchChain();
   const { data: balance } = useBalance({ address, query: { refetchInterval: 15_000 } });
@@ -32,16 +35,8 @@ export function Wallet() {
    * it, but the flash is real and the warning was deserved.
    */
   const [mounted, setMounted] = useState(false);
+  const [picking, setPicking] = useState(false);
   useEffect(() => setMounted(true), []);
-
-  const injected = connectors.find((c) => c.id === "injected");
-  /**
-   * Registered only when there is no injected provider — see config/wagmi.ts.
-   * Its presence in this list is therefore also the signal that this browser
-   * has no wallet of its own.
-   */
-  const walletConnect = connectors.find((c) => c.id === "walletConnect");
-  const hasWallet = mounted && typeof window !== "undefined" && "ethereum" in window;
 
   if (!isConnected) {
     // Stable placeholder until the browser has been inspected.
@@ -54,51 +49,30 @@ export function Wallet() {
     }
 
     /**
-     * No injected provider. Previously this was a dead end that offered a
-     * MetaMask download — useless advice on a phone, where the visitor almost
-     * certainly already has a wallet and simply is not browsing inside it.
-     * WalletConnect is what actually connects them, by deep link on mobile or
-     * a QR code on a desktop.
+     * One button, and it always asks.
+     *
+     * This used to branch: an injected provider was connected to immediately,
+     * and only its absence produced anything to choose from. So whoever had an
+     * extension installed got that extension and no say — not a second
+     * extension, not their phone. And the connector it reached for was the
+     * generic `injected` one, which is whichever wallet won the race to claim
+     * `window.ethereum` rather than one anybody picked.
      */
-    if (!hasWallet) {
-      if (walletConnect !== undefined) {
-        return (
-          <button
-            className="btn btn-solid"
-            disabled={isPending}
-            onClick={() => connect({ connector: walletConnect })}
-          >
-            {isPending ? "Opening…" : (
-              <>
-                Connect<span className="wide-only">&nbsp;wallet</span>
-              </>
-            )}
-          </button>
-        );
-      }
-      return (
-        <a className="btn btn-solid" href="https://metamask.io/download/" target="_blank" rel="noreferrer noopener">
-          Install<span className="wide-only"> MetaMask</span>
-        </a>
-      );
-    }
-
     return (
-      <button
-        className="btn btn-solid"
-        disabled={isPending || injected === undefined}
-        onClick={() => injected !== undefined && connect({ connector: injected })}
-      >
-        {isPending ? (
-          <>
-            Checking<span className="wide-only">&nbsp;your wallet</span>…
-          </>
-        ) : (
-          <>
-            Connect<span className="wide-only">&nbsp;wallet</span>
-          </>
-        )}
-      </button>
+      <>
+        <button className="btn btn-solid" disabled={isPending} onClick={() => setPicking(true)}>
+          {isPending ? (
+            <>
+              Connecting<span className="wide-only">&nbsp;your wallet</span>…
+            </>
+          ) : (
+            <>
+              Connect<span className="wide-only">&nbsp;wallet</span>
+            </>
+          )}
+        </button>
+        {picking ? <WalletPicker onClose={() => setPicking(false)} /> : null}
+      </>
     );
   }
 

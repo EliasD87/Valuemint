@@ -508,33 +508,78 @@
     display: none;
   }
 
-  /* Half-width cards cannot carry the desktop body. */
+  /**
+   * No card body at all on a phone.
+   *
+   * On a desktop the deck is shorter than a card, so the name and count are cut
+   * off by the section edge and never seen. Showing the whole card here made
+   * them appear for the first time — and immediately collide, because the fan
+   * overlaps by design and each label sat half-hidden behind its neighbour:
+   * "The Tren…", "ValueCha…". Three truncated names competing is worse than no
+   * names, and the fan is about the artwork.
+   */
   .hx-card-body {
-    padding: 0.45rem 0.55rem 0.55rem;
+    display: none;
   }
 
   /**
-   * The two tags move down onto the deck.
+   * The deck leads and the copy follows.
    *
-   * On a desktop they sit beside the copy, which is a centred column with empty
-   * margins either side. A phone has no such margins - the copy runs the full
-   * width - so at the same offsets the tags landed squarely on the lede, one
-   * over "Deploy your own collection" and the other over "settles in seconds".
-   * Both were unreadable.
+   * On a desktop the headline comes first and the fan sits beneath it as a
+   * footing. A phone reverses that usefully: the artwork is the thing worth
+   * seeing before anything is read, and putting it first means a visitor who
+   * never scrolls has still seen what the marketplace actually holds.
    *
-   * Anchored from the bottom rather than the top, because the distance from the
-   * section's end to the deck is fixed, while the distance from its start
-   * depends on how many lines the headline and lede happen to take.
+   * Reordered rather than re-authored - `order` on a flex column moves the deck
+   * without touching the markup, so the DOM keeps its reading order and the
+   * headline is still the first thing announced.
+   */
+  .hx {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .hx-deck {
+    order: -1;
+    margin-top: 0;
+    margin-bottom: 1.6rem;
+    /**
+     * Tall enough to hold the cards whole.
+     *
+     * The desktop deck is deliberately shorter than a card, so the fan is cut
+     * by the section's own bottom edge. Leading, there is no such edge to be
+     * cut by - the crop would fall across the middle of the headline instead,
+     * which reads as a mistake rather than as a composition. So the phone shows
+     * the whole card, name and count included.
+     *
+     * Measured against the card's *width*, not `--card-h`. With the body hidden
+     * a card is exactly its square of art, and `--card-h` still describes the
+     * taller desktop card that carries a body — using it left a band of empty
+     * ground under the fan.
+     *
+     * 1.16 rather than 1: the outer pair is pushed down by `--abs * 7%`, and
+     * without the extra the two of them lose their feet.
+     */
+    height: calc(var(--card-w) * 1.16);
+  }
+
+  /**
+   * The tags follow the deck up.
+   *
+   * They were anchored to the section's bottom, which was where the deck used
+   * to be; left there they would now sit over the buttons. Anchored to the top
+   * instead, since the deck is now the first thing in the section and its
+   * distance from the top is fixed.
    */
   .hx-float-a {
-    top: auto;
-    bottom: 130px;
+    top: 1.75rem;
+    bottom: auto;
     left: 0.5rem;
   }
 
   .hx-float-b {
-    top: auto;
-    bottom: 72px;
+    top: 7.5rem;
+    bottom: auto;
     right: 0.5rem;
   }
 

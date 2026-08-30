@@ -1,0 +1,135 @@
+/* ============================================================= offer dialog */
+
+.od-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 58;
+  background: var(--scrim);
+}
+
+.od {
+  position: fixed;
+  z-index: 59;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(94vw, 27rem);
+  max-height: min(86svh, 44rem);
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  box-shadow: 0 32px 70px -24px rgba(0, 0, 0, 0.55);
+  overflow: hidden;
+}
+
+.od-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1rem 0.9rem 1.25rem;
+  border-bottom: 1px solid var(--line);
+  flex: none;
+}
+
+.od-kicker {
+  margin: 0 0 0.15rem;
+  font-size: var(--step--3);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.od-head h2 {
+  margin: 0;
+  font-size: var(--step-0);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  /* A design name can be long and this box is narrow. */
+  overflow-wrap: anywhere;
+}
+
+.od-close {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  flex: none;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--ink-2);
+}
+
+.od-close:hover {
+  color: var(--ink);
+  border-color: var(--ink-3);
+}
+
+/* Drawn at 34, hit at 44. */
+.od-close::after {
+  content: "";
+  position: absolute;
+  inset: 50% auto auto 50%;
+  transform: translate(-50%, -50%);
+  width: 44px;
+  height: 44px;
+}
+
+.od-close svg {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+}
+
+.od-body {
+  padding: 1rem 1.25rem 1.25rem;
+  overflow-y: auto;
+}
+
+.od-standing {
+  list-style: none;
+  margin: 0 0 1rem;
+  padding: 0 0 0.9rem;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.od-standing li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  font-size: var(--step--2);
+}
+
+.od-standing li span:first-child {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.od-standing li span:last-child {
+  color: var(--ink-3);
+}
+
+.od-empty {
+  margin: 0 0 1rem;
+  padding-bottom: 0.9rem;
+  border-bottom: 1px solid var(--line);
+  font-size: var(--step--2);
+  color: var(--ink-3);
+}
+
+/* The form supplies its own spacing; it does not need the panel's too. */
+.od .offers-make {
+  margin: 0;
+}
