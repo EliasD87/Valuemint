@@ -1,0 +1,335 @@
+/* ================================================================== hero ===
+ *
+ * Centred copy standing over a fanned deck of the collections themselves.
+ *
+ * A committed dark band, like /trenches and /kols. The whole composition is lit
+ * artwork against a deep ground; the same fan on a white page reads as
+ * clip-art. Colours are therefore stated outright rather than taken from the
+ * theme — see the note in tokens.css about literals being wrong in one theme.
+ * ========================================================================== */
+
+.hx {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  padding: clamp(2rem, 3.6vw, 3.25rem) 0 0;
+  color: #f2f2f5;
+}
+
+/**
+ * Two lights rather than a flat fill: a cool wash behind the copy, and a warm
+ * pool under the deck so the cards look lit from the floor they stand on.
+ */
+.hx-deep {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  background:
+    radial-gradient(58% 42% at 50% 4%, rgba(120, 130, 255, 0.16), transparent 70%),
+    radial-gradient(70% 45% at 50% 96%, rgba(255, 122, 51, 0.14), transparent 72%),
+    linear-gradient(180deg, #0a0a0c 0%, #0d0d11 46%, #121218 100%);
+}
+
+/* A faint grid, so the ground reads as a surface rather than empty black. */
+.hx::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.028) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.028) 1px, transparent 1px);
+  background-size: 64px 64px;
+  mask-image: radial-gradient(80% 60% at 50% 30%, #000 30%, transparent 78%);
+  pointer-events: none;
+}
+
+.hx-inner {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 1rem;
+  width: 100%;
+}
+
+/* --- the badge ----------------------------------------------------------- */
+
+.hx-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin: 0;
+  padding: 0.35rem 0.85rem 0.35rem 0.7rem;
+  border-radius: var(--r-pill);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  font-size: var(--step--2);
+  font-weight: 600;
+  color: #dcdce4;
+}
+
+.hx-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #4ade80;
+  box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.18);
+}
+
+.hx-badge-sep {
+  color: #55555f;
+}
+
+.hx-badge-note {
+  color: #9a9aa6;
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- the headline -------------------------------------------------------- */
+
+.hx-title {
+  margin: 0;
+  font-family: var(--display);
+  font-optical-sizing: auto;
+  font-size: var(--step-5);
+  font-weight: 800;
+  letter-spacing: -0.045em;
+  line-height: 1.06;
+  max-width: 16ch;
+  text-wrap: balance;
+  color: #fbfbfd;
+}
+
+/**
+ * The second line lifts rather than shouts: a gradient fading toward the end of
+ * the phrase, so the eye finishes on the lede instead of stopping dead.
+ */
+.hx-title em {
+  font-style: normal;
+  background: linear-gradient(96deg, #ffffff 0%, #cfd3ff 45%, #8f95c9 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.hx-lede {
+  margin: 0;
+  max-width: 54ch;
+  font-size: var(--step-0);
+  line-height: 1.62;
+  color: #a8a8b4;
+}
+
+.hx-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  justify-content: center;
+  margin-top: 0.35rem;
+}
+
+.hx-btn-ghost {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.16);
+  color: #ececf2;
+}
+.hx-btn-ghost:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+/* --- live figures -------------------------------------------------------- */
+
+.hx-figures {
+  display: flex;
+  gap: clamp(1.5rem, 4vw, 3rem);
+  margin: 0.6rem 0 0;
+}
+
+.hx-figures > div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.hx-figures b {
+  font-family: var(--display);
+  font-size: var(--step-3);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.18;
+  font-variant-numeric: tabular-nums;
+  color: #fbfbfd;
+}
+
+.hx-figures span {
+  font-size: var(--step--2);
+  color: #8e8e9a;
+}
+
+/* --- floating markers ---------------------------------------------------- */
+
+/**
+ * The reference scatters name tags here. Facts do the same job — the same lift
+ * and depth — without decorating with something meaningless.
+ */
+.hx-float {
+  position: absolute;
+  z-index: 3;
+  padding: 0.3rem 0.7rem;
+  border-radius: var(--r-pill);
+  font-size: var(--step--3);
+  font-weight: 700;
+  white-space: nowrap;
+  color: #0c0c0e;
+  box-shadow: 0 10px 24px -12px rgba(0, 0, 0, 0.9);
+}
+
+.hx-float-a {
+  top: clamp(120px, 17vw, 210px);
+  left: clamp(0.75rem, 7vw, 8rem);
+  background: #7dd3fc;
+  transform: rotate(-8deg);
+}
+
+.hx-float-b {
+  top: clamp(170px, 23vw, 280px);
+  right: clamp(0.75rem, 7vw, 8rem);
+  background: #fda4af;
+  transform: rotate(7deg);
+}
+
+/* --- the deck ------------------------------------------------------------ *
+ *
+ * Five cards fanned from the middle. The geometry is computed rather than
+ * guessed: a rotated card has a wider axis-aligned footprint than the card
+ * itself, so the outer pair needs cardW*cos(2t) + cardH*sin(2t) of room, not
+ * cardW. At 375 that puts the span at 552px against a 375px frame — the outer
+ * cards bleed about 88px a side, which is the effect, and the section clips.
+ * ------------------------------------------------------------------------- */
+
+.hx-deck {
+  --card-w: clamp(150px, 20vw, 300px);
+  --card-h: calc(var(--card-w) * 1.28);
+  --step: clamp(90px, 13.5vw, 200px);
+  --tilt: 7deg;
+
+  position: relative;
+  /* Shorter than a card, so the deck is cut by the section edge and reads as
+     standing in front of it rather than floating above. */
+  height: calc(var(--card-h) * 0.82);
+  margin-top: clamp(1.75rem, 3.4vw, 2.75rem);
+}
+
+.hx-card {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: var(--card-w);
+  display: flex;
+  flex-direction: column;
+  border-radius: clamp(14px, 1.5vw, 22px);
+  overflow: hidden;
+  background: #17171c;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 34px 70px -30px rgba(0, 0, 0, 0.95);
+  /* One transform, so hover composites without re-laying anything out. */
+  transform:
+    translateX(calc(-50% + var(--slot) * var(--step)))
+    translateY(calc(var(--abs) * 7%))
+    rotate(calc(var(--slot) * var(--tilt)))
+    scale(calc(1 - var(--abs) * 0.05));
+  z-index: calc(10 - var(--abs));
+  transition: transform 420ms var(--ease), box-shadow 420ms var(--ease),
+    border-color 420ms var(--ease);
+}
+
+.hx-card.is-centre {
+  border-color: rgba(255, 255, 255, 0.24);
+  box-shadow: 0 44px 90px -32px rgba(0, 0, 0, 1);
+}
+
+.hx-card:hover {
+  transform:
+    translateX(calc(-50% + var(--slot) * var(--step)))
+    translateY(calc(var(--abs) * 7% - 10px))
+    rotate(calc(var(--slot) * var(--tilt)))
+    scale(calc(1.03 - var(--abs) * 0.05));
+  border-color: rgba(255, 255, 255, 0.36);
+}
+
+.hx-card-art {
+  position: relative;
+  display: block;
+  aspect-ratio: 1;
+  overflow: hidden;
+  background: #101014;
+}
+
+.hx-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  padding: 0.6rem 0.75rem 0.75rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.hx-card-body b {
+  font-family: var(--display);
+  font-size: var(--step--1);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  color: #f4f4f6;
+  /* A fanned card is not much room for a long collection name. */
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.hx-card-body span {
+  font-size: var(--step--3);
+  color: #8e8e9a;
+}
+
+/**
+ * Phones: the fan is kept, at a size that fits.
+ *
+ * The first attempt shrank the cards and hid everything past |slot| > 1, which
+ * on an even count left just two — a pair, not a fan, sitting 28px inside each
+ * edge with no bleed at all.
+ *
+ * Sized for four instead: at 375 the outer centres land 135px out with an 82px
+ * half-card, so the row spans 435px against a 375px frame and clears both edges
+ * by ~30px. Adjacent cards overlap by 75 of their 165, which is what reads as a
+ * hand of cards rather than a row of thumbnails. Only a fifth card, which would
+ * sit at |slot| 2, is dropped.
+ */
+@media (max-width: 700px) {
+  .hx-deck {
+    --card-w: min(44vw, 190px);
+    --step: min(24vw, 110px);
+    --tilt: 8deg;
+  }
+
+  .hx-card.is-far {
+    display: none;
+  }
+
+  /* Half-width cards cannot carry the desktop body. */
+  .hx-card-body {
+    padding: 0.45rem 0.55rem 0.55rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hx-card,
+  .hx-card:hover {
+    transition: none;
+  }
+}
