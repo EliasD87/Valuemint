@@ -104,45 +104,19 @@
   width: 100%;
 }
 
-/* --- the badge ----------------------------------------------------------- */
-
-.hx-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.55rem;
-  margin: 0;
-  padding: 0.35rem 0.85rem 0.35rem 0.7rem;
-  border-radius: var(--r-pill);
-  border: 1px solid var(--line);
-  background: var(--surface-2);
-  backdrop-filter: blur(10px);
-  font-size: var(--step--2);
-  font-weight: 600;
-  color: var(--ink-2);
-}
-
-.hx-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: #4ade80;
-  box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.18);
-}
-
-.hx-badge-sep {
-  color: var(--ink-3);
-}
-
-.hx-badge-note {
-  color: var(--ink-3);
-  font-variant-numeric: tabular-nums;
-}
-
 /* --- the headline -------------------------------------------------------- */
 
 .hx-title {
   margin: 0;
-  font-family: var(--display);
+  /**
+   * The body face, not the display one.
+   *
+   * Every heading here is set in Bricolage Grotesque, and at h2 sizes its
+   * character is a seasoning. At 76px it stops reading as the same site as the
+   * text beneath it — so the one place the face is largest is the one place it
+   * has to give way.
+   */
+  font-family: var(--sans);
   font-optical-sizing: auto;
   font-size: var(--step-5);
   font-weight: 800;

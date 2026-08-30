@@ -371,6 +371,15 @@
   :root {
     --step-3: 1.4375rem; /* 23px, was 25.6 */
     --step-4: 1.75rem; /*   28px, was 36   */
-    --step-5: 2rem; /*      32px, was 44   */
+    /**
+     * The hero headline, and the only user of this step.
+     *
+     * Sized so its two written lines each stay on one line. Measured at 375,
+     * where the headline has 335px: "Create, collect and trade" needs 361px at
+     * 32 and 312 at 28, so 32 wrapped both lines and the headline ran to four.
+     * The vw term holds that down to a 320px screen, where 1.75rem would still
+     * be 5px too wide.
+     */
+    --step-5: min(1.75rem, 7.8vw);
   }
 }

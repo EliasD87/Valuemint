@@ -350,12 +350,6 @@ function Hero({ deck }: { deck: DeckCard[] }) {
       <div className="hx-deep" aria-hidden="true" />
 
       <div className="page hx-inner">
-        <p className="hx-badge">
-          <span className="hx-dot" aria-hidden="true" />
-          Live on ValueChain
-          <span className="hx-badge-sep" aria-hidden="true">—</span>
-          <span className="hx-badge-note">chain 286623</span>
-        </p>
 
         <h1 className="hx-title">
           Create, collect and trade
