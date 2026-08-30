@@ -300,3 +300,105 @@
     gap: 0.5rem;
   }
 }
+
+/* ===================================================== a single-image cover
+ *
+ * When a collection is one design in many editions, the four-up strip has
+ * nothing to divide and the picture is squeezed into a 116px band — cropped to
+ * a slice, heads cut off. So the image takes the whole card and the text sits
+ * over it.
+ *
+ * Scoped to `.is-solo`, set in CollectionCard.tsx when exactly one image
+ * resolved. Collections with several designs keep the strip, which is the
+ * better answer when there is more than one thing to show.
+ * ========================================================================== */
+
+.coll-card.is-solo {
+  position: relative;
+  /* Roughly 4:5. Tall enough to show a square piece of art nearly whole, short
+     enough that a row of these does not become a column of billboards. */
+  min-height: 22rem;
+  justify-content: flex-end;
+}
+
+.coll-card.is-solo .coll-cover {
+  position: absolute;
+  inset: 0;
+  height: auto;
+  border-bottom: 0;
+  background: var(--paper-3);
+}
+
+.coll-card.is-solo .coll-cover-cell,
+.coll-card.is-solo .coll-cover img {
+  width: 100%;
+  height: 100%;
+}
+
+/**
+ * The body floats over the image.
+ *
+ * The gradient is what makes the text legible over artwork nobody chose for
+ * contrast — it can be pale sky or white fur. It runs to fully opaque at the
+ * bottom rather than stopping partway, because the figures sit there and a
+ * half-transparent ground behind a price is where legibility actually fails.
+ */
+.coll-card.is-solo .coll-card-body {
+  position: relative;
+  z-index: 1;
+  /**
+   * The base rule gives the body `flex: 1` so it fills the card under the strip.
+   * Here that made it fill the *whole* card and start its text at the top,
+   * leaving the gradient over empty artwork below. It should be only as tall as
+   * its own content, pushed to the bottom.
+   */
+  flex: none;
+  margin-top: auto;
+  /**
+   * Ramps early, because the title starts about 30% down this box.
+   *
+   * The first version reached only 0.51 opacity by that point, which is fine
+   * over dark artwork and measured 3.92:1 over pale artwork — a fail. Nobody
+   * picks their art for contrast behind a caption, so the gradient has to hold
+   * for a white piece, not the one that happens to be here.
+   *
+   * The extra stop at 16% keeps it a ramp rather than a band; without it the
+   * climb to 0.80 is steep enough to read as an edge across the picture.
+   */
+  background: linear-gradient(
+    to bottom,
+    rgba(9, 9, 12, 0) 0%,
+    rgba(9, 9, 12, 0.45) 16%,
+    rgba(9, 9, 12, 0.8) 32%,
+    rgba(9, 9, 12, 0.94) 62%,
+    rgba(9, 9, 12, 0.97) 100%
+  );
+  padding-top: 3.5rem;
+}
+
+/**
+ * Literals, not tokens, and white in both themes.
+ *
+ * The ground here is a photograph with a near-black gradient over it, not the
+ * page — so `--ink` would be dark text on a dark image in light mode. This is
+ * the same rule the committed-dark bands follow.
+ */
+.coll-card.is-solo .coll-card-name b,
+.coll-card.is-solo .coll-card-stats dd {
+  color: #ffffff;
+}
+
+.coll-card.is-solo .coll-card-name span,
+.coll-card.is-solo .coll-card-stats dt {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.coll-card.is-solo .coll-card-stats {
+  border-top-color: rgba(255, 255, 255, 0.22);
+}
+
+/* The chip carries its own colours and sits on the same dark ground, so it only
+   needs its edge strengthened to separate from the artwork behind it. */
+.coll-card.is-solo .chip {
+  backdrop-filter: blur(6px);
+}
