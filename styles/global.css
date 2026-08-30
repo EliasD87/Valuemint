@@ -925,3 +925,10 @@ textarea {
     width: 100%;
   }
 }
+
+/* Share sits beside the explorer link in a section head; both are ways out of
+   the page, so they read as one group rather than two stray controls. */
+.head-actions {
+  align-items: center;
+  gap: 0.75rem;
+}

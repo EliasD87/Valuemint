@@ -1,0 +1,46 @@
+/* A quiet control: it sits beside a heading and must not compete with the
+   buy/list action, which is the thing the page is actually for. */
+
+.share-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  /* Drawn small, hit at 44 via the pseudo-element below. */
+  min-height: 32px;
+  padding: 0.3rem 0.7rem 0.3rem 0.55rem;
+  position: relative;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  font-size: var(--step--2);
+  font-weight: 600;
+  color: var(--ink-2);
+  transition: color var(--fast), border-color var(--fast), background var(--fast);
+}
+
+.share-link:hover {
+  color: var(--ink);
+  border-color: var(--ink-3);
+  background: var(--surface-2);
+}
+
+/* The 44px target, out of flow so the row it sits in keeps its height. */
+.share-link::after {
+  content: "";
+  position: absolute;
+  inset: 50% auto auto 50%;
+  transform: translate(-50%, -50%);
+  width: calc(100% + 2px);
+  height: 44px;
+}
+
+.share-link svg {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex: none;
+}
