@@ -10,15 +10,12 @@ import { deployment } from "@/config/contracts";
 import "./Layout.css";
 
 /**
- * The navigation, grouped.
+ * The navigation. One flat list, in one order, used by both the desktop header
+ * and the phone drawer.
  *
- * Nine destinations is too many to read as a list. On a phone they now sit in
- * a drawer, where there is room to say what each group *is* — so the grouping
- * earns its keep there, and the desktop header simply flattens it back into a
- * row.
- *
- * The flattened order is deliberately the order the header has always had, so
- * grouping the drawer changed nothing on desktop.
+ * The drawer briefly grouped these under headings. It was dropped: the captions
+ * were a second thing to read before reaching the thing you came for, and with
+ * nine short labels the list is quicker to scan without them.
  *
  * `mark` puts the SoDEX symbol beside a label. Only Trenches carries one: that
  * page is entirely about their leaderboard, and a symbol anywhere else would
@@ -33,34 +30,17 @@ interface NavItem {
   mark?: boolean;
 }
 
-const NAV_GROUPS: { caption: string; items: NavItem[] }[] = [
-  {
-    caption: "Marketplace",
-    items: [
-      { to: "/", label: "Explore", end: true },
-      { to: "/mint", label: "Mint" },
-      { to: "/collections", label: "Collections" },
-      { to: "/market", label: "Market" },
-    ],
-  },
-  {
-    caption: "Drops",
-    items: [
-      { to: "/trenches", label: "Trenches", mark: true },
-      { to: "/kols", label: "KOLs" },
-    ],
-  },
-  {
-    caption: "Yours",
-    items: [
-      { to: "/create", label: "Create" },
-      { to: "/portfolio", label: "Portfolio" },
-      { to: "/manage", label: "Manage" },
-    ],
-  },
+const NAV: NavItem[] = [
+  { to: "/", label: "Explore", end: true },
+  { to: "/mint", label: "Mint" },
+  { to: "/collections", label: "Collections" },
+  { to: "/market", label: "Market" },
+  { to: "/trenches", label: "Trenches", mark: true },
+  { to: "/kols", label: "KOLs" },
+  { to: "/create", label: "Create" },
+  { to: "/portfolio", label: "Portfolio" },
+  { to: "/manage", label: "Manage" },
 ];
-
-const NAV: NavItem[] = NAV_GROUPS.flatMap((group) => group.items);
 
 export function Layout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
@@ -232,21 +212,21 @@ export function Layout({ children }: { children: ReactNode }) {
         </div>
 
         <nav className="drawer-nav" aria-label="Primary">
-          {NAV_GROUPS.map((group) => (
-            <div className="drawer-group" key={group.caption}>
-              <p className="drawer-caption">{group.caption}</p>
-              {group.items.map((item) => (
-                <Link
-                  key={item.to}
-                  href={item.to}
-                  className={`drawer-link${isActive(item) ? " is-active" : ""}`}
-                  aria-current={isActive(item) ? "page" : undefined}
-                >
-                  {item.mark === true ? <SodexLogo variant="mark" className="nav-mark" /> : null}
-                  <span>{item.label}</span>
-                </Link>
-              ))}
-            </div>
+          {NAV.map((item) => (
+            <Link
+              key={item.to}
+              href={item.to}
+              className={`drawer-link${isActive(item) ? " is-active" : ""}`}
+              aria-current={isActive(item) ? "page" : undefined}
+            >
+              {/* After the label, not before it. Leading, the one marked row
+                  started 62px in while the other eight sat flush, and a single
+                  icon in nine rows does not justify reserving the slot on all
+                  of them. Trailing, every label aligns and the mark reads as a
+                  tag on Trenches. */}
+              <span>{item.label}</span>
+              {item.mark === true ? <SodexLogo variant="mark" className="nav-mark" /> : null}
+            </Link>
           ))}
         </nav>
 

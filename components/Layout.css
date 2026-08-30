@@ -283,22 +283,6 @@
   padding: 0.85rem 0.9rem 1.1rem;
 }
 
-.drawer-group + .drawer-group {
-  margin-top: 1.15rem;
-  padding-top: 1rem;
-  border-top: 1px solid var(--line);
-}
-
-.drawer-caption {
-  margin: 0 0 0.3rem;
-  padding-left: 0.7rem;
-  font-size: var(--step--3);
-  font-weight: 700;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--ink-3);
-}
-
 .drawer-link {
   position: relative;
   display: flex;
@@ -314,6 +298,12 @@
   transition: color var(--fast), background var(--fast);
 }
 
+/* `.nav-mark` carries a right margin for the desktop nav, where it leads the
+   label. Here it trails, so that margin would push it away from the word. */
+.drawer-link .nav-mark {
+  margin-right: 0;
+}
+
 .drawer-link:hover {
   color: var(--ink);
   background: var(--surface-2);
@@ -322,9 +312,8 @@
 /**
  * The current page is a filled row, not a tinted word.
  *
- * The list this replaced marked the active link with a bar in the gutter, which
- * on a grouped list reads as a bracket around the whole group rather than a
- * mark on one row - so the fill carries it and the bar only confirms.
+ * A tinted label alone is easy to miss in a list of nine similar rows, so the
+ * fill does the work and the accent bar only confirms it.
  */
 .drawer-link.is-active {
   color: var(--ink);
