@@ -11,6 +11,7 @@ import { TIERS, TIER_GATEWAY, formatVolume } from "@/config/tiers";
 import { TIER_STRIDE, TRENCHES_SLUG } from "@/config/trenches";
 import { KOLS, KOLS_GATEWAY, KOLS_SLUG, kolForToken } from "@/config/kols";
 import { filebaseGateway } from "@/lib/filebase";
+import { callerKey, limiter } from "@/lib/rateLimit";
 
 /**
  * Token metadata, generated rather than stored.
@@ -59,8 +60,40 @@ const BAKED_IN: Record<string, BakedIn> = {
  */
 const cache = new Map<string, { manifest: CollectionManifest; assignments: Assignment[] }>();
 
+/**
+ * A ceiling on that cache.
+ *
+ * "Cached for the life of the process with no invalidation" was true and also
+ * unbounded: every distinct CID ever requested stayed resident. Manifests are
+ * about a kilobyte, so this is not a fast leak, but nothing stopped a caller
+ * pinning manifests and walking the map upward.
+ *
+ * Insertion-ordered eviction. A Map iterates in insertion order, so the oldest
+ * entry is `keys().next()`. Not an LRU - a hit does not promote - which is the
+ * right trade here: the working set is the handful of collections actually
+ * being browsed, and an LRU's bookkeeping buys nothing at this size.
+ */
+const MAX_CACHED_MANIFESTS = 200;
+
+function remember(cid: string, entry: { manifest: CollectionManifest; assignments: Assignment[] }) {
+  if (cache.size >= MAX_CACHED_MANIFESTS) {
+    const oldest = cache.keys().next();
+    if (!oldest.done) cache.delete(oldest.value);
+  }
+  cache.set(cid, entry);
+}
+
 /** CIDv1 base32 (`bafy…`) or CIDv0 base58 (`Qm…`). */
 const CID = /^(ba[a-z2-7]{57,}|Qm[1-9A-HJ-NP-Za-km-z]{44})$/;
+
+const HOUR = 60 * 60 * 1000;
+
+/**
+ * Generous, because a legitimate crawler warming several collections in one
+ * pass is normal traffic and each of those is one miss. It bounds the abusive
+ * case rather than shaping the honest one.
+ */
+const MISSES_PER_HOUR = 120;
 
 /** A manifest is about a kilobyte; anything far larger is not one. */
 const MAX_MANIFEST_BYTES = 256 * 1024;
@@ -116,7 +149,7 @@ async function loadManifest(cid: string) {
   if (manifest === undefined) return undefined;
 
   const entry = { manifest, assignments: assignDesigns(manifest.designs, manifest.seed) };
-  cache.set(cid, entry);
+  remember(cid, entry);
   return entry;
 }
 
@@ -129,10 +162,34 @@ const CACHE_HEADERS = {
 };
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ collection: string; id: string }> },
 ) {
   const { collection, id } = await params;
+
+  /**
+   * Rate limited on cache misses only.
+   *
+   * A hit is a map lookup and costs nothing, so wallets and marketplaces
+   * crawling a collection they already warmed are never throttled. A miss
+   * fetches from up to three gateways with a 12-second timeout each, and this
+   * route is public and unauthenticated - so without a limit it is an
+   * amplification vector: cheap requests in, expensive outbound fetches out.
+   *
+   * The check is deliberately after the id and CID validation below would be
+   * too late, so it sits here and only fires when the work is actually going to
+   * be done.
+   */
+  const willFetch = !cache.has(collection);
+  if (willFetch) {
+    const gate = await limiter.take(`meta:${callerKey(request)}`, MISSES_PER_HOUR, HOUR);
+    if (!gate.ok) {
+      return NextResponse.json(
+        { error: "Too many requests." },
+        { status: 429, headers: { "Retry-After": String(gate.retryAfter) } },
+      );
+    }
+  }
 
   // Token ids start at 1, and must be a plain integer — "01", "1.0" and "1e3"
   // would otherwise index the assignment in surprising ways.

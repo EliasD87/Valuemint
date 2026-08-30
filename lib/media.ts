@@ -25,6 +25,34 @@ export const OPTIMISED_IMAGE_HOSTS = [
  * Anything unrecognised - or unparseable, or a data URI - falls back to a plain
  * <img>, which always works.
  */
+/**
+ * Hosts the *server* may fetch metadata from.
+ *
+ * The gateways above, plus our own metadata route — collections created here
+ * have a `baseURI` pointing at it, so a preview has to be able to read it.
+ *
+ * This exists because `lib/shareMeta.ts` fetches a URL that ultimately comes
+ * from a caller-supplied contract's `tokenURI`. Anyone can deploy an ERC-721
+ * returning `http://169.254.169.254/...` and then request that page, so without
+ * a list the server will fetch whatever it is pointed at.
+ *
+ * An allowlist rather than an internal-IP denylist: denylists miss DNS
+ * rebinding, IPv6-mapped addresses and decimal or octal IP encodings, and the
+ * set of hosts that are legitimately involved here is small and known.
+ */
+export function metadataFetchAllowed(raw: string): boolean {
+  try {
+    const u = new URL(raw);
+    // https only. `http:` would allow plaintext to an internal address, and
+    // `file:`, `data:` and the rest have no business here at all.
+    if (u.protocol !== "https:") return false;
+    if ((OPTIMISED_IMAGE_HOSTS as readonly string[]).includes(u.hostname)) return true;
+    return u.hostname === "www.valuemint.store" || u.hostname === "valuemint.store";
+  } catch {
+    return false;
+  }
+}
+
 export function canOptimise(src: string): boolean {
   try {
     const { hostname, protocol } = new URL(src);

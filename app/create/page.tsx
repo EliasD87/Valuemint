@@ -14,7 +14,7 @@ import {
 } from "wagmi";
 import { ValueChainCollectionFactoryAbi, deployment } from "@/config/contracts";
 import { valuechain } from "@/config/chain";
-import { CLAIM_HEADERS, contentDigest, uploadMessage } from "@/lib/uploadClaim";
+import { CLAIM_HEADERS, contentDigest, fileHash, uploadMessage } from "@/lib/uploadClaim";
 import "@/styles/create.css";
 
 /**
@@ -164,9 +164,21 @@ export default function Create() {
 
       setSigning(true);
       try {
+        /**
+         * Hash the bytes, not the name and size.
+         *
+         * The signature has to bind the exact files being sent. Hashing
+         * `name:size` bound only their shape, so a captured signature stayed
+         * valid for any same-named file of the same length.
+         */
         const digest = await contentDigest(
           configJson,
-          designs.map((d) => ({ name: d.pinnedName, size: d.file.size })),
+          await Promise.all(
+            designs.map(async (d) => ({
+              name: d.pinnedName,
+              hash: await fileHash(await d.file.arrayBuffer()),
+            })),
+          ),
         );
         signature = await signMessageAsync({
           message: uploadMessage({

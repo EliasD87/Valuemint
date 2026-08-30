@@ -144,7 +144,8 @@ export async function authoriseUpload(input: {
   issuedAt: string | null;
   collectionName: string;
   configJson: string;
-  files: Array<{ name: string; size: number }>;
+  /** Name plus a SHA-256 of the file's actual bytes. */
+  files: Array<{ name: string; hash: string }>;
 }): Promise<AuthResult> {
   const { address, signature, issuedAt } = input;
 

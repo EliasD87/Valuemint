@@ -5,16 +5,28 @@ import { formatEther, parseEther } from "viem";
 import { useTrade, useWsoso } from "@/hooks/useTrade";
 import { TxResult } from "@/components/TxResult";
 
-/** Expiry choices, in days. Zero is the contract's "no expiry". */
+/**
+ * Expiry choices. Every one of them is bounded, deliberately.
+ *
+ * The contract accepts `expiry == 0` for "never", and this offered it. Combined
+ * with the unlimited WSOSO allowance a bidder grants once, that means an offer
+ * made months ago on a token that has since collapsed can still be filled at the
+ * old price, with no further action from the bidder — and offers are keyed by
+ * `(collection, tokenId, bidder)` with no binding to the current owner, so
+ * whoever holds the token later can take it.
+ *
+ * `withdrawOffer` exists, but relying on someone to remember an open commitment
+ * indefinitely is not a control. Three months is the longest anyone can leave
+ * one standing from here.
+ */
 const WINDOWS = [
   { label: "1 day", days: 1 },
   { label: "1 week", days: 7 },
   { label: "1 month", days: 30 },
-  { label: "No expiry", days: 0 },
+  { label: "3 months", days: 90 },
 ];
 
 function expiryFor(days: number): bigint {
-  if (days === 0) return 0n;
   return BigInt(Math.floor(Date.now() / 1000) + days * 86_400);
 }
 

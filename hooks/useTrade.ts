@@ -5,9 +5,25 @@ import { useAccount, useReadContract, useWaitForTransactionReceipt, useWriteCont
 import { maxUint256, parseEther, zeroAddress } from "viem";
 import { ValueChainCollectionAbi, ValueChainMarketplaceAbi, deployment } from "@/config/contracts";
 import { WsosoAbi } from "@/config/wsoso";
+import { valuechain } from "@/config/chain";
 
 const NATIVE = zeroAddress;
 const WSOSO = deployment.wsoso;
+
+/**
+ * Every write below passes `chainId` explicitly.
+ *
+ * wagmi is configured with `chains: [valuechain]`, so a write against another
+ * chain already fails - but that guarantee lives in wagmi's internals rather
+ * than in this file, and the failure mode if it ever stopped holding is not a
+ * revert. `buy` sends `value`, and on a chain where the marketplace address has
+ * no code that call succeeds as a plain transfer to an address nobody controls:
+ * silent loss, not an error.
+ *
+ * With `chainId` supplied, wagmi asserts the connector is on that chain and
+ * throws `ChainMismatchError` otherwise. One line per call site, and the
+ * guarantee is readable here.
+ */
 
 /**
  * The marketplace actions, and the approvals they depend on.
@@ -40,6 +56,7 @@ export function useTrade(collection: `0x${string}` | undefined) {
     if (collection === undefined) return;
     reset();
     writeContract({
+      chainId: valuechain.id,
       address: collection,
       abi: ValueChainCollectionAbi,
       functionName: "setApprovalForAll",
@@ -52,6 +69,7 @@ export function useTrade(collection: `0x${string}` | undefined) {
       if (collection === undefined) return;
       reset();
       writeContract({
+        chainId: valuechain.id,
         address: deployment.marketplace,
         abi: ValueChainMarketplaceAbi,
         functionName: "list",
@@ -67,6 +85,7 @@ export function useTrade(collection: `0x${string}` | undefined) {
       if (collection === undefined) return;
       reset();
       writeContract({
+        chainId: valuechain.id,
         address: deployment.marketplace,
         abi: ValueChainMarketplaceAbi,
         functionName: "cancelListing",
@@ -81,6 +100,7 @@ export function useTrade(collection: `0x${string}` | undefined) {
       if (collection === undefined) return;
       reset();
       writeContract({
+        chainId: valuechain.id,
         address: deployment.marketplace,
         abi: ValueChainMarketplaceAbi,
         functionName: "buy",
@@ -103,6 +123,7 @@ export function useTrade(collection: `0x${string}` | undefined) {
       if (collection === undefined) return;
       reset();
       writeContract({
+        chainId: valuechain.id,
         address: deployment.marketplace,
         abi: ValueChainMarketplaceAbi,
         functionName: "makeOffer",
@@ -117,6 +138,7 @@ export function useTrade(collection: `0x${string}` | undefined) {
       if (collection === undefined) return;
       reset();
       writeContract({
+        chainId: valuechain.id,
         address: deployment.marketplace,
         abi: ValueChainMarketplaceAbi,
         functionName: "withdrawOffer",
@@ -137,6 +159,7 @@ export function useTrade(collection: `0x${string}` | undefined) {
       if (collection === undefined) return;
       reset();
       writeContract({
+        chainId: valuechain.id,
         address: deployment.marketplace,
         abi: ValueChainMarketplaceAbi,
         functionName: "acceptOffer",
@@ -201,6 +224,7 @@ export function useWsoso(needed: bigint) {
     (amountInSoso: string) => {
       reset();
       writeContract({
+        chainId: valuechain.id,
         address: WSOSO,
         abi: WsosoAbi,
         functionName: "deposit",
@@ -221,6 +245,7 @@ export function useWsoso(needed: bigint) {
   const allow = useCallback(() => {
     reset();
     writeContract({
+      chainId: valuechain.id,
       address: WSOSO,
       abi: WsosoAbi,
       functionName: "approve",

@@ -38,12 +38,62 @@ import { OPTIMISED_IMAGE_HOSTS } from "./lib/media";
  * untouched — `next build` and `next start` both set NODE_ENV to production, so
  * the deployed site keeps 'none' and the `X-Frame-Options: DENY` below.
  */
-const isDev = process.env.NODE_ENV !== "production";
+/**
+ * `=== "development"`, not `!== "production"`.
+ *
+ * The negative form fails *open*: an unset or unexpected NODE_ENV made `isDev`
+ * true, which relaxed `frame-ancestors` and dropped `X-Frame-Options` entirely
+ * — on a site that signs wallet transactions. This form fails closed, so
+ * anything other than an explicit development build gets the locked headers.
+ */
+const isDev = process.env.NODE_ENV === "development";
 
 const securityHeaders = [
   {
     key: "Content-Security-Policy",
     value: [
+      /**
+       * `default-src` first, and it is the entry that was missing.
+       *
+       * CSP has no implicit restriction: a directive that is absent, with no
+       * `default-src` to fall back to, is entirely unconstrained. The previous
+       * policy named only four directives, so `script-src`, `connect-src`,
+       * `img-src` and the rest were not "incomplete" — they imposed nothing at
+       * all, and the policy offered no protection against injected script.
+       *
+       * That matters more here than on most sites. The realistic attack on a
+       * wallet dApp is a compromised dependency injecting a drainer that prompts
+       * `setApprovalForAll` to an attacker's address, and `connect-src` is the
+       * control that contains it after the fact.
+       */
+      "default-src 'self'",
+
+      /**
+       * `'unsafe-inline'` is not a choice yet: Next inlines its bootstrap and
+       * the theme script in layout.tsx must run before first paint. Removing it
+       * needs nonces threaded through both, which is its own piece of work.
+       * Stated here so it is a known debt rather than an oversight.
+       */
+      "script-src 'self' 'unsafe-inline'",
+      "style-src 'self' 'unsafe-inline'",
+
+      /**
+       * Wallets, RPC endpoints, IPFS gateways and WalletConnect's relay all live
+       * on other origins, and WalletConnect needs `wss:`. Narrower than this
+       * would need every gateway enumerated, which breaks the moment a
+       * collection uses one we have not listed.
+       */
+      "connect-src 'self' https: wss:",
+
+      /**
+       * `data:` because EIP-6963 wallets supply their icons as data URIs, and
+       * `https:` because token artwork can legitimately live on any gateway.
+       * This also bounds finding 9 — the unoptimised <img> fallback can still
+       * request an arbitrary host, but only over https.
+       */
+      "img-src 'self' https: data: blob:",
+      "font-src 'self' data:",
+
       isDev ? "frame-ancestors 'self' http://localhost:* http://127.0.0.1:*" : "frame-ancestors 'none'",
       "object-src 'none'",
       "base-uri 'self'",

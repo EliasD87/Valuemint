@@ -95,8 +95,20 @@ export async function POST(request: Request) {
       maxTier: authorisation.maxTier,
       deadline: authorisation.deadline,
       signature: authorisation.signature,
-      volumeUsd: standing.volumeUsd,
-      tier: { n: tier.n, name: tier.name },
+      /**
+       * `volumeUsd` and the tier name are deliberately not returned.
+       *
+       * The reasoning about the signature is sound - it is bound to the wallet,
+       * so handing it to the wrong person gains them nothing - but the rest of
+       * the payload was never reasoned about. Anyone could POST any address and
+       * read that wallet's all-time SoDEX volume, which made this the convenient
+       * endpoint for profiling the SoDEX user base in bulk.
+       *
+       * SoDEX publishes the same figure from its own unauthenticated endpoint,
+       * so this was proxying public data rather than leaking private data - but
+       * there is no reason to be that proxy. The claim UI renders the tier from
+       * `maxTier`, which it already receives.
+       */
     },
     // A signature is issued for one wallet at one moment; nothing may cache it.
     { headers: { "Cache-Control": "no-store" } },

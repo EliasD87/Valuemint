@@ -45,6 +45,22 @@ export function uploadMessage(claim: UploadClaim): string {
   ].join("\n");
 }
 
+const hex = (buf: ArrayBuffer): string =>
+  [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
+
+/**
+ * SHA-256 of one file's actual bytes.
+ *
+ * Works in both places this runs: `crypto.subtle` is on `window` in the browser
+ * and on `globalThis` in the Node runtime the route uses.
+ */
+export async function fileHash(bytes: ArrayBuffer | Uint8Array): Promise<string> {
+  const view = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+  // `.slice()` yields a standalone ArrayBuffer. A Uint8Array view over a larger
+  // buffer would otherwise hash the wrong range.
+  return hex(await crypto.subtle.digest("SHA-256", view.slice().buffer as ArrayBuffer));
+}
+
 /**
  * A stable fingerprint of what is being uploaded.
  *
@@ -52,15 +68,19 @@ export function uploadMessage(claim: UploadClaim): string {
  * files: the digest is part of the signed message, so swapping the payload
  * invalidates it.
  *
+ * **It covers the bytes, not the name and size.** It used to hash `name:size`
+ * pairs, which meant a captured signature stayed valid for any file with the
+ * same name and the same byte length - and a same-sized image is not hard to
+ * produce. The property this comment claimed was not the property the code had.
+ *
  * Both sides must derive it identically, so the file list is sorted - FormData
  * ordering is not guaranteed to survive the wire - and the config string is
  * used verbatim, exactly as it is sent.
  */
 export async function contentDigest(
   configJson: string,
-  files: Array<{ name: string; size: number }>,
+  files: Array<{ name: string; hash: string }>,
 ): Promise<string> {
-  const manifest = [configJson, ...files.map((f) => `${f.name}:${f.size}`).sort()].join("\n");
-  const hash = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(manifest));
-  return [...new Uint8Array(hash)].map((b) => b.toString(16).padStart(2, "0")).join("");
+  const manifest = [configJson, ...files.map((f) => `${f.name}:${f.hash}`).sort()].join("\n");
+  return hex(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(manifest)));
 }

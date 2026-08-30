@@ -235,11 +235,19 @@ export function callerKey(request: Request): string {
   const vercel = request.headers.get("x-vercel-forwarded-for");
   if (vercel !== null && vercel !== "") return vercel.split(",")[0]!.trim();
 
-  const real = request.headers.get("x-real-ip");
-  if (real !== null && real !== "") return real.trim();
-
-  const forwarded = request.headers.get("x-forwarded-for");
-  if (forwarded !== null && forwarded !== "") return forwarded.split(",")[0]!.trim();
-
+  /**
+   * Nothing else is trusted.
+   *
+   * `x-real-ip` and `x-forwarded-for` are set by whoever is calling, and this
+   * used to fall through to them - so `X-Real-IP: <random>` per request bought a
+   * fresh bucket every time and the limit meant nothing. Taking
+   * `x-forwarded-for.split(",")[0]` compounded it: the leftmost entry is the
+   * client-supplied one, and only the rightmost is appended by a proxy we own.
+   *
+   * Falling back to one shared bucket is worse for legitimate traffic behind a
+   * shared egress and strictly better than an attacker-chosen key. If this ever
+   * runs somewhere other than Vercel, add that platform's trusted header here
+   * rather than reinstating these two.
+   */
   return "unknown";
 }

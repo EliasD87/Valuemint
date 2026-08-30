@@ -18,6 +18,7 @@ import { gatewayUrl, pinDirectory, pinningAvailable, verifyCredential } from "@/
 import { authoriseUpload, precheckClaim } from "@/lib/uploadAuth";
 import { callerKey, limiter, limiterIsShared } from "@/lib/rateLimit";
 import { sniffImage, SVG_REFUSAL } from "@/lib/sniffImage";
+import { fileHash } from "@/lib/uploadClaim";
 
 /**
  * Pins a creator's artwork and generates the metadata for it.
@@ -183,7 +184,18 @@ export async function POST(request: Request) {
     issuedAt: claim.claim.issuedAt,
     collectionName: config.collectionName,
     configJson: rawConfig,
-    files: images.map((i) => ({ name: i.name, size: i.size })),
+    /**
+     * Hashed from the bytes actually received, so the signature is bound to this
+     * payload rather than merely to files of this shape.
+     *
+     * `request.formData()` has already buffered these, so reading them here
+     * costs no extra memory - and it has to happen before verification, since
+     * verifying against anything other than the received bytes is exactly the
+     * hole being closed.
+     */
+    files: await Promise.all(
+      images.map(async (i) => ({ name: i.name, hash: await fileHash(await i.arrayBuffer()) })),
+    ),
   });
   if (!auth.ok) {
     return NextResponse.json({ error: auth.error }, { status: auth.status });
