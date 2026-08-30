@@ -133,7 +133,7 @@ export default function Home() {
 
   return (
     <>
-      <Hero deck={deck} stats={stats} />
+      <Hero deck={deck} />
 
       <section className="strip">
         <div className="strip-inner">
@@ -333,7 +333,7 @@ interface DeckCard {
  * Every card is a collection that exists on chain, so the fan is never a
  * mock-up of a busier site than this one.
  */
-function Hero({ deck, stats }: { deck: DeckCard[]; stats: ReturnType<typeof useChainStats> }) {
+function Hero({ deck }: { deck: DeckCard[] }) {
   /**
    * The fan's axis, which is a *position* and not a card.
    *
@@ -346,7 +346,7 @@ function Hero({ deck, stats }: { deck: DeckCard[]; stats: ReturnType<typeof useC
   const nearest = Math.min(...deck.map((_, i) => Math.abs(i - axis)));
 
   return (
-    <section className="hx on-dark">
+    <section className="hx">
       <div className="hx-deep" aria-hidden="true" />
 
       <div className="page hx-inner">
@@ -378,20 +378,6 @@ function Hero({ deck, stats }: { deck: DeckCard[]; stats: ReturnType<typeof useC
           </Link>
         </div>
 
-        <dl className="hx-figures">
-          <div>
-            <b>{formatCount(stats.minted)}</b>
-            <span>Pieces</span>
-          </div>
-          <div>
-            <b>{formatCount(BigInt(stats.collections))}</b>
-            <span>Collections</span>
-          </div>
-          <div>
-            <b>{stats.openMints}</b>
-            <span>Minting now</span>
-          </div>
-        </dl>
       </div>
 
       {/*

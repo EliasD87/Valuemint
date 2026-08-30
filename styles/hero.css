@@ -2,10 +2,19 @@
  *
  * Centred copy standing over a fanned deck of the collections themselves.
  *
- * A committed dark band, like /trenches and /kols. The whole composition is lit
- * artwork against a deep ground; the same fan on a white page reads as
- * clip-art. Colours are therefore stated outright rather than taken from the
- * theme — see the note in tokens.css about literals being wrong in one theme.
+ * Theme-aware, unlike /trenches and /kols.
+ *
+ * This was first built as a committed dark band, on the argument that lit
+ * artwork needs a deep ground. That argument holds for those two pages, which
+ * are self-contained showcases. It does not hold for the front page: this hero
+ * is the first thing under a header that *does* follow the theme, so a
+ * permanently black band made a light-mode visit open with the top third of the
+ * site in the wrong theme, and left the header looking like a dark overlay
+ * pasted onto a white page.
+ *
+ * Every colour here now comes from a token or a per-theme variable. The two
+ * lights survive in both themes: they are the same hues at different weights,
+ * not a dark-only effect.
  * ========================================================================== */
 
 .hx {
@@ -13,7 +22,48 @@
   isolation: isolate;
   overflow: hidden;
   padding: clamp(2rem, 3.6vw, 3.25rem) 0 0;
-  color: #f2f2f5;
+  color: var(--ink);
+}
+
+/**
+ * The ground, the two lights, and the card surface, per theme.
+ *
+ * Declared here rather than in tokens.css because nothing outside this section
+ * uses them, and a token serving one component is a token the next reader has
+ * to go and look up. All three theme states are covered, in the order
+ * tokens.css establishes: bare :root for light, the media query guarded against
+ * an explicit light choice, and the explicit dark stamp.
+ */
+.hx {
+  --hx-cool: rgba(99, 102, 241, 0.1);
+  --hx-warm: rgba(255, 92, 0, 0.07);
+  --hx-ground: linear-gradient(180deg, #ffffff 0%, #fafafb 46%, #f4f4f6 100%);
+  --hx-grid: rgba(14, 14, 16, 0.045);
+  --hx-card: var(--surface);
+  --hx-card-line: var(--line-strong);
+  --hx-shadow: 0 34px 70px -30px rgba(14, 14, 16, 0.22);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .hx {
+    --hx-cool: rgba(120, 130, 255, 0.16);
+    --hx-warm: rgba(255, 122, 51, 0.14);
+    --hx-ground: linear-gradient(180deg, #0a0a0c 0%, #0d0d11 46%, #121218 100%);
+    --hx-grid: rgba(255, 255, 255, 0.028);
+    --hx-card: #17171c;
+    --hx-card-line: rgba(255, 255, 255, 0.14);
+    --hx-shadow: 0 34px 70px -30px rgba(0, 0, 0, 0.95);
+  }
+}
+
+:root[data-theme="dark"] .hx {
+  --hx-cool: rgba(120, 130, 255, 0.16);
+  --hx-warm: rgba(255, 122, 51, 0.14);
+  --hx-ground: linear-gradient(180deg, #0a0a0c 0%, #0d0d11 46%, #121218 100%);
+  --hx-grid: rgba(255, 255, 255, 0.028);
+  --hx-card: #17171c;
+  --hx-card-line: rgba(255, 255, 255, 0.14);
+  --hx-shadow: 0 34px 70px -30px rgba(0, 0, 0, 0.95);
 }
 
 /**
@@ -25,20 +75,20 @@
   inset: 0;
   z-index: -2;
   background:
-    radial-gradient(58% 42% at 50% 4%, rgba(120, 130, 255, 0.16), transparent 70%),
-    radial-gradient(70% 45% at 50% 96%, rgba(255, 122, 51, 0.14), transparent 72%),
-    linear-gradient(180deg, #0a0a0c 0%, #0d0d11 46%, #121218 100%);
+    radial-gradient(58% 42% at 50% 4%, var(--hx-cool), transparent 70%),
+    radial-gradient(70% 45% at 50% 96%, var(--hx-warm), transparent 72%),
+    var(--hx-ground);
 }
 
-/* A faint grid, so the ground reads as a surface rather than empty black. */
+/* A faint grid, so the ground reads as a surface rather than an empty field. */
 .hx::before {
   content: "";
   position: absolute;
   inset: 0;
   z-index: -1;
   background-image:
-    linear-gradient(rgba(255, 255, 255, 0.028) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.028) 1px, transparent 1px);
+    linear-gradient(var(--hx-grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--hx-grid) 1px, transparent 1px);
   background-size: 64px 64px;
   mask-image: radial-gradient(80% 60% at 50% 30%, #000 30%, transparent 78%);
   pointer-events: none;
@@ -63,12 +113,12 @@
   margin: 0;
   padding: 0.35rem 0.85rem 0.35rem 0.7rem;
   border-radius: var(--r-pill);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--line);
+  background: var(--surface-2);
   backdrop-filter: blur(10px);
   font-size: var(--step--2);
   font-weight: 600;
-  color: #dcdce4;
+  color: var(--ink-2);
 }
 
 .hx-dot {
@@ -80,11 +130,11 @@
 }
 
 .hx-badge-sep {
-  color: #55555f;
+  color: var(--ink-3);
 }
 
 .hx-badge-note {
-  color: #9a9aa6;
+  color: var(--ink-3);
   font-variant-numeric: tabular-nums;
 }
 
@@ -98,21 +148,45 @@
   font-weight: 800;
   letter-spacing: -0.045em;
   line-height: 1.06;
-  max-width: 16ch;
+  /**
+   * Wide enough for the longer written line to stay on one line. At 16ch the
+   * 76px display face broke "Create, collect and trade" in half, so the
+   * headline ran to three lines and cost a third of the fold for nothing.
+   */
+  max-width: min(100%, 62rem);
   text-wrap: balance;
-  color: #fbfbfd;
+  color: var(--ink);
 }
 
 /**
  * The second line lifts rather than shouts: a gradient fading toward the end of
  * the phrase, so the eye finishes on the lede instead of stopping dead.
+ *
+ * Written per theme, because a gradient is not a colour a token can carry: the
+ * dark ramp runs white to lavender, which on a white page is invisible at one
+ * end and barely there at the other. The light ramp runs the other way, ink to
+ * the same lavender, so the phrase fades toward the lede in both.
  */
 .hx-title em {
   font-style: normal;
-  background: linear-gradient(96deg, #ffffff 0%, #cfd3ff 45%, #8f95c9 100%);
+  background: linear-gradient(96deg, #0e0e10 0%, #4b4fa8 55%, #7f85c4 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .hx-title em {
+    background: linear-gradient(96deg, #ffffff 0%, #cfd3ff 45%, #8f95c9 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+  }
+}
+
+:root[data-theme="dark"] .hx-title em {
+  background: linear-gradient(96deg, #ffffff 0%, #cfd3ff 45%, #8f95c9 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
 }
 
 .hx-lede {
@@ -120,7 +194,7 @@
   max-width: 54ch;
   font-size: var(--step-0);
   line-height: 1.62;
-  color: #a8a8b4;
+  color: var(--ink-2);
 }
 
 .hx-actions {
@@ -132,42 +206,13 @@
 }
 
 .hx-btn-ghost {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 255, 255, 0.16);
-  color: #ececf2;
+  background: var(--surface);
+  border-color: var(--line-strong);
+  color: var(--ink);
 }
 .hx-btn-ghost:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.3);
-}
-
-/* --- live figures -------------------------------------------------------- */
-
-.hx-figures {
-  display: flex;
-  gap: clamp(1.5rem, 4vw, 3rem);
-  margin: 0.6rem 0 0;
-}
-
-.hx-figures > div {
-  display: flex;
-  flex-direction: column;
-  gap: 0.1rem;
-}
-
-.hx-figures b {
-  font-family: var(--display);
-  font-size: var(--step-3);
-  font-weight: 800;
-  letter-spacing: -0.03em;
-  line-height: 1.18;
-  font-variant-numeric: tabular-nums;
-  color: #fbfbfd;
-}
-
-.hx-figures span {
-  font-size: var(--step--2);
-  color: #8e8e9a;
+  background: var(--surface-2);
+  border-color: var(--ink-3);
 }
 
 /* --- floating markers ---------------------------------------------------- */
@@ -233,9 +278,9 @@
   flex-direction: column;
   border-radius: clamp(14px, 1.5vw, 22px);
   overflow: hidden;
-  background: #17171c;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  box-shadow: 0 34px 70px -30px rgba(0, 0, 0, 0.95);
+  background: var(--hx-card);
+  border: 1px solid var(--hx-card-line);
+  box-shadow: var(--hx-shadow);
   /* One transform, so hover composites without re-laying anything out. */
   transform:
     translateX(calc(-50% + var(--slot) * var(--step)))
@@ -248,8 +293,7 @@
 }
 
 .hx-card.is-centre {
-  border-color: rgba(255, 255, 255, 0.24);
-  box-shadow: 0 44px 90px -32px rgba(0, 0, 0, 1);
+  border-color: var(--ink-3);
 }
 
 .hx-card:hover {
@@ -258,7 +302,7 @@
     translateY(calc(var(--abs) * 7% - 10px))
     rotate(calc(var(--slot) * var(--tilt)))
     scale(calc(1.03 - var(--abs) * 0.05));
-  border-color: rgba(255, 255, 255, 0.36);
+  border-color: var(--ink-2);
 }
 
 .hx-card-art {
@@ -266,7 +310,7 @@
   display: block;
   aspect-ratio: 1;
   overflow: hidden;
-  background: #101014;
+  background: var(--paper-3);
 }
 
 .hx-card-body {
@@ -274,8 +318,8 @@
   flex-direction: column;
   gap: 0.1rem;
   padding: 0.6rem 0.75rem 0.75rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.03);
+  border-top: 1px solid var(--line);
+  background: var(--surface-2);
 }
 
 .hx-card-body b {
@@ -284,7 +328,7 @@
   font-weight: 700;
   letter-spacing: -0.02em;
   line-height: 1.25;
-  color: #f4f4f6;
+  color: var(--ink);
   /* A fanned card is not much room for a long collection name. */
   display: -webkit-box;
   -webkit-line-clamp: 1;
@@ -294,7 +338,7 @@
 
 .hx-card-body span {
   font-size: var(--step--3);
-  color: #8e8e9a;
+  color: var(--ink-3);
 }
 
 /**

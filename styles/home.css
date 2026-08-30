@@ -24,6 +24,24 @@
   margin: 0 auto;
 }
 
+/**
+ * Phones: a grid, not a wrap.
+ *
+ * `justify-content: space-between` on a wrapping row puts each pair at
+ * opposite edges of the screen with a chasm between them, and the rows do not
+ * align into columns — six facts read as scattered fragments. Two left-aligned
+ * columns put every fact in a predictable place and cut the band from 136px
+ * to ~90.
+ */
+@media (max-width: 700px) {
+  .strip-inner {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem 1.25rem;
+    padding-block: 0.9rem;
+  }
+}
+
 .strip-item {
   display: flex;
   align-items: baseline;

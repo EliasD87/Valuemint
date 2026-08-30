@@ -154,6 +154,14 @@ textarea {
   padding-block: clamp(2.75rem, 5.5vw, 4.5rem);
 }
 
+/* A phone screen is short and already gives 56px to the tab bar; 44px of air
+   per section boundary made pages feel hollow. */
+@media (max-width: 700px) {
+  .section {
+    padding-block: 2.25rem;
+  }
+}
+
 .section + .section {
   padding-top: 0;
 }
@@ -723,9 +731,13 @@ textarea {
  * is fixed at `--header-h`, which five other stylesheets measure against.
  */
 @media (pointer: coarse), (max-width: 760px) {
-  .head-link,
-  .token-crumb,
-  .token-explorer,
+  /* Doubled: `.token-crumb` and `.token-explorer` set `min-height: 24px` in
+     token.css, which loads after this file — equal specificity, later wins,
+     and the floor silently lost. Measured at 24px on the token page while
+     every other page passed. */
+  .head-link.head-link,
+  .token-crumb.token-crumb,
+  .token-explorer.token-explorer,
   .footer-col ul a,
   .footer-col ul .mono {
     display: inline-flex;
