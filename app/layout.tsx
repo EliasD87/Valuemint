@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Bricolage_Grotesque, Geist } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 import { Providers } from "./providers";
 import { Layout } from "@/components/Layout";
 import "@/styles/global.css";
@@ -90,6 +91,26 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Providers>
           <Layout>{children}</Layout>
         </Providers>
+        {/**
+         * Vercel Analytics.
+         *
+         * Switching it on in the Vercel dashboard does nothing by itself: on the
+         * App Router the dashboard toggle only starts *accepting* events, and
+         * this component is what sends them. Without it the project shows as
+         * enabled and reports no traffic forever.
+         *
+         * Outside `<Providers>` deliberately — it needs nothing from wagmi or
+         * React Query, and it should not be inside a tree that suspends.
+         *
+         * The script loads from `/_vercel/insights/script.js`, same origin, so
+         * the CSP in next.config.ts does not need a `script-src` entry. If one
+         * is ever added, that path has to be allowed or analytics stops
+         * silently.
+         *
+         * It reports page views only: no wallet address, no cookie, nothing
+         * about what anyone holds.
+         */}
+        <Analytics />
       </body>
     </html>
   );
