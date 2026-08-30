@@ -42,8 +42,15 @@ const MAX_EDGE = 1500;
  */
 const REENCODE_ABOVE = 500 * 1024;
 
-/** Formats where re-encoding would destroy the point of the file. */
-const PASS_THROUGH = /^image\/(svg\+xml|gif)$/;
+/**
+ * Formats where re-encoding would destroy the point of the file.
+ *
+ * GIF only. SVG used to be here too, and because the type came from the
+ * client's own header that made this the exit through which arbitrary bytes
+ * reached IPFS unread. `/api/pin` now sniffs the real type and refuses SVG
+ * outright, so nothing reaches here on the strength of a header.
+ */
+const PASS_THROUGH = /^image\/gif$/;
 
 export interface OptimisedFile {
   /** Possibly renamed — the extension follows the encoding actually used. */

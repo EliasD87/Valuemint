@@ -198,14 +198,25 @@ function configured(): { url: string; token: string } | undefined {
 const kv = configured();
 
 /**
- * Shared when a store is configured, per-instance otherwise.
+ * A missing store in production is announced, once, loudly.
  *
- * Deliberately not an error when unset: local development and preview builds
- * have no KV, and refusing to start would be worse than a limiter that only
- * counts one instance. `limiterIsShared` lets a health check report which one
- * is live, so "the limit is not being enforced" is observable rather than
- * silent.
+ * The fallback itself is correct — local development and preview builds have no
+ * KV, and refusing to boot would be worse than a limiter that counts one
+ * instance. What was wrong was that it happened in silence: the limit measured
+ * as bypassable under concurrency (40 parallel requests returned 19x200 after
+ * the limit was exhausted) and nothing anywhere said so.
+ *
+ * On Vercel this line runs per cold start and lands in the function logs, which
+ * is where someone looking for "why did the limit not hold" will actually be.
  */
+if (kv === undefined && process.env.NODE_ENV === "production") {
+  console.warn(
+    "[valuemint] RATE LIMIT NOT SHARED - no KV_REST_API_URL/TOKEN (or UPSTASH_*) is set, " +
+      "so each serverless instance counts its own window and the limit is bypassable " +
+      "under concurrency. Attach Vercel KV or Upstash and set both variables.",
+  );
+}
+
 export const limiter: RateLimiter =
   kv === undefined ? new MemoryRateLimiter() : new RedisRateLimiter(kv.url, kv.token);
 

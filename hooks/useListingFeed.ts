@@ -4,10 +4,11 @@ import { useQuery } from "@tanstack/react-query";
 import { useReadContracts } from "wagmi";
 import { parseAbiItem } from "viem";
 import { erc721Abi } from "viem";
-import { createPublicClient, http } from "viem";
+import { createPublicClient, fallback, http } from "viem";
 import { ValueChainMarketplaceAbi, deployment } from "@/config/contracts";
-import { valuechain } from "@/config/chain";
+import { RPC_HTTP, valuechain } from "@/config/chain";
 import { resolveMediaUrl } from "@/lib/format";
+import { FROM_BLOCK, scanLogs } from "@/lib/logScan";
 import { useAllCollections } from "@/hooks/useAllCollections";
 import type { Listing, TokenMetadata } from "@/hooks/useCollection";
 import type { ChainToken } from "@/hooks/useEverything";
@@ -32,12 +33,18 @@ const LISTED = parseAbiItem(
   "event Listed(address indexed collection, uint256 indexed tokenId, address indexed seller, address paymentToken, uint256 price, uint64 expiry)",
 );
 
-/** The block the marketplace was deployed in; nothing relevant precedes it. */
-const FROM_BLOCK = 13_617_000n;
-
+/**
+ * Separate from wagmi's client because the feed runs outside a component's
+ * chain context - but it must not therefore be worse. Pinned to one endpoint it
+ * reintroduced exactly the single point of failure the wagmi transport was
+ * given a fallback to avoid.
+ */
 const client = createPublicClient({
   chain: valuechain,
-  transport: http("https://mainnet.valuechain.xyz", { batch: true }),
+  transport: fallback(
+    RPC_HTTP.map((url) => http(url, { batch: true, retryCount: 2 })),
+    { rank: { interval: 60_000 } },
+  ),
 });
 
 function traitOf(m: TokenMetadata | undefined, name: string): string | undefined {
@@ -76,17 +83,25 @@ export function useListingFeed() {
     queryKey: ["listed-events"],
     refetchInterval: 30_000,
     queryFn: async () => {
-      const logs = await client.getLogs({
+      /**
+       * Paged and cached, not `fromBlock: <fixed>, toBlock: "latest"`.
+       *
+       * That form re-read the whole history of the chain every thirty seconds,
+       * over a range that only grew. It does not slow down as it grows - it
+       * works until the range crosses whatever cap the endpoint enforces, and
+       * then the market page is silently empty. See lib/logScan.ts.
+       */
+      const logs = await scanLogs(client, {
         address: deployment.marketplace,
         event: LISTED,
         fromBlock: FROM_BLOCK,
-        toBlock: "latest",
       });
 
       const seen = new Map<string, { collection: `0x${string}`; id: bigint }>();
       for (const log of logs) {
-        const collection = log.args.collection;
-        const id = log.args.tokenId;
+        const args = log.args as { collection?: `0x${string}`; tokenId?: bigint };
+        const collection = args.collection;
+        const id = args.tokenId;
         if (collection === undefined || id === undefined) continue;
         seen.set(`${collection.toLowerCase()}-${id}`, { collection, id });
       }

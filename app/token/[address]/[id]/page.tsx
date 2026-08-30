@@ -6,6 +6,7 @@ import { useAccount, useReadContract } from "wagmi";
 import { ValueChainCollectionAbi, ValueChainMarketplaceAbi, deployment } from "@/config/contracts";
 import { useTokenMetadata, trait } from "@/hooks/useCollection";
 import { usePreviewSale, useTrade } from "@/hooks/useTrade";
+import { Offers } from "@/components/Offers";
 import { formatSoso, resolveMediaUrl, shortAddress } from "@/lib/format";
 import "@/styles/token.css";
 
@@ -237,7 +238,8 @@ export default function TokenPage({
               </>
             ) : (
               <p className="token-note">
-                Not currently for sale. Only its owner can list it.
+                Not listed for sale. Only its owner can set a price &mdash; but anyone can
+                make an offer below.
               </p>
             )}
 
@@ -249,6 +251,15 @@ export default function TokenPage({
               </p>
             ) : null}
           </div>
+
+          {collection === undefined ? null : (
+            <Offers
+              collection={collection}
+              tokenId={tokenId}
+              isOwner={isOwner}
+              onChange={afterAction}
+            />
+          )}
 
           {metadata?.attributes !== undefined ? (
             <div className="token-traits">

@@ -33,3 +33,26 @@ export const valuechainTestnet = defineChain({
 
 /** Poll interval tuned to the chain's ~2.07s block time. */
 export const BLOCK_TIME_MS = 2_000;
+
+/**
+ * HTTP endpoints, in preference order, for the fallback transport.
+ *
+ * More than one on purpose. Every page here is assembled from chain reads, so a
+ * single endpoint failing did not slow the site down, it emptied it — and that
+ * endpoint is not ours.
+ *
+ * `NEXT_PUBLIC_RPC_URLS` (comma separated) takes precedence, so an operator can
+ * point at a private or paid node without a code change. That is the right
+ * answer at any real traffic: a public endpoint shared by every visitor is a
+ * rate limit waiting to be found.
+ */
+export const RPC_HTTP: string[] = (() => {
+  const configured = (process.env.NEXT_PUBLIC_RPC_URLS ?? "")
+    .split(",")
+    .map((u) => u.trim())
+    .filter((u) => u !== "");
+  if (configured.length > 0) return configured;
+  // Both verified live: same chain id (0x45f9f) and within one block of each
+  // other. A guessed hostname here would cost a DNS failure on every failover.
+  return ["https://mainnet.valuechain.xyz", "https://rpc.valuechain.xyz"];
+})();

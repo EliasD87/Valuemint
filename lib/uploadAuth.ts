@@ -1,6 +1,14 @@
 import "server-only";
-import { createPublicClient, http, formatEther, getAddress, isAddress, recoverMessageAddress } from "viem";
-import { valuechain } from "@/config/chain";
+import {
+  createPublicClient,
+  fallback,
+  http,
+  formatEther,
+  getAddress,
+  isAddress,
+  recoverMessageAddress,
+} from "viem";
+import { RPC_HTTP, valuechain } from "@/config/chain";
 import { CLAIM_HEADERS, contentDigest, uploadMessage } from "@/lib/uploadClaim";
 
 /**
@@ -47,9 +55,17 @@ const MIN_BALANCE_WEI = (() => {
 /** How long a signature stays valid. Long enough to pick files, short enough to matter. */
 const FRESHNESS_MS = 5 * 60 * 1000;
 
+/**
+ * Fallback here too. This client decides whether an uploader holds enough SOSO
+ * to be allowed to pin, so one unreachable endpoint would not merely slow
+ * creation down - it would refuse every upload on the site.
+ */
 const client = createPublicClient({
   chain: valuechain,
-  transport: http(valuechain.rpcUrls.default.http[0], { timeout: 12_000 }),
+  transport: fallback(
+    RPC_HTTP.map((url) => http(url, { timeout: 12_000 })),
+    { rank: false },
+  ),
 });
 
 /**

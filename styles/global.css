@@ -874,3 +874,54 @@ textarea {
     line-height: 1.16;
   }
 }
+
+/* ============================================================ state pages ===
+ *
+ * The error boundary and the 404. Both are a heading, a sentence and a way out,
+ * centred in the space a page would have filled — so a failure looks like part
+ * of the site rather than the browser's own idea of one.
+ * ========================================================================== */
+
+.state-page {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.85rem;
+  /* Tall enough that the footer does not ride up under a two-line message, and
+     capped so it never pushes the way out below the fold on a phone. */
+  min-height: min(28rem, 58svh);
+  justify-content: center;
+}
+
+.state-page h1 {
+  font-size: var(--step-4);
+  max-width: 18ch;
+}
+
+.state-page .lede {
+  max-width: 52ch;
+}
+
+.state-actions {
+  margin-top: 0.6rem;
+}
+
+.state-digest {
+  margin-top: 1.25rem;
+  font-size: var(--step--2);
+  color: var(--ink-3);
+}
+
+/* One column, full width — the same treatment the hero's actions get, and for
+   the same reason: two buttons at their own widths read as unrelated objects. */
+@media (max-width: 700px) {
+  .state-actions {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .state-actions .btn {
+    width: 100%;
+  }
+}

@@ -34,8 +34,35 @@ export const HIDDEN_COLLECTIONS: HiddenCollection[] = [
   },
 ];
 
-const hidden = new Set(HIDDEN_COLLECTIONS.map((c) => c.address.toLowerCase()));
+/**
+ * Additional addresses from the environment, comma separated.
+ *
+ * The list above is compiled into the bundle, so adding to it means editing
+ * code, opening a pull request and waiting for a deploy. That is an acceptable
+ * pace for tidying away two test collections and far too slow for the reason
+ * this list will actually be needed: the marketplace indexes every ERC-721 on
+ * the chain, so an impersonation, a scam or an illegal image appears here by
+ * itself and has to be able to disappear in minutes.
+ *
+ * `NEXT_PUBLIC_` because the check runs in the browser, where the list is
+ * enumerable anyway — every address in it is public on chain by definition, so
+ * there is nothing here to keep secret.
+ *
+ * Changing it on Vercel is a redeploy of the same build, not a code change.
+ */
+const fromEnv = (process.env.NEXT_PUBLIC_HIDDEN_COLLECTIONS ?? "")
+  .split(",")
+  .map((a) => a.trim().toLowerCase())
+  .filter((a) => /^0x[0-9a-f]{40}$/.test(a));
+
+const hidden = new Set([
+  ...HIDDEN_COLLECTIONS.map((c) => c.address.toLowerCase()),
+  ...fromEnv,
+]);
 
 export function isHidden(address: string): boolean {
   return hidden.has(address.toLowerCase());
 }
+
+/** How many addresses are suppressed, and how many came from the environment. */
+export const hiddenCount = { total: hidden.size, fromEnv: fromEnv.length };

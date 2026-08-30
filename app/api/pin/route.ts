@@ -16,7 +16,8 @@ function storageAvailable(): boolean {
 }
 import { gatewayUrl, pinDirectory, pinningAvailable, verifyCredential } from "@/lib/pinning";
 import { authoriseUpload, precheckClaim } from "@/lib/uploadAuth";
-import { callerKey, limiter } from "@/lib/rateLimit";
+import { callerKey, limiter, limiterIsShared } from "@/lib/rateLimit";
+import { sniffImage, SVG_REFUSAL } from "@/lib/sniffImage";
 
 /**
  * Pins a creator's artwork and generates the metadata for it.
@@ -90,13 +91,20 @@ export async function GET(request: Request) {
   }
 
   const now = Date.now();
+
+  /**
+   * `rateLimitShared` is reported so the deployment can be checked from
+   * outside. False means each instance counts its own window and the limit does
+   * not hold under concurrency - which was true in production and invisible,
+   * because nothing exposed it and nothing logged it.
+   */
   if (probeCache !== undefined && now - probeCache.at < PROBE_TTL) {
-    return NextResponse.json({ ready: probeCache.ready });
+    return NextResponse.json({ ready: probeCache.ready, rateLimitShared: limiterIsShared });
   }
   // Check whichever backend will actually be used, not always Pinata.
   const ready = filebaseAvailable() ? (await verifyFilebase()).ok : await verifyCredential();
   probeCache = { at: now, ready };
-  return NextResponse.json({ ready });
+  return NextResponse.json({ ready, rateLimitShared: limiterIsShared });
 }
 
 export async function POST(request: Request) {
@@ -226,13 +234,30 @@ export async function POST(request: Request) {
         { status: 400 },
       );
     }
-    if (!image.type.startsWith("image/")) {
-      return NextResponse.json({ error: `"${image.name}" is not an image.` }, { status: 400 });
-    }
-
     total += image.size;
     if (total > MAX_TOTAL_BYTES) {
       return NextResponse.json({ error: "That upload is too large in total." }, { status: 400 });
+    }
+
+    const bytes = new Uint8Array(await image.arrayBuffer());
+
+    /**
+     * The bytes decide the type, not the header.
+     *
+     * `image.type` is whatever the client wrote in the multipart part's
+     * Content-Type, and nothing derives it from the content. Trusting it meant
+     * a file declared `image/svg+xml` was passed through unprocessed and pinned
+     * verbatim, whatever it actually contained.
+     */
+    const sniffed = sniffImage(bytes);
+    if (sniffed === undefined) {
+      return NextResponse.json(
+        { error: `"${image.name}" isn't an image we can read. Use PNG, JPEG, WebP or GIF.` },
+        { status: 400 },
+      );
+    }
+    if (sniffed === "image/svg+xml") {
+      return NextResponse.json({ error: SVG_REFUSAL }, { status: 400 });
     }
 
     // Names are normalised so they survive every gateway and filesystem intact.
@@ -243,11 +268,7 @@ export async function POST(request: Request) {
      * so once this is pinned the file is that size forever — for the storage
      * allowance and for every visitor who loads it.
      */
-    const optimised = await optimiseArtwork(
-      normalised,
-      new Uint8Array(await image.arrayBuffer()),
-      image.type,
-    );
+    const optimised = await optimiseArtwork(normalised, bytes, sniffed);
 
     /**
      * Re-encoding can make two different uploads collide: "art.png" and

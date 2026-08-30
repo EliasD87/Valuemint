@@ -1,0 +1,189 @@
+/* ==================================================================== offers
+ *
+ * Sits under the buy/sell panel on a token page. Deliberately quieter than that
+ * panel: a listing is a price, an offer is a conversation, and the two should
+ * not compete for the same emphasis.
+ * ========================================================================== */
+
+.offers {
+  margin-top: 1rem;
+  padding: 1.15rem 1.2rem 1.25rem;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+}
+
+.offers-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.85rem;
+}
+
+.offers-count {
+  font-size: var(--step--2);
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.offers-empty {
+  margin: 0;
+  font-size: var(--step--1);
+  color: var(--ink-3);
+}
+
+.offers-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/**
+ * Price, then who, then the action.
+ *
+ * `auto` on the middle column rather than `1fr`: the address is short and fixed,
+ * and giving it the slack pushed the button away from the row it belongs to.
+ */
+.offers-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0;
+  border-top: 1px solid var(--line);
+}
+
+.offers-row:first-child {
+  border-top: 0;
+}
+
+.offers-row.is-mine .offers-price {
+  color: var(--ink);
+}
+
+.offers-price {
+  font-size: var(--step--1);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+.offers-who {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.05rem;
+  font-size: var(--step--2);
+  color: var(--ink-2);
+}
+
+.offers-when {
+  font-size: var(--step--3);
+  color: var(--ink-3);
+}
+
+/* --- making one ---------------------------------------------------------- */
+
+.offers-make {
+  margin-top: 1.1rem;
+  padding-top: 1.05rem;
+  border-top: 1px solid var(--line);
+}
+
+.offers-make-title {
+  margin: 0 0 0.75rem;
+  font-size: var(--step--1);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.offers-fields {
+  display: grid;
+  grid-template-columns: 1fr 9.5rem;
+  gap: 0.6rem;
+  align-items: end;
+}
+
+.offers-label {
+  display: block;
+  margin-bottom: 0.3rem;
+  font-size: var(--step--3);
+  font-weight: 600;
+  color: var(--ink-3);
+}
+
+.offers-fields input,
+.offers-fields select {
+  width: 100%;
+  min-height: 44px;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+  color: var(--ink);
+  /* 16px floor: anything smaller makes iOS zoom the whole page on focus. */
+  font-size: max(16px, var(--step--1));
+}
+
+/* The unit sits inside the field, so the number and what it is read as one
+   value rather than a number with a label parked beside it. */
+.field-suffix {
+  position: relative;
+}
+
+.field-suffix input {
+  padding-right: 4.6rem;
+}
+
+.field-suffix span {
+  position: absolute;
+  right: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: var(--step--2);
+  font-weight: 600;
+  color: var(--ink-3);
+  pointer-events: none;
+}
+
+.offers-balance {
+  margin: 0.7rem 0 0.85rem;
+  font-size: var(--step--2);
+  color: var(--ink-3);
+}
+
+.offers-balance b {
+  color: var(--ink-2);
+  font-weight: 600;
+}
+
+.offers-note {
+  margin: 0.7rem 0 0;
+  font-size: var(--step--3);
+  line-height: 1.5;
+  color: var(--ink-3);
+}
+
+/* One column below the point where a 9.5rem select and an amount field stop
+   coexisting without squeezing the number. */
+@media (max-width: 460px) {
+  .offers-fields {
+    grid-template-columns: 1fr;
+  }
+
+  .offers-row {
+    grid-template-columns: 1fr auto;
+    row-gap: 0.4rem;
+  }
+
+  /* The action drops to its own full-width line rather than being squeezed
+     into a third column at 60px. */
+  .offers-row .btn {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+}

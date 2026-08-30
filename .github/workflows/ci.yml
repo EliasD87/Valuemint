@@ -1,0 +1,49 @@
+name: CI
+
+# Every push and every pull request. The point is that nothing reaches main
+# without these three passing — until now the only gate was a person
+# remembering to run `tsc` by hand, and every regression in this codebase so
+# far was found by someone looking at the page.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  # A newer push makes an in-flight run irrelevant; cancel it rather than
+  # queueing behind it.
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # `npm ci` rather than `npm install`: it installs exactly the lockfile and
+      # fails if the two have drifted, which is the whole reason to commit one.
+      - name: Install
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Unit tests
+        run: npm test
+
+      # Catches what typecheck cannot: a bad import path, a server-only module
+      # pulled into a client component, a route that fails to prerender.
+      - name: Build
+        run: npm run build
+        env:
+          # Not a secret. It only has to be a well-formed value so the build
+          # takes the same branch it will take in production.
+          NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID: ci-placeholder
