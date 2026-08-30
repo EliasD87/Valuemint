@@ -104,7 +104,15 @@ export function useTrade(collection: `0x${string}` | undefined) {
         address: deployment.marketplace,
         abi: ValueChainMarketplaceAbi,
         functionName: "buy",
-        args: [collection, tokenId],
+        /**
+         * `price` is the figure the card showed, so it doubles as the buyer's
+         * ceiling: the sale settles at or below what they were quoted, and
+         * reverts with `PriceAboveMaximum` if the seller re-listed higher in
+         * between. `NATIVE` is the currency they were quoted in — if the
+         * listing switched to WSOSO, that reverts too rather than spending an
+         * allowance the buyer never agreed to here.
+         */
+        args: [collection, tokenId, price, NATIVE],
         value: price,
       });
     },

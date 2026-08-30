@@ -4,7 +4,7 @@ import type { AbiEvent, PublicClient } from "viem";
  * The block the marketplace was deployed in. Nothing it emitted exists before
  * this, so scanning from genesis would be wasted work.
  */
-export const FROM_BLOCK = 13_617_000n;
+export const FROM_BLOCK = 13_708_851n;
 
 /**
  * How many blocks to ask for at once.
