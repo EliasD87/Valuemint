@@ -8,6 +8,20 @@ import { TokenCard, TokenCardSkeleton } from "@/components/TokenCard";
 import { ShareLink } from "@/components/ShareLink";
 import { deployment } from "@/config/contracts";
 import { shortAddress } from "@/lib/format";
+/**
+ * `home.css`, not `collections.css`.
+ *
+ * This page borrows the token grid and the stat strip from /portfolio and
+ * /market, and both of those classes - `.grid-tokens`, `.strip-inner`,
+ * `.strip-item`, `.portfolio-note` - are defined in home.css. Importing the
+ * wrong sheet did not fail loudly: the markup rendered with no grid at all, so
+ * every card stacked full-width and one plush toy filled the viewport, and the
+ * two stat items ran together as "14 held4 collections" because the flex gap
+ * was never applied either.
+ *
+ * `collections.css` is still needed for `.addr-title`.
+ */
+import "@/styles/home.css";
 import "@/styles/collections.css";
 
 /**
