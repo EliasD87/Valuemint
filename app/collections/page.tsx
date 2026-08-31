@@ -90,8 +90,9 @@ export default function Collections() {
       </div>
 
       <p className="coll-intro muted">
-        Discovered from the chain itself, not a curated list. The marketplace trades any ERC-721 on
-        ValueChain — including collections that were never deployed through here.
+        Discovered from the chain itself, not a curated list. The marketplace trades any NFT
+        on ValueChain — single pieces and editions alike — including collections that were
+        never deployed through here.
       </p>
 
       {/* --- trade anything, indexed or not ------------------------------ */}
@@ -124,7 +125,7 @@ export default function Collections() {
                   ? "Checking the contract…"
                   : probe.isErc721
                     ? `${probe.name ?? "Collection"} (${probe.symbol ?? "?"}) — tradeable ERC-721.`
-                    : "That address doesn't answer as an ERC-721, so this marketplace can't move its tokens."}
+                    : "That address doesn't answer as an ERC-721. Editions are found through the list above rather than pasted here."}
           </span>
         </div>
       </div>

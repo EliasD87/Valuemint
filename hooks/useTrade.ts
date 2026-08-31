@@ -11,6 +11,24 @@ const NATIVE = zeroAddress;
 const WSOSO = deployment.wsoso;
 
 /**
+ * How long a new listing stands. The contract caps this at 180 days.
+ *
+ * Orders used to be able to live forever - `expiry: 0` meant never - and that
+ * is the shape of the January 2022 OpenSea/Rarible incident: a seller moves a
+ * token away, every frontend marks the listing inactive because ownership no
+ * longer holds, and the order sits in storage waiting. Bring the token back and
+ * the old price is live again. Roughly $1M was taken that way.
+ *
+ * 90 days is long enough that nobody has to think about it and short enough
+ * that a forgotten listing dies on its own.
+ */
+const DEFAULT_LISTING_DAYS = 90;
+
+function expiryIn(days: number): bigint {
+  return BigInt(Math.floor(Date.now() / 1000) + days * 86_400);
+}
+
+/**
  * Every write below passes `chainId` explicitly.
  *
  * wagmi is configured with `chains: [valuechain]`, so a write against another
@@ -65,7 +83,7 @@ export function useTrade(collection: `0x${string}` | undefined) {
   }, [collection, reset, writeContract]);
 
   const list = useCallback(
-    (tokenId: bigint, priceInSoso: string) => {
+    (tokenId: bigint, priceInSoso: string, days: number = DEFAULT_LISTING_DAYS) => {
       if (collection === undefined) return;
       reset();
       writeContract({
@@ -73,8 +91,75 @@ export function useTrade(collection: `0x${string}` | undefined) {
         address: deployment.marketplace,
         abi: ValueChainMarketplaceAbi,
         functionName: "list",
-        // Native SOSO, no expiry: the simplest listing, and the one the UI offers.
-        args: [collection, tokenId, NATIVE, parseEther(priceInSoso), 0n],
+        // Native SOSO. The expiry is required now - see expiryIn().
+        args: [collection, tokenId, NATIVE, parseEther(priceInSoso), expiryIn(days)],
+      });
+    },
+    [collection, reset, writeContract],
+  );
+
+  // ------------------------------------------------------------- ERC-1155
+
+  /**
+   * List a quantity of an ERC-1155 id at a price per unit.
+   *
+   * Separate from `list` because the contract keeps ERC-1155 listings in their
+   * own map, keyed by seller as well as by id. It has to: many wallets can hold
+   * the same id at once, and a shared key would let one holder's listing
+   * overwrite a stranger's.
+   */
+  const listMulti = useCallback(
+    (
+      tokenId: bigint,
+      amount: bigint,
+      unitPriceInSoso: string,
+      days: number = DEFAULT_LISTING_DAYS,
+    ) => {
+      if (collection === undefined) return;
+      reset();
+      writeContract({
+        chainId: valuechain.id,
+        address: deployment.marketplace,
+        abi: ValueChainMarketplaceAbi,
+        functionName: "listMulti",
+        args: [collection, tokenId, amount, NATIVE, parseEther(unitPriceInSoso), expiryIn(days)],
+      });
+    },
+    [collection, reset, writeContract],
+  );
+
+  /**
+   * Buy some or all of an ERC-1155 listing.
+   *
+   * `unitPrice` doubles as the buyer's ceiling, exactly as `price` does in
+   * `buy`: the figure the card showed is the most they agreed to pay per unit.
+   */
+  const buyMulti = useCallback(
+    (tokenId: bigint, seller: `0x${string}`, amount: bigint, unitPrice: bigint) => {
+      if (collection === undefined) return;
+      reset();
+      writeContract({
+        chainId: valuechain.id,
+        address: deployment.marketplace,
+        abi: ValueChainMarketplaceAbi,
+        functionName: "buyMulti",
+        args: [collection, tokenId, seller, amount, unitPrice, NATIVE],
+        value: unitPrice * amount,
+      });
+    },
+    [collection, reset, writeContract],
+  );
+
+  const cancelMultiListing = useCallback(
+    (tokenId: bigint) => {
+      if (collection === undefined) return;
+      reset();
+      writeContract({
+        chainId: valuechain.id,
+        address: deployment.marketplace,
+        abi: ValueChainMarketplaceAbi,
+        functionName: "cancelMultiListing",
+        args: [collection, tokenId],
       });
     },
     [collection, reset, writeContract],
@@ -182,8 +267,11 @@ export function useTrade(collection: `0x${string}` | undefined) {
     refetchApproval,
     approve,
     list,
+    listMulti,
     cancel,
+    cancelMultiListing,
     buy,
+    buyMulti,
     makeOffer,
     withdrawOffer,
     acceptOffer,

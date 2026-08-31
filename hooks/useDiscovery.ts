@@ -16,8 +16,15 @@ import { isHidden } from "@/config/hidden";
  * Blockscout's REST API already enumerates tokens by type, which is discovery
  * enough and costs us nothing to run.
  *
- * ERC-1155 is deliberately excluded: the marketplace only handles ERC-721, so
- * listing a 1155 here would produce a buy button that always reverts.
+ * ERC-1155 collections are included now that the marketplace has `listMulti`
+ * and `buyMulti`. They were excluded while it was ERC-721 only, for the good
+ * reason that showing one would have produced a buy button that always
+ * reverted; the standard is carried through on each result so the UI can pick
+ * the right path rather than guessing from the address.
+ *
+ * Both types are fetched in parallel and merged. Blockscout returns them from
+ * separate queries - there is no combined endpoint - and a failure of either
+ * should not blank the other, so the results are settled independently.
  */
 
 export interface DiscoveredCollection {
@@ -28,6 +35,13 @@ export interface DiscoveredCollection {
   holders?: number;
   /** True when this collection came out of our factory. */
   fromFactory?: boolean;
+  /**
+   * Which standard the explorer says it speaks. The UI still confirms this on
+   * chain through `useTokenStandard` before offering a trade button - the
+   * explorer is an index, not an authority, and it is the one place here that
+   * is neither our code nor the chain.
+   */
+  standard?: "erc721" | "erc1155";
 }
 
 interface BlockscoutToken {
@@ -40,19 +54,41 @@ interface BlockscoutToken {
   holders?: string;
 }
 
+async function fetchByType(type: "ERC-721" | "ERC-1155"): Promise<BlockscoutToken[]> {
+  const res = await fetch(`${deployment.explorer}/api/v2/tokens?type=${type}`, {
+    signal: AbortSignal.timeout(20_000),
+  });
+  if (!res.ok) throw new Error(`Explorer returned ${res.status}`);
+  const body = (await res.json()) as { items?: BlockscoutToken[] };
+  return body.items ?? [];
+}
+
 export function useDiscoveredCollections() {
   return useQuery({
-    queryKey: ["discovered-erc721"],
+    queryKey: ["discovered-collections"],
     staleTime: 60_000,
     queryFn: async (): Promise<DiscoveredCollection[]> => {
-      const res = await fetch(`${deployment.explorer}/api/v2/tokens?type=ERC-721`, {
-        signal: AbortSignal.timeout(20_000),
-      });
-      if (!res.ok) throw new Error(`Explorer returned ${res.status}`);
+      // Settled rather than `all`: one type failing should not blank the other.
+      const [single, multi] = await Promise.allSettled([
+        fetchByType("ERC-721"),
+        fetchByType("ERC-1155"),
+      ]);
+      if (single.status === "rejected" && multi.status === "rejected") {
+        throw single.reason as Error;
+      }
 
-      const body = (await res.json()) as { items?: BlockscoutToken[] };
+      const tagged: Array<BlockscoutToken & { standard: "erc721" | "erc1155" }> = [
+        ...(single.status === "fulfilled" ? single.value : []).map((t) => ({
+          ...t,
+          standard: "erc721" as const,
+        })),
+        ...(multi.status === "fulfilled" ? multi.value : []).map((t) => ({
+          ...t,
+          standard: "erc1155" as const,
+        })),
+      ];
 
-      return (body.items ?? [])
+      return tagged
         .map((t) => {
           const address = (t.address_hash ?? t.address ?? "") as `0x${string}`;
           return {
@@ -61,6 +97,7 @@ export function useDiscoveredCollections() {
             symbol: t.symbol ?? "",
             totalSupply: t.total_supply,
             holders: Number(t.holders_count ?? t.holders ?? 0),
+            standard: t.standard,
           };
         })
         .filter((c) => /^0x[0-9a-fA-F]{40}$/.test(c.address) && !isHidden(c.address));

@@ -270,3 +270,95 @@
     grid-column: 1 / -1;
   }
 }
+
+/* ========================================================== edition tokens ==
+ *
+ * An ERC-1155 id is held by many wallets at once, so "the price" does not
+ * exist - there is a price per seller, and a quantity on every action. This is
+ * the list that replaces the single Buy button of an ERC-721 page.
+ * ========================================================================== */
+
+.multi-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.multi-row {
+  padding: 0.85rem;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.multi-row-head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+}
+
+.multi-unit {
+  font-size: var(--step--2);
+  color: var(--ink-3);
+}
+
+/* Pushed to the far end so the eye reads price first, stock second. */
+.multi-left {
+  margin-left: auto;
+  font-size: var(--step--2);
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.multi-seller {
+  margin: 0;
+  font-size: var(--step--2);
+  color: var(--ink-3);
+}
+
+.multi-buy {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* The quantity box is deliberately small: it takes one or two digits, and a
+   full-width field next to a full-width button reads as two equal choices. */
+.multi-buy input {
+  width: 4.5rem;
+  flex: 0 0 auto;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.multi-buy .btn {
+  flex: 1 1 auto;
+}
+
+.multi-fields {
+  display: grid;
+  grid-template-columns: 5.5rem 1fr;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.multi-fields label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.multi-fields input {
+  width: 100%;
+}
+
+@media (max-width: 480px) {
+  .multi-fields {
+    grid-template-columns: 1fr;
+  }
+}

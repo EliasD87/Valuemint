@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useAccount, useReadContract } from "wagmi";
 import { ValueChainCollectionAbi, ValueChainMarketplaceAbi, deployment } from "@/config/contracts";
 import { useTokenMetadata, trait } from "@/hooks/useCollection";
+import { useTokenStandard } from "@/hooks/useTokenStandard";
+import { MultiTokenView } from "./MultiTokenView";
 import { usePreviewSale, useTrade } from "@/hooks/useTrade";
 import { Offers } from "@/components/Offers";
 import { TxResult } from "@/components/TxResult";
@@ -30,6 +32,16 @@ export function TokenView({
   })();
 
   const { address } = useAccount();
+  /**
+   * Which page to render at all.
+   *
+   * Read before anything else, because the two standards disagree about the
+   * basics: everything below this point calls `ownerOf` and assumes a single
+   * listing, neither of which exists for an edition token. Hooks still run in a
+   * fixed order - this one is unconditional and the delegation happens after
+   * the rest are declared.
+   */
+  const { standard, isLoading: loadingStandard } = useTokenStandard(collection);
   const { data: metadata, isLoading } = useTokenMetadata(collection, tokenId);
   const trade = useTrade(collection);
   const [price, setPrice] = useState("");
@@ -60,6 +72,18 @@ export function TokenView({
 
   const preview = usePreviewSale(collection, tokenId, price);
 
+  /**
+   * Lifted above the early returns below. It used to sit after them, so an
+   * invalid token id rendered one fewer hook than every other path - React's
+   * one hard rule. `afterAction` is declared further down; the effect body only
+   * runs after the whole component function has, so the reference is live by
+   * then.
+   */
+  useEffect(() => {
+    if (trade.isSuccess) afterAction();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [trade.isSuccess, trade.hash]);
+
   if (tokenId === undefined || collection === undefined) {
     return (
       <section className="page section">
@@ -71,11 +95,25 @@ export function TokenView({
     );
   }
 
-  // The receipt is the only honest signal that state has changed.
-  useEffect(() => {
-    if (trade.isSuccess) afterAction();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [trade.isSuccess, trade.hash]);
+  /**
+   * Edition tokens get their own page. Everything below assumes `ownerOf` and a
+   * single listing, and an ERC-1155 id has neither - it has a set of holders and
+   * a listing per seller.
+   *
+   * Waiting on `loadingStandard` rather than guessing: rendering the ERC-721
+   * page first and swapping would show "Owner —" and a dead Buy button for a
+   * beat on every edition token.
+   */
+  if (loadingStandard) {
+    return (
+      <section className="page section">
+        <div className="token-placeholder skeleton" />
+      </section>
+    );
+  }
+  if (standard === "erc1155") {
+    return <MultiTokenView collection={collection} tokenId={tokenId} />;
+  }
 
   const isOwner =
     owner !== undefined && address !== undefined && (owner as string).toLowerCase() === address.toLowerCase();
