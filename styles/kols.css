@@ -12,7 +12,7 @@
   position: relative;
   isolation: isolate;
   overflow: hidden;
-  padding: clamp(2rem, 5vw, 3.5rem) 0 0;
+  padding: clamp(1.25rem, 2.5vw, 2rem) 0 0;
   color: #f4f4f6;
 }
 
@@ -115,17 +115,22 @@
    * enough that KOL still reads as a word rather than three separate glyphs.
    */
   gap: calc(var(--letter) * 0.06);
-  margin-top: clamp(1.5rem, 3vw, 2.75rem);
+  margin-top: clamp(0.5rem, 1vw, 1rem);
   /**
    * No bottom padding: the slabs sit *on* the edge where the hero ends and the
    * roster begins, so the figures look planted on that line rather than
    * floating above it with a strip of ground showing beneath.
    */
   padding: 0 var(--gutter);
-  /* Headroom for the letters, which are taller than the row's own content box.
-     Was 150px at the top end, which on a 1920 monitor stacked with the margin
-     above to leave roughly 220px of empty violet between the copy and the word. */
-  padding-top: clamp(40px, 5vw, 84px);
+  /**
+   * Headroom for the letters, which overshoot the row's own content box.
+   *
+   * Trimmed twice. It was 150px, then 84px, and measured at 1440 the copy still
+   * finished 115px above the letterforms - a band 0.74x the height of the
+   * screen, most of it empty violet. The glyphs also carry their own leading
+   * above the ink, so the visible gap always reads larger than this number.
+   */
+  padding-top: clamp(16px, 2vw, 34px);
 }
 
 /**
@@ -187,9 +192,51 @@
   /* Separates the cutout from the letterform it overlaps. */
   filter: drop-shadow(0 18px 26px rgba(23, 8, 31, 0.68));
   pointer-events: none;
-  /* No entrance animation. It began at `opacity: 0` with `backwards` fill, so
-     the figures were visible only if the animation ran - see the note in
-     hero.css, where the same pattern left the whole deck blank. */
+  animation: kol-rise 700ms cubic-bezier(0.22, 0.75, 0.3, 1);
+}
+
+/**
+ * The figures rise into their letters.
+ *
+ * Written so the artwork cannot be hidden by it, which is the trap this file
+ * already fell into once: the previous attempt started at `opacity: 0` with
+ * `backwards` fill, so the figures were visible *only* if the animation ran.
+ * It did not, and the row rendered blank. The same pattern emptied the home
+ * page's hero deck - see hero.css.
+ *
+ * Two rules keep that from happening again:
+ *
+ *   1. Only a `from` block. The end state is whatever `.kol-figure` already
+ *      says, so the resting style is the visible one by construction.
+ *   2. No `fill-mode`. Outside the animation's own run the element uses its
+ *      normal style, so a browser that never runs this still draws the row.
+ */
+@keyframes kol-rise {
+  from {
+    opacity: 0;
+    transform: translateX(calc(-50% + var(--shift, 0%))) translateY(16%);
+  }
+}
+
+/**
+ * Staggered by duration, not by delay - and that is the whole trick.
+ *
+ * A delay would need `backwards` fill to hold the figure down while it waits,
+ * which is exactly the thing that blanked this row before. Without the fill,
+ * the element would sit at its resting position, then jump down when the delay
+ * elapsed. Starting all three together and letting them arrive at different
+ * times gives the same read with neither problem.
+ */
+.kol-plinth:nth-child(1) .kol-figure {
+  animation-duration: 620ms;
+}
+
+.kol-plinth:nth-child(2) .kol-figure {
+  animation-duration: 780ms;
+}
+
+.kol-plinth:nth-child(3) .kol-figure {
+  animation-duration: 940ms;
 }
 
 /**
