@@ -72,6 +72,43 @@ export default function Home() {
   }, [tokens]);
 
   /**
+   * The rail shows five, ranked, not everything.
+   *
+   * It listed every collection on the chain, which was fine at four and is
+   * already a scroll at eight - and it will only grow, because discovery now
+   * picks up ERC-1155s and anything the explorer indexes. A home page rail is a
+   * shortlist; /collections is the full list, and the link beside the heading
+   * goes there.
+   *
+   * Ranked by what someone can act on: how many pieces are listed for sale,
+   * then how many exist. Listings first because a collection you can buy from
+   * is more use on a landing page than a larger one you cannot, and minted
+   * count breaks the tie among the many with nothing listed. Name last so the
+   * order is stable rather than shuffling between renders.
+   */
+  const topCollections = useMemo(() => {
+    const listedPer = new Map<string, number>();
+    for (const t of listedTokens) {
+      const k = t.collection.toLowerCase();
+      listedPer.set(k, (listedPer.get(k) ?? 0) + 1);
+    }
+
+    return [...collections]
+      .sort((a, b) => {
+        const la = listedPer.get(a.address.toLowerCase()) ?? 0;
+        const lb = listedPer.get(b.address.toLowerCase()) ?? 0;
+        if (la !== lb) return lb - la;
+
+        const sa = a.totalSupply ?? 0n;
+        const sb = b.totalSupply ?? 0n;
+        if (sa !== sb) return sb > sa ? 1 : -1;
+
+        return a.name.localeCompare(b.name);
+      })
+      .slice(0, 5);
+  }, [collections, listedTokens]);
+
+  /**
    * The hero deck is a bundled snapshot, not a query. See config/heroDeck.ts
    * for the measurement that prompted it - 11.7 seconds to first image, from a
    * page whose DOM was ready in 251ms.
@@ -158,7 +195,10 @@ export default function Home() {
         <div className="head">
           <div>
             <p className="eyebrow">Collections</p>
-            <h2>Everything minted on ValueChain</h2>
+            {/* Was "Everything minted on ValueChain", which stopped being true
+                the moment the rail became a shortlist. The link beside this
+                heading is where "everything" lives. */}
+            <h2>Where the trading is</h2>
           </div>
           <Link className="head-link" href="/collections">
             All collections &rarr;
@@ -166,10 +206,10 @@ export default function Home() {
         </div>
 
         <div className="coll-rail">
-          {collections.length === 0 ? (
+          {topCollections.length === 0 ? (
             <span className="dim">No collections yet — be the first.</span>
           ) : (
-            collections.map((c) => {
+            topCollections.map((c) => {
               const art = artFor(c.address)[0];
               return (
                 <Link key={c.address} href={`/collection/${c.address}`} className="coll-pill">
