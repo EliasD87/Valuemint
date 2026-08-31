@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Wallet } from "./Wallet";
 import { ThemeToggle } from "./ThemeToggle";
+import { Search } from "./Search";
 import { SodexLogo } from "./SodexLogo";
 import { deployment } from "@/config/contracts";
 import "./Layout.css";
@@ -148,6 +149,7 @@ export function Layout({ children }: { children: ReactNode }) {
           <div className="header-actions">
             {/* Below 940 this hides and the drawer carries the switch instead,
                 so the phone header is only brand, wallet and the menu. */}
+            <Search />
             <ThemeToggle />
             <Wallet />
             <button

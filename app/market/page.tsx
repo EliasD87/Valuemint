@@ -9,6 +9,7 @@ import { formatSoso } from "@/lib/format";
 import "@/styles/home.css";
 import { Soso } from "@/components/Soso";
 import { useFloors } from "@/hooks/useFloors";
+import { Sortie } from "@/components/Sortie";
 
 type Sort = "price-asc" | "price-desc" | "recent";
 
@@ -180,18 +181,4 @@ export default function Market() {
   );
 }
 
-function Sortie({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button className="filt" aria-pressed={active} onClick={onClick}>
-      {children}
-    </button>
-  );
-}
+

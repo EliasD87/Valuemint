@@ -13,6 +13,7 @@ import { TxResult } from "@/components/TxResult";
 import { ShareLink } from "@/components/ShareLink";
 import { formatSoso, resolveMediaUrl, shortAddress } from "@/lib/format";
 import "@/styles/token.css";
+import { Activity, LastSale } from "@/components/Activity";
 
 export function TokenView({
   params,
@@ -197,6 +198,7 @@ export function TokenView({
             <div>
               <dt>Status</dt>
               <dd>{listed ? (active === true ? "For sale" : "Listed (stale)") : "Not listed"}</dd>
+              <LastSale collection={collection} tokenId={tokenId} />
             </div>
           </dl>
 
@@ -322,12 +324,18 @@ export function TokenView({
           </div>
 
           {collection === undefined ? null : (
-            <Offers
-              collection={collection}
-              tokenId={tokenId}
-              isOwner={isOwner}
-              onChange={afterAction}
-            />
+            <>
+              {/* What this token has actually done — the only thing on the page
+                  that is not somebody's asking price. */}
+              <Activity collection={collection} tokenId={tokenId} />
+
+              <Offers
+                collection={collection}
+                tokenId={tokenId}
+                isOwner={isOwner}
+                onChange={afterAction}
+              />
+            </>
           )}
 
           {metadata?.attributes !== undefined ? (

@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useMemo } from "react";
+import { use, useMemo, useState } from "react";
 import Link from "next/link";
 import { useAccount, useReadContract, useReadContracts } from "wagmi";
 import { erc721Abi } from "viem";
@@ -15,6 +15,8 @@ import { ShareLink } from "@/components/ShareLink";
 import { formatCount, shortAddress } from "@/lib/format";
 import "@/styles/home.css";
 import "@/styles/collections.css";
+import { Sortie } from "@/components/Sortie";
+import { Activity } from "@/components/Activity";
 
 /**
  * Any ERC-721 on ValueChain, not only ours.
@@ -76,6 +78,21 @@ export function CollectionView({ params }: { params: Promise<{ address: string }
     query: { enabled: collection !== undefined && ids.length > 0, refetchInterval: 20_000 },
   });
 
+  /**
+   * Sorting and trait filtering.
+   *
+   * The collection page had neither - no controls of any kind - which is
+   * fine at nine tokens and useless at ninety. Both work off metadata that
+   * is already loaded for the cards, so neither costs a request.
+   *
+   * Traits are read from the tokens themselves rather than a fixed list.
+   * Collections here disagree about what they publish - some have Tier and
+   * Design, an external one may have neither - and a hardcoded set would
+   * show empty filters for half of them.
+   */
+  const [sort, setSort] = useState<"id-desc" | "id-asc" | "price-asc" | "price-desc">("id-desc");
+  const [traitFilter, setTraitFilter] = useState<Record<string, string>>({});
+
   const listings = new Map<string, Listing>();
   listingResults?.forEach((entry, i) => {
     const id = ids[i];
@@ -83,6 +100,54 @@ export function CollectionView({ params }: { params: Promise<{ address: string }
     const l = entry.result as Listing;
     if (l.seller !== "0x0000000000000000000000000000000000000000") listings.set(id.toString(), l);
   });
+
+  /** Every trait this collection actually publishes, with value counts. */
+  const traitOptions = useMemo(() => {
+    const out = new Map<string, Map<string, number>>();
+    for (const t of tokens) {
+      for (const a of t.metadata?.attributes ?? []) {
+        if (a.trait_type === undefined || a.value === undefined) continue;
+        const value = String(a.value);
+        const inner = out.get(a.trait_type) ?? new Map<string, number>();
+        inner.set(value, (inner.get(value) ?? 0) + 1);
+        out.set(a.trait_type, inner);
+      }
+    }
+    /**
+     * A trait with one value describes every token, so filtering on it is a
+     * no-op. Dropping those keeps the row to the traits that separate things.
+     */
+    return [...out.entries()].filter(([, values]) => values.size > 1);
+  }, [tokens]);
+
+  const shown = useMemo(() => {
+    const active = Object.entries(traitFilter).filter(([, v]) => v !== "");
+    const rows = tokens.filter((t) =>
+      active.every(([type, value]) =>
+        (t.metadata?.attributes ?? []).some(
+          (a) => a.trait_type === type && String(a.value) === value,
+        ),
+      ),
+    );
+
+    const priceOf = (id: bigint) => listings.get(id.toString())?.price;
+    return [...rows].sort((a, b) => {
+      if (sort === "id-asc") return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
+      if (sort === "id-desc") return a.id > b.id ? -1 : a.id < b.id ? 1 : 0;
+      const pa = priceOf(a.id);
+      const pb = priceOf(b.id);
+      /**
+       * Unlisted tokens sort last in both price directions, never first.
+       * Treating "no price" as zero would put everything unlisted at the top
+       * of "price low", which is the opposite of what the control promises.
+       */
+      if (pa === undefined && pb === undefined) return a.id > b.id ? -1 : 1;
+      if (pa === undefined) return 1;
+      if (pb === undefined) return -1;
+      const n = pa < pb ? -1 : pa > pb ? 1 : 0;
+      return sort === "price-asc" ? n : -n;
+    });
+  }, [tokens, listings, sort, traitFilter]);
 
   if (!valid) {
     return (
@@ -158,6 +223,57 @@ export function CollectionView({ params }: { params: Promise<{ address: string }
         <span className="strip-item mono dim">{shortAddress(raw, 6)}</span>
       </div>
 
+      {/* Only worth drawing once there is something to sort or filter. */}
+      {tokens.length > 1 ? (
+        <div className="coll-controls">
+          <div className="wrap-row">
+            <Sortie active={sort === "id-desc"} onClick={() => setSort("id-desc")}>
+              Newest
+            </Sortie>
+            <Sortie active={sort === "id-asc"} onClick={() => setSort("id-asc")}>
+              Oldest
+            </Sortie>
+            <Sortie active={sort === "price-asc"} onClick={() => setSort("price-asc")}>
+              Price low
+            </Sortie>
+            <Sortie active={sort === "price-desc"} onClick={() => setSort("price-desc")}>
+              Price high
+            </Sortie>
+          </div>
+
+          {traitOptions.length > 0 ? (
+            <div className="coll-traits">
+              {traitOptions.map(([type, values]) => (
+                <label key={type} className="coll-trait">
+                  <span className="coll-trait-label">{type}</span>
+                  <select
+                    value={traitFilter[type] ?? ""}
+                    onChange={(e) =>
+                      setTraitFilter((f) => ({ ...f, [type]: e.target.value }))
+                    }
+                  >
+                    <option value="">Any</option>
+                    {[...values.entries()]
+                      .sort((a, b) => b[1] - a[1])
+                      .map(([value, count]) => (
+                        <option key={value} value={value}>
+                          {value} ({count})
+                        </option>
+                      ))}
+                  </select>
+                </label>
+              ))}
+
+              {Object.values(traitFilter).some((v) => v !== "") ? (
+                <button type="button" className="filt" onClick={() => setTraitFilter({})}>
+                  Clear
+                </button>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
       <div className="coll-layout">
         <div className="coll-layout-main">
       {supply === undefined ? (
@@ -175,9 +291,15 @@ export function CollectionView({ params }: { params: Promise<{ address: string }
             <TokenCardSkeleton key={i} />
           ))}
         </div>
+      ) : shown.length === 0 ? (
+        // A filter that matches nothing has to say so, or the page reads as broken.
+        <div className="market-empty">
+          <h3>Nothing matches those traits.</h3>
+          <p className="muted">Clear a filter to widen the search.</p>
+        </div>
       ) : (
         <div className="grid-tokens">
-          {tokens.map((t) => (
+          {shown.map((t) => (
             <TokenCard
               key={t.id.toString()}
               token={t}
@@ -191,6 +313,12 @@ export function CollectionView({ params }: { params: Promise<{ address: string }
         </div>
 
         {collection !== undefined ? <MintPanel address={collection} /> : null}
+
+        {/* Everything that has happened in this collection, not just this page of
+            it - the grid is capped at 60 tokens, the history is not. */}
+        {collection !== undefined ? (
+          <Activity collection={collection} title="Collection activity" limit={20} />
+        ) : null}
       </div>
     </section>
   );

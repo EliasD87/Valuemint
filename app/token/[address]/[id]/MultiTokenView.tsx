@@ -13,6 +13,7 @@ import { ShareLink } from "@/components/ShareLink";
 import { Soso } from "@/components/Soso";
 import { formatSoso, resolveMediaUrl, shortAddress } from "@/lib/format";
 import "@/styles/token.css";
+import { Activity } from "@/components/Activity";
 
 /**
  * The ERC-1155 token page.
@@ -273,6 +274,8 @@ export function MultiTokenView({
             error={trade.error}
             successLabel="Done"
           />
+
+          <Activity collection={collection} tokenId={tokenId} />
 
           {metadata?.attributes !== undefined && metadata.attributes.length > 0 ? (
             <div className="token-panel card">

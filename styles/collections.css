@@ -402,3 +402,57 @@
 .coll-card.is-solo .chip {
   backdrop-filter: blur(6px);
 }
+
+/* ------------------------------------------------------ collection controls --
+ *
+ * Sort and trait filters. The page had neither, which is fine at nine tokens
+ * and useless at ninety.
+ * ------------------------------------------------------------------------- */
+
+.coll-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.coll-traits {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.6rem;
+}
+
+.coll-trait {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.coll-trait-label {
+  font-size: var(--step--3);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+/* Sized to its content rather than stretched: a row of equal-width selects
+   makes a two-value trait look as significant as a twenty-value one. */
+.coll-trait select {
+  min-width: 8rem;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+}
+
+@media (max-width: 560px) {
+  .coll-trait {
+    flex: 1 1 100%;
+  }
+
+  .coll-trait select {
+    width: 100%;
+  }
+}
