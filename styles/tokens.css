@@ -17,14 +17,19 @@
  * Every colour below is a token, and *only* tokens are redefined per theme.
  * Never write a literal colour in a component stylesheet - it will be correct
  * in one theme and wrong in the other. If you need a new colour, add it here
- * in all three blocks:
+ * in both blocks:
  *
- *   :root                                   the complete light palette
- *   @media (prefers-color-scheme: dark)     for viewers who never chose
- *   :root[data-theme="dark"]                for viewers who chose dark
+ *   :root                        the complete light palette, and the default
+ *   :root[data-theme="dark"]     for viewers who chose dark
  *
- * The media query is guarded with :not([data-theme="light"]) so an explicit
- * light choice still beats a dark OS.
+ * **Light is the default for everyone**, whatever their OS is set to. There is
+ * deliberately no `prefers-color-scheme` block: the site has a look, and a
+ * visitor's laptop setting should not decide whether they see it. Dark is
+ * something they opt into, and the choice sticks in localStorage.
+ *
+ * This was the other way round until 2026-08-30. If you reintroduce a media
+ * query here, remember there were four of them - tokens.css, global.css and two
+ * in hero.css - and a partial restoration produces a page that is half dark.
  *
  *
  * TYPE
@@ -166,79 +171,6 @@
    they overlap; and every hue is lifted in luminance, because a colour tuned
    for contrast against white is muddy against black.
    ========================================================================== */
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --paper: #0c0c0e;
-    --paper-2: #131316;
-    --paper-3: #1c1c20;
-    --paper-hover: #26262c;
-    --sunken: #111114;
-
-    --surface: #131316;
-    --surface-2: #1c1c20;
-
-    --ink: #f4f4f6;
-    --ink-hover: #dcdce2;
-    --ink-2: #a8a8b2;
-    --ink-3: #9a9aa6; /* AA on every dark surface, page through paper-3 */
-    --ink-4: #74747f; /* decoration only */
-
-    --line: #232327;
-    --line-strong: #33333a;
-    --line-ink: #f4f4f6;
-
-    --accent: #ff7a33;
-    --accent-hover: #ff8f52;
-    --accent-2: #ffa670;
-    --accent-ink: #1a0c04;
-    --accent-wash: #2a1509;
-    --accent-line: #4d2811;
-
-    --up: #3ecf8e;
-    --up-wash: #0e2a1f;
-    --down: #ff6b5e;
-
-    --good: #4ade80;
-    --good-wash: #0e2a1f;
-    --warn: #f0b84d;
-    --warn-wash: #2a2109;
-    --danger: #ff8a80;
-    --danger-wash: #2a1310;
-    --danger-wash-2: #3a1a16;
-
-    --legendary: #e0a54a;
-    --legendary-wash: #2a2110;
-    --epic: #a78bfa;
-    --epic-wash: #1e1730;
-    --rare: #58b6f5;
-    --rare-wash: #0e1f2e;
-    --common: #a1a1ab;
-    --common-wash: #1e1e22;
-
-    --dark: #17171b;
-    --dark-2: #202026;
-    --dark-line: rgba(255, 255, 255, 0.1);
-    --dark-ink: #fafafa;
-    --dark-ink-2: #a1a1aa;
-
-    --veil: rgba(12, 12, 14, 0.86);
-    --scrim: rgba(0, 0, 0, 0.65);
-    --sheen: rgba(255, 255, 255, 0.09);
-    --ring: rgba(255, 255, 255, 0.12);
-
-    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
-    --shadow-md: 0 4px 16px -6px rgba(0, 0, 0, 0.6);
-    --shadow-lg: 0 24px 48px -20px rgba(0, 0, 0, 0.8);
-    --shadow-art: 0 30px 60px -24px rgba(0, 0, 0, 0.9);
-
-    color-scheme: dark;
-    /* SoDEX dark-ground variant. */
-    --sodex-ink: #ffffff;
-    --sodex-accent: #FF4F20;
-
-  }
-}
 
 /* The same palette again, for a viewer who explicitly chose dark. Kept as a
    duplicate rather than a shared class because the media query above must not

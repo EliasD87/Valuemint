@@ -55,10 +55,9 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
-    { media: "(prefers-color-scheme: dark)", color: "#0c0c0e" },
-  ],
+  // Light is the site's default for everyone, so the browser chrome matches the
+  // page a first-time visitor actually gets rather than their OS setting.
+  themeColor: "#ffffff",
   width: "device-width",
   initialScale: 1,
 };
@@ -71,8 +70,11 @@ export const viewport: Viewport = {
  * localStorage the browser has already painted the default theme, and a viewer
  * who chose dark gets a full-screen white flash on every navigation.
  *
- * Absent a stored choice it stamps nothing, which leaves the CSS free to
- * follow prefers-color-scheme.
+ * Absent a stored choice it stamps nothing, and nothing is now the same as
+ * light: the OS-following media queries were removed, so the bare `:root`
+ * palette in tokens.css is what an unstamped document gets. Only a viewer who
+ * picked dark carries `data-theme="dark"`, and only they need this script to
+ * avoid a white flash.
  */
 const noFlash = `
 try {

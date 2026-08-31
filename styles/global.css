@@ -497,11 +497,6 @@ textarea {
 /* A drop shadow is nearly invisible against a dark ground, so the hover state
    has to come from the edge instead - otherwise dark mode loses the feedback
    entirely. */
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .card-hover:hover {
-    border-color: var(--ink-4);
-  }
-}
 :root[data-theme="dark"] .card-hover:hover {
   border-color: var(--ink-4);
 }

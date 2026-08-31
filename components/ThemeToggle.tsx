@@ -5,11 +5,16 @@ import { useEffect, useState } from "react";
 /**
  * Light / dark switch.
  *
- * Three states matter, not two. A viewer who has never chosen follows their
- * system, and that is the default we want to preserve - so "no stored choice"
- * stamps nothing on <html> and lets the prefers-color-scheme block in
- * tokens.css decide. Only an explicit choice writes `data-theme`, which is what
- * makes it override the OS in both directions.
+ * Two states, not three. **Light is the default**, for everyone, regardless of
+ * what their operating system is set to - the site has a look, and that look is
+ * the light one. Dark is available and sticky, but it is something a viewer
+ * opts into rather than something their laptop decides for them.
+ *
+ * That is a deliberate reversal. This used to follow `prefers-color-scheme`
+ * when nothing was stored, which meant most visitors on a dark OS never saw the
+ * design as it was drawn. The paired media queries in tokens.css, global.css
+ * and hero.css were removed with it; only `:root[data-theme="dark"]` remains,
+ * so dark now applies exactly when someone asked for it.
  *
  * The initial paint is handled by the inline script in layout.tsx, not here.
  * This component only reports what was already resolved and changes it on
@@ -26,14 +31,10 @@ function stored(): Choice | undefined {
     const v = localStorage.getItem(KEY);
     return v === "light" || v === "dark" ? v : undefined;
   } catch {
-    // Private browsing, or storage disabled. Falling back to the system
-    // preference is the correct behaviour, not an error worth surfacing.
+    // Private browsing, or storage disabled. Light is the default anyway, so
+    // there is nothing to recover from and nothing worth surfacing.
     return undefined;
   }
-}
-
-function systemPrefersDark(): boolean {
-  return window.matchMedia("(prefers-color-scheme: dark)").matches;
 }
 
 export function ThemeToggle() {
@@ -41,18 +42,8 @@ export function ThemeToggle() {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setTheme(stored() ?? (systemPrefersDark() ? "dark" : "light"));
+    setTheme(stored() ?? "light");
     setMounted(true);
-  }, []);
-
-  // While the viewer is still following their system, track it live: changing
-  // the OS theme should move the page with it, without a reload.
-  useEffect(() => {
-    if (stored() !== undefined) return;
-    const mq = window.matchMedia("(prefers-color-scheme: dark)");
-    const onChange = () => setTheme(mq.matches ? "dark" : "light");
-    mq.addEventListener("change", onChange);
-    return () => mq.removeEventListener("change", onChange);
   }, []);
 
   const toggle = () => {

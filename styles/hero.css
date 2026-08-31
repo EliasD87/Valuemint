@@ -47,21 +47,6 @@
   --hx-orb-3: rgba(56, 189, 248, 0.06);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .hx {
-    --hx-cool: rgba(120, 130, 255, 0.16);
-    --hx-warm: rgba(255, 122, 51, 0.14);
-    --hx-ground: linear-gradient(180deg, #0a0a0c 0%, #0d0d11 46%, #121218 100%);
-    --hx-grid: rgba(255, 255, 255, 0.028);
-    --hx-card: #17171c;
-    --hx-card-line: rgba(255, 255, 255, 0.14);
-    --hx-shadow: 0 34px 70px -30px rgba(0, 0, 0, 0.95);
-    --hx-orb-1: rgba(129, 140, 248, 0.3);
-    --hx-orb-2: rgba(255, 122, 51, 0.22);
-    --hx-orb-3: rgba(56, 189, 248, 0.24);
-  }
-}
-
 :root[data-theme="dark"] .hx {
   --hx-cool: rgba(120, 130, 255, 0.16);
   --hx-warm: rgba(255, 122, 51, 0.14);
@@ -271,14 +256,6 @@
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .hx-title em {
-    background: linear-gradient(96deg, #ffffff 0%, #cfd3ff 45%, #8f95c9 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
-  }
 }
 
 :root[data-theme="dark"] .hx-title em {
