@@ -230,3 +230,42 @@
 .manage-row-addr {
   font-size: var(--step--2);
 }
+
+/* ---------------------------------------------------------- card thumbnail --
+ *
+ * A creator's own artwork on their own collection, replacing two letters of the
+ * ticker. `.coll-avatar` carried no CSS at all, so the initials were bare text
+ * beside the name — the card had a slot for an image and never used it.
+ * ------------------------------------------------------------------------- */
+
+.manage-thumb {
+  position: relative;
+  flex: 0 0 auto;
+  width: 56px;
+  height: 56px;
+  border-radius: var(--r-md);
+  overflow: hidden;
+  background: var(--surface-2);
+  /* Inset rather than a border, so a pale cover still has an edge without the
+     box growing by two pixels and shifting the row. */
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.manage-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* The fallback: a collection with nothing minted yet, or whose metadata host is
+   unreachable. It still has a name, and two letters read better than a blank. */
+.manage-thumb-empty {
+  display: grid;
+  place-items: center;
+  font-family: var(--display);
+  font-size: var(--step-0);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--ink-3);
+}

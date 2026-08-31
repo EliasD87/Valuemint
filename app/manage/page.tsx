@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useConnect } from "wagmi";
 import { useOwnedCollections } from "@/hooks/useAllCollections";
 import { formatCount, formatSoso } from "@/lib/format";
+import { Art } from "@/components/Art";
+import { useCollectionArt } from "@/hooks/useCollectionArt";
 import "@/styles/manage.css";
 import "@/styles/home.css";
 
@@ -15,6 +17,14 @@ import "@/styles/home.css";
  */
 export default function Manage() {
   const { owned, isLoading, connected } = useOwnedCollections();
+
+  /**
+   * The same covers /collections uses, so a creator sees their own work here
+   * rather than two letters of its ticker. `.coll-avatar` had no CSS at all -
+   * the initials were bare text sitting next to the name.
+   */
+  const { artFor } = useCollectionArt();
+  
   const { connect, connectors, isPending } = useConnect();
 
   if (!connected) {
@@ -77,7 +87,23 @@ export default function Manage() {
           {owned.map((c) => (
             <Link key={c.address} href={`/manage/${c.address}`} className="manage-row card card-hover">
               <div className="manage-row-head">
-                <span className="coll-avatar">{(c.symbol || c.name).slice(0, 2).toUpperCase()}</span>
+                {(() => {
+                  /**
+                   * Initials stay as the fallback rather than a grey box: a collection
+                   * with nothing minted, or one whose metadata host is down, still has a
+                   * name, and two letters read better than an empty square.
+                   */
+                  const cover = artFor(c.address)[0];
+                  return cover === undefined ? (
+                    <span className="manage-thumb manage-thumb-empty">
+                      {(c.symbol || c.name).slice(0, 2).toUpperCase()}
+                    </span>
+                  ) : (
+                    <span className="manage-thumb">
+                      <Art src={cover} alt="" sizes="56px" />
+                    </span>
+                  );
+                })()}
                 <div className="min-0">
                   <b>{c.name}</b>
                   <div className="mono dim manage-row-addr">
