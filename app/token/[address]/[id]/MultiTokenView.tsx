@@ -91,7 +91,7 @@ export function MultiTokenView({
 
           <div className="token-badges">
             <span className="chip">Edition token</span>
-            {balance > 0n ? <span className="chip chip-own">You hold {balance.toString()}</span> : null}
+            {balance > 0n ? <span className="chip chip-up">You hold {balance.toString()}</span> : null}
             <ShareLink />
           </div>
 

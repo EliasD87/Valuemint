@@ -456,3 +456,10 @@
     width: 100%;
   }
 }
+
+/* An address is the title on its own page, so it needs to sit at heading size
+   without the display face's tight tracking closing up the hex. */
+.addr-title {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}

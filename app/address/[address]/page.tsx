@@ -54,7 +54,20 @@ export default function AddressPage({
       <div className="head">
         <div>
           <p className="eyebrow">Wallet</p>
-          <h2>{isSelf ? "Your collection" : shortAddress(raw, 6)}</h2>
+          {/**
+           * The address is the heading even when it is your own.
+           *
+           * This said "Your collection" for the connected wallet, which reads
+           * fine on /portfolio and badly here: you arrive by searching, and the
+           * one thing a search result has to show is what was searched for.
+           * Replacing it with a pronoun means you cannot confirm you typed the
+           * right address, which is the whole reason you were looking.
+           *
+           * The chip carries the "this is you" signal instead, without taking
+           * the identity out of the title.
+           */}
+          <h2 className="addr-title">{shortAddress(raw, 6)}</h2>
+          {isSelf ? <span className="chip chip-up">This is your wallet</span> : null}
         </div>
         <div className="wrap-row head-actions">
           <ShareLink title={`${shortAddress(raw, 6)} on ValueMint`} />
@@ -73,7 +86,17 @@ export default function AddressPage({
         <span className="strip-item">
           <b>{isLoading ? "…" : tokens.length}</b> held
         </span>
-        <span className="strip-item mono dim">{shortAddress(raw, 6)}</span>
+        {/* The address moved up into the heading, so repeating it here would
+            just be the same string twice. What is useful alongside the count is
+            how many collections those pieces span. */}
+        <span className="strip-item">
+          <b>
+            {isLoading
+              ? "…"
+              : new Set(tokens.map((t) => t.collection.toLowerCase())).size}
+          </b>{" "}
+          collections
+        </span>
       </div>
 
       {/*
