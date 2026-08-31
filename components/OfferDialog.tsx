@@ -7,6 +7,7 @@ import { OfferForm } from "@/components/OfferForm";
 import { formatSoso, shortAddress } from "@/lib/format";
 import { whenExpires } from "@/components/Offers";
 import "./OfferDialog.css";
+import { Soso } from "@/components/Soso";
 
 /**
  * Make an offer without leaving the page.
@@ -70,7 +71,11 @@ export function OfferDialog({
             <ul className="od-standing">
               {offers.slice(0, 3).map((o) => (
                 <li key={o.bidder}>
-                  <span className="mono">{formatSoso(o.price)} WSOSO</span>
+                  <span className="mono">
+                    <Soso size={16} unit="WSOSO">
+                      {formatSoso(o.price)}
+                    </Soso>
+                  </span>
                   <span>
                     {o.mine ? "You" : shortAddress(o.bidder, 4)} &middot; {whenExpires(o.expiry)}
                   </span>

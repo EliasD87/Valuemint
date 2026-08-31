@@ -15,6 +15,7 @@ import { ValueChainCollectionAbi, deployment } from "@/config/contracts";
 import { valuechain } from "@/config/chain";
 import { formatCount, formatSoso } from "@/lib/format";
 import "@/styles/mint.css";
+import { Soso } from "@/components/Soso";
 
 /**
  * Minting for any collection, not a particular one.
@@ -88,7 +89,7 @@ export function MintPanel({ address: collection }: { address: `0x${string}` }) {
       <div className="mint-panel-head">
         <span className="dim">{open === true ? "Mint price" : "Public minting"}</span>
         <span className="mint-total mono">
-          {open === true ? `${formatSoso(price)} SOSO` : "Closed"}
+          {open === true ? <Soso>{formatSoso(price)}</Soso> : "Closed"}
         </span>
       </div>
 

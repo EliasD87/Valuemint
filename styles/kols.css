@@ -82,14 +82,17 @@
   color: #cbb8d8;
 }
 
-/* ================================================================= plinths ==
+/* ============================================================== the word ====
  *
- * Each character stands in front of a rounded slab and breaks out over the top
- * of it. That overlap is the entire effect, and it needs three things at once:
- * the slab keeps a fixed aspect so the row stays even, the figure is anchored
- * to the slab's *bottom* so heads of different heights all stand on one floor,
- * and nothing clips — `overflow: hidden` here would cut the heads off, which is
- * precisely backwards.
+ * Three characters standing in the letters K, O and L. The overlap is the whole
+ * effect, and it needs three things at once: each figure is anchored to its
+ * glyph's *baseline* so heads of different heights stand on one floor; the
+ * figure is shorter than its letter so the word still reads; and nothing clips —
+ * `overflow: hidden` here would behead them, which is precisely backwards.
+ *
+ * This replaced three plain rounded slabs. They were narrower and shorter than
+ * the artwork standing on them, so each character hid its own backdrop and all
+ * that showed was a coloured sliver either side.
  * ========================================================================== */
 
 .kol-stage {
@@ -101,57 +104,88 @@
   justify-content: center;
   align-items: flex-end;
   /**
-   * Wide gaps, and they are load-bearing rather than taste.
-   *
-   * The figures are bust crops with shoulders far wider than the slab they
-   * stand on — LUTZ's puffer jacket is nearly as wide as it is tall. Sized to
-   * rise above the slab, each figure overhangs its own slab by ~80px a side,
-   * so anything less than about 120px between slabs and the neighbours collide
-   * into one mass. Measured, then set.
+   * The one number everything here derives from: the cap height of KOL.
+   * The glyph widths, the figure heights and the gap all follow from it, so
+   * the composition holds at every width instead of only where it was tuned.
    */
-  gap: clamp(2rem, 9vw, 130px);
-  margin-top: clamp(2.5rem, 6vw, 4.5rem);
+  --letter: clamp(190px, 26vw, 560px);
+  /**
+   * Tracking, effectively - the figures overhang their glyphs, so the letters
+   * need a little air between them or the busts collide into one mass. Small
+   * enough that KOL still reads as a word rather than three separate glyphs.
+   */
+  gap: calc(var(--letter) * 0.06);
+  margin-top: clamp(1.5rem, 3vw, 2.75rem);
   /**
    * No bottom padding: the slabs sit *on* the edge where the hero ends and the
    * roster begins, so the figures look planted on that line rather than
    * floating above it with a strip of ground showing beneath.
    */
   padding: 0 var(--gutter);
-  /* The figures rise out of the slabs, so the row needs headroom above it that
-     no amount of margin on the figure itself can create. */
-  padding-top: clamp(70px, 11vw, 150px);
+  /* Headroom for the letters, which are taller than the row's own content box.
+     Was 150px at the top end, which on a 1920 monitor stacked with the margin
+     above to leave roughly 220px of empty violet between the copy and the word. */
+  padding-top: clamp(40px, 5vw, 84px);
 }
 
+/**
+ * The letter is the layout, not a decoration inside one.
+ *
+ * The first attempt kept the old slab box and painted a glyph inside it. That
+ * fails for the reason the slabs failed: the box is narrower than the artwork,
+ * so whatever sits in it is covered. Letting each glyph size its own column -
+ * `flex: 0 0 auto` over the letter's natural advance width - means the row is
+ * literally the word KOL typeset large, and the figures stand in front of it.
+ */
 .kol-plinth {
   position: relative;
-  flex: 0 1 clamp(120px, 15vw, 230px);
-  aspect-ratio: 3 / 4;
-  border-radius: clamp(16px, 2.2vw, 30px);
+  flex: 0 0 auto;
+  display: flex;
+  align-items: flex-end;
 }
 
-/* The slab itself. Separate from `.kol-plinth` so the gradient can be masked
-   and shadowed without touching the positioning context the figure needs. */
-.kol-plinth-face {
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
+.kol-letter {
+  display: block;
+  font-family: var(--display);
+  font-optical-sizing: auto;
+  font-size: var(--letter);
+  font-weight: 800;
+  /* Crops the glyph's own leading so the box is the letterform, near enough,
+     and the figures can be positioned against it rather than against air. */
+  line-height: 0.74;
+  letter-spacing: -0.02em;
+  /* The gradient is painted through the glyph rather than behind it. */
   background: var(--tint);
-  box-shadow:
-    0 30px 60px -28px rgba(0, 0, 0, 0.85),
-    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  /* Lifts the word off the violet without competing with the art in front of
+     it - the portraits are the subject, the word is the ground. */
+  filter: drop-shadow(0 26px 46px rgba(0, 0, 0, 0.55));
+  user-select: none;
 }
 
 .kol-figure {
   position: absolute;
   left: 50%;
   bottom: 0;
-  /* Taller than the slab, which is what puts the head above its top edge. */
-  height: 130%;
+  /**
+   * Deliberately shorter than the glyph behind it.
+   *
+   * A bust crop is nearly square, so a figure as tall as its letter is also
+   * about as wide, and covers it end to end - which is exactly what the old
+   * 130% did to the slabs. At 84% the head clears the letter's waist and the
+   * top quarter of every glyph stays open, so KOL still reads while the
+   * characters keep their presence. Above about 90% the O closes up.
+   */
+  height: 84%;
   width: auto;
   max-width: none;
-  transform: translateX(-50%);
-  /* Grounds the figure on the slab instead of floating over it. */
-  filter: drop-shadow(0 18px 22px rgba(23, 8, 31, 0.55));
+  /* -50% centres the figure on its glyph; `--shift` then moves it to wherever
+     that particular letterform still reads. See the note in page.tsx. */
+  transform: translateX(calc(-50% + var(--shift, 0%)));
+  /* Separates the cutout from the letterform it overlaps. */
+  filter: drop-shadow(0 18px 26px rgba(23, 8, 31, 0.68));
   pointer-events: none;
   /* No entrance animation. It began at `opacity: 0` with `backwards` fill, so
      the figures were visible only if the animation ran - see the note in
@@ -159,18 +193,17 @@
 }
 
 /**
- * Phones: two figures, smaller, no sideways scrolling.
+ * Phones: all three, smaller, no sideways scrolling.
  *
- * The first attempt kept the figures at full size and let the row scroll. That
- * showed all three but hid two of them behind a swipe nobody is told about,
- * which is only marginally better than not drawing them.
+ * Two earlier attempts are worth not repeating. The first kept the figures at
+ * full size and let the row scroll, which showed all three but hid two behind a
+ * swipe nobody is told about. The second shrank the row but dropped the third
+ * member below 700px — acceptable when they were anonymous slabs, and wrong now
+ * that the row spells a word: it rendered KO.
  *
- * Shrinking instead is what actually fits. The binding constraint is that a
- * figure is much wider than the slab it stands on — sized to break the top
- * edge, MARKINHO beside LUTZ needs 1.53 slab-widths between centres. So the gap
- * is set as a fraction of the slab rather than of the viewport (0.55x, giving
- * 1.55) and the clearance then holds at every width instead of only the one it
- * was tuned at.
+ * Shrinking all three is what fits. Every measurement is a fraction of
+ * `--letter` rather than of the viewport, so the clearance holds at every width
+ * instead of only the one it was tuned at.
  *
  * Two span 344px at 360 and 358 at 375, so they fit with room from the
  * narrowest phone up. Three need 662px, hence the third appearing at 700.
@@ -181,31 +214,29 @@
   }
 
   .kol-stage {
-    --slab: min(30vw, 150px);
+    /**
+     * All three, always — the row spells a word now, and a phone showing "KO"
+     * is worse than a phone showing small letters. The previous rule dropped
+     * the third below 700px, which was fine when they were anonymous slabs.
+     *
+     * KOL at this weight spans about 1.83x `--letter` including the figures'
+     * overhang, so 44vw leaves a comfortable margin either side from 360px up
+     * and still fills the band. Measured at 360, 390 and 430, not derived.
+     */
+    --letter: min(44vw, 200px);
 
     flex-wrap: nowrap;
     justify-content: center;
-    gap: calc(var(--slab) * 0.55);
     /**
      * No side gutter here, unlike every other row on the page. The figures
-     * overhang their slabs by design, so the pair spans 3.06 slab-widths — a
-     * gutter takes that out of the budget and pushes the outer figure past the
-     * edge, which is what happened at 375. They are meant to reach the edges.
+     * overhang their letters by design and are meant to reach the edges; a
+     * gutter takes that out of the budget and pushes the outer one past the
+     * edge, which is what happened at 375.
      */
     padding-inline: 0;
-    padding-top: clamp(46px, 14vw, 88px);
+    padding-top: clamp(38px, 11vw, 74px);
   }
 
-  .kol-plinth {
-    flex: 0 0 var(--slab);
-  }
-}
-
-/* Below this the third has nowhere to stand without overlapping its neighbour. */
-@media (max-width: 699px) {
-  .kol-plinth:nth-child(3) {
-    display: none;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {

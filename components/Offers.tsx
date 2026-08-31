@@ -8,6 +8,7 @@ import { formatSoso, shortAddress } from "@/lib/format";
 import { OfferForm } from "@/components/OfferForm";
 import { TxResult } from "@/components/TxResult";
 import "./Offers.css";
+import { Soso } from "@/components/Soso";
 
 export function whenExpires(expiry: bigint): string {
   if (expiry === 0n) return "no expiry";
@@ -78,7 +79,11 @@ export function Offers({
         <ul className="offers-list">
           {offers.map((o) => (
             <li key={o.bidder} className={`offers-row${o.mine ? " is-mine" : ""}`}>
-              <span className="offers-price mono">{formatSoso(o.price)} WSOSO</span>
+              <span className="offers-price mono">
+                <Soso size={16} unit="WSOSO">
+                  {formatSoso(o.price)}
+                </Soso>
+              </span>
               <span className="offers-who">
                 {o.mine ? "You" : shortAddress(o.bidder, 4)}
                 <span className="offers-when">{whenExpires(o.expiry)}</span>

@@ -7,6 +7,7 @@ import { useListingFeed } from "@/hooks/useListingFeed";
 import { TokenCard, TokenCardSkeleton } from "@/components/TokenCard";
 import { formatSoso } from "@/lib/format";
 import "@/styles/home.css";
+import { Soso } from "@/components/Soso";
 
 type Sort = "price-asc" | "price-desc" | "recent";
 
@@ -65,7 +66,10 @@ export default function Market() {
           <b>{floor === undefined ? "—" : formatSoso(floor)}</b> floor
         </span>
         <span className="strip-item">
-          <b>{formatSoso(total)}</b> SOSO total
+          <Soso size={16}>
+            <b>{formatSoso(total)}</b>
+          </Soso>{" "}
+          total
         </span>
         <span className="strip-item">
           <b>{collections.length}</b> collections

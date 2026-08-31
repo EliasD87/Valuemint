@@ -6,6 +6,7 @@ import { valuechain } from "@/config/chain";
 import { formatSoso, shortAddress } from "@/lib/format";
 import { WalletPicker } from "./WalletPicker";
 import "./Wallet.css";
+import { Soso } from "@/components/Soso";
 
 /**
  * Wallet control.
@@ -97,7 +98,9 @@ export function Wallet() {
       <button className="wallet-trigger" onClick={() => setOpen((v) => !v)} aria-expanded={open}>
         <span className="wallet-dot" aria-hidden="true" />
         <span className="mono wallet-addr">{shortAddress(address)}</span>
-        <span className="mono wallet-bal">{formatSoso(balance?.value)} SOSO</span>
+        <span className="mono wallet-bal">
+          <Soso size={16}>{formatSoso(balance?.value)}</Soso>
+        </span>
       </button>
 
       {open ? (

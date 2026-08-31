@@ -34,7 +34,7 @@ export function TokenView({
   const trade = useTrade(collection);
   const [price, setPrice] = useState("");
 
-  const { data: owner } = useReadContract({
+  const { data: owner, refetch: refetchOwner } = useReadContract({
     address: collection,
     abi: ValueChainCollectionAbi,
     functionName: "ownerOf",
@@ -50,7 +50,7 @@ export function TokenView({
     query: { enabled: tokenId !== undefined && collection !== undefined, refetchInterval: 12_000 },
   });
 
-  const { data: active } = useReadContract({
+  const { data: active, refetch: refetchActive } = useReadContract({
     address: deployment.marketplace,
     abi: ValueChainMarketplaceAbi,
     functionName: "isListingActive",
@@ -93,9 +93,24 @@ export function TokenView({
    * the button still said "Approve marketplace", and the obvious response was
    * to press it again — which is exactly the double approval that showed up in
    * real use. The approval had worked the first time; the page never noticed.
+   *
+   * Every read that a write can change belongs in here, and two were missing.
+   *
+   * `isListingActive` was the visible one: listing a token refetched
+   * `getListing` but not this, so `listed` flipped true while `active` still
+   * held the `false` it was given before the listing existed. That combination
+   * renders as "Listed (stale)" over a banner telling the owner their brand new
+   * listing is broken and cannot be bought — the exact opposite of what just
+   * happened. It cleared itself on the 12s poll, which is precisely why it was
+   * easy to miss and alarming to hit.
+   *
+   * `ownerOf` was the quieter one: it has no poll at all, so after a purchase
+   * the page kept naming the previous owner until a manual reload.
    */
   const afterAction = () => {
     void refetchListing();
+    void refetchActive();
+    void refetchOwner();
     void trade.refetchApproval();
   };
 

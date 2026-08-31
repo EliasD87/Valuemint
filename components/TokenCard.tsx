@@ -10,6 +10,7 @@ import type { Listing } from "@/hooks/useCollection";
 import { formatSoso } from "@/lib/format";
 import { Art } from "@/components/Art";
 import "./TokenCard.css";
+import { Soso } from "@/components/Soso";
 
 interface Props {
   token: LoadedToken;
@@ -99,7 +100,11 @@ export function TokenCard({ token, collection, listing, owner, viewerAddress, pr
           <div className="tcard-cell tcard-cell-end">
             <dt>{listing !== undefined ? "Price" : "Status"}</dt>
             <dd className={listing !== undefined ? "tcard-price" : "tcard-none"}>
-              {listing !== undefined ? `${formatSoso(listing.price)} SOSO` : "Not listed"}
+              {listing !== undefined ? (
+                <Soso>{formatSoso(listing.price)}</Soso>
+              ) : (
+                "Not listed"
+              )}
             </dd>
           </div>
         </dl>

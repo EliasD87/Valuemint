@@ -12,6 +12,7 @@ import { TokenCard, TokenCardSkeleton } from "@/components/TokenCard";
 import { formatCount, formatSoso } from "@/lib/format";
 import "@/styles/home.css";
 import "@/styles/hero.css";
+import { Soso } from "@/components/Soso";
 
 /** "all", "listed", or a collection address. */
 type Filter = string;
@@ -291,7 +292,9 @@ export default function Home() {
                     <span className="dim">{c.symbol}</span>
                   </div>
                   <div className="mint-row-fig">
-                    <b className="mono">{formatSoso(c.mintPrice)} SOSO</b>
+                    <b className="mono">
+                      <Soso size={16}>{formatSoso(c.mintPrice)}</Soso>
+                    </b>
                     <span className="dim">each</span>
                   </div>
                   <div className="mint-row-fig">

@@ -73,8 +73,16 @@ const securityHeaders = [
        * the theme script in layout.tsx must run before first paint. Removing it
        * needs nonces threaded through both, which is its own piece of work.
        * Stated here so it is a known debt rather than an oversight.
+       *
+       * `va.vercel-scripts.com` is Vercel Web Analytics, and leaving it out is
+       * what stopped analytics working. `<Analytics />` injects a script tag
+       * from that host, `script-src 'self'` refused it, and the only sign was a
+       * console line on the visitor's machine - the dashboard simply stayed
+       * empty, which reads as "not set up yet" rather than "blocked". The
+       * beacons it sends go to /_vercel/insights on our own origin, so
+       * `connect-src 'self'` already covers those.
        */
-      "script-src 'self' 'unsafe-inline'",
+      "script-src 'self' 'unsafe-inline' https://va.vercel-scripts.com",
       "style-src 'self' 'unsafe-inline'",
 
       /**

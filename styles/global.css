@@ -8,7 +8,29 @@
   box-sizing: border-box;
 }
 
+/**
+ * The root size is fluid, and everything else is expressed in rem so it follows.
+ *
+ * The type scale in tokens.css is fixed rem — `--step-0` is 0.9375rem, which is
+ * 15px and stayed 15px whether the viewport was 1280 or 3840. Only steps 3 to 5
+ * carried a vw term, so on a large monitor the headings grew and nothing else
+ * did: body copy, labels, table figures and every rem-based gap held still while
+ * the page around them got wider. That is the "everything looks small on PC"
+ * complaint, and it cannot be fixed one component at a time.
+ *
+ * Scaling here instead moves the whole system at once — type, `--gutter`,
+ * `--page-max`, every rem margin — in the proportions they were designed in.
+ *
+ * Stated in rem rather than px on purpose: a px root would silently override a
+ * viewer who has set a larger default font size in their browser, which is the
+ * one place that setting is supposed to work. In rem, their choice multiplies
+ * through instead.
+ *
+ * 1rem below 1280px, so phones and laptops are untouched, rising to 1.1875rem
+ * (19px at a default root) by 1920 and holding there.
+ */
 html {
+  font-size: clamp(1rem, 0.469vw + 0.625rem, 1.1875rem);
   -webkit-text-size-adjust: 100%;
   scroll-behavior: smooth;
 }
@@ -926,4 +948,56 @@ textarea {
 .head-actions {
   align-items: center;
   gap: 0.75rem;
+}
+
+/* ============================================================ SOSO mark ======
+ *
+ * Every figure on this site is denominated in SOSO, and until now that was
+ * carried by the word alone. The mark makes a price read as a price at a
+ * glance, which matters most on cards, where the number is the only thing
+ * competing with the artwork.
+ *
+ * See components/Soso.tsx for why the disc is a fixed colour rather than a
+ * token: the logo is black-on-transparent and would vanish on a dark surface.
+ * ========================================================================== */
+
+.soso {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.34em;
+  white-space: nowrap;
+}
+
+.soso-amount {
+  font-variant-numeric: tabular-nums;
+}
+
+/* The unit is context, not the value — one step down so the figure leads. */
+.soso-unit {
+  font-size: 0.86em;
+  opacity: 0.72;
+}
+
+.soso-mark {
+  flex: 0 0 auto;
+  display: inline-grid;
+  place-items: center;
+  width: var(--mark, 16px);
+  height: var(--mark, 16px);
+  border-radius: 50%;
+  /* Absolute, not a token. This is the mark's ground and must not flip with
+     the theme; the ring is what stops it dissolving into a white card. */
+  background: #ffffff;
+  box-shadow: inset 0 0 0 1px rgba(15, 15, 20, 0.12);
+  overflow: hidden;
+}
+
+/* 84%, not the ~70% a token chip usually gets. The mark is an isometric cube
+   with a cut-out counter, and below about 13 rendered pixels it stops being a
+   logo and becomes a smudge - measured at 10px, where it was unreadable. */
+.soso-mark img {
+  width: 84%;
+  height: 84%;
+  object-fit: contain;
+  display: block;
 }

@@ -8,6 +8,7 @@ import { useHoldings } from "@/hooks/useHoldings";
 import { TokenCard, TokenCardSkeleton } from "@/components/TokenCard";
 import { formatSoso } from "@/lib/format";
 import "@/styles/home.css";
+import { Soso } from "@/components/Soso";
 
 export default function Portfolio() {
   const { address, isConnected } = useAccount();
@@ -84,10 +85,16 @@ export default function Portfolio() {
           <b>{listed.length}</b> listed
         </span>
         <span className="strip-item">
-          <b>{formatSoso(asking)}</b> SOSO asking
+          <Soso size={16}>
+            <b>{formatSoso(asking)}</b>
+          </Soso>{" "}
+          asking
         </span>
         <span className="strip-item">
-          <b>{formatSoso(balance?.value)}</b> SOSO balance
+          <Soso size={16}>
+            <b>{formatSoso(balance?.value)}</b>
+          </Soso>{" "}
+          balance
         </span>
       </div>
 
