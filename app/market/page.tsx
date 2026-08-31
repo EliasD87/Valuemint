@@ -8,12 +8,14 @@ import { TokenCard, TokenCardSkeleton } from "@/components/TokenCard";
 import { formatSoso } from "@/lib/format";
 import "@/styles/home.css";
 import { Soso } from "@/components/Soso";
+import { useFloors } from "@/hooks/useFloors";
 
 type Sort = "price-asc" | "price-desc" | "recent";
 
 export default function Market() {
   const { address } = useAccount();
   const { tokens: listed, collections, isLoading, logsUnavailable } = useListingFeed();
+  const { floorFor, tierFloorsFor } = useFloors();
   const [sort, setSort] = useState<Sort>("price-asc");
   const [filterTo, setFilterTo] = useState<string>("all");
 
@@ -31,41 +33,23 @@ export default function Market() {
   }, [listed, sort, filterTo]);
 
   /**
-   * A floor belongs to one collection, not to a market.
+   * There is no market-wide floor here, deliberately.
    *
-   * This used to be the minimum across whatever was visible, so with the
-   * filter on "All" it reported the cheapest thing on the whole chain and
-   * called it the floor. That number is not so much wrong as meaningless:
-   * the floor of Genesis and the floor of Trade Buddies are different
-   * quantities, and the smaller of the two says nothing about either. One
-   * cheap piece in an unrelated collection set the headline figure for all
-   * of them.
+   * A floor is the cheapest way to own a particular thing, so it does not
+   * exist until you say which thing. This strip used to carry the minimum
+   * across every listing on the chain: it read 2 SOSO on a page where The
+   * Trenches started at 500, and calling that "the floor" described nothing
+   * on screen. Relabelling it "lowest ask" made it honest and still left a
+   * number nobody has a use for, so it is gone.
    *
-   * So it is only called a floor when exactly one collection is in view.
-   * Across everything it is the lowest asking price, which is what it
-   * actually is, and the per-collection floors moved to the filter chips
-   * where they mean something.
+   * The floors live where they mean something instead - per collection on
+   * the filter chips, and per tier below them once a collection is chosen,
+   * because a collection with an Epic and a Common edition has two floors
+   * and quoting the lower one misleads anyone shopping for the other.
    */
-  const cheapestOf = (rows: typeof listed) =>
-    rows.length === 0
-      ? undefined
-      : rows.reduce((m, t) => (t.listing!.price < m ? t.listing!.price : m), rows[0]!.listing!.price);
-  
-  const lowest = cheapestOf(visible);
-  const showingOneCollection = filterTo !== "all";
-  
-  /** Each collection's own floor, for the chips. */
-  const floorByCollection = useMemo(() => {
-    const out = new Map<string, bigint>();
-    for (const t of listed) {
-      const key = t.collection.toLowerCase();
-      const price = t.listing!.price;
-      const seen = out.get(key);
-      if (seen === undefined || price < seen) out.set(key, price);
-    }
-    return out;
-  }, [listed]);
   const total = visible.reduce((sum, t) => sum + t.listing!.price, 0n);
+  const chosen = filterTo === "all" ? undefined : filterTo;
+  const tierFloors = chosen === undefined ? [] : tierFloorsFor(chosen);
 
   /** Only offer a collection filter for collections that actually have listings. */
   const withListings = collections.filter((c) =>
@@ -97,16 +81,6 @@ export default function Market() {
           <b>{visible.length}</b> listed
         </span>
         <span className="strip-item">
-          {lowest === undefined ? (
-            <b>-</b>
-          ) : (
-            <Soso size={16}>
-              <b>{formatSoso(lowest)}</b>
-            </Soso>
-          )}{" "}
-          {showingOneCollection ? "floor" : "lowest ask"}
-        </span>
-        <span className="strip-item">
           <Soso size={16}>
             <b>{formatSoso(total)}</b>
           </Soso>{" "}
@@ -132,16 +106,31 @@ export default function Market() {
               {c.name}{" "}
               <em>{listed.filter((t) => t.collection.toLowerCase() === c.address.toLowerCase()).length}</em>
               {/* The floor that actually means something: this collection's own. */}
-              {floorByCollection.get(c.address.toLowerCase()) !== undefined ? (
-                <span className="filt-floor">
-                  from {formatSoso(floorByCollection.get(c.address.toLowerCase())!)}
-                </span>
+              {floorFor(c.address) !== undefined ? (
+                <span className="filt-floor">from {formatSoso(floorFor(c.address)!)}</span>
               ) : null}
             </button>
           ))}
         </div>
       ) : null}
 
+      {/* Within one collection a tier is its own market, so each gets its own
+          floor. Shown only when there is more than one - a single row would
+          just repeat the collection floor. */}
+      {tierFloors.length > 0 ? (
+        <div className="tier-floors">
+          {tierFloors.map((t) => (
+            <span key={t.tier} className="tier-floor">
+              <b className={`chip chip-${t.tier.toLowerCase()}`}>{t.tier}</b>
+              <span className="tier-floor-price">
+                from {formatSoso(t.price)} SOSO
+              </span>
+              <span className="tier-floor-count">{t.count} listed</span>
+            </span>
+          ))}
+        </div>
+      ) : null}
+      
       {logsUnavailable ? (
         <p className="portfolio-note">
           The node would not serve event logs just now, so listings may be incomplete. Open a

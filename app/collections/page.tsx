@@ -11,6 +11,7 @@ import { formatCount, formatSoso, shortAddress } from "@/lib/format";
 import { CollectionCard, CollectionCardSkeleton } from "@/components/CollectionCard";
 import { useCollectionArt } from "@/hooks/useCollectionArt";
 import "@/styles/collections.css";
+import { useFloors } from "@/hooks/useFloors";
 
 export default function Collections() {
   const router = useRouter();
@@ -19,6 +20,7 @@ export default function Collections() {
   const [paste, setPaste] = useState("");
   const probe = useCollectionProbe(paste);
   const { artFor } = useCollectionArt();
+  const { floorFor } = useFloors();
 
   /**
    * The explorer's list and the factory's registry overlap and each misses things
@@ -173,6 +175,17 @@ export default function Collections() {
                   {
                     label: "Mint price",
                     value: s.mintPrice === undefined ? "—" : `${formatSoso(s.mintPrice)} SOSO`,
+                  },
+                  {
+                    label: "Floor",
+                    /**
+                     * Undefined means nothing is listed, which is not the same as free -
+                     * hence the dash rather than a 0.
+                     */
+                    value:
+                      floorFor(c.address) === undefined
+                        ? "—"
+                        : `${formatSoso(floorFor(c.address)!)} SOSO`,
                   },
                   { label: "Origin", value: c.fromFactory ? "ValueMint" : "External" },
                 ]}

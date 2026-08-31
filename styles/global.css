@@ -1001,3 +1001,40 @@ textarea {
   object-fit: contain;
   display: block;
 }
+
+/* ----------------------------------------------------------- tier floors ----
+ *
+ * Within one collection a tier is its own market: an Epic and a Common are not
+ * substitutes, so they do not share a floor. Shown only when a collection is
+ * selected and has more than one tier — a single row would just repeat the
+ * collection's own figure.
+ * ------------------------------------------------------------------------- */
+
+.tier-floors {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0.85rem 0 0;
+}
+
+.tier-floor {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.35rem 0.6rem 0.35rem 0.4rem;
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  background: var(--surface);
+}
+
+.tier-floor-price {
+  font-size: var(--step--2);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.tier-floor-count {
+  font-size: var(--step--3);
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
