@@ -82,7 +82,20 @@ const securityHeaders = [
        * beacons it sends go to /_vercel/insights on our own origin, so
        * `connect-src 'self'` already covers those.
        */
-      "script-src 'self' 'unsafe-inline' https://va.vercel-scripts.com",
+      /**
+       * `'unsafe-eval'` in development only, and never in production.
+       *
+       * React's development build uses `eval` for debugging - reconstructing
+       * call stacks across the server/client boundary, mainly - so without it
+       * every local page load throws a console error. The production build
+       * never calls `eval`, so the deployed policy keeps refusing it.
+       *
+       * `isDev` is `=== "development"` rather than `!== "production"` for the
+       * reason noted above: this must fail closed.
+       */
+      isDev
+        ? "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://va.vercel-scripts.com"
+        : "script-src 'self' 'unsafe-inline' https://va.vercel-scripts.com",
       "style-src 'self' 'unsafe-inline'",
 
       /**

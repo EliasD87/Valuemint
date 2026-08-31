@@ -87,6 +87,22 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${display.variable} ${sans.variable}`} suppressHydrationWarning>
       <head>
+        {/**
+         * A raw <script>, and it has to stay one.
+         *
+         * React 19 warns about this in development: "Scripts inside React
+         * components are never executed when rendering on the client." That is
+         * true and harmless here - the tag is serialised by the server, the
+         * browser runs it on the initial load, and it never needs to run again.
+         * The warning does not appear in a production build.
+         *
+         * `next/script` with `strategy="beforeInteractive"` is the documented
+         * replacement and was tried: in this setup (Next 16, Turbopack, an
+         * explicit <head> in the root layout) it fails to resolve during the
+         * server render and throws `ReferenceError: Script is not defined` on
+         * every request. Verified with a cleared Turbopack cache, so a dev-only
+         * warning became a real error. Not worth it.
+         */}
         <script dangerouslySetInnerHTML={{ __html: noFlash }} />
       </head>
       <body>
@@ -104,10 +120,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
          * Outside `<Providers>` deliberately — it needs nothing from wagmi or
          * React Query, and it should not be inside a tree that suspends.
          *
-         * The script loads from `/_vercel/insights/script.js`, same origin, so
-         * the CSP in next.config.ts does not need a `script-src` entry. If one
-         * is ever added, that path has to be allowed or analytics stops
-         * silently.
+         * The script loads from `va.vercel-scripts.com`, not from our own
+         * origin - this comment used to claim otherwise, and that was wrong in
+         * a way that cost real data. When `script-src` was tightened to
+         * `'self'`, the request was refused and the only sign was one console
+         * line on the visitor's machine; the dashboard just stayed empty, which
+         * reads as "not set up yet" rather than "blocked". That host is now
+         * named in the CSP in next.config.ts and must stay there.
+         *
+         * The beacons it sends do go to `/_vercel/insights` on our own origin,
+         * which `connect-src 'self'` already covers.
          *
          * It reports page views only: no wallet address, no cookie, nothing
          * about what anyone holds.

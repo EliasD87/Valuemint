@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useConnect } from "wagmi";
 import { useOwnedCollections } from "@/hooks/useAllCollections";
@@ -27,7 +28,21 @@ export default function Manage() {
   
   const { connect, connectors, isPending } = useConnect();
 
-  if (!connected) {
+  /**
+   * Wallet state does not exist during server rendering.
+   *
+   * `connected` is always false on the server, so a visitor with a wallet got
+   * the connect prompt in the HTML and their collections on the client - two
+   * different trees, and React discarded the server's and rebuilt. That is the
+   * hydration mismatch this page was throwing.
+   *
+   * Holding the server's shape until after mount costs one frame and makes the
+   * two agree. Same pattern as ThemeToggle, for the same reason.
+   */
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
+  if (!mounted || !connected) {
     return (
       <section className="page section market-empty">
         <p className="eyebrow">Manage</p>
