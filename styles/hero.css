@@ -433,6 +433,23 @@
   background: var(--paper-3);
 }
 
+/**
+ * The deck used `next/image` with `fill`, which injects its own
+ * `position: absolute; inset: 0; object-fit: cover` inline. Swapping to a plain
+ * <img> for the bundled snapshot dropped all of that silently: the artwork
+ * still loaded at its full 600px and rendered 353x579 inside a 278px square
+ * with `overflow: hidden`, so the cards looked empty. The rule was never in
+ * this file because nothing had ever needed it.
+ */
+.hx-card-art img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
 .hx-card-body {
   display: flex;
   flex-direction: column;

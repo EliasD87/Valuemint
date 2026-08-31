@@ -13,6 +13,7 @@ import { formatCount, formatSoso } from "@/lib/format";
 import "@/styles/home.css";
 import "@/styles/hero.css";
 import { Soso } from "@/components/Soso";
+import { HERO_DECK } from "@/config/heroDeck";
 
 /** "all", "listed", or a collection address. */
 type Filter = string;
@@ -71,25 +72,11 @@ export default function Home() {
   }, [tokens]);
 
   /**
-   * The cards in the hero deck: one per collection, newest-looking first.
-   *
-   * Built from what is actually on chain rather than a fixed list, so the deck
-   * is the marketplace's own contents and cannot go stale. Five is what the fan
-   * holds before the outer cards are more edge than card.
+   * The hero deck is a bundled snapshot, not a query. See config/heroDeck.ts
+   * for the measurement that prompted it - 11.7 seconds to first image, from a
+   * page whose DOM was ready in 251ms.
    */
-  const deck = useMemo(
-    () =>
-      [...grouped.entries()]
-        .map(([address, g]) => ({
-          address,
-          name: g.name,
-          count: g.items.length,
-          image: g.items.find((t) => t.image !== undefined)?.image,
-        }))
-        .filter((c) => c.image !== undefined)
-        .slice(0, 5),
-    [grouped],
-  );
+  const deck = HERO_DECK;
 
   /**
    * The filter chips.
@@ -326,11 +313,15 @@ export default function Home() {
   );
 }
 
+/**
+ * The deck's own shape, kept local so the hero does not depend on the token
+ * type. `count` went when the deck stopped being a query - see
+ * config/heroDeck.ts, which is now the only source for these.
+ */
 interface DeckCard {
   address: string;
   name: string;
-  count: number;
-  image?: string;
+  image: string;
 }
 
 /**
@@ -424,13 +415,23 @@ function Hero({ deck }: { deck: DeckCard[] }) {
             style={{ ["--slot" as string]: i - axis, ["--abs" as string]: Math.abs(i - axis) }}
           >
             <span className="hx-card-art">
-              {/* Every card is above the fold, so none of them should be lazy —
-                  it is four images, and they are the first thing anyone sees. */}
-              <Art src={c.image!} alt="" sizes="(max-width: 700px) 55vw, 300px" priority />
+              {/*
+                A plain <img>, not <Art>. These are our own 600px WebPs served
+                from this origin, so the optimiser would add a round trip to
+                save nothing - the same reasoning as the SOSO mark.
+
+                `fetchPriority="high"` and no lazy attribute: every card is
+                above the fold and they are the first thing anyone sees.
+              */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={c.image} alt="" width={600} height={600} fetchPriority="high" decoding="async" />
             </span>
             <span className="hx-card-body">
               <b>{c.name}</b>
-              <span>{formatCount(BigInt(c.count))} shown</span>
+              {/* The live "N shown" count went with the query. A number that
+                  cannot refresh is worse than no number; the name is enough on
+                  a card whose only job is to be clicked. */}
+              <span>View collection</span>
             </span>
           </Link>
         ))}
