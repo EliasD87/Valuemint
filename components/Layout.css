@@ -87,6 +87,7 @@
  * rendering fault rather than a tight fit.
  */
 .nav-link {
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
@@ -112,12 +113,27 @@
   font-weight: 650;
 }
 
+/**
+ * Positioned, not laid out in flow.
+ *
+ * This was `display: block` with `margin: 0.28rem auto -0.42rem`, which worked
+ * only while the link was a block container: the marker stacked under the
+ * label, `auto` centred it, and the negative bottom margin let it hang past the
+ * pill without adding height.
+ *
+ * Making the link `inline-flex` - so its mark and label could not break apart -
+ * turned the marker into a third flex item and put it in the row, beside the
+ * word instead of under it. Taking it out of flow entirely is what actually
+ * expresses the intent, and it no longer depends on the parent's display mode.
+ */
 .nav-link.is-active::after {
   content: "";
-  display: block;
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
   height: 2px;
   width: 14px;
-  margin: 0.28rem auto -0.42rem;
   border-radius: var(--r-pill);
   background: var(--accent);
 }
