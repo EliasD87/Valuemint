@@ -97,9 +97,14 @@ export function Wallet() {
     <div className="wallet">
       <button className="wallet-trigger" onClick={() => setOpen((v) => !v)} aria-expanded={open}>
         <span className="wallet-dot" aria-hidden="true" />
-        <span className="mono wallet-addr">{shortAddress(address)}</span>
-        <span className="mono wallet-bal">
-          <Soso size={16}>{formatSoso(balance?.value)}</Soso>
+        {/* Stacked rather than in a row: side by side this pill was the widest
+            thing in the header, and the address wrapped mid-string to fit. Two
+            short lines take less width than one long one. */}
+        <span className="wallet-stack">
+          <span className="mono wallet-addr">{shortAddress(address)}</span>
+          <span className="mono wallet-bal">
+            <Soso size={13}>{formatSoso(balance?.value)}</Soso>
+          </span>
         </span>
       </button>
 

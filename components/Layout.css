@@ -77,7 +77,20 @@
   gap: 0.15rem;
 }
 
+/**
+ * `inline-flex` and `nowrap`, both load-bearing.
+ *
+ * Only Trenches carries a mark, and as plain inline content the SVG and the
+ * word were two wrappable items: once the header ran short of room the icon
+ * broke onto its own line, so that one link stood two rows tall and pushed the
+ * whole bar to match. Every other link stayed one row, which made it read as a
+ * rendering fault rather than a tight fit.
+ */
 .nav-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  white-space: nowrap;
   padding: 0.45rem 0.85rem;
   border-radius: var(--r-pill);
   font-size: var(--step--1);
@@ -368,7 +381,25 @@
   pointer-events: auto;
 }
 
-@media (max-width: 940px) {
+/**
+ * 1180, not 940.
+ *
+ * The nine-link nav measures 802px on its own, and with the wordmark and the
+ * actions the bar needs about 1190px. The drawer used to take over at 940,
+ * which meant every viewport from 941 to roughly 1190 - a 1024 tablet, a 1152
+ * laptop - rendered a header wider than its own window. Measured at 1024: 1192
+ * of content in 1024 of room.
+ *
+ * It showed up as the header looking cramped rather than as a scrollbar,
+ * because the overflow lands on a `position: sticky` bar that the body's
+ * `overflow-x: clip` then hides. Two things then folded to cope: the Trenches
+ * link broke its mark onto a second line, and the wallet pill wrapped its
+ * address mid-string.
+ *
+ * Both of those are fixed directly - the link is `nowrap`, the pill stacks -
+ * but neither creates room that was never there. This does.
+ */
+@media (max-width: 1180px) {
   .header-inner {
     gap: 0.6rem;
   }
@@ -390,7 +421,7 @@
   }
 }
 
-@media (min-width: 941px) {
+@media (min-width: 1181px) {
   .menu-scrim,
   .drawer {
     display: none;

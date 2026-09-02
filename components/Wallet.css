@@ -4,11 +4,24 @@
 
 /* Matches .btn geometry exactly, so the header row reads as one set of controls
    rather than a button sitting next to a differently-shaped thing. */
+/**
+ * Address over balance, not beside it.
+ *
+ * Side by side the pill was the widest thing in the header, and it was the
+ * address that paid for it: with nothing stopping a break, `0x0879...BC84`
+ * wrapped mid-string into two ragged lines inside a pill that was still sized
+ * for one.
+ *
+ * Stacking them deliberately is narrower than the two laid end to end, which
+ * gives the row back enough width that the Trenches link stops folding too. The
+ * pill grows a little taller and the header does not, because it was already
+ * as tall as this.
+ */
 .wallet-trigger {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.5rem 0.9rem;
+  padding: 0.35rem 0.85rem;
   border-radius: var(--r-pill);
   border: 1px solid var(--line-strong);
   background: var(--surface);
@@ -30,17 +43,32 @@
   flex: none;
 }
 
+/* The two lines of the pill, stacked. `min-width: 0` so a long balance
+   ellipsises rather than forcing the column wider. */
+.wallet-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.05rem;
+  min-width: 0;
+  line-height: 1.25;
+}
+
 .wallet-addr {
   font-variant-numeric: tabular-nums;
   font-size: var(--step--2);
+  /* The break that started all this: an address is one token, never two. */
+  white-space: nowrap;
 }
 
 .wallet-bal {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
   font-variant-numeric: tabular-nums;
-  font-size: var(--step--2);
+  font-size: var(--step--3);
   color: var(--ink-3);
-  padding-left: 0.55rem;
-  border-left: 1px solid var(--line);
+  white-space: nowrap;
 }
 
 .wallet-wrong {
