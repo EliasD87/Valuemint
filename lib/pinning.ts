@@ -105,8 +105,24 @@ export async function verifyCredential(): Promise<boolean> {
  * CID stays in the path, so the content remains addressable by anyone with IPFS
  * even if this gateway disappears.
  */
+/**
+ * The dedicated gateway whose free plan is exhausted, and what to use instead.
+ *
+ * Mirrors the rewrite in lib/format.ts, and it has to exist separately because
+ * this one runs on the server: the URL built here is written into the metadata
+ * document itself, which external marketplaces read without ever running our
+ * client code. Fixing it only on the client would leave every other consumer
+ * pointed at a host that answers 403.
+ *
+ * Applied after the env var is read rather than instead of it, so the variable
+ * still selects a gateway - it just cannot select this dead one.
+ */
+const EXHAUSTED_GATEWAY = "lavender-tiny-loon-904.mypinata.cloud";
+const PUBLIC_GATEWAY = "gateway.pinata.cloud";
+
 export function gatewayUrl(cid: string, path = ""): string {
   const gateway = process.env.PINATA_GATEWAY?.replace(/^https?:\/\//, "").replace(/\/$/, "");
-  const host = gateway === undefined || gateway === "" ? "gateway.pinata.cloud" : gateway;
+  const configured = gateway === undefined || gateway === "" ? PUBLIC_GATEWAY : gateway;
+  const host = configured === EXHAUSTED_GATEWAY ? PUBLIC_GATEWAY : configured;
   return `https://${host}/ipfs/${cid}${path === "" ? "" : `/${path}`}`;
 }

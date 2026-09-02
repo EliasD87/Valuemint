@@ -58,12 +58,47 @@ export function explorerUrl(explorer: string, kind: "tx" | "address" | "token", 
  */
 const SITE_ORIGIN = "https://www.valuemint.store";
 
+/**
+ * Pinata's dedicated gateway for this project, and the public one to use
+ * instead.
+ *
+ * The dedicated gateway's free plan has exhausted its request allowance and now
+ * answers every request with
+ * `403 The limits on this dedicated gateway's free plan have been exceeded`.
+ * The content is fine and still pinned - `gateway.pinata.cloud` serves the same
+ * CIDs at 200 - so this is a hostname problem, not a data problem.
+ *
+ * It has to be fixed here because the dead host is not only in our config. It
+ * is baked into two collections' on-chain `baseURI`:
+ *
+ *   Genesis  tokenURI(1) -> https://lavender-tiny-loon-904.mypinata.cloud/ipfs/bafybeidu5q.../1
+ *   Hypno    tokenURI(1) -> https://lavender-tiny-loon-904.mypinata.cloud/ipfs/bafybeieigd.../1
+ *
+ * Those strings are immutable without an on-chain `setBaseURI` from the
+ * collection owner, so the metadata document itself - not just its image - was
+ * unreachable. Every URL the app follows passes through here, so rewriting the
+ * host at this one point reaches the on-chain case as well as our own config.
+ *
+ * IPFS is content-addressed: the same CID through a different gateway is the
+ * same bytes. Swapping the host cannot change what a token depicts.
+ */
+const EXHAUSTED_GATEWAY = "lavender-tiny-loon-904.mypinata.cloud";
+const REPLACEMENT_GATEWAY = "gateway.pinata.cloud";
+
+function liveGateway(url: string): string {
+  return url.includes(EXHAUSTED_GATEWAY)
+    ? url.replace(EXHAUSTED_GATEWAY, REPLACEMENT_GATEWAY)
+    : url;
+}
+
 export function resolveMediaUrl(raw: string | undefined): string | undefined {
   if (raw === undefined || raw === "") return undefined;
 
   if (raw.startsWith("ipfs://")) {
-    return `https://lavender-tiny-loon-904.mypinata.cloud/ipfs/${raw.slice("ipfs://".length)}`;
+    return `https://${REPLACEMENT_GATEWAY}/ipfs/${raw.slice("ipfs://".length)}`;
   }
+
+  raw = liveGateway(raw);
 
   // In development only, resolve our own domain to whatever host is serving
   // this page, so a collection whose metadata we serve is visible before the
