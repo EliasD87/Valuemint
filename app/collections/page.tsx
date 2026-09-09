@@ -18,6 +18,21 @@ export default function Collections() {
   const { collections: fromFactory } = useRegistry(48);
   const { data: discovered, isLoading, error } = useDiscoveredCollections();
   const [paste, setPaste] = useState("");
+
+  /**
+   * How many collections to draw before asking.
+   *
+   * Every ERC-721 and ERC-1155 the explorer indexes shows up here, so this list
+   * only grows and most of what arrives is not what anyone came looking for. Six
+   * is two full rows on a desktop grid and shows the page is populated without
+   * making someone scroll past a dozen strangers to reach the button that adds
+   * their own.
+   *
+   * Not pagination: "See more" reveals the rest in place, because there is
+   * nothing on a second page worth navigating between.
+   */
+  const FIRST_PAGE = 6;
+  const [showAll, setShowAll] = useState(false);
   const probe = useCollectionProbe(paste);
   const { artFor } = useCollectionArt();
   const { floorFor } = useFloors();
@@ -147,7 +162,7 @@ export default function Collections() {
         </div>
       ) : (
         <div className="coll-grid">
-          {all.map((c, i) => {
+          {(showAll ? all : all.slice(0, FIRST_PAGE)).map((c, i) => {
             const s = statsFor(i);
 
             return (
@@ -194,6 +209,17 @@ export default function Collections() {
           })}
         </div>
       )}
+
+      {/* Only drawn when something is behind it, and the count is named
+          rather than left as "more" so the choice is informed. */}
+      {!showAll && all.length > FIRST_PAGE ? (
+        <div className="coll-more">
+          <button type="button" className="btn" onClick={() => setShowAll(true)}>
+            See {all.length - FIRST_PAGE} more collection
+            {all.length - FIRST_PAGE === 1 ? "" : "s"}
+          </button>
+        </div>
+      ) : null}
 
       <div className="coll-cta card">
         <div>

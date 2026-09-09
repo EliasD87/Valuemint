@@ -463,3 +463,11 @@
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.01em;
 }
+
+/* The "See more" row. Centred and given room, so it reads as the end of the
+   list rather than another card that failed to load. */
+.coll-more {
+  display: flex;
+  justify-content: center;
+  margin-top: 1.5rem;
+}

@@ -32,6 +32,18 @@ export const HIDDEN_COLLECTIONS: HiddenCollection[] = [
     address: "0x55fc6A7519c1b3dC07573cE1473fe0573D4CF716",
     reason: "vv (VVV) — throwaway collection made while testing the create flow",
   },
+  {
+    address: "0x745fdC92Def1F87E43d8053bB8079759e147ab7B",
+    reason:
+      "Elias Skills (ELIAS) — test collection, 2 minted, owned by the deployer. " +
+      "Placeholder artwork, no listings.",
+  },
+  {
+    address: "0x7F3Bffd816D9C26C3a10f5ba69ABD32724177688",
+    reason:
+      "Test Skills (SKILL) — test collection, 4 minted, owned by the deployer. " +
+      "Placeholder artwork, no listings.",
+  },
 ];
 
 /**
