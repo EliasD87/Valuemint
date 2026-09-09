@@ -176,6 +176,19 @@ export function useEverything(perCollection = 30) {
      * last slow gateway fetch finished.
      */
     isLoading: tokens.length === 0 && (loadingCollections || loadingChain || loadingMeta),
+    /**
+     * Metadata alone, exposed separately because `isLoading` deliberately hides
+     * it once anything is on screen.
+     *
+     * A caller that filters on `image` needs this. Token ids arrive from the
+     * chain in a few hundred milliseconds; the images they point at come from
+     * IPFS gateways seconds later. In between, every token has
+     * `image === undefined` while `isLoading` is already false - so a grid that
+     * drops image-less tokens is empty and *not* loading, which is how the home
+     * page ended up rendering "Nothing matches that filter" over a chip row
+     * reading 12, 12, 12, 7, 5.
+     */
+    loadingMetadata: loadingMeta,
     /** True when at least one collection has more tokens than we loaded. */
     truncated: collections.some((_, i) => {
       const entry = supplies?.[i];

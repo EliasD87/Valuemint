@@ -43,7 +43,7 @@ function interleave<T>(groups: T[][]): T[] {
 
 export default function Home() {
   const { address } = useAccount();
-  const { tokens, collections, isLoading } = useEverything(12);
+  const { tokens, collections, isLoading, loadingMetadata } = useEverything(12);
 
   /**
    * The listings, read from events rather than sampled.
@@ -155,21 +155,43 @@ export default function Home() {
      * listings cannot fill the grid before another's first one appears - the
      * same reason `interleave` exists for the sampled tokens below.
      */
-    const forSale = listedTokens.filter((t) => t.active && t.image !== undefined);
+    /**
+     * Art decides the order, never whether a token appears at all.
+     *
+     * These bands used to be filtered by `image !== undefined`, and the images
+     * come from IPFS gateways seconds after the token ids come from the chain.
+     * So for the first several seconds every token was dropped: the grid was
+     * empty, `isLoading` was already false because the chain reads had landed,
+     * and the page rendered "Nothing matches that filter" above a chip row
+     * reading 12, 12, 12, 7, 5. Measured cold: DOM ready at 260ms, first card
+     * at 8.2s.
+     *
+     * `TokenCard` has always drawn a skeleton for a missing image, so there was
+     * never a reason to hide the card too. Sorting art-first instead means the
+     * grid is populated immediately, resolved pieces rise to the top as their
+     * metadata lands, and a token whose document genuinely has no image sinks
+     * to the bottom rather than emptying the page.
+     */
+    const artFirst = (rows: ChainToken[]) => [
+      ...rows.filter((t) => t.image !== undefined),
+      ...rows.filter((t) => t.image === undefined),
+    ];
+
+    const forSale = listedTokens.filter((t) => t.active);
     const byCollection = new Map<string, ChainToken[]>();
     for (const t of forSale) {
       const k = t.collection.toLowerCase();
       byCollection.set(k, [...(byCollection.get(k) ?? []), t]);
     }
-    const listed = interleave([...byCollection.values()]);
+    const listed = artFirst(interleave([...byCollection.values()]));
 
     // Anything already shown as a listing must not appear again below it.
     const shown = new Set(listed.map(key));
     const unlisted = [...grouped.values()].map((g) =>
-      g.items.filter((t) => t.image !== undefined && !shown.has(key(t))),
+      g.items.filter((t) => !shown.has(key(t))),
     );
 
-    return [...listed, ...interleave(unlisted)];
+    return [...listed, ...artFirst(interleave(unlisted))];
   }, [grouped, listedTokens]);
 
   /** Collections a visitor can mint from right now, cheapest first. */
@@ -256,7 +278,7 @@ export default function Home() {
         ) : null}
 
         <div className="grid-tokens">
-          {isLoading && tokens.length === 0
+          {tokens.length === 0
             ? Array.from({ length: 10 }, (_, i) => <TokenCardSkeleton key={i} />)
             : visible
                 .slice(0, 20)
@@ -274,7 +296,18 @@ export default function Home() {
                 ))}
         </div>
 
-        {!isLoading && visible.length === 0 ? (
+        {/**
+          * Only once there is something to have filtered.
+          *
+          * This hung off `!isLoading`, and that flag is false in the window
+          * between collections resolving and the token reads returning - so a
+          * cold load rendered "Nothing matches that filter" for several seconds
+          * over a chip row that already showed real counts. Loading flags cannot
+          * express this; having data can. With no tokens at all we cannot tell
+          * an empty marketplace from an unfinished fetch, and the grid above is
+          * already drawing skeletons for exactly that case.
+          */}
+        {tokens.length > 0 && visible.length === 0 ? (
           <p className="empty">Nothing matches that filter.</p>
         ) : null}
       </section>
@@ -297,7 +330,16 @@ export default function Home() {
             With few holders it also rendered as one row saying one address owns
             everything, on the front page. What is mintable, at what price, is
             actionable and true. */}
-        {mintable.length === 0 ? (
+        {/**
+          * Only once the mint config has actually been read.
+          *
+          * `collections.length > 0` was not enough: the addresses arrive from the
+          * registry before `publicMintEnabled` and `publicMintRemaining` are read
+          * for them, so every collection looks unmintable in between and the page
+          * announced that nothing was minting while four collections were. Asking
+          * whether any collection has a known answer is the honest test.
+          */}
+        {collections.some((c) => c.publicMintEnabled !== undefined) && mintable.length === 0 ? (
           <p className="empty">
             No collection is minting at the moment. Everything already minted is still tradeable on
             the <Link href="/market">market</Link>.
