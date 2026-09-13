@@ -2,11 +2,10 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { useAccount, useConnect } from "wagmi";
+import { useAccount } from "wagmi";
 import { Art } from "@/components/Art";
 import { SodexLogo } from "@/components/SodexLogo";
 import { TIERS, formatVolume, tierImage, type Tier } from "@/config/tiers";
-import { useTrenchesClaim } from "@/hooks/useTrenchesClaim";
 import "@/styles/trenches.css";
 
 /**
@@ -35,16 +34,28 @@ type State =
   | { kind: "done"; data: Eligibility }
   | { kind: "error"; message: string };
 
+/**
+ * Claiming is not open yet, so this page answers a question instead of taking
+ * an action: paste an address, see what it would be owed.
+ *
+ * A wallet connection is the wrong price of entry for that. Nothing here signs
+ * or spends, the eligibility route already takes an address in its path, and
+ * asking someone to connect before they can read a number is friction in
+ * exchange for nothing. The connected wallet is still used as a default, so a
+ * visitor who has one does not have to type their own address.
+ */
+const ADDRESS = /^0x[0-9a-fA-F]{40}$/;
+
 export default function Trenches() {
-  const { address, isConnected } = useAccount();
-  const { connect, connectors, isPending: connecting } = useConnect();
+  const { address } = useAccount();
+  const [query, setQuery] = useState("");
+  const [looked, setLooked] = useState<string | undefined>(undefined);
   const [state, setState] = useState<State>({ kind: "idle" });
 
-  const check = useCallback(async (signal?: { cancelled: boolean }) => {
-    if (address === undefined) return;
+  const check = useCallback(async (who: string, signal?: { cancelled: boolean }) => {
     setState({ kind: "checking" });
     try {
-      const res = await fetch(`/api/eligibility/${address}`);
+      const res = await fetch(`/api/eligibility/${who}`);
       const body = await res.json();
       if (signal?.cancelled === true) return;
       if (!res.ok) {
@@ -57,21 +68,33 @@ export default function Trenches() {
         setState({ kind: "error", message: "Could not reach the check." });
       }
     }
-  }, [address]);
+  }, []);
 
+  /**
+   * A connected wallet is a convenience, not a requirement.
+   *
+   * It pre-fills the box and looks itself up once. After that the box is the
+   * only input that matters, so someone can check a friend's address without
+   * disconnecting.
+   */
   useEffect(() => {
-    if (address === undefined) {
-      setState({ kind: "idle" });
-      return;
-    }
-    // A wallet switch mid-request must not let the old answer land on the new
-    // address — that would show someone else's tier under your wallet.
+    if (address === undefined || looked !== undefined) return;
+    setQuery(address);
+    setLooked(address);
     const signal = { cancelled: false };
-    void check(signal);
+    void check(address, signal);
     return () => {
       signal.cancelled = true;
     };
-  }, [address, check]);
+  }, [address, looked, check]);
+
+  const valid = ADDRESS.test(query.trim());
+  const lookUp = () => {
+    if (!valid) return;
+    const who = query.trim();
+    setLooked(who);
+    void check(who);
+  };
 
   const reached = state.kind === "done" ? (state.data.tier?.n ?? 0) : 0;
 
@@ -103,25 +126,49 @@ export default function Trenches() {
         <Fan reached={reached} />
 
         <div className="page tr-check">
-          {!isConnected ? (
-            <div className="tr-actions">
+          <div className="tr-lookup">
+            <p className="tr-soon">
+              <span className="tr-soon-dot" aria-hidden="true" />
+              Claiming opens soon — check what you&rsquo;ll be owed
+            </p>
+
+            <div className="tr-lookup-row">
+              <input
+                className="tr-lookup-input mono"
+                placeholder="Paste a wallet address"
+                aria-label="Wallet address"
+                spellCheck={false}
+                autoComplete="off"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") lookUp();
+                }}
+              />
               <button
                 className="btn btn-primary btn-lg"
-                disabled={connecting}
-                onClick={() => {
-                  const injected = connectors.find((c) => c.id === "injected");
-                  if (injected !== undefined) connect({ connector: injected });
-                }}
+                disabled={!valid || state.kind === "checking"}
+                onClick={lookUp}
               >
-                {connecting ? "Check your wallet…" : "Find your depth"}
+                {state.kind === "checking" ? "Checking…" : "Find the depth"}
               </button>
+            </div>
+
+            {query.trim() !== "" && !valid ? (
+              <p className="tr-lookup-hint">
+                That is not an address. A ValueChain address is 0x followed by 40 hex
+                characters.
+              </p>
+            ) : null}
+
+            {looked !== undefined ? (
+              <Result state={state} onRetry={() => void check(looked)} />
+            ) : (
               <a className="btn btn-lg tr-btn-ghost" href="#ladder">
                 See the ten
               </a>
-            </div>
-          ) : (
-            <Result state={state} onRetry={() => void check()} />
-          )}
+            )}
+          </div>
         </div>
     </section>
 
@@ -264,7 +311,7 @@ function Result({ state, onRetry }: { state: State; onRetry: () => void }) {
           Start trading on SoDEX
         </a>
         <p className="tr-result-fine">
-          Already traded on another wallet? Connect that one instead — depths follow the wallet
+          Traded on another wallet? Paste that address instead — depths follow the wallet
           that earned them.
         </p>
       </div>
@@ -315,80 +362,27 @@ function Result({ state, onRetry }: { state: State; onRetry: () => void }) {
         <p className="tr-result-next">Nothing above you. You&rsquo;ve reached the bottom.</p>
       )}
 
-      <ClaimButton earned={claimable} />
+      {/* No claim control while claiming is shut. A button that cannot do
+          anything is worse than none - it invites a click and explains nothing. */}
+      <p className="tr-result-soon">
+        {claimable === 1 ? "1 piece" : `${claimable} pieces`} waiting when claiming opens.
+      </p>
       <p className="tr-result-fine">
-        Each depth can be claimed once per wallet. Claiming costs gas only, a fraction of a cent.
+        Each depth is claimed once per wallet, and costs gas only — a fraction of a cent.
+        Depths follow the wallet that earned them.
       </p>
     </div>
   );
 }
 
 /**
- * The claim control, in every state it can be in.
+ * The claim control lived here and is gone while claiming is shut.
  *
- * `earned` is what the wallet has *reached*; `owedCount` is what it has not yet
- * *taken*, read from the contract. They differ the moment someone claims on
- * another device, and the on-chain number is the one that governs — offering a
- * piece already held would send a transaction that reverts.
+ * A disabled button that cannot explain itself is worse than no button - it
+ * invites a click and answers nothing - and a half-wired one is worse still.
+ * `hooks/useTrenchesClaim.ts` still holds the whole flow, so restoring this is
+ * rendering one component again rather than rewriting the logic.
  */
-function ClaimButton({ earned }: { earned: number }) {
-  const { deployed, open, owedCount, loadingOwed, phase, claim, reset } = useTrenchesClaim(earned);
-
-  if (!deployed) {
-    return (
-      <button className="btn btn-primary btn-lg btn-block" disabled>
-        Claim {earned} {earned === 1 ? "piece" : "pieces"} — opens at launch
-      </button>
-    );
-  }
-
-  if (phase.kind === "error") {
-    return (
-      <div className="tr-claim-failed">
-        <p className="tr-claim-msg">{phase.message}</p>
-        <button className="btn btn-lg btn-block" onClick={reset}>
-          Try again
-        </button>
-      </div>
-    );
-  }
-
-  if (phase.kind === "done" || owedCount === 0) {
-    return (
-      <div className="tr-claim-done">
-        <p className="tr-claim-msg">
-          {phase.kind === "done" ? "Claimed." : "You already hold every depth you’ve earned."}{" "}
-          <Link href="/portfolio">See them in your wallet</Link>.
-        </p>
-      </div>
-    );
-  }
-
-  const busy = phase.kind !== "idle";
-  const label =
-    phase.kind === "authorising"
-      ? "Checking your volume…"
-      : phase.kind === "signing"
-        ? "Confirm in your wallet…"
-        : phase.kind === "confirming"
-          ? "Claiming…"
-          : null;
-
-  const count = owedCount ?? earned;
-
-  return (
-    <button
-      className="btn btn-primary btn-lg btn-block"
-      onClick={() => void claim()}
-      disabled={busy || !open || loadingOwed}
-    >
-      {label ??
-        (!open
-          ? "Claiming opens shortly"
-          : `Claim ${count} ${count === 1 ? "piece" : "pieces"}`)}
-    </button>
-  );
-}
 
 /**
  * The descent: ten pieces receding into the dark.

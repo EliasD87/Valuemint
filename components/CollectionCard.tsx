@@ -35,26 +35,30 @@ interface Props {
 
 export function CollectionCard({ href, name, symbol, address, images, badge, stats }: Props) {
   const initials = (symbol || name || "?").slice(0, 2).toUpperCase();
-  const art = images.slice(0, 4);
 
   /**
-   * One design gets the whole card; several get the strip.
+   * Every card gets the same strip, whatever the collection holds.
    *
-   * A collection can be a single picture in many editions, and that picture in a
-   * 116px-tall band was cropped to a slice — the screenshot that prompted this
-   * had the character's head cut off. Four thumbnails need the band because they
-   * share it; one does not, and letting it fill the card shows the art as it was
-   * drawn rather than as it fits.
+   * A collection can be one picture in many editions - SoDex Larpers is a single
+   * design with a hundred - and a card that draws one full-bleed image next to
+   * cards drawing three looks like two different components. Repeating the one
+   * image across the strip costs nothing (the browser fetches it once) and makes
+   * the row read as one grid.
    *
-   * The text then sits over the image on a gradient, which is why `is-solo` also
-   * changes what the body is drawn against.
+   * Three, not four: three panels are wide enough to show what a piece is at
+   * card size, and four in the same band start to read as thumbnails.
    */
-  const solo = art.length === 1;
+  const STRIP = 3;
+  const unique = images.slice(0, STRIP);
+  const art =
+    unique.length === 0
+      ? []
+      : Array.from({ length: STRIP }, (_, i) => unique[i % unique.length]!);
 
   return (
     <Link
       href={href}
-      className={`coll-card card card-hover${solo ? " is-solo" : ""}`}
+      className="coll-card card card-hover"
     >
       <div className="coll-cover" data-empty={art.length === 0 ? "" : undefined}>
         {art.length > 0 ? (
@@ -64,7 +68,7 @@ export function CollectionCard({ href, name, symbol, address, images, badge, sta
             <span className="coll-cover-cell" key={`${src}-${i}`} aria-hidden="true">
               <Art
                 src={src}
-                sizes={solo ? "(max-width: 700px) 92vw, 380px" : "(max-width: 700px) 25vw, 160px"}
+                sizes="(max-width: 700px) 32vw, 160px"
               />
             </span>
           ))

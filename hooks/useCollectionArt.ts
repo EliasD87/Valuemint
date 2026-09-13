@@ -97,13 +97,30 @@ export function useCollectionArt(perCollection = COVER) {
           // An external ERC-721 may have no base URI at all.
           if (base === "") return;
 
-          const ids = Array.from({ length: COVER }, (_, n) => n + 1);
+          /**
+           * One token, not four.
+           *
+           * This asked for ids 1 to 4 per collection, and every one is a cache
+           * miss against our own /api/metadata - which rate-limits misses at
+           * 120 an hour. Four requests per unminted collection, per visitor,
+           * per cold lambda is how a brand new collection ended up showing no
+           * artwork at all: the route answered "Too many requests" and the
+           * cover silently gave up.
+           *
+           * The card repeats a single image across its strip now, so one is
+           * all it needs. Variety returns by itself the moment anything is
+           * minted, because covers then come from the tokens.
+           */
+          const ids = [1];
           const images = await Promise.all(
             ids.map(async (id) => {
               try {
                 // Generous, because this is a cold gateway read behind an API
                 // route; 8s was short enough to drop half of them.
                 const res = await fetch(`${base}${id}`, { signal: AbortSignal.timeout(15_000) });
+                // 429 included: a rate-limited miss is a retryable condition,
+                // not "this collection has no art", and must not be cached as
+                // one. Returning undefined lets the next mount ask again.
                 if (!res.ok) return undefined;
                 const meta = (await res.json()) as { image?: string };
                 return resolveMediaUrl(meta.image);
@@ -119,6 +136,17 @@ export function useCollectionArt(perCollection = COVER) {
           if (found.length > 0) map.set(address.toLowerCase(), found);
         }),
       );
+
+      /**
+       * An empty answer is a failure, not a fact, so it must not be cached.
+       *
+       * This query is `staleTime: Infinity` because manifest art is immutable
+       * for a given base URI - right for a real answer and wrong for none at
+       * all. If every fetch failed (a rate-limited miss, a cold gateway) the
+       * empty map was stored permanently and the covers never came back
+       * without a reload. Throwing instead lets React Query retry.
+       */
+      if (map.size === 0) throw new Error("No covers resolved yet.");
 
       return map;
     },

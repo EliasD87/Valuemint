@@ -50,16 +50,6 @@
   color: #c4a3d8;
 }
 
-/* Says the set is not on chain yet, without pretending it is a countdown —
-   there is no date, because the list is what decides it. */
-.kol-flag {
-  padding: 0.22rem 0.6rem;
-  border-radius: var(--r-pill);
-  background: rgba(253, 224, 71, 0.16);
-  border: 1px solid rgba(253, 224, 71, 0.42);
-  color: #fde047;
-  letter-spacing: 0.12em;
-}
 
 .kol-title {
   margin: 0;
@@ -340,25 +330,3 @@
   color: var(--ink-3);
 }
 
-/* Sits under the lede on the hero: the one line that says what "not minted yet"
-   means for a reader, rather than leaving them to guess at a launch date. */
-.kol-note {
-  margin-top: 0.7rem;
-  max-width: 44ch;
-  font-size: var(--step--2);
-  line-height: 1.55;
-  /**
-   * A literal, like everything else on this hero.
-   *
-   * The band is committed dark in both themes, so a theme token is wrong here
-   * by construction: `--ink-3` is a grey chosen to sit on white paper, and in
-   * light mode it landed on this purple as a smudge.
-   *
-   * Only a shade under `.kol-lede`'s #cbb8d8, not the two or three steps a
-   * footnote would usually take: this is small text over a seven-stop gradient
-   * with alpha in it, so there is no single ground to measure a ratio against
-   * and the honest move is to leave headroom rather than tune to a number that
-   * would be wrong somewhere across the band.
-   */
-  color: #c0aed2;
-}

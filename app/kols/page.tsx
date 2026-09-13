@@ -58,20 +58,14 @@ export default function Kols() {
         <div className="kol-deep" aria-hidden="true" />
 
         <div className="page kol-hero-inner">
-          <p className="kol-eyebrow">
-            <span className="kol-flag">Not minted yet</span>
-            One of one
-          </p>
+          {/* The production status line and the "list is still open" note were
+              working notes addressed at us, not at a visitor. What is left says
+              what the set is and who it is for. */}
+          <p className="kol-eyebrow">One of one</p>
           <h1 className="kol-title">The people who show up</h1>
           <p className="kol-lede">
             Portraits of the regulars on SoDEX — the ones posting through every candle. Made
             for them, given to them. Never for sale.
-          </p>
-          {/* Replaces a bare "coming soon", which sets an expectation of a date
-              that does not exist. This says what the state actually is and why. */}
-          <p className="kol-note">
-            The list is still open. Nothing is written to the chain until it stops
-            growing, so anyone worth adding can still be added.
           </p>
         </div>
 
