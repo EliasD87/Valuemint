@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import type { AbiEvent, PublicClient } from "viem";
-import { resetLogCache, scanLogs } from "./logScan";
+import { CHUNK, resetLogCache, scanLogs } from "./logScan";
 
 /**
  * The scanner replaced `fromBlock: <fixed>, toBlock: "latest"` on a 30-second
@@ -51,15 +51,19 @@ describe("scanLogs", () => {
   beforeEach(() => resetLogCache());
 
   it("walks the whole range in bounded chunks rather than one request", async () => {
-    const { client, calls } = fakeClient({ head: 12_000n });
+    // Derived from CHUNK rather than hardcoded: the property under test is
+    // "bounded and contiguous", not the size of the bound, and tuning the chunk
+    // for a faster endpoint should not rewrite the test that guards the shape.
+    const head = CHUNK * 2n + 2_000n;
+    const { client, calls } = fakeClient({ head });
     await scanLogs(client, params(0n));
 
     expect(calls.length).toBeGreaterThan(1);
     // Every request is bounded; none is "everything since the beginning".
-    for (const c of calls) expect(c.to - c.from + 1n).toBeLessThanOrEqual(5_000n);
+    for (const c of calls) expect(c.to - c.from + 1n).toBeLessThanOrEqual(CHUNK);
     // And together they cover the range exactly once, with no gaps.
     expect(calls[0]!.from).toBe(0n);
-    expect(calls[calls.length - 1]!.to).toBe(12_000n);
+    expect(calls[calls.length - 1]!.to).toBe(head);
     for (let i = 1; i < calls.length; i++) {
       expect(calls[i]!.from).toBe(calls[i - 1]!.to + 1n);
     }
@@ -72,17 +76,19 @@ describe("scanLogs", () => {
   });
 
   it("reads only new blocks on a second scan", async () => {
-    const first = fakeClient({ head: 10_000n });
+    // Past one chunk on purpose, so the first pass is a real multi-request walk
+    // and the saving the second pass makes is the thing being measured.
+    const head = CHUNK + 5_000n;
+    const first = fakeClient({ head });
     await scanLogs(first.client, params(0n));
-    const firstCount = first.calls.length;
-    expect(firstCount).toBeGreaterThan(1);
+    expect(first.calls.length).toBeGreaterThan(1);
 
     // Same query, head moved on by 100 blocks.
-    const second = fakeClient({ head: 10_100n });
+    const second = fakeClient({ head: head + 100n });
     await scanLogs(second.client, params(0n));
 
     expect(second.calls).toHaveLength(1);
-    expect(second.calls[0]).toEqual({ from: 10_001n, to: 10_100n });
+    expect(second.calls[0]).toEqual({ from: head + 1n, to: head + 100n });
   });
 
   it("costs no getLogs at all when nothing new has been mined", async () => {
@@ -108,7 +114,8 @@ describe("scanLogs", () => {
   });
 
   it("halves the chunk when the endpoint refuses a range, and still completes", async () => {
-    // Refuses anything over 1,000 blocks — narrower than the 5,000 default.
+    // Refuses anything over 1,000 blocks — far narrower than the default, which
+    // is what the fallback RPC does in production.
     const { client, calls } = fakeClient({ head: 4_000n, capBlocks: 1_000n });
     const logs = await scanLogs(client, params(0n));
 

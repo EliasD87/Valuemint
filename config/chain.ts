@@ -15,7 +15,27 @@ export const valuechain = defineChain({
     default: { name: "ValueChain Scan", url: "https://main-scan.valuechain.xyz" },
   },
   // ~2s blocks, so a short poll keeps the UI feeling immediate without hammering.
-  contracts: {},
+  contracts: {
+    /**
+     * Multicall3, and the single most expensive omission this app has had.
+     *
+     * `contracts` was `{}`. viem only aggregates `useReadContracts` into one
+     * `eth_call` when it knows a multicall3 address for the chain, so with this
+     * empty every batched read fell back to one HTTP round trip per contract
+     * call. Measured on the live site before this line existed: loading
+     * /collections issued **123 RPC requests in 114 separate waves**, first at
+     * 1,988ms and last at 23,462ms — twenty-one seconds of serial round trips
+     * at ~180ms each, during which the app does not yet know a single image URL
+     * to request. The artwork was never the slow part; waiting to find out
+     * which artwork was.
+     *
+     * The contract is already there. Multicall3 is deployed by deterministic
+     * CREATE2 at the same address on most chains, and it is on ValueChain:
+     * 3,808 bytes of code at 0xcA11…CA11, and `getBlockNumber()` answers.
+     * Nothing had to be deployed; the chain definition simply never said so.
+     */
+    multicall3: { address: "0xcA11bde05977b3631167028862bE2a173976CA11" },
+  },
 });
 
 export const valuechainTestnet = defineChain({
@@ -27,6 +47,10 @@ export const valuechainTestnet = defineChain({
   },
   blockExplorers: {
     default: { name: "ValueChain Testnet Scan", url: "https://test-scan.valuechain.xyz" },
+  },
+  // Same deterministic address, confirmed deployed here too.
+  contracts: {
+    multicall3: { address: "0xcA11bde05977b3631167028862bE2a173976CA11" },
   },
   testnet: true,
 });

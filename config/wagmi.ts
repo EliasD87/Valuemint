@@ -70,6 +70,21 @@ const connectors = [
 export const wagmiConfig = createConfig({
   chains: [valuechain],
   connectors,
+  /**
+   * Aggregate independent `eth_call`s into multicall3, not just the ones a
+   * single `useReadContracts` asks for.
+   *
+   * The chain definition gaining a multicall3 address fixes batched reads. This
+   * fixes the other half: the many separate `useReadContract` calls scattered
+   * across a page — `ownerOf` here, `tokenURI` there, a balance in a third
+   * component — which viem otherwise sends one HTTP request at a time because
+   * nothing told it they could travel together.
+   *
+   * `wait` is the window it holds a call open looking for companions. 16ms is
+   * about one frame: long enough for a render pass to queue everything a page
+   * mounts at once, short enough that nobody perceives it.
+   */
+  batch: { multicall: { wait: 16 } },
   transports: {
     [valuechain.id]: fallback(
       [

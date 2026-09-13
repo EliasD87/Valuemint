@@ -1,6 +1,7 @@
 "use client";
 
 import { deployment } from "@/config/contracts";
+import { explainTxError, isRejection } from "@/lib/txError";
 import "./TxResult.css";
 
 /**
@@ -38,14 +39,13 @@ export function TxResult({
   if (error !== null) {
     /**
      * A rejection is a decision, not a failure, and must not be dressed up as
-     * one. Everything else is shown as far as it is readable — wallet errors
-     * run to hundreds of characters of RPC noise, and the first line is the
-     * only part that ever means anything.
+     * one. Everything else goes through `explainTxError`, which names the few
+     * causes a person can act on and otherwise shows the real first line.
      */
-    const rejected = /rejected|denied|User denied|User rejected/i.test(error.message);
+    const rejected = isRejection(error.message);
     return (
       <p className={`txr ${rejected ? "txr-quiet" : "txr-bad"}`}>
-        {rejected ? "You cancelled that in your wallet." : error.message.split("\n")[0]?.slice(0, 180)}
+        {explainTxError(error.message)}
       </p>
     );
   }

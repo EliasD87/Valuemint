@@ -145,6 +145,22 @@ const nextConfig: NextConfig = {
     })),
     // Art is square or near it, and never rendered larger than a card.
     imageSizes: [64, 96, 128, 192, 256, 384],
+    /**
+     * Trimmed from the default, because every width in a srcset is a separate
+     * cold fetch of the original from an IPFS gateway.
+     *
+     * Next appends the full `deviceSizes` list to any `fill` image, so a 160px
+     * card was being offered ten candidate widths, up to 3840. Nothing on this
+     * site renders artwork near that: the biggest optimised slot is a card at
+     * roughly 400 CSS px, which a 3x phone tops out at ~1200. The tail was
+     * pure cache surface — ten chances for a visitor to be the unlucky one who
+     * waits on the gateway instead of five.
+     *
+     * Measured on the live site: a cold variant costs 1.5-7.6s at the gateway
+     * regardless of file size, and a warm one 300-500ms. Halving the number of
+     * variants halves the chance of paying that.
+     */
+    deviceSizes: [640, 828, 1080],
     formats: ["image/webp"],
     // Pinned content is immutable, so a long cache costs nothing and saves a
     // re-fetch of the original from the gateway on every resize.

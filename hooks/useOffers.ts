@@ -1,10 +1,10 @@
 "use client";
 
 import { useMemo } from "react";
-import { useAccount, usePublicClient, useReadContracts } from "wagmi";
-import { useQuery } from "@tanstack/react-query";
+import { useAccount, useReadContracts } from "wagmi";
 import { ValueChainMarketplaceAbi, deployment } from "@/config/contracts";
-import { FROM_BLOCK, scanLogs } from "@/lib/logScan";
+import { useOfferBids } from "@/hooks/useAllOffers";
+import { offerKey } from "@/lib/offers";
 
 export interface TokenOffer {
   bidder: `0x${string}`;
@@ -25,46 +25,31 @@ export interface TokenOffer {
  * withdrawn, expired, overwritten downward, or already accepted. So the logs
  * supply candidate addresses and the contract supplies the truth, and only
  * offers that still read back with a price survive.
+ *
+ * The bidders come from the marketplace-wide scan rather than a scan filtered
+ * to this token. A filtered scan is not cheaper — the RPC caps `eth_getLogs` by
+ * block range, not by result count, so narrowing the topics saves nothing and
+ * still costs 109 sequential requests and roughly 25 seconds. Running it per
+ * token meant this panel said "No offers yet" for half a minute over a live
+ * offer, on the one page where an owner goes to accept it.
  */
 export function useOffers(collection: `0x${string}` | undefined, tokenId: bigint | undefined) {
-  const client = usePublicClient();
   const { address } = useAccount();
 
-  const enabled = client !== undefined && collection !== undefined && tokenId !== undefined;
+  const enabled = collection !== undefined && tokenId !== undefined;
 
-  const { data: bidders, isLoading: scanning } = useQuery({
-    queryKey: ["offer-bidders", collection, tokenId?.toString()],
-    enabled,
-    // Offers change on human timescales, and each refetch is a log scan.
-    staleTime: 30_000,
-    refetchInterval: 60_000,
-    queryFn: async () => {
-      const logs = await scanLogs(client!, {
-        address: deployment.marketplace,
-        event: {
-          type: "event",
-          name: "OfferMade",
-          inputs: [
-            { name: "collection", type: "address", indexed: true },
-            { name: "tokenId", type: "uint256", indexed: true },
-            { name: "bidder", type: "address", indexed: true },
-            { name: "paymentToken", type: "address", indexed: false },
-            { name: "price", type: "uint256", indexed: false },
-            { name: "expiry", type: "uint64", indexed: false },
-          ],
-        },
-        args: { collection, tokenId },
-        fromBlock: FROM_BLOCK,
-      });
+  const { data: allBids, isLoading: scanning, refetch: refetchBids } = useOfferBids();
 
-      const seen = new Set<string>();
-      for (const log of logs) {
-        const bidder = (log.args as { bidder?: `0x${string}` }).bidder;
-        if (bidder !== undefined) seen.add(bidder.toLowerCase());
-      }
-      return [...seen] as `0x${string}`[];
-    },
-  });
+  const bidders = useMemo<`0x${string}`[] | undefined>(() => {
+    if (allBids === undefined || !enabled) return undefined;
+    const want = offerKey(collection, tokenId);
+
+    const seen = new Set<string>();
+    for (const b of allBids) {
+      if (offerKey(b.collection, b.id) === want) seen.add(b.bidder.toLowerCase());
+    }
+    return [...seen] as `0x${string}`[];
+  }, [allBids, collection, tokenId, enabled]);
 
   const { data: raw, refetch } = useReadContracts({
     contracts: (bidders ?? []).map((bidder) => ({
@@ -103,5 +88,15 @@ export function useOffers(collection: `0x${string}` | undefined, tokenId: bigint
   const best = offers[0];
   const mine = offers.find((o) => o.mine);
 
-  return { offers, best, mine, loading: scanning, refetch };
+  /**
+   * Both halves, because they answer different questions. The contract reads
+   * catch an offer that has just been accepted or withdrawn; only a fresh log
+   * scan catches a bidder who was not in the set at all — which is exactly the
+   * case after somebody makes the first offer on a token.
+   */
+  const refresh = async () => {
+    await Promise.all([refetch(), refetchBids()]);
+  };
+
+  return { offers, best, mine, loading: scanning, refetch: refresh };
 }

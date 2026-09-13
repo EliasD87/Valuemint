@@ -10,11 +10,22 @@ export const FROM_BLOCK = 13_736_386n;
  * How many blocks to ask for at once.
  *
  * Most public RPCs cap `eth_getLogs` by range, by result count, or by both, and
- * they disagree about the limit. 5,000 is comfortably inside every common cap;
- * `scanLogs` halves on failure anyway, so this is a starting guess rather than
- * a constraint to get exactly right.
+ * they disagree about the limit. This is a starting guess, not a constraint —
+ * `scanLogs` halves on refusal and creeps back up — so the only cost of aiming
+ * high is a couple of wasted round trips against a stricter endpoint.
+ *
+ * It was 5,000, chosen to be inside every common cap, and that was expensive in
+ * a way nothing measured until offers went missing. Measured against both
+ * endpoints on 2026-09-13:
+ *
+ *   mainnet.valuechain.xyz  600,000 blocks in one request, 354ms
+ *   rpc.valuechain.xyz      10,000 fine, 50,000 refused
+ *
+ * At 5,000 the marketplace's own history was 109 sequential requests and about
+ * 25 seconds, which is why a token page could show "No offers yet" over a live
+ * offer for half a minute. At 100,000 the primary does it in six.
  */
-const CHUNK = 5_000n;
+export const CHUNK = 100_000n;
 
 /** Below this a range is not worth splitting further — the endpoint is refusing for another reason. */
 const MIN_CHUNK = 250n;

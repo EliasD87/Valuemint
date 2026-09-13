@@ -2,7 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { formatEther, parseEther } from "viem";
+import { deployment } from "@/config/contracts";
 import { useTrade, useWsoso } from "@/hooks/useTrade";
+import { COLLECTION_OFFERS_ADDRESS } from "@/hooks/useCollectionOffers";
+import { useCollectionOfferTrade } from "@/hooks/useCollectionOfferTrade";
 import { TxResult } from "@/components/TxResult";
 
 /**
@@ -26,31 +29,52 @@ const WINDOWS = [
   { label: "3 months", days: 90 },
 ];
 
-function expiryFor(days: number): bigint {
-  return BigInt(Math.floor(Date.now() / 1000) + days * 86_400);
+/**
+ * What this form is placing an offer against.
+ *
+ * There are two kinds now — an offer on one piece, spent by the marketplace, and
+ * an offer on a whole collection, spent by the offers contract — and they share
+ * nothing but the money. The part that must not be duplicated is the ladder
+ * below: wrap, then allow, then offer, strictly in that order. Two copies of
+ * that sequence is two places for it to drift, and the failure mode is a wallet
+ * revert nobody can read.
+ *
+ * So the form owns the ladder and the caller supplies the destination. The
+ * `spender` in particular has to come from the caller: an allowance granted to
+ * the marketplace does nothing for the offers contract, and reading the wrong
+ * one reports "approved" when nothing is.
+ */
+export interface OfferTarget {
+  /** The contract that will be allowed to spend the WSOSO. */
+  spender: `0x${string}`;
+  /** What the bidder is buying, in words: "this piece", "any piece". */
+  buying: string;
+  place: (amount: string, days: number) => void;
+  signing: boolean;
+  confirming: boolean;
+  busy: boolean;
+  isSuccess: boolean;
+  error: Error | null;
+  hash: `0x${string}` | undefined;
 }
 
 /**
  * Placing an offer: the amount, the deadline, and the steps the chain requires
  * before either can be used.
  *
- * Lifted out of `Offers` so the token page and the dialog opened from a card
- * run the same code. Two implementations of a form that spends money is two
- * places for the wrap/allow ordering to drift apart.
+ * Lifted out of `Offers` so the token page, the dialog a card opens, and the
+ * collection page all run the same code.
  */
 export function OfferForm({
-  collection,
-  tokenId,
+  target,
   replacing,
   onDone,
 }: {
-  collection: `0x${string}`;
-  tokenId: bigint;
+  target: OfferTarget;
   /** True when the connected wallet already has a standing offer here. */
   replacing: boolean;
   onDone: () => void;
 }) {
-  const trade = useTrade(collection);
   const [amount, setAmount] = useState("");
   const [days, setDays] = useState(7);
 
@@ -62,13 +86,13 @@ export function OfferForm({
     }
   })();
 
-  const wsoso = useWsoso(wanted);
+  const wsoso = useWsoso(wanted, target.spender);
 
   // On the receipt, never on the click — see the note in TokenView.
   useEffect(() => {
-    if (trade.isSuccess || wsoso.isSuccess) onDone();
+    if (target.isSuccess || wsoso.isSuccess) onDone();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [trade.isSuccess, trade.hash, wsoso.isSuccess]);
+  }, [target.isSuccess, target.hash, wsoso.isSuccess]);
 
   return (
     <div className="offers-make">
@@ -123,18 +147,18 @@ export function OfferForm({
           disabled={wsoso.busy}
           onClick={() => wsoso.allow()}
         >
-          {wsoso.busy ? "Approving…" : "Allow the marketplace to use WSOSO"}
+          {wsoso.busy ? "Approving…" : "Allow WSOSO to be spent on this offer"}
         </button>
       ) : (
         <button
           type="button"
           className="btn btn-primary btn-block"
-          disabled={trade.busy || wanted <= 0n}
-          onClick={() => trade.makeOffer(tokenId, amount, expiryFor(days))}
+          disabled={target.busy || wanted <= 0n}
+          onClick={() => target.place(amount, days)}
         >
-          {trade.signing
+          {target.signing
             ? "Confirm in wallet…"
-            : trade.confirming
+            : target.confirming
               ? "Placing…"
               : replacing
                 ? "Replace offer"
@@ -143,17 +167,58 @@ export function OfferForm({
       )}
 
       <p className="offers-note">
-        Your WSOSO stays in your wallet. It only moves if the owner accepts, and you can
-        withdraw the offer at any time before that.
+        Your WSOSO stays in your wallet. It only moves if a holder of {target.buying} accepts, and
+        you can withdraw the offer at any time before that.
       </p>
 
       <TxResult
-        hash={wsoso.busy || wsoso.isSuccess ? undefined : trade.hash}
-        confirming={trade.confirming || wsoso.confirming}
-        success={trade.isSuccess || wsoso.isSuccess}
-        error={trade.error ?? wsoso.error}
+        hash={wsoso.busy || wsoso.isSuccess ? undefined : target.hash}
+        confirming={target.confirming || wsoso.confirming}
+        success={target.isSuccess || wsoso.isSuccess}
+        error={target.error ?? wsoso.error}
         successLabel={wsoso.isSuccess ? "Done" : "Offer placed"}
       />
     </div>
   );
+}
+
+/**
+ * An offer on one piece, spent by the marketplace.
+ *
+ * A hook rather than a plain object because it owns its own `useTrade` — the
+ * form's transaction state has to be separate from the panel around it, or
+ * placing an offer would report its result in the Accept row's slot.
+ */
+export function useTokenOfferTarget(collection: `0x${string}`, tokenId: bigint): OfferTarget {
+  const trade = useTrade(collection);
+
+  return {
+    spender: deployment.marketplace,
+    buying: "this piece",
+    place: (amount, days) =>
+      trade.makeOffer(tokenId, amount, BigInt(Math.floor(Date.now() / 1000) + days * 86_400)),
+    signing: trade.signing,
+    confirming: trade.confirming,
+    busy: trade.busy,
+    isSuccess: trade.isSuccess,
+    error: trade.error,
+    hash: trade.hash,
+  };
+}
+
+/** An offer on any piece in a collection, spent by the offers contract. */
+export function useCollectionOfferTarget(collection: `0x${string}`): OfferTarget {
+  const trade = useCollectionOfferTrade(collection);
+
+  return {
+    spender: COLLECTION_OFFERS_ADDRESS as `0x${string}`,
+    buying: "any piece in this collection",
+    place: (amount, days) => trade.makeOffer(amount, days),
+    signing: trade.signing,
+    confirming: trade.confirming,
+    busy: trade.busy,
+    isSuccess: trade.isSuccess,
+    error: trade.error,
+    hash: trade.hash,
+  };
 }

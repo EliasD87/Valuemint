@@ -231,6 +231,9 @@ export default function Create() {
     const publicLimit = BigInt(Math.max(effectiveSupply - (Number(reserve) || 0), 0));
 
     writeContract({
+      // The button above already refuses to appear on the wrong network, but
+      // that is a guard on the UI; this is a guard on the transaction.
+      chainId: valuechain.id,
       address: deployment.factory,
       abi: ValueChainCollectionFactoryAbi,
       functionName: "createCollection",

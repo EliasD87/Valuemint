@@ -187,3 +187,20 @@
     width: 100%;
   }
 }
+
+/*
+ * Why an owner is being asked to approve before they can accept.
+ *
+ * Matches `.token-note` on the panel above rather than shouting: this is not a
+ * warning, it is the second half of a two-step action the owner has not met
+ * here before.
+ */
+.offers-approve-note {
+  margin: 0;
+  font-size: var(--step--2);
+  line-height: 1.55;
+  color: var(--ink-2);
+  background: var(--surface-2);
+  border-radius: var(--r-sm);
+  padding: 0.7rem 0.8rem;
+}

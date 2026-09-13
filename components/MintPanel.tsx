@@ -71,7 +71,16 @@ export function MintPanel({ address: collection }: { address: `0x${string}` }) {
 
   const mint = () => {
     reset();
-    writeContract({ ...base, functionName: "mint", args: [address!], value: price });
+    // `chainId` matters most here of anywhere: this one carries `value`, so
+    // without it a wallet on another network is asked to spend real money on
+    // that network, at an address that means nothing there.
+    writeContract({
+      ...base,
+      chainId: valuechain.id,
+      functionName: "mint",
+      args: [address!],
+      value: price,
+    });
   };
 
   // A collection whose owner never opened minting has nothing to offer here, and

@@ -286,13 +286,20 @@ export function useTrade(collection: `0x${string}` | undefined) {
 }
 
 /**
- * The bidder's side of the WSOSO plumbing: how much they hold, how much the
- * marketplace may spend, and the two transactions that fix either.
+ * The bidder's side of the WSOSO plumbing: how much they hold, how much a given
+ * contract may spend, and the two transactions that fix either.
  *
  * Kept separate from `useTrade` because it is the only part that is about a
  * currency rather than a token, and only the offer UI needs it.
+ *
+ * `spender` is required rather than defaulting to the marketplace. There are two
+ * contracts that can spend this allowance now — the marketplace for token
+ * offers, the offers contract for collection offers — and an allowance read
+ * against the wrong one reports "approved" when nothing is approved, so the
+ * bidder's offer is unfillable and nothing on screen says why. Making it
+ * required is what surfaces every call site at compile time.
  */
-export function useWsoso(needed: bigint) {
+export function useWsoso(needed: bigint, spender: `0x${string}`) {
   const { address } = useAccount();
   const on = { query: { enabled: address !== undefined, refetchInterval: 15_000 } };
 
@@ -308,7 +315,7 @@ export function useWsoso(needed: bigint) {
     address: WSOSO,
     abi: WsosoAbi,
     functionName: "allowance",
-    args: address === undefined ? undefined : [address, deployment.marketplace],
+    args: address === undefined ? undefined : [address, spender],
     ...on,
   });
 
@@ -345,9 +352,9 @@ export function useWsoso(needed: bigint) {
       address: WSOSO,
       abi: WsosoAbi,
       functionName: "approve",
-      args: [deployment.marketplace, maxUint256],
+      args: [spender, maxUint256],
     });
-  }, [reset, writeContract]);
+  }, [reset, spender, writeContract]);
 
   const held = (balance as bigint | undefined) ?? 0n;
   const approved = (allowance as bigint | undefined) ?? 0n;

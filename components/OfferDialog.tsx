@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useOffers } from "@/hooks/useOffers";
-import { OfferForm } from "@/components/OfferForm";
+import { OfferForm, useTokenOfferTarget } from "@/components/OfferForm";
 import { formatSoso, shortAddress } from "@/lib/format";
 import { whenExpires } from "@/components/Offers";
 import "./OfferDialog.css";
@@ -32,6 +32,7 @@ export function OfferDialog({
   onClose: () => void;
 }) {
   const { offers, mine } = useOffers(collection, tokenId);
+  const offerTarget = useTokenOfferTarget(collection, tokenId);
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
@@ -86,12 +87,7 @@ export function OfferDialog({
             <p className="od-empty">No offers on this one yet.</p>
           )}
 
-          <OfferForm
-            collection={collection}
-            tokenId={tokenId}
-            replacing={mine !== undefined}
-            onDone={() => undefined}
-          />
+          <OfferForm target={offerTarget} replacing={mine !== undefined} onDone={() => undefined} />
         </div>
       </div>
     </>,

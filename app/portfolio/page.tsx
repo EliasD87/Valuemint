@@ -3,8 +3,11 @@
 import { useMemo } from "react";
 import Link from "next/link";
 import { useAccount, useBalance, useConnect, useReadContract, useWriteContract } from "wagmi";
+import { useQueryClient } from "@tanstack/react-query";
 import { ValueChainMarketplaceAbi, deployment } from "@/config/contracts";
+import { valuechain } from "@/config/chain";
 import { useHoldings } from "@/hooks/useHoldings";
+import { OfferInbox } from "@/components/OfferInbox";
 import { TokenCard, TokenCardSkeleton } from "@/components/TokenCard";
 import { formatSoso } from "@/lib/format";
 import "@/styles/home.css";
@@ -26,6 +29,18 @@ export default function Portfolio() {
   });
 
   const { writeContract, isPending: claiming } = useWriteContract();
+
+  /**
+   * Accepting an offer changes everything this page reads at once: the piece
+   * leaves, its listing dies with it, the offer is consumed and the balance
+   * moves. Rather than name four query keys and get one wrong, invalidate the
+   * lot — it happens once per sale, not on a timer.
+   */
+  const queryClient = useQueryClient();
+  const afterSale = () => {
+    void queryClient.invalidateQueries();
+    void refetchPending();
+  };
 
   const listed = mine.filter((t) => t.listing !== undefined);
   const asking = listed.reduce((sum, t) => sum + (t.listing?.price ?? 0n), 0n);
@@ -112,6 +127,7 @@ export default function Portfolio() {
             disabled={claiming}
             onClick={() => {
               writeContract({
+                chainId: valuechain.id,
                 address: deployment.marketplace,
                 abi: ValueChainMarketplaceAbi,
                 functionName: "withdraw",
@@ -123,6 +139,13 @@ export default function Portfolio() {
           </button>
         </div>
       ) : null}
+
+      {/*
+        Above the grid on purpose: it is the only thing on this page that is
+        somebody else's money waiting on a decision. It renders nothing at all
+        when no offer stands on anything held, so a quiet portfolio stays quiet.
+      */}
+      <OfferInbox holdings={mine} onChange={afterSale} />
 
       {unlistable.length > 0 ? (
         <p className="portfolio-note">

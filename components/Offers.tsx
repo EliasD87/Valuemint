@@ -5,7 +5,7 @@ import { useAccount } from "wagmi";
 import { useOffers } from "@/hooks/useOffers";
 import { useTrade } from "@/hooks/useTrade";
 import { formatSoso, shortAddress } from "@/lib/format";
-import { OfferForm } from "@/components/OfferForm";
+import { OfferForm, useTokenOfferTarget } from "@/components/OfferForm";
 import { TxResult } from "@/components/TxResult";
 import "./Offers.css";
 import { Soso } from "@/components/Soso";
@@ -50,11 +50,27 @@ export function Offers({
 
   /** Only accept and withdraw run from here; the form owns its own writes. */
   const trade = useTrade(collection);
+  const offerTarget = useTokenOfferTarget(collection, tokenId);
 
   const after = () => {
     onChange();
     void refetch();
+    // Approving is one of the writes that lands here, and it is the one that
+    // changes what the buttons below should say.
+    void trade.refetchApproval();
   };
+
+  /**
+   * Accepting moves the token, so the marketplace needs the same approval
+   * listing needs — and `acceptOffer` reverts without it.
+   *
+   * This panel did not ask for it. Listing did, on the same page, a few inches
+   * up, so an owner who had listed before never saw the gap; an owner who had
+   * only ever been offered on saw an Accept button that failed in the wallet
+   * with a bare revert. The approval is per collection and permanent, which is
+   * why one holder can hit this and another never does.
+   */
+  const mustApprove = isOwner && trade.needsApproval;
 
   // On the receipt, never on the click - see the note in TokenView.
   useEffect(() => {
@@ -72,6 +88,14 @@ export function Offers({
           </span>
         ) : null}
       </div>
+
+      {mustApprove && offers.length > 0 ? (
+        <p className="offers-approve-note">
+          Before you can accept, the marketplace needs permission to move this piece when it
+          sells. One transaction, once per collection — the piece stays in your wallet until
+          somebody buys it.
+        </p>
+      ) : null}
 
       {offers.length === 0 ? (
         <p className="offers-empty">No offers yet.</p>
@@ -97,9 +121,11 @@ export function Offers({
                   /* The price seen is passed as the floor: a bidder can overwrite
                      their own offer downward, and the contract reverts rather
                      than settling at the lower number. */
-                  onClick={() => trade.acceptOffer(tokenId, o.bidder, o.price)}
+                  onClick={() =>
+                    mustApprove ? trade.approve() : trade.acceptOffer(tokenId, o.bidder, o.price)
+                  }
                 >
-                  Accept
+                  {mustApprove ? "Approve first" : "Accept"}
                 </button>
               ) : o.mine ? (
                 <button
@@ -132,12 +158,7 @@ export function Offers({
           <p className="offers-make-title">
             {mine === undefined ? "Make an offer" : "Replace your offer"}
           </p>
-          <OfferForm
-            collection={collection}
-            tokenId={tokenId}
-            replacing={mine !== undefined}
-            onDone={after}
-          />
+          <OfferForm target={offerTarget} replacing={mine !== undefined} onDone={after} />
         </div>
       )}
     </div>

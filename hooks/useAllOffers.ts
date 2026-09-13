@@ -5,12 +5,21 @@ import { usePublicClient, useReadContracts } from "wagmi";
 import { useQuery } from "@tanstack/react-query";
 import { ValueChainMarketplaceAbi, deployment } from "@/config/contracts";
 import { FROM_BLOCK, scanLogs } from "@/lib/logScan";
+import {
+  offerKey,
+  summariseOffers,
+  type OfferBid,
+  type OfferState,
+  type OfferSummary,
+} from "@/lib/offers";
 
-export interface OfferSummary {
-  /** Highest live offer on the token, in wei. */
-  best: bigint;
-  count: number;
-}
+/**
+ * Re-exported so existing callers keep importing offers from one place. The
+ * summarising itself lives in `lib/offers.ts`, where it can be tested: pairing
+ * the top price with the wrong bidder is invisible on screen and fatal in the
+ * wallet.
+ */
+export { offerKey, type OfferSummary };
 
 const OFFER_MADE = {
   type: "event",
@@ -25,34 +34,37 @@ const OFFER_MADE = {
   ],
 } as const;
 
-export const offerKey = (collection: string, id: bigint | string): string =>
-  `${collection.toLowerCase()}-${id.toString()}`;
-
 /**
- * Every live offer on the marketplace, keyed by token.
+ * Everyone who has ever bid on anything, marketplace-wide, as (token, bidder).
  *
- * Deliberately one query for the whole marketplace rather than one per token.
- * `useOffers` scans logs filtered to a single token, which is right on a detail
- * page and ruinous in a grid: twenty cards would mean twenty log scans of the
- * same contract for the same reason.
+ * One query for the whole marketplace, never one per token, and this is not a
+ * micro-optimisation. `getOffer` is keyed by bidder, so the set of bidders can
+ * only come from `OfferMade` logs, and ValueChain's public RPC caps
+ * `eth_getLogs` by range — which makes a scan of the marketplace's history 109
+ * sequential requests taking about 25 seconds on a good connection.
  *
- * Because the query key is constant, React Query collapses every card's call
- * into a single fetch and hands them all the same cached result — so a grid of
- * cards costs exactly what one card costs.
+ * The token page used to run its own copy of that, filtered to one id. It
+ * returned the right answer and took half a minute to do it, so an owner who
+ * opened their piece read "No offers yet" over a live offer and closed the tab.
+ * Five token pages meant five such scans, each finding at most a handful of
+ * logs the unfiltered one had already seen.
  *
- * As in `useOffers`, the logs only say an offer was once made. The contract
- * says whether it still stands, and only offers that read back with a price and
- * an unexpired deadline survive.
+ * Sharing one constant query key is what fixes that: React Query collapses
+ * every caller into a single fetch, and `scanLogs` remembers how far it has
+ * read, so every refetch after the first costs one `eth_blockNumber` and at
+ * most one small range.
  */
-export function useAllOffers() {
+export function useOfferBids() {
   const client = usePublicClient();
 
-  const { data: bids } = useQuery({
+  return useQuery({
     queryKey: ["all-offer-bids"],
     enabled: client !== undefined,
-    staleTime: 60_000,
-    refetchInterval: 120_000,
-    queryFn: async () => {
+    // Cheap to repeat once the first scan is done, so this can be brisk: an
+    // offer arriving should not take two minutes to appear to its recipient.
+    staleTime: 20_000,
+    refetchInterval: 30_000,
+    queryFn: async (): Promise<OfferBid[]> => {
       const logs = await scanLogs(client!, {
         address: deployment.marketplace,
         event: OFFER_MADE,
@@ -61,7 +73,7 @@ export function useAllOffers() {
 
       // One entry per (token, bidder); a bidder who re-offers overwrites their
       // own, so the latest log for a pair is the only one worth checking.
-      const seen = new Map<string, { collection: `0x${string}`; id: bigint; bidder: `0x${string}` }>();
+      const seen = new Map<string, OfferBid>();
       for (const log of logs) {
         const a = log.args as {
           collection?: `0x${string}`;
@@ -78,6 +90,17 @@ export function useAllOffers() {
       return [...seen.values()];
     },
   });
+}
+
+/**
+ * Every live offer on the marketplace, keyed by token.
+ *
+ * The logs only say an offer was once made. The contract says whether it still
+ * stands, and only offers that read back with a price and an unexpired deadline
+ * survive.
+ */
+export function useAllOffers() {
+  const { data: bids } = useOfferBids();
 
   const { data: raw } = useReadContracts({
     contracts: (bids ?? []).map((b) => ({
@@ -90,25 +113,14 @@ export function useAllOffers() {
   });
 
   return useMemo(() => {
-    const byToken = new Map<string, OfferSummary>();
-    if (bids === undefined || raw === undefined) return byToken;
-    const now = BigInt(Math.floor(Date.now() / 1000));
+    if (bids === undefined || raw === undefined) return new Map<string, OfferSummary>();
 
-    bids.forEach((b, i) => {
-      const r = raw[i];
-      if (r?.status !== "success") return;
-      const o = r.result as { price: bigint; expiry: bigint };
-      if (o.price === 0n) return;
-      if (o.expiry !== 0n && o.expiry <= now) return;
+    // A failed read is not an absent offer, so it is passed through as
+    // undefined and skipped rather than being read as a zero price.
+    const states = raw.map((r) =>
+      r?.status === "success" ? (r.result as OfferState) : undefined,
+    );
 
-      const k = offerKey(b.collection, b.id);
-      const prev = byToken.get(k);
-      byToken.set(k, {
-        best: prev === undefined || o.price > prev.best ? o.price : prev.best,
-        count: (prev?.count ?? 0) + 1,
-      });
-    });
-
-    return byToken;
+    return summariseOffers(bids, states, BigInt(Math.floor(Date.now() / 1000)));
   }, [bids, raw]);
 }

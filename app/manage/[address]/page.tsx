@@ -11,6 +11,8 @@ import {
   useWriteContract,
 } from "wagmi";
 import { ValueChainCollectionAbi, deployment } from "@/config/contracts";
+import { valuechain } from "@/config/chain";
+import { explainTxError } from "@/lib/txError";
 import { formatCount, formatSoso, shortAddress } from "@/lib/format";
 import "@/styles/manage.css";
 
@@ -89,10 +91,22 @@ export default function ManageCollection({ params }: { params: Promise<{ address
   const reserveLeft =
     reserve !== undefined && ownerHolds !== undefined ? reserve - ownerHolds : undefined;
 
+  /**
+   * `chainId` is not optional here, however redundant it looks.
+   *
+   * Without it wagmi sends to whatever network the wallet happens to be on. A
+   * wallet left on a local dev chain therefore broadcast `withdraw` to a node
+   * that has never heard of this collection, and the failure came back as the
+   * node's own "Requested resource not available" — which reads like the money
+   * is gone rather than like the wrong network is selected. With it, wagmi
+   * refuses up front and says which chain it wanted.
+   *
+   * Every write in `useTrade` already carries this. These did not.
+   */
   const call = (functionName: string, args: unknown[]) => {
     reset();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    writeContract({ ...base, functionName, args } as any);
+    writeContract({ ...base, chainId: valuechain.id, functionName, args } as any);
   };
 
   if (!valid) {
@@ -150,13 +164,7 @@ export default function ManageCollection({ params }: { params: Promise<{ address
         <Stat label="Per wallet" value={perWallet === 0n ? "No cap" : formatCount(perWallet)} />
       </div>
 
-      {error !== null ? (
-        <p className="manage-error">
-          {/rejected|denied|User denied/i.test(error.message)
-            ? "You cancelled the transaction."
-            : error.message.slice(0, 220)}
-        </p>
-      ) : null}
+      {error !== null ? <p className="manage-error">{explainTxError(error.message, 220)}</p> : null}
 
       <div className="manage-grid">
         {/* --- the switch that matters most --------------------------- */}
