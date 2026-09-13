@@ -44,6 +44,19 @@ export const HIDDEN_COLLECTIONS: HiddenCollection[] = [
       "Test Skills (SKILL) — test collection, 4 minted, owned by the deployer. " +
       "Placeholder artwork, no listings.",
   },
+  {
+    address: "0x5B19c316BFC7Ce001Eb844990dEfdF7BF102B4ef",
+    reason:
+      "Free Skills (FREE) — a third-party airdrop that arrived through the " +
+      "explorer's token index rather than the factory, and sorted to the top of " +
+      "the marketplace. Owned by 0x279814B5…15f5; 7 tokens across 7 wallets, " +
+      "every one of them pointing at the same ipfs:// document, so it has one " +
+      "picture and no per-token metadata. It implements none of the factory's " +
+      "interface — no baseURI, mintPrice, maxSupply or publicMintEnabled — so " +
+      "the mint and manage pages have nothing to show for it either. " +
+      "Hidden from listings at the owner's request; still fully tradeable on " +
+      "chain and still reachable at /collection/<address>.",
+  },
 ];
 
 /**
