@@ -143,4 +143,40 @@ describe("scanLogs", () => {
     const { client } = fakeClient({ head: 4_000n, capBlocks: 1n });
     await expect(scanLogs(client, params(0n))).rejects.toThrow();
   });
+
+  /**
+   * The bug this guards against shipped on 2026-09-13 and ran in production for
+   * three days. ValueChain's `eth_getLogs` cap dropped from 600,000 blocks to
+   * 30,000 between one measurement and the next, so every chunk was refused,
+   * halved to something that worked, then doubled straight back to the refused
+   * width — half of every scan's requests were failures rediscovering a limit
+   * the previous chunk had already found.
+   */
+  it("does not climb back to a width the endpoint already refused", async () => {
+    const cap = CHUNK / 8n;
+    const { client, calls } = fakeClient({ head: CHUNK * 4n, capBlocks: cap });
+    await scanLogs(client, params(0n));
+
+    const refused = calls.filter((c) => c.to - c.from + 1n > cap);
+    // Finding the ceiling costs a few failures; living with it must cost none.
+    expect(refused.length).toBeLessThanOrEqual(4);
+
+    // And once found, every later request stays inside it.
+    const tail = calls.slice(refused.length + 1);
+    for (const c of tail) expect(c.to - c.from + 1n).toBeLessThanOrEqual(cap);
+  });
+
+  it("carries the learned ceiling into the next scan, not just the current one", async () => {
+    const cap = CHUNK / 8n;
+    const first = fakeClient({ head: CHUNK * 2n, capBlocks: cap });
+    await scanLogs(first.client, params(0n));
+    const firstFailures = first.calls.filter((c) => c.to - c.from + 1n > cap).length;
+    expect(firstFailures).toBeGreaterThan(0);
+
+    // A different query, same endpoint: it should not rediscover the limit.
+    const second = fakeClient({ head: CHUNK * 2n, capBlocks: cap });
+    await scanLogs(second.client, params(1n));
+
+    expect(second.calls.filter((c) => c.to - c.from + 1n > cap)).toHaveLength(0);
+  });
 });

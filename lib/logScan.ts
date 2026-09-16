@@ -10,25 +10,49 @@ export const FROM_BLOCK = 13_736_386n;
  * How many blocks to ask for at once.
  *
  * Most public RPCs cap `eth_getLogs` by range, by result count, or by both, and
- * they disagree about the limit. This is a starting guess, not a constraint —
- * `scanLogs` halves on refusal and creeps back up — so the only cost of aiming
- * high is a couple of wasted round trips against a stricter endpoint.
+ * they disagree about the limit — and, as this project has now learned twice,
+ * the same endpoint disagrees with itself over time.
  *
- * It was 5,000, chosen to be inside every common cap, and that was expensive in
- * a way nothing measured until offers went missing. Measured against both
- * endpoints on 2026-09-13:
+ * History, all measured against both ValueChain endpoints rather than guessed:
  *
- *   mainnet.valuechain.xyz  600,000 blocks in one request, 354ms
- *   rpc.valuechain.xyz      10,000 fine, 50,000 refused
+ *   originally      5,000  chosen to be inside every common cap. A full scan of
+ *                          the marketplace was 134 requests and 41s, which is
+ *                          why a token page could show "No offers yet" over a
+ *                          live offer for half a minute.
+ *   2026-09-13    100,000  the primary accepted 600,000 blocks in 354ms, so the
+ *                          cap looked generous and this was raised to suit.
+ *   2026-09-16     20,000  it does not any more. Both endpoints now take 30,000
+ *                          and refuse 35,000. At 100,000 every chunk was
+ *                          refused, halved four times and retried: 54 requests
+ *                          for a full scan, **27 of them failures**.
  *
- * At 5,000 the marketplace's own history was 109 sequential requests and about
- * 25 seconds, which is why a token page could show "No offers yet" over a live
- * offer for half a minute. At 100,000 the primary does it in six.
+ * 20,000 sits comfortably inside the measured 30,000 ceiling on both endpoints,
+ * and a full scan costs 34 requests and 10.5s with nothing wasted.
+ *
+ * The number matters less than `ceiling` below, which is what stops the next
+ * change of theirs from costing a failure on every chunk again.
  */
-export const CHUNK = 100_000n;
+export const CHUNK = 20_000n;
 
 /** Below this a range is not worth splitting further — the endpoint is refusing for another reason. */
 const MIN_CHUNK = 250n;
+
+/**
+ * The largest range this endpoint has actually accepted, learned at runtime.
+ *
+ * Without this, halving on failure and doubling on success oscillate against
+ * each other forever: the scan drops to a size that works, immediately doubles
+ * back to the size that just failed, fails again, halves again. That is exactly
+ * what shipped on 2026-09-13 — half of every scan's requests were failures
+ * whose only purpose was to rediscover a limit the previous chunk had already
+ * found.
+ *
+ * Lowering this is permanent for the life of the page, so an endpoint that
+ * tightens its cap costs one failed request per session rather than one per
+ * chunk. It is module scope on purpose: every scan on the page shares what any
+ * one of them learned.
+ */
+let ceiling = CHUNK;
 
 interface Cached {
   /** Highest block already scanned, inclusive. */
@@ -86,7 +110,8 @@ export async function scanLogs(
     return collected as Array<{ args: unknown; blockNumber: bigint }>;
   }
 
-  let chunk = CHUNK;
+  // Start no wider than this endpoint has already proved it will accept.
+  let chunk = ceiling;
   while (cursor <= latest) {
     const to = cursor + chunk - 1n > latest ? latest : cursor + chunk - 1n;
     try {
@@ -100,13 +125,17 @@ export async function scanLogs(
       collected.push(...logs);
       cursor = to + 1n;
       // Creep back up after a successful chunk, so one bad range does not pin
-      // the scan at a small window for the rest of the session.
-      if (chunk < CHUNK) chunk = chunk * 2n > CHUNK ? CHUNK : chunk * 2n;
+      // the scan at a small window — but never back to a width already refused.
+      if (chunk < ceiling) chunk = chunk * 2n > ceiling ? ceiling : chunk * 2n;
     } catch (err) {
       if (chunk > MIN_CHUNK) {
-        // Almost always "range too large" or "too many results". Halve and retry
-        // the same start block.
+        /**
+         * Almost always "range too large" or "too many results". Halve, retry
+         * the same start block, and remember not to come back up here — this
+         * width is now known bad for the rest of the session.
+         */
         chunk = chunk / 2n;
+        if (chunk < ceiling) ceiling = chunk;
         continue;
       }
       /**
@@ -123,7 +152,14 @@ export async function scanLogs(
   return collected as Array<{ args: unknown; blockNumber: bigint }>;
 }
 
-/** Drop cached ranges — used after an action that should show up immediately. */
+/**
+ * Drop cached ranges — used after an action that should show up immediately.
+ *
+ * The learned ceiling goes with them. It is an observation about an endpoint,
+ * not about a query, but it is module state either way, and a test that leaves
+ * it lowered would silently change the next test's behaviour.
+ */
 export function resetLogCache(): void {
   cache.clear();
+  ceiling = CHUNK;
 }
