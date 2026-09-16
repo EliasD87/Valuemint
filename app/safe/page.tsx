@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAccount, useConnect, useReadContract, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
 import { parseGwei } from "viem";
 import { valuechain } from "@/config/chain";
@@ -27,7 +27,20 @@ import "./safe.css";
  * to anyone buying an NFT.
  */
 
-const SAFE = "0xf228647Ca250244c5CE622FC5230B30d399575d5" as const;
+/**
+ * The Safe's address is not baked in.
+ *
+ * Everything this page displays is already public — a marketplace's `owner()`
+ * returns the Safe, `getOwners()` is a public view, and every approval is a
+ * public transaction. But "discoverable by reading the chain" and "printed on
+ * the project's own domain under a heading naming it as the thing that controls
+ * the project" are different amounts of exposure, and the second one is a
+ * targeting aid for whoever wants to phish an owner.
+ *
+ * So the address arrives in the URL (`/safe?safe=0x…`). Anyone who already
+ * knows it loses nothing; the page itself tells a stranger nothing at all, and
+ * there is no longer a crawlable document linking three wallets to this brand.
+ */
 const ZERO = "0x0000000000000000000000000000000000000000" as const;
 
 /**
@@ -111,10 +124,18 @@ export default function SafeConsole() {
   const { address, isConnected } = useAccount();
   const { connect, connectors, isPending: connecting } = useConnect();
 
-  const [to, setTo] = useState("0xb1153Aa3dbADD59e3e6aa61452f2DAa90b99A859");
+  // Read once on mount rather than through a router hook, so the page is a
+  // plain static document with nothing about this Safe in the bundle.
+  const [safeAddress, setSafeAddress] = useState<`0x${string}` | undefined>(undefined);
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search).get("safe") ?? "";
+    if (/^0x[0-9a-fA-F]{40}$/.test(p)) setSafeAddress(p as `0x${string}`);
+  }, []);
+
+  const [to, setTo] = useState("");
   const [data, setData] = useState("0x79ba5097");
 
-  const base = { address: SAFE, abi: safeAbi } as const;
+  const base = { address: safeAddress, abi: safeAbi, query: { enabled: safeAddress !== undefined } } as const;
   const { data: owners } = useReadContract({ ...base, functionName: "getOwners" });
   const { data: threshold } = useReadContract({ ...base, functionName: "getThreshold" });
   const { data: safeNonce, refetch: refetchNonce } = useReadContract({ ...base, functionName: "nonce" });
@@ -129,7 +150,7 @@ export default function SafeConsole() {
     args: validTo && validData && safeNonce !== undefined
       ? [to.trim() as `0x${string}`, 0n, data.trim() as `0x${string}`, 0, 0n, 0n, 0n, ZERO, ZERO, safeNonce]
       : undefined,
-    query: { enabled: validTo && validData && safeNonce !== undefined },
+    query: { enabled: safeAddress !== undefined && validTo && validData && safeNonce !== undefined },
   });
 
   const what = KNOWN_CALLS[data.trim().slice(0, 10).toLowerCase()] ?? "an unrecognised call — check the calldata";
@@ -146,15 +167,21 @@ export default function SafeConsole() {
 
       <p className="safe-intro">
         Safe&rsquo;s own app doesn&rsquo;t support ValueChain, so this is where owners approve.
-        Your key never leaves your wallet. Two of the three owners must approve before anything
-        happens.
+        Your key never leaves your wallet, and the threshold must be met before anything happens.
       </p>
+
+      {safeAddress === undefined ? (
+        <p className="safe-warn">
+          No Safe named. Open this page with <span className="mono">?safe=0x…</span> on the end —
+          the address isn&rsquo;t stored here, so the page tells nobody anything on its own.
+        </p>
+      ) : null}
 
       <div className="safe-grid">
         <div className="safe-card card">
           <p className="eyebrow">The Safe</p>
           <dl className="safe-facts">
-            <div><dt>Address</dt><dd className="mono">{shortAddress(SAFE, 6)}</dd></div>
+            <div><dt>Address</dt><dd className="mono">{safeAddress === undefined ? "—" : shortAddress(safeAddress, 6)}</dd></div>
             <div><dt>Rule</dt><dd>{ready ? `${threshold} of ${owners.length}` : "…"}</dd></div>
             <div><dt>Next nonce</dt><dd className="mono">{ready ? String(safeNonce) : "…"}</dd></div>
           </dl>
@@ -211,6 +238,7 @@ export default function SafeConsole() {
             </button>
           ) : (
             <ApproveRow
+              safeAddress={safeAddress}
               owners={owners}
               threshold={threshold}
               txHash={txHash}
@@ -226,8 +254,9 @@ export default function SafeConsole() {
 }
 
 function ApproveRow({
-  owners, threshold, txHash, to, data, onDone,
+  safeAddress, owners, threshold, txHash, to, data, onDone,
 }: {
+  safeAddress: `0x${string}` | undefined;
   owners: readonly `0x${string}`[] | undefined;
   threshold: bigint | undefined;
   txHash: `0x${string}` | undefined;
@@ -249,19 +278,19 @@ function ApproveRow({
 
   // One read per owner, so the page shows who is still missing rather than only a count.
   const a0 = useReadContract({
-    address: SAFE, abi: safeAbi, functionName: "approvedHashes",
+    address: safeAddress, abi: safeAbi, functionName: "approvedHashes",
     args: owners?.[0] !== undefined && txHash !== undefined ? [owners[0], txHash] : undefined,
-    query: { enabled: owners?.[0] !== undefined && txHash !== undefined, refetchInterval: 6000 },
+    query: { enabled: safeAddress !== undefined && owners?.[0] !== undefined && txHash !== undefined, refetchInterval: 6000 },
   });
   const a1 = useReadContract({
-    address: SAFE, abi: safeAbi, functionName: "approvedHashes",
+    address: safeAddress, abi: safeAbi, functionName: "approvedHashes",
     args: owners?.[1] !== undefined && txHash !== undefined ? [owners[1], txHash] : undefined,
-    query: { enabled: owners?.[1] !== undefined && txHash !== undefined, refetchInterval: 6000 },
+    query: { enabled: safeAddress !== undefined && owners?.[1] !== undefined && txHash !== undefined, refetchInterval: 6000 },
   });
   const a2 = useReadContract({
-    address: SAFE, abi: safeAbi, functionName: "approvedHashes",
+    address: safeAddress, abi: safeAbi, functionName: "approvedHashes",
     args: owners?.[2] !== undefined && txHash !== undefined ? [owners[2], txHash] : undefined,
-    query: { enabled: owners?.[2] !== undefined && txHash !== undefined, refetchInterval: 6000 },
+    query: { enabled: safeAddress !== undefined && owners?.[2] !== undefined && txHash !== undefined, refetchInterval: 6000 },
   });
 
   const approvers = useMemo(() => {
@@ -308,7 +337,7 @@ function ApproveRow({
           onClick={() =>
             writeContract({
               chainId: valuechain.id,
-              address: SAFE,
+              address: safeAddress!,
               abi: safeAbi,
               functionName: "approveHash",
               args: [txHash!],
@@ -327,7 +356,7 @@ function ApproveRow({
           onClick={() =>
             writeContract({
               chainId: valuechain.id,
-              address: SAFE,
+              address: safeAddress!,
               abi: safeAbi,
               functionName: "execTransaction",
               args: [
