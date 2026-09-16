@@ -7,12 +7,6 @@ import { Soso } from "@/components/Soso";
 import { TxResult } from "@/components/TxResult";
 import { whenExpires } from "@/components/Offers";
 import { useAllOffers, offerKey, type OfferSummary } from "@/hooks/useAllOffers";
-import {
-  collectionOffersEnabled,
-  useAllCollectionOffers,
-  type CollectionOffer,
-} from "@/hooks/useCollectionOffers";
-import { useCollectionOfferTrade } from "@/hooks/useCollectionOfferTrade";
 import { useTrade } from "@/hooks/useTrade";
 import { formatSoso, shortAddress } from "@/lib/format";
 import "./OfferInbox.css";
@@ -49,17 +43,8 @@ interface Row {
   offer: OfferSummary;
 }
 
-/** A collection-wide offer, paired with one piece the viewer could sell into it. */
-interface CollectionRow {
-  offer: CollectionOffer;
-  collectionName: string;
-  /** Every piece the viewer holds there; the seller picks which one goes. */
-  options: Held[];
-}
-
 export function OfferInbox({ holdings, onChange }: { holdings: Held[]; onChange: () => void }) {
   const offers = useAllOffers();
-  const { byCollection } = useAllCollectionOffers();
 
   const rows = useMemo<Row[]>(() => {
     const found: Row[] = [];
@@ -71,43 +56,14 @@ export function OfferInbox({ holdings, onChange }: { holdings: Held[]; onChange:
     return found.sort((a, b) => (b.offer.best > a.offer.best ? 1 : b.offer.best < a.offer.best ? -1 : 0));
   }, [holdings, offers]);
 
-  /**
-   * One row per collection, not per piece.
-   *
-   * A collection offer buys one piece, so listing it against all five Larpers
-   * somebody holds would promise five sales where there is money for one.
-   */
-  const collectionRows = useMemo<CollectionRow[]>(() => {
-    if (!collectionOffersEnabled) return [];
-
-    const mine = new Map<string, Held[]>();
-    for (const token of holdings) {
-      const k = token.collection.toLowerCase();
-      mine.set(k, [...(mine.get(k) ?? []), token]);
-    }
-
-    const found: CollectionRow[] = [];
-    for (const [k, options] of mine) {
-      // Only offers that can actually be paid, and never the viewer's own.
-      const offer = (byCollection.get(k) ?? []).find((o) => o.fillable && !o.mine);
-      if (offer === undefined) continue;
-      found.push({ offer, collectionName: options[0]!.collectionName, options });
-    }
-    return found.sort((a, b) =>
-      b.offer.price > a.offer.price ? 1 : b.offer.price < a.offer.price ? -1 : 0,
-    );
-  }, [holdings, byCollection]);
-
-  if (rows.length === 0 && collectionRows.length === 0) return null;
-
-  const total = rows.length + collectionRows.length;
+  if (rows.length === 0) return null;
 
   return (
     <div className="inbox card">
       <div className="inbox-head">
         <p className="eyebrow">Offers you can take</p>
         <span className="inbox-count">
-          {total === 1 ? "1 live offer" : `${total} live offers`}
+          {rows.length === 1 ? "1 live offer" : `${rows.length} live offers`}
         </span>
       </div>
 
@@ -115,109 +71,8 @@ export function OfferInbox({ holdings, onChange }: { holdings: Held[]; onChange:
         {rows.map((r) => (
           <InboxRow key={offerKey(r.token.collection, r.token.id)} row={r} onChange={onChange} />
         ))}
-        {collectionRows.map((r) => (
-          <CollectionInboxRow
-            key={`c-${r.offer.collection.toLowerCase()}-${r.offer.bidder}`}
-            row={r}
-            onChange={onChange}
-          />
-        ))}
       </ul>
     </div>
-  );
-}
-
-/**
- * An offer on a whole collection, with the piece the viewer would give up.
- *
- * Its own row type because the choice is different: a token offer is "sell this
- * one or don't", and this is "sell one of these".
- */
-function CollectionInboxRow({ row, onChange }: { row: CollectionRow; onChange: () => void }) {
-  const { offer, collectionName, options } = row;
-  const trade = useCollectionOfferTrade(offer.collection);
-  const [selling, setSelling] = useState<string>("");
-  const chosen = selling !== "" ? selling : options[0]!.id.toString();
-  const art = options.find((o) => o.id.toString() === chosen) ?? options[0]!;
-
-  // On the receipt, never on the click — see the note in TokenView.
-  useEffect(() => {
-    if (trade.isSuccess) {
-      onChange();
-      void trade.refetchApproval();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [trade.isSuccess, trade.hash]);
-
-  return (
-    <li className="inbox-row">
-      <span className="inbox-piece">
-        <span className="inbox-thumb">
-          {art.image !== undefined ? (
-            <Art src={art.image} alt="" sizes="56px" />
-          ) : (
-            <span className="inbox-thumb-empty" aria-hidden="true" />
-          )}
-        </span>
-        <span className="inbox-names">
-          <b>Any piece in {collectionName}</b>
-          <span className="inbox-coll">
-            {options.length === 1 ? "you hold 1" : `you hold ${options.length}`} · a
-            collection-wide bid
-          </span>
-        </span>
-      </span>
-
-      <span className="inbox-offer">
-        <Soso size={16} unit="WSOSO">
-          {formatSoso(offer.price)}
-        </Soso>
-        <span className="inbox-meta">
-          from {shortAddress(offer.bidder, 4)} · {whenExpires(offer.expiry)}
-        </span>
-      </span>
-
-      <span className="inbox-act">
-        {options.length > 1 ? (
-          <select
-            className="inbox-pick"
-            aria-label="Which piece to sell"
-            value={chosen}
-            onChange={(e) => setSelling(e.target.value)}
-          >
-            {options.map((o) => (
-              <option key={o.id.toString()} value={o.id.toString()}>
-                #{o.id.toString()}
-              </option>
-            ))}
-          </select>
-        ) : null}
-
-        <button
-          type="button"
-          className="btn btn-primary btn-sm"
-          disabled={trade.busy}
-          onClick={() =>
-            trade.needsApproval
-              ? trade.approve()
-              : trade.acceptOffer(BigInt(chosen), offer.bidder, offer.price)
-          }
-        >
-          {trade.busy ? "Working…" : trade.needsApproval ? "Approve first" : `Sell #${chosen}`}
-        </button>
-        {trade.needsApproval ? (
-          <span className="inbox-fine">Collection offers use their own contract.</span>
-        ) : null}
-      </span>
-
-      <TxResult
-        hash={trade.hash}
-        confirming={trade.confirming}
-        success={trade.isSuccess}
-        error={trade.error}
-        successLabel="Sold"
-      />
-    </li>
   );
 }
 
@@ -225,14 +80,14 @@ function CollectionInboxRow({ row, onChange }: { row: CollectionRow; onChange: (
  * One offer, with the button that takes it.
  *
  * A row rather than a loop body because accepting needs `useTrade`, and that
- * hook is scoped to a single collection — holdings can span several, and a
+ * hook is scoped to a single collection â€” holdings can span several, and a
  * hook cannot be called per iteration.
  */
 function InboxRow({ row, onChange }: { row: Row; onChange: () => void }) {
   const { token, offer } = row;
   const trade = useTrade(token.collection);
 
-  // On the receipt, never on the click — see the note in TokenView.
+  // On the receipt, never on the click â€” see the note in TokenView.
   useEffect(() => {
     if (trade.isSuccess) {
       onChange();
@@ -271,8 +126,8 @@ function InboxRow({ row, onChange }: { row: Row; onChange: () => void }) {
           {formatSoso(offer.best)}
         </Soso>
         <span className="inbox-meta">
-          {offer.count > 1 ? `best of ${offer.count} · ` : ""}
-          from {shortAddress(offer.bidder, 4)} · {whenExpires(offer.expiry)}
+          {offer.count > 1 ? `best of ${offer.count} Â· ` : ""}
+          from {shortAddress(offer.bidder, 4)} Â· {whenExpires(offer.expiry)}
         </span>
       </span>
 
@@ -288,7 +143,7 @@ function InboxRow({ row, onChange }: { row: Row; onChange: () => void }) {
             mustApprove ? trade.approve() : trade.acceptOffer(token.id, offer.bidder, offer.best)
           }
         >
-          {trade.busy ? "Working…" : mustApprove ? "Approve first" : "Accept"}
+          {trade.busy ? "Workingâ€¦" : mustApprove ? "Approve first" : "Accept"}
         </button>
         {mustApprove ? (
           <span className="inbox-fine">One approval per collection, then accept.</span>

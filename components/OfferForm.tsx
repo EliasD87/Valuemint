@@ -4,8 +4,6 @@ import { useEffect, useState } from "react";
 import { formatEther, parseEther } from "viem";
 import { deployment } from "@/config/contracts";
 import { useTrade, useWsoso } from "@/hooks/useTrade";
-import { COLLECTION_OFFERS_ADDRESS } from "@/hooks/useCollectionOffers";
-import { useCollectionOfferTrade } from "@/hooks/useCollectionOfferTrade";
 import { TxResult } from "@/components/TxResult";
 
 /**
@@ -197,23 +195,6 @@ export function useTokenOfferTarget(collection: `0x${string}`, tokenId: bigint):
     buying: "this piece",
     place: (amount, days) =>
       trade.makeOffer(tokenId, amount, BigInt(Math.floor(Date.now() / 1000) + days * 86_400)),
-    signing: trade.signing,
-    confirming: trade.confirming,
-    busy: trade.busy,
-    isSuccess: trade.isSuccess,
-    error: trade.error,
-    hash: trade.hash,
-  };
-}
-
-/** An offer on any piece in a collection, spent by the offers contract. */
-export function useCollectionOfferTarget(collection: `0x${string}`): OfferTarget {
-  const trade = useCollectionOfferTrade(collection);
-
-  return {
-    spender: COLLECTION_OFFERS_ADDRESS as `0x${string}`,
-    buying: "any piece in this collection",
-    place: (amount, days) => trade.makeOffer(amount, days),
     signing: trade.signing,
     confirming: trade.confirming,
     busy: trade.busy,

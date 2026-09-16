@@ -10,7 +10,6 @@ import type { Listing } from "@/hooks/useCollection";
 import { useGenericTokens } from "@/hooks/useGenericTokens";
 import { useTokenIds } from "@/hooks/useTokenIds";
 import { MintPanel } from "@/components/MintPanel";
-import { CollectionOffers } from "@/components/CollectionOffers";
 import { TokenCard, TokenCardSkeleton } from "@/components/TokenCard";
 import { ShareLink } from "@/components/ShareLink";
 import { formatCount, shortAddress } from "@/lib/format";
@@ -223,10 +222,6 @@ export function CollectionView({ params }: { params: Promise<{ address: string }
         </span>
         <span className="strip-item mono dim">{shortAddress(raw, 6)}</span>
       </div>
-
-      {/* Above the grid because it is about every piece in it, not one of them.
-          Renders nothing until the offers contract is deployed. */}
-      {collection !== undefined ? <CollectionOffers collection={collection} /> : null}
 
       {/* Only worth drawing once there is something to sort or filter. */}
       {tokens.length > 1 ? (
