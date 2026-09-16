@@ -15,6 +15,7 @@ function storageAvailable(): boolean {
   return filebaseAvailable() || pinningAvailable();
 }
 import { gatewayUrl, pinDirectory, pinningAvailable, verifyCredential } from "@/lib/pinning";
+import { randomUUID } from "node:crypto";
 import { authoriseUpload, precheckClaim } from "@/lib/uploadAuth";
 import { callerKey, limiter, limiterIsShared } from "@/lib/rateLimit";
 import { sniffImage, SVG_REFUSAL } from "@/lib/sniffImage";
@@ -216,6 +217,35 @@ export async function POST(request: Request) {
     );
   }
 
+  /**
+   * The seed is the shuffle input and nothing else.
+   *
+   * It used to be the storage prefix too, and that was the highest-severity
+   * finding this project carried: a seed is public — it is written into the
+   * pinned manifest whose CID sits in the collection's permanent `baseURI` — so
+   * anyone could read a creator's seed off chain, send their own signed upload
+   * naming that seed and a matching filename, and write into that creator's
+   * prefix. The signature proved who was uploading; it never constrained where.
+   *
+   * Two changes close it. The prefix below is built from the *verified*
+   * address, so nobody can write under anyone else's, and from a server-chosen
+   * UUID, so a prefix cannot be guessed or reused even by its own owner. The
+   * seed is validated and kept purely as the shuffle input.
+   *
+   * Nothing addresses stored artwork by path — the manifest records each
+   * design's CID (v2) or a directory CID (v1) and `/api/metadata` reads those —
+   * so changing where new uploads live cannot disturb a single existing
+   * collection.
+   */
+  if (typeof config.seed !== "string" || !/^[a-z0-9-]{8,40}$/.test(config.seed)) {
+    return NextResponse.json(
+      { error: "That collection's seed is not in the expected form." },
+      { status: 400 },
+    );
+  }
+
+  const storagePrefix = `collections/${auth.address.toLowerCase()}/${randomUUID()}`;
+
   const supply = supplyOf(config.designs as DesignInput[]);
   if (supply > MAX_SUPPLY) {
     return NextResponse.json(
@@ -317,10 +347,10 @@ export async function POST(request: Request) {
     let stored: { cid: string; files: number; bytes: number };
 
     if (filebaseAvailable()) {
-      // Keyed under the seed, which is unique per creation, so two collections
-      // that happen to share a filename cannot overwrite each other.
+      // Keyed under the uploader's own verified address and a fresh UUID. See
+      // `storagePrefix` above for why it is not keyed under the seed.
       const uploaded = await pinFiles(
-        files.map((f) => ({ ...f, name: `collections/${config.seed}/${f.name}` })),
+        files.map((f) => ({ ...f, name: `${storagePrefix}/${f.name}` })),
       );
 
       const cidByFile = new Map(
@@ -368,7 +398,7 @@ export async function POST(request: Request) {
     const manifestJson = `${JSON.stringify(manifest)}
 `;
     const pinnedManifest = filebaseAvailable()
-      ? await pinFile(`collections/${config.seed}/manifest.json`, manifestJson, "application/json")
+      ? await pinFile(`${storagePrefix}/manifest.json`, manifestJson, "application/json")
       : await pinDirectory(
           [{ name: "manifest.json", content: manifestJson, type: "application/json" }],
           `${config.collectionName}-manifest`,

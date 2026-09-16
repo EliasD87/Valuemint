@@ -1,0 +1,178 @@
+/*
+ * The multisig owner console.
+ *
+ * Plainer than the rest of the site on purpose: nothing here is being sold, and
+ * every element is either a fact to check or an irreversible action. Colour is
+ * spent only on approval state.
+ */
+
+.safe-page {
+  max-width: 980px;
+}
+
+.safe-intro {
+  margin: 0 0 1.5rem;
+  color: var(--ink-2);
+  max-width: 62ch;
+}
+
+.safe-grid {
+  display: grid;
+  grid-template-columns: minmax(240px, 300px) minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.safe-card {
+  padding: 1.1rem 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.safe-facts {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.safe-facts > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.75rem;
+}
+
+.safe-facts dt {
+  font-size: var(--step--2);
+  color: var(--ink-3);
+}
+
+.safe-facts dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.safe-owners {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  border-top: 1px solid var(--line);
+  padding-top: 0.75rem;
+}
+
+.safe-owners li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: var(--step--2);
+  color: var(--ink-2);
+}
+
+.safe-owners li.is-you b {
+  color: var(--accent);
+  font-size: var(--step--3);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.safe-reads {
+  background: var(--surface-2);
+  border-radius: var(--r-sm);
+  padding: 0.75rem 0.85rem;
+}
+
+.safe-reads p {
+  margin: 0;
+  font-size: var(--step--1);
+}
+
+.safe-reads p + p {
+  margin-top: 0.25rem;
+  font-size: var(--step--2);
+}
+
+.safe-hash-label {
+  margin: 0;
+  font-size: var(--step--3);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-3);
+}
+
+/* The hash has to be readable in full — it is the thing being checked. */
+.safe-hash {
+  margin: 0;
+  font-size: var(--step--2);
+  word-break: break-all;
+  line-height: 1.5;
+  background: var(--surface-2);
+  border-radius: var(--r-sm);
+  padding: 0.6rem 0.7rem;
+}
+
+.safe-fine {
+  margin: 0;
+  font-size: var(--step--2);
+  color: var(--ink-3);
+  line-height: 1.5;
+}
+
+.safe-warn {
+  margin: 0;
+  font-size: var(--step--2);
+  line-height: 1.5;
+  color: var(--warn);
+  background: var(--warn-wash);
+  border-radius: var(--r-sm);
+  padding: 0.7rem 0.8rem;
+}
+
+.safe-approvals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.safe-chip {
+  font-size: var(--step--3);
+  padding: 0.25rem 0.55rem;
+  border-radius: 100px;
+  background: var(--surface-2);
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.safe-chip.is-signed {
+  background: var(--up-wash, var(--surface-2));
+  color: var(--up, var(--ink));
+}
+
+.safe-page .field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.safe-page .field span {
+  font-size: var(--step--3);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-3);
+}
+
+.safe-page .input {
+  width: 100%;
+  font-size: var(--step--2);
+}
+
+@media (max-width: 760px) {
+  .safe-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
