@@ -1,7 +1,6 @@
 "use client";
 
-import { useReadContract } from "wagmi";
-import { ValueChainMarketplaceAbi, deployment } from "@/config/contracts";
+import { FEE_BPS } from "@/lib/seaport";
 import { useAllCollections } from "@/hooks/useAllCollections";
 
 /**
@@ -19,13 +18,6 @@ import { useAllCollections } from "@/hooks/useAllCollections";
 export function useChainStats() {
   const { collections, isLoading } = useAllCollections();
 
-  const { data: protocolFeeBps } = useReadContract({
-    address: deployment.marketplace,
-    abi: ValueChainMarketplaceAbi,
-    functionName: "protocolFeeBps",
-    query: { refetchInterval: 60_000 },
-  });
-
   // A collection whose supply has not loaded yet contributes nothing rather
   // than a zero that looks settled - `known` is what says whether the total is
   // complete, so the page can avoid presenting a partial sum as final.
@@ -39,7 +31,13 @@ export function useChainStats() {
     minted,
     capacity,
     openMints,
-    protocolFeeBps: protocolFeeBps ?? 0n,
+    /**
+     * Not a chain read any more. Seaport has no fee of its own - it pays exactly
+     * the consideration items an order names - so the marketplace's cut is
+     * decided when the order is built, by `FEE_BPS` in lib/seaport.ts. Asking a
+     * contract for it would be asking the wrong question.
+     */
+    protocolFeeBps: FEE_BPS,
     /** True once every collection's supply has been read. */
     complete: collections.length > 0 && withSupply.length === collections.length,
     isLoading,

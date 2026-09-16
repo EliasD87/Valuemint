@@ -2,9 +2,12 @@
 
 import { useEffect } from "react";
 import { useAccount } from "wagmi";
-import { useOffers } from "@/hooks/useOffers";
-import { useTrade } from "@/hooks/useTrade";
+import { useOffersForToken, useOwnOfferExposure } from "@/hooks/useSeaportOrders";
+import { useSeaportFill, useSeaportTrade } from "@/hooks/useSeaportTrade";
+import { useCanPayFeeInWsoso } from "@/hooks/useWsoso";
 import { formatSoso, shortAddress } from "@/lib/format";
+import { currencyLabel, splitFee } from "@/lib/seaport";
+import { deployment } from "@/config/contracts";
 import { OfferForm, useTokenOfferTarget } from "@/components/OfferForm";
 import { TxResult } from "@/components/TxResult";
 import "./Offers.css";
@@ -23,14 +26,15 @@ export function whenExpires(expiry: bigint): string {
 /**
  * Offers on one token: what stands, and the form to add to it.
  *
- * The contract has had `makeOffer`, `acceptOffer` and `withdrawOffer` since it
- * was deployed, with expiry and slippage guards, and nothing in the app ever
- * called them. Until recently an unlisted token was a dead end that said only
- * its owner could list it - true, and useless to someone who wants to buy it.
+ * Both kinds appear here — bids naming this exact piece, and bids on the whole
+ * collection that this piece satisfies. Keeping them in separate lists is what
+ * made a collection offer look unacceptable on every token's page, which is the
+ * bug that started this rebuild: an offer on SoDex Larpers #1 that five wallets
+ * holding other Larpers could see and none could take.
  *
- * Offers are denominated in WSOSO because the marketplace refuses native ones:
- * an allowance leaves the money in the bidder's wallet, so an offer can stand
- * indefinitely without the marketplace ever holding funds.
+ * Offers are denominated in WSOSO because an allowance leaves the money in the
+ * bidder's wallet. Native currency cannot be pulled, so the alternative would be
+ * a contract holding everyone's bids.
  *
  * The form itself lives in `OfferForm`, shared with the dialog a card opens.
  */
@@ -45,38 +49,53 @@ export function Offers({
   isOwner: boolean;
   onChange: () => void;
 }) {
-  const { isConnected } = useAccount();
-  const { offers, mine, refetch } = useOffers(collection, tokenId);
+  const { address, isConnected } = useAccount();
+  const { offers } = useOffersForToken(collection, tokenId);
 
   /** Only accept and withdraw run from here; the form owns its own writes. */
-  const trade = useTrade(collection);
+  const trade = useSeaportTrade(collection);
+  const fill = useSeaportFill();
   const offerTarget = useTokenOfferTarget(collection, tokenId);
+
+  /**
+   * Accepting costs the holder two permissions, and the second one is new.
+   *
+   * The NFT approval is the familiar one: Seaport cannot move the piece without
+   * it. The WSOSO allowance is not — Seaport pays the bid to the holder and then
+   * pulls the marketplace fee back out of it, so the holder needs an allowance
+   * even though they never need a balance. The previous marketplace took its cut
+   * from the money in flight and never asked, so this step is easy to forget and
+   * fails as a bare wallet revert when it is.
+   */
+  const best = offers[0];
+  const feeOnBest = best === undefined ? 0n : splitFee(best.priceWei).fee;
+  /**
+   * Allowances are exact, so approving for the fee alone would revoke the cover
+   * for any bid this wallet has standing elsewhere. Ask for both together.
+   */
+  const ownBids = useOwnOfferExposure(address, deployment.wsoso as `0x${string}`);
+  const feeAllowance = useCanPayFeeInWsoso(isOwner ? feeOnBest : 0n, ownBids);
 
   const after = () => {
     onChange();
-    void refetch();
-    // Approving is one of the writes that lands here, and it is the one that
-    // changes what the buttons below should say.
     void trade.refetchApproval();
+    void trade.refetchCounter();
+    feeAllowance.refetch();
   };
 
-  /**
-   * Accepting moves the token, so the marketplace needs the same approval
-   * listing needs — and `acceptOffer` reverts without it.
-   *
-   * This panel did not ask for it. Listing did, on the same page, a few inches
-   * up, so an owner who had listed before never saw the gap; an owner who had
-   * only ever been offered on saw an Accept button that failed in the wallet
-   * with a bare revert. The approval is per collection and permanent, which is
-   * why one holder can hit this and another never does.
-   */
-  const mustApprove = isOwner && trade.needsApproval;
+  const mustApproveToken = isOwner && trade.needsApproval;
+  const mustAllowFee = isOwner && !mustApproveToken && feeAllowance.needsAllowance;
+  const busy = trade.busy || fill.busy || feeAllowance.busy;
 
   // On the receipt, never on the click - see the note in TokenView.
   useEffect(() => {
-    if (trade.isSuccess) after();
+    if (trade.isSuccess || fill.isSuccess || feeAllowance.isSuccess) after();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [trade.isSuccess, trade.hash]);
+  }, [trade.isSuccess, trade.hash, fill.isSuccess, fill.hash, feeAllowance.isSuccess]);
+
+  const mine = offers.find(
+    (o) => address !== undefined && o.maker.toLowerCase() === address.toLowerCase(),
+  );
 
   return (
     <div className="offers">
@@ -84,16 +103,21 @@ export function Offers({
         <p className="eyebrow">Offers</p>
         {offers.length > 0 ? (
           <span className="offers-count">
-            {offers.length} live &middot; best {formatSoso(offers[0]!.price)} WSOSO
+            {offers.length} live &middot; best {formatSoso(offers[0]!.priceWei)} WSOSO
           </span>
         ) : null}
       </div>
 
-      {mustApprove && offers.length > 0 ? (
+      {mustApproveToken && offers.length > 0 ? (
         <p className="offers-approve-note">
           Before you can accept, the marketplace needs permission to move this piece when it
           sells. One transaction, once per collection — the piece stays in your wallet until
           somebody buys it.
+        </p>
+      ) : mustAllowFee && offers.length > 0 ? (
+        <p className="offers-approve-note">
+          One more permission: the marketplace fee is taken in WSOSO out of what you are paid.
+          Nothing leaves your wallet now, and you never need to hold WSOSO yourself.
         </p>
       ) : null}
 
@@ -101,64 +125,78 @@ export function Offers({
         <p className="offers-empty">No offers yet.</p>
       ) : (
         <ul className="offers-list">
-          {offers.map((o) => (
-            <li key={o.bidder} className={`offers-row${o.mine ? " is-mine" : ""}`}>
-              <span className="offers-price mono">
-                <Soso size={16} unit="WSOSO">
-                  {formatSoso(o.price)}
-                </Soso>
-              </span>
-              <span className="offers-who">
-                {o.mine ? "You" : shortAddress(o.bidder, 4)}
-                <span className="offers-when">{whenExpires(o.expiry)}</span>
-              </span>
+          {offers.map((o) => {
+            const isMine =
+              address !== undefined && o.maker.toLowerCase() === address.toLowerCase();
+            return (
+              <li key={o.hash} className={`offers-row${isMine ? " is-mine" : ""}`}>
+                <span className="offers-price mono">
+                  <Soso size={16} unit={currencyLabel(o.currency)}>
+                    {formatSoso(o.priceWei)}
+                  </Soso>
+                </span>
+                <span className="offers-who">
+                  {isMine ? "You" : shortAddress(o.maker, 4)}
+                  <span className="offers-when">
+                    {o.tokenId === undefined ? "any piece · " : ""}
+                    {whenExpires(o.endTime)}
+                  </span>
+                </span>
 
-              {isOwner ? (
-                <button
-                  type="button"
-                  className="btn btn-primary btn-sm"
-                  disabled={trade.busy}
-                  /* The price seen is passed as the floor: a bidder can overwrite
-                     their own offer downward, and the contract reverts rather
-                     than settling at the lower number. */
-                  onClick={() =>
-                    mustApprove ? trade.approve() : trade.acceptOffer(tokenId, o.bidder, o.price)
-                  }
-                >
-                  {mustApprove ? "Approve first" : "Accept"}
-                </button>
-              ) : o.mine ? (
-                <button
-                  type="button"
-                  className="btn btn-sm"
-                  disabled={trade.busy}
-                  onClick={() => trade.withdrawOffer(tokenId)}
-                >
-                  Withdraw
-                </button>
-              ) : (
-                <span />
-              )}
-            </li>
-          ))}
+                {isOwner ? (
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-sm"
+                    disabled={busy}
+                    /**
+                     * No price guard is needed here. A Seaport order is immutable
+                     * — a bidder cannot lower an offer in place, only cancel it
+                     * and make another, which is a different order with a
+                     * different hash. The previous marketplace needed `minPrice`
+                     * precisely because its offers could be overwritten downward
+                     * in the block before an accept landed.
+                     */
+                    onClick={() => {
+                      if (mustApproveToken) trade.approve();
+                      else if (mustAllowFee) feeAllowance.allow();
+                      else fill.acceptOffer(o, tokenId);
+                    }}
+                  >
+                    {mustApproveToken ? "Approve first" : mustAllowFee ? "Allow fee" : "Accept"}
+                  </button>
+                ) : isMine ? (
+                  <button
+                    type="button"
+                    className="btn btn-sm"
+                    disabled={busy}
+                    onClick={() => trade.cancelOrder(o)}
+                  >
+                    Withdraw
+                  </button>
+                ) : (
+                  <span />
+                )}
+              </li>
+            );
+          })}
         </ul>
       )}
 
       {/* Accepting or withdrawing reports here; the form reports inside itself. */}
       <TxResult
-        hash={trade.hash}
-        confirming={trade.confirming}
-        success={trade.isSuccess}
-        error={trade.error}
+        hash={fill.hash ?? trade.hash}
+        confirming={fill.confirming || trade.confirming}
+        success={fill.isSuccess || trade.isSuccess}
+        error={fill.error ?? trade.error ?? feeAllowance.error}
         successLabel="Done"
       />
 
       {isOwner || !isConnected ? null : (
         <div className="offers-make-wrap">
           <p className="offers-make-title">
-            {mine === undefined ? "Make an offer" : "Replace your offer"}
+            {mine === undefined ? "Make an offer" : "Make another offer"}
           </p>
-          <OfferForm target={offerTarget} replacing={mine !== undefined} onDone={after} />
+          <OfferForm target={offerTarget} replacing={false} onDone={after} />
         </div>
       )}
     </div>

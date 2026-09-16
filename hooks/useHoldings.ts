@@ -3,10 +3,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { useReadContracts } from "wagmi";
 import { erc721Abi } from "viem";
-import { ValueChainMarketplaceAbi, deployment } from "@/config/contracts";
+import { useBestListings } from "@/hooks/useSeaportOrders";
+import { toListing } from "@/lib/seaport";
 import { resolveMediaUrl } from "@/lib/format";
 import { useAllCollections } from "@/hooks/useAllCollections";
-import type { Listing, TokenMetadata } from "@/hooks/useCollection";
+import type { TokenMetadata } from "@/hooks/useCollection";
 import type { ChainToken } from "@/hooks/useEverything";
 
 /**
@@ -71,6 +72,9 @@ async function fetchLimited(urls: string[], limit: number) {
 export function useHoldings(address: `0x${string}` | undefined) {
   const { collections, isLoading: loadingCollections } = useAllCollections();
 
+  /** Listings come from the shared Seaport scan, not a call per token held. */
+  const { best: bestListings } = useBestListings();
+
   // How many of each collection this address holds.
   const { data: balances, isLoading: loadingBalances } = useReadContracts({
     contracts: collections.map((c) => ({
@@ -112,20 +116,17 @@ export function useHoldings(address: `0x${string}` | undefined) {
     .filter((v): v is { collection: (typeof collections)[number]; id: bigint } => v !== undefined);
 
   const { data: details, isLoading: loadingDetails } = useReadContracts({
-    contracts: held.flatMap((h) => [
-      { address: h.collection.address, abi: erc721Abi, functionName: "tokenURI" as const, args: [h.id] },
-      {
-        address: deployment.marketplace,
-        abi: ValueChainMarketplaceAbi,
-        functionName: "getListing" as const,
-        args: [h.collection.address, h.id],
-      },
-    ]),
+    contracts: held.map((h) => ({
+      address: h.collection.address,
+      abi: erc721Abi,
+      functionName: "tokenURI" as const,
+      args: [h.id],
+    })),
     query: { enabled: held.length > 0, refetchInterval: 25_000 },
   });
 
   const uris = held.map((_, i) => {
-    const entry = details?.[i * 2];
+    const entry = details?.[i];
     return entry?.status === "success" ? (entry.result as string) : undefined;
   });
 
@@ -138,8 +139,7 @@ export function useHoldings(address: `0x${string}` | undefined) {
   });
 
   const tokens: ChainToken[] = held.map((h, i) => {
-    const listingEntry = details?.[i * 2 + 1];
-    const listing = listingEntry?.status === "success" ? (listingEntry.result as Listing) : undefined;
+    const order = bestListings.get(`${h.collection.address.toLowerCase()}-${h.id}`);
     const m = metadata?.[i];
 
     return {
@@ -147,7 +147,7 @@ export function useHoldings(address: `0x${string}` | undefined) {
       collectionName: h.collection.name,
       id: h.id,
       owner: address,
-      listing: listing !== undefined && listing.seller !== ZERO ? listing : undefined,
+      listing: order === undefined ? undefined : toListing(order),
       metadata: m,
       design: traitOf(m, "Design") ?? m?.name,
       tier: traitOf(m, "Tier"),

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useAccount, useConnect, useReadContract, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
-import { parseGwei } from "viem";
+import { parseGwei, keccak256, stringToBytes } from "viem";
 import { valuechain } from "@/config/chain";
 import { deployment } from "@/config/contracts";
 import { TxResult } from "@/components/TxResult";
@@ -96,6 +96,14 @@ const safeAbi = [
  * so the number on screen is only trustworthy *because* it was derived from the
  * description above it.
  */
+/**
+ * keccak256 of the accepted Safe address, lower-cased.
+ *
+ * A hash rather than the address itself so this static document still names no
+ * wallet — see the note in the mount effect below.
+ */
+const PINNED_SAFE = "0xfc8d033038f406cca952c230b194dc7eca212f94bb6bb0841af7787532a2ec63";
+
 const KNOWN_CALLS: Record<string, string> = {
   "0x79ba5097": "acceptOwnership() — take ownership of the target contract",
   "0x8456cb59": "pause() — halt all trading",
@@ -127,9 +135,34 @@ export default function SafeConsole() {
   // Read once on mount rather than through a router hook, so the page is a
   // plain static document with nothing about this Safe in the bundle.
   const [safeAddress, setSafeAddress] = useState<`0x${string}` | undefined>(undefined);
+  const [rejected, setRejected] = useState(false);
   useEffect(() => {
     const p = new URLSearchParams(window.location.search).get("safe") ?? "";
-    if (/^0x[0-9a-fA-F]{40}$/.test(p)) setSafeAddress(p as `0x${string}`);
+    if (!/^0x[0-9a-fA-F]{40}$/.test(p)) return;
+
+    /**
+     * Well-formed is not the same as ours.
+     *
+     * Everything below is an assertion the named contract makes about itself:
+     * `getOwners` draws the owner chips, `approvedHashes` decides who has
+     * signed, and `getTransactionHash` produces the very number an owner is
+     * asked to approve. That last one is the page's whole safety argument — the
+     * hash is trustworthy *because* it was recomputed from the described call.
+     * Aimed at a contract an attacker wrote, the recomputation is theirs: they
+     * return the three real owner addresses so the chips look right, and the
+     * human-readable description sits above a hash that means nothing.
+     *
+     * So the address is checked against a pinned value. It is checked as a
+     * **hash** rather than a constant, which keeps the property the query
+     * parameter was added for: this document still names no wallet, so it
+     * discloses nothing to anyone who opens it. Someone who already knows the
+     * address can confirm it; nobody can read it off.
+     */
+    if (keccak256(stringToBytes(p.toLowerCase())) !== PINNED_SAFE) {
+      setRejected(true);
+      return;
+    }
+    setSafeAddress(p as `0x${string}`);
   }, []);
 
   const [to, setTo] = useState("");
@@ -170,7 +203,12 @@ export default function SafeConsole() {
         Your key never leaves your wallet, and the threshold must be met before anything happens.
       </p>
 
-      {safeAddress === undefined ? (
+      {rejected ? (
+        <p className="safe-warn">
+          That address is not the Safe this console knows, so nothing below will be shown for it.
+          If you believe it should be, check the address rather than approving anything here.
+        </p>
+      ) : safeAddress === undefined ? (
         <p className="safe-warn">
           No Safe named. Open this page with <span className="mono">?safe=0x…</span> on the end —
           the address isn&rsquo;t stored here, so the page tells nobody anything on its own.
@@ -181,7 +219,7 @@ export default function SafeConsole() {
         <div className="safe-card card">
           <p className="eyebrow">The Safe</p>
           <dl className="safe-facts">
-            <div><dt>Address</dt><dd className="mono">{safeAddress === undefined ? "—" : shortAddress(safeAddress, 6)}</dd></div>
+            <div><dt>Address</dt><dd className="mono">{safeAddress === undefined ? "—" : safeAddress}</dd></div>
             <div><dt>Rule</dt><dd>{ready ? `${threshold} of ${owners.length}` : "…"}</dd></div>
             <div><dt>Next nonce</dt><dd className="mono">{ready ? String(safeNonce) : "…"}</dd></div>
           </dl>
@@ -222,7 +260,11 @@ export default function SafeConsole() {
               </p>
             </>
           ) : (
-            <p className="safe-fine">Fill in a valid address and calldata to see the hash.</p>
+            <p className="safe-fine">
+              {safeAddress === undefined
+                ? "No Safe loaded, so the hash cannot be computed. Open this page with ?safe=0x… on the end."
+                : "Fill in a valid address and calldata to see the hash."}
+            </p>
           )}
 
           {!isConnected ? (
@@ -302,7 +344,16 @@ function ApproveRow({
     return out;
   }, [a0.data, a1.data, a2.data, owners]);
 
-  const isOwner = owners?.some((o) => o.toLowerCase() === address?.toLowerCase()) ?? false;
+  /**
+   * Unknown is not the same as no.
+   *
+   * This used to be `?? false`, so before the owner list resolved — or whenever
+   * no Safe was loaded at all — the page told a genuine owner their wallet was
+   * not one of the three. Wrong, and wrong in the most alarming possible place:
+   * a console whose entire job is to make signing unambiguous.
+   */
+  const ownersKnown = owners !== undefined && owners.length > 0;
+  const isOwner = ownersKnown && owners.some((o) => o.toLowerCase() === address?.toLowerCase());
   const alreadyApproved = approvers.some((o) => o.toLowerCase() === address?.toLowerCase());
   const enough = threshold !== undefined && BigInt(approvers.length) >= threshold;
 
@@ -319,10 +370,12 @@ function ApproveRow({
         })}
       </div>
 
-      {!isOwner ? (
+      {!ownersKnown ? (
+        <p className="safe-fine">Reading the Safe&rsquo;s owners…</p>
+      ) : !isOwner ? (
         <p className="safe-warn">
-          This wallet isn&rsquo;t one of the three owners, so the Safe would refuse its approval.
-          Switch to an owner wallet.
+          This wallet isn&rsquo;t one of the {owners.length} owners, so the Safe would refuse its
+          approval. Switch to an owner wallet.
         </p>
       ) : alreadyApproved && !enough ? (
         <p className="safe-fine">

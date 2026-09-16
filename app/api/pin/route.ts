@@ -244,6 +244,61 @@ export async function POST(request: Request) {
     );
   }
 
+  /**
+   * `config` is `JSON.parse`d and given a TypeScript type, which is a
+   * compile-time assertion and no runtime check at all. Only `seed` was
+   * validated. Everything else went into a permanent, content-addressed
+   * manifest exactly as supplied — and `supplyOf` below indexes `designs`,
+   * which throws outside the handler's try block when it is not an array.
+   */
+  const bad = (error: string) => NextResponse.json({ error }, { status: 400 });
+
+  if (!Array.isArray(config.designs) || config.designs.length === 0) {
+    return bad("That upload describes no designs.");
+  }
+  if (config.designs.length > MAX_FILES) {
+    return bad(`That is ${config.designs.length} designs; the limit here is ${MAX_FILES}.`);
+  }
+  for (const d of config.designs as Array<Record<string, unknown>>) {
+    if (typeof d?.file !== "string" || d.file.length === 0 || d.file.length > 200) {
+      return bad("A design is missing its file name.");
+    }
+    if (typeof d.name !== "string" || d.name.length > 200) {
+      return bad("A design's name is not in the expected form.");
+    }
+    if (!Number.isSafeInteger(d.count) || (d.count as number) < 1) {
+      return bad("Every design needs a whole number of editions, at least one.");
+    }
+    if (d.tier !== undefined && (typeof d.tier !== "string" || d.tier.length > 40)) {
+      return bad("A design's tier is not in the expected form.");
+    }
+  }
+  if (typeof config.collectionName !== "string" || config.collectionName.length > 120) {
+    return bad("That collection name is too long.");
+  }
+  if (config.description !== undefined &&
+      (typeof config.description !== "string" || config.description.length > 2_000)) {
+    return bad("That description is too long.");
+  }
+  /**
+   * `externalUrl` is emitted as `external_url`, which explorers and other
+   * marketplaces render as a link. This app never renders it, so the exposure
+   * is to third-party consumers — which is a reason to validate it, not to skip
+   * it.
+   */
+  if (config.externalUrl !== undefined) {
+    if (typeof config.externalUrl !== "string" || config.externalUrl.length > 500) {
+      return bad("That external link is not in the expected form.");
+    }
+    try {
+      if (new URL(config.externalUrl).protocol !== "https:") {
+        return bad("An external link must start with https://.");
+      }
+    } catch {
+      return bad("That external link is not a valid URL.");
+    }
+  }
+
   const storagePrefix = `collections/${auth.address.toLowerCase()}/${randomUUID()}`;
 
   const supply = supplyOf(config.designs as DesignInput[]);

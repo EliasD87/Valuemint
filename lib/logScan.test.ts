@@ -166,6 +166,111 @@ describe("scanLogs", () => {
     for (const c of tail) expect(c.to - c.from + 1n).toBeLessThanOrEqual(cap);
   });
 
+  /**
+   * A client that reports how many requests were ever in flight at once, and
+   * can be told to fail one particular range the first time it is asked.
+   */
+  function concurrentClient(opts: { head: bigint; failRangeFrom?: bigint; logsAt?: bigint[] }) {
+    const calls: Call[] = [];
+    let inFlight = 0;
+    let peak = 0;
+    const failed = new Set<string>();
+
+    const client = {
+      getBlockNumber: async () => opts.head,
+      getLogs: async ({ fromBlock, toBlock }: { fromBlock: bigint; toBlock: bigint }) => {
+        calls.push({ from: fromBlock, to: toBlock });
+        inFlight++;
+        peak = Math.max(peak, inFlight);
+        // Yield, so requests issued together really do overlap.
+        await new Promise((r) => setTimeout(r, 1));
+        inFlight--;
+
+        const key = fromBlock.toString();
+        if (opts.failRangeFrom === fromBlock && !failed.has(key)) {
+          failed.add(key);
+          throw new Error("temporary upstream failure");
+        }
+        return (opts.logsAt ?? [])
+          .filter((b) => b >= fromBlock && b <= toBlock)
+          .map((b) => ({ args: { at: b }, blockNumber: b }));
+      },
+    } as unknown as PublicClient;
+
+    return { client, calls, peak: () => peak };
+  }
+
+  /**
+   * The point of the change. A strictly sequential scan costs one round trip per
+   * chunk in series, so its wall time grew with the age of the chain — at
+   * ValueChain's block rate, three months of history was ~188 requests
+   * back-to-back.
+   */
+  it("issues requests in parallel once a width is known good", async () => {
+    const head = CHUNK * 12n;
+    const { client, peak } = concurrentClient({ head });
+    await scanLogs(client, params(0n));
+
+    expect(peak()).toBeGreaterThan(1);
+  });
+
+  /**
+   * ...but not on the first request. Fanning out at a width the endpoint
+   * refuses turns one informative failure into eight, every time the cap moves —
+   * and ValueChain's cap has already moved once, from 600,000 to under 35,000.
+   */
+  it("probes with a single request before fanning out", async () => {
+    const head = CHUNK * 12n;
+    const { client, calls } = concurrentClient({ head });
+
+    // Capture how many had been issued by the time the first one resolved.
+    const scan = scanLogs(client, params(0n));
+    await new Promise((r) => setTimeout(r, 0));
+    const duringFirst = calls.length;
+    await scan;
+
+    expect(duringFirst).toBe(1);
+  });
+
+  it("still covers the range exactly once, with no gaps, when parallel", async () => {
+    const head = CHUNK * 10n + 137n;
+    const { client, calls } = concurrentClient({ head });
+    await scanLogs(client, params(0n));
+
+    const sorted = [...calls].sort((a, b) => (a.from < b.from ? -1 : 1));
+    expect(sorted[0]!.from).toBe(0n);
+    expect(sorted[sorted.length - 1]!.to).toBe(head);
+    for (let i = 1; i < sorted.length; i++) {
+      expect(sorted[i]!.from).toBe(sorted[i - 1]!.to + 1n);
+    }
+  });
+
+  /**
+   * The failure mode a parallel scan introduces, and the reason the watermark
+   * only advances over an unbroken run.
+   *
+   * If range 3 of a wave fails while 4 through 8 succeed, committing all the
+   * successes would move the "everything up to here has been read" mark past
+   * blocks nobody fetched. Those logs would then be missing for the life of the
+   * page, silently — the scan would never go back for them.
+   */
+  it("does not skip blocks when one request in a wave fails", async () => {
+    const head = CHUNK * 6n;
+    // A log inside the range that fails on first attempt.
+    const inside = CHUNK * 3n + 10n;
+    const { client } = concurrentClient({
+      head,
+      failRangeFrom: CHUNK * 3n,
+      logsAt: [5n, inside, CHUNK * 5n + 1n],
+    });
+
+    const logs = await scanLogs(client, params(0n));
+
+    // All three are found: the failed range was retried rather than skipped.
+    expect(logs).toHaveLength(3);
+    expect((logs as Array<{ blockNumber: bigint }>).some((l) => l.blockNumber === inside)).toBe(true);
+  });
+
   it("carries the learned ceiling into the next scan, not just the current one", async () => {
     const cap = CHUNK / 8n;
     const first = fakeClient({ head: CHUNK * 2n, capBlocks: cap });

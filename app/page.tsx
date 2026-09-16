@@ -383,7 +383,7 @@ export default function Home() {
             <h2>Publish your own collection.</h2>
             <p>
               Deploy a real ERC-721 to ValueChain in one transaction. You own it outright — set the
-              supply, the price and your royalty. It costs a fraction of a cent in gas and no fee.
+              supply and the price. It costs a fraction of a cent in gas and no fee.
             </p>
           </div>
           <Link className="btn btn-primary btn-lg on-dark" href="/create">

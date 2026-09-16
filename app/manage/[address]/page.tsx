@@ -117,7 +117,31 @@ export default function ManageCollection({ params }: { params: Promise<{ address
     );
   }
 
-  if (owner !== undefined && !isOwner) {
+  /**
+   * An unread owner is not a permitted owner.
+   *
+   * The deny branch required `owner` to have resolved, so whenever that read
+   * came back undefined — an RPC hiccup, a rate-limited endpoint, or an address
+   * that is not a ValueChainCollection at all — the page fell through and
+   * rendered every owner-only control. The contract enforces ownership, so
+   * nothing could actually be changed; the transactions simply revert. But
+   * offering someone a row of buttons that can only fail, on a page that exists
+   * to tell them what they control, is its own kind of wrong.
+   */
+  if (owner === undefined) {
+    return (
+      <section className="page section manage-denied">
+        <p className="eyebrow">Manage</p>
+        <h2>Can&rsquo;t read this collection&rsquo;s owner.</h2>
+        <p className="muted">
+          Either the chain is unreachable right now, or this address isn&rsquo;t a collection this
+          page can manage. Nothing is shown rather than guessing.
+        </p>
+      </section>
+    );
+  }
+
+  if (!isOwner) {
     return (
       <section className="page section manage-denied">
         <p className="eyebrow">Manage</p>

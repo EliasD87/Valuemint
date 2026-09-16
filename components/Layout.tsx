@@ -8,6 +8,7 @@ import { ThemeToggle } from "./ThemeToggle";
 import { Search } from "./Search";
 import { SodexLogo } from "./SodexLogo";
 import { deployment } from "@/config/contracts";
+import { SEAPORT } from "@/config/seaport";
 import "./Layout.css";
 
 /**
@@ -287,7 +288,7 @@ export function Layout({ children }: { children: ReactNode }) {
               <li>
                 <a
                   className="mono"
-                  href={`${deployment.explorer}/address/${deployment.marketplace}`}
+                  href={`${deployment.explorer}/address/${SEAPORT}`}
                   target="_blank"
                   rel="noreferrer noopener"
                 >

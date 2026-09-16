@@ -256,15 +256,28 @@ export default function Create() {
   if (isSuccess) {
     return (
       <section className="page section create-done">
+        {/**
+         * The headline used to read "{name} is live, artwork and all" over a
+         * lede saying "nothing else to set up", with a small grey line at the
+         * bottom admitting that public minting starts closed.
+         *
+         * All three were on screen and only the first two were read, which is
+         * how a creator finishes this flow believing they have shipped and
+         * discovers days later that nobody could mint. The contract's
+         * `publicMintEnabled` defaults to false and the constructor never sets
+         * it, so this is true of every collection made here — it is the single
+         * most important thing on this screen, not a footnote.
+         */}
         <p className="eyebrow">Created</p>
-        <h1 className="create-title">{name} is live, artwork and all.</h1>
+        <h1 className="create-title">{name} is deployed. One step left.</h1>
         <p className="lede">
-          You own it outright. {effectiveSupply} tokens, {usingUpload ? `${designs.length} designs` : "your metadata"},
-          already attached — nothing else to set up.
+          You own it outright — {effectiveSupply} tokens,{" "}
+          {usingUpload ? `${designs.length} designs` : "your metadata"}, already attached.{" "}
+          <strong>Public minting is closed until you open it</strong>, so nobody can mint yet.
         </p>
         <div className="create-actions">
           <Link className="btn btn-primary btn-lg" href="/manage">
-            Manage it
+            Open minting
           </Link>
           <a
             className="btn btn-lg"
@@ -276,7 +289,8 @@ export default function Create() {
           </a>
         </div>
         <p className="field-hint create-next">
-          Public minting starts closed. Open it from Manage when you&rsquo;re ready.
+          Manage lists collections owned by the <strong>connected wallet</strong>. If you do not see
+          this one there, you are on a different wallet than the one that created it.
         </p>
       </section>
     );
@@ -397,7 +411,27 @@ export default function Create() {
               <Field label="Mint price (SOSO)" hint="What the public pays per piece. Changeable later." value={price} onChange={setPrice} />
               <Field label="Max per wallet" hint="0 for no limit. Permanent." value={perWallet} onChange={setPerWallet} />
               <Field label="Keep for yourself" hint="Held back from the public sale. Permanent." value={reserve} onChange={setReserve} />
-              <Field label="Resale royalty (%)" hint="Your cut of every resale, forever. Up to 10%." value={royalty} onChange={setRoyalty} />
+              {/**
+               * The hint used to read "Your cut of every resale, forever."
+               *
+               * That stopped being true on 2026-09-16, when trading moved to
+               * Seaport and royalty enforcement was switched off. Seaport pays
+               * the consideration items an order names and nothing else, so a
+               * royalty is only paid if the order names it — and the orders this
+               * marketplace builds do not.
+               *
+               * The field stays because the number is still written to the
+               * collection as EIP-2981, which is the standard every marketplace
+               * reads. Dropping it would set new collections to 0% permanently
+               * and forfeit the creator's claim everywhere, not just here. So it
+               * is recorded and honestly labelled rather than quietly promised.
+               */}
+              <Field
+                label="Resale royalty (%)"
+                hint="Recorded on your collection as EIP-2981, up to 10%. ValueMint does not pay royalties today — other marketplaces that read the standard may."
+                value={royalty}
+                onChange={setRoyalty}
+              />
             </>
           ) : null}
 
@@ -410,7 +444,7 @@ export default function Create() {
               <Row label="You keep" value={reserve || "0"} />
               <Row label="Price" value={`${price || "0"} SOSO`} />
               <Row label="Per wallet" value={perWallet === "0" ? "No limit" : perWallet} />
-              <Row label="Royalty" value={`${royalty || "0"}%`} />
+              <Row label="Royalty" value={`${royalty || "0"}% (EIP-2981, not paid on ValueMint)`} />
             </dl>
           ) : null}
 
@@ -484,7 +518,7 @@ export default function Create() {
           <dl className="create-summary">
             <Row label="Supply" value={effectiveSupply === 0 ? "—" : String(effectiveSupply)} />
             <Row label="Price" value={`${price || "0"} SOSO`} />
-            <Row label="Royalty" value={`${royalty || "0"}%`} />
+            <Row label="Royalty" value={`${royalty || "0"}% (EIP-2981)`} />
             <Row label="Cost to create" value="Gas only" />
           </dl>
 

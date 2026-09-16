@@ -19,6 +19,8 @@ export interface CollectionSummary {
   mintPrice?: bigint;
   publicMintEnabled?: boolean;
   publicMintRemaining?: bigint;
+  /** In `hidden.ts` — kept out of public listings, still manageable by its owner. */
+  hidden?: boolean;
 }
 
 /**
@@ -69,10 +71,21 @@ export function useAllCollections() {
       });
     }
 
-    // Filtered here, at the one place that answers "what collections exist",
-    // so every surface built on it - home, /collections, /mint, /market,
-    // portfolio grouping - agrees without each having to remember.
-    return [...byAddress.values()].filter((c) => !isHidden(c.address));
+    /**
+     * Hidden collections stay in this list and are marked, rather than dropped.
+     *
+     * They used to be filtered out right here, at the one place that answers
+     * "what collections exist" — which is correct for every public surface and
+     * wrong for exactly one: the owner's own management page. Hiding `alpha` is
+     * about not cluttering the marketplace with somebody's test collection. It
+     * was never meant to deny its owner control of a contract they deployed, and
+     * it did: `/manage` told them they owned nothing.
+     *
+     * So the filter moved to the boundary. `collections` is filtered as before
+     * and every public view is unchanged; `useOwnedCollections` reads the
+     * unfiltered set, because ownership is not a matter of taste.
+     */
+    return [...byAddress.values()].map((c) => ({ ...c, hidden: isHidden(c.address) }));
   }, [discovered, fromFactory]);
 
   const { data, isLoading: loadingState } = useReadContracts({
@@ -127,7 +140,10 @@ export function useAllCollections() {
   const haveSomething = merged.length > 0;
 
   return {
-    collections,
+    /** Public listings: hidden collections removed, exactly as before. */
+    collections: collections.filter((c) => c.hidden !== true),
+    /** Everything, hidden included. Only ownership views should use this. */
+    allIncludingHidden: collections,
     isLoading: !haveSomething && (discovering || loadingState),
     /** True while Blockscout is still answering. The grid is usable regardless. */
     stillDiscovering: discovering,
@@ -138,9 +154,13 @@ export function useAllCollections() {
 /** The collections the connected wallet owns, and can therefore manage. */
 export function useOwnedCollections() {
   const { address } = useAccount();
-  const { collections, isLoading } = useAllCollections();
+  const { allIncludingHidden, isLoading } = useAllCollections();
 
-  const owned = collections.filter(
+  /**
+   * Hidden included, deliberately. A collection kept out of the marketplace is
+   * still its owner's contract, and this page is where they change it.
+   */
+  const owned = allIncludingHidden.filter(
     (c) => address !== undefined && c.owner?.toLowerCase() === address.toLowerCase(),
   );
 

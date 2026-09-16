@@ -2,7 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { useReadContract, useReadContracts } from "wagmi";
-import { ValueChainCollectionAbi, ValueChainMarketplaceAbi, deployment } from "@/config/contracts";
+import { ValueChainCollectionAbi, deployment } from "@/config/contracts";
 import { resolveMediaUrl } from "@/lib/format";
 
 const collection = { address: deployment.collection, abi: ValueChainCollectionAbi } as const;
@@ -15,8 +15,6 @@ const collection = { address: deployment.collection, abi: ValueChainCollectionAb
  * collection's supply as the whole marketplace's. For chain-wide figures use
  * `useChainStats`; for a specific collection pass its address explicitly.
  */
-const marketplace = { address: deployment.marketplace, abi: ValueChainMarketplaceAbi } as const;
-
 export interface TokenMetadata {
   name: string;
   description: string;
@@ -31,13 +29,6 @@ export interface Token {
   design?: string;
   tier?: string;
   edition?: string;
-}
-
-export interface Listing {
-  seller: `0x${string}`;
-  paymentToken: `0x${string}`;
-  price: bigint;
-  expiry: bigint;
 }
 
 /** How many more this wallet may mint, and how many it already has. */
@@ -72,32 +63,6 @@ export function useTokenOwners(ids: bigint[]) {
   });
 
   return { owners, isLoading };
-}
-
-/** Marketplace listings for a run of token ids. */
-export function useListings(ids: bigint[]) {
-  const { data, isLoading, refetch } = useReadContracts({
-    contracts: ids.map((id) => ({
-      ...marketplace,
-      functionName: "getListing" as const,
-      args: [deployment.collection, id],
-    })),
-    query: { enabled: ids.length > 0, refetchInterval: 15_000 },
-  });
-
-  const listings = new Map<string, Listing>();
-  data?.forEach((entry, i) => {
-    const id = ids[i];
-    if (entry.status !== "success" || id === undefined) return;
-
-    const listing = entry.result as Listing;
-    // A zero seller means no listing rather than a listing owned by nobody.
-    if (listing.seller !== "0x0000000000000000000000000000000000000000") {
-      listings.set(id.toString(), listing);
-    }
-  });
-
-  return { listings, isLoading, refetch };
 }
 
 /**

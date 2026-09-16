@@ -73,7 +73,17 @@ export function parseManifest(value: unknown): CollectionManifest | undefined {
     // A hostile manifest could otherwise ask for a deck of a billion entries and
     // hold the request open while it is shuffled.
     supply += d.count;
-    if (supply > 100_000) return undefined;
+    /**
+     * Lowered from 100,000 on 2026-09-16.
+     *
+     * The ceiling is not about storage — a manifest declaring a million tokens
+     * is still about a kilobyte, because the count is a number rather than a
+     * list. It is about what `assignDesigns` then materialises: one object per
+     * token, held in the metadata route's cache. The old ceiling let a handful
+     * of pinned manifests exhaust a lambda's memory. 10,000 is past anything a
+     * real collection here has reached by two orders of magnitude.
+     */
+    if (supply > 10_000) return undefined;
     designs.push({
       file: d.file,
       name: d.name,
@@ -87,7 +97,17 @@ export function parseManifest(value: unknown): CollectionManifest | undefined {
     v: version,
     name: m.name,
     description: m.description,
-    ...(typeof m.externalUrl === "string" ? { externalUrl: m.externalUrl } : {}),
+    /**
+     * Same `https:` rule `gateway` below already gets.
+     *
+     * This is emitted as `external_url` in the metadata document, which
+     * explorers and other marketplaces render as a link. ValueMint never renders
+     * it, so the exposure is to third-party consumers — which is a reason to
+     * validate it rather than a reason to skip it.
+     */
+    ...(typeof m.externalUrl === "string" && /^https:\/\//.test(m.externalUrl)
+      ? { externalUrl: m.externalUrl }
+      : {}),
     ...(typeof m.imagesCid === "string" ? { imagesCid: m.imagesCid } : {}),
     ...(typeof m.gateway === "string" && /^https:\/\//.test(m.gateway) ? { gateway: m.gateway } : {}),
     seed: m.seed,

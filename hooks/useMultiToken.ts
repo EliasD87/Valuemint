@@ -1,12 +1,10 @@
 "use client";
 
-import { useEffect } from "react";
-import { useAccount, useReadContract, useReadContracts } from "wagmi";
-import { ValueChainMarketplaceAbi, deployment } from "@/config/contracts";
-import { scanLogs, FROM_BLOCK } from "@/lib/logScan";
-import { usePublicClient } from "wagmi";
-import { useQuery } from "@tanstack/react-query";
-import { parseAbiItem } from "viem";
+import { useEffect, useMemo } from "react";
+import { useAccount, useReadContract } from "wagmi";
+import { SEAPORT } from "@/config/seaport";
+import { useSeaportListings, type SeaportOrder } from "@/hooks/useSeaportOrders";
+import { unitPrice } from "@/lib/seaport";
 
 /**
  * Reading one ERC-1155 id: who is selling it, at what, and how many you hold.
@@ -17,89 +15,58 @@ import { parseAbiItem } from "viem";
  * can be selling, so the set of sellers is not derivable from the token
  * contract at all - it only exists as marketplace events.
  *
- * Hence the log scan. `MultiListed` gives the candidate sellers; the contract
- * then confirms which of those listings are still real. There is no indexer
- * here, so this is the honest way to do it, and it is why the result is cached
- * rather than polled hard.
+ * Under Seaport this costs nothing extra. Each seller simply has their own
+ * order, and they are all in the same `OrderValidated` scan every other view
+ * already runs - so what used to be a dedicated log scan plus a confirming
+ * contract call per seller is now a filter over data in memory.
+ *
+ * The previous marketplace needed both because it kept 1155 listings in a map
+ * keyed by seller as well as id, and events alone could not say which of them
+ * were still real.
  */
-
-const multiListedEvent = parseAbiItem(
-  "event MultiListed(address indexed collection, uint256 indexed tokenId, address indexed seller, address paymentToken, uint256 unitPrice, uint256 amount, uint64 expiry)",
-);
 
 export interface MultiListing {
   seller: `0x${string}`;
   unitPrice: bigint;
   amount: bigint;
   expiry: bigint;
+  /** The order behind it - buying or cancelling needs the whole thing. */
+  order: SeaportOrder;
 }
 
 export function useMultiListings(collection: `0x${string}` | undefined, tokenId: bigint | undefined) {
-  const client = usePublicClient();
+  const { listings: all, isLoading } = useSeaportListings(collection);
 
-  const sellersQuery = useQuery({
-    queryKey: ["multiSellers", collection, tokenId?.toString()],
-    enabled: client !== undefined && collection !== undefined && tokenId !== undefined,
-    // Listings change on a human timescale, and each refetch is a full log scan.
-    staleTime: 30_000,
-    queryFn: async () => {
-      const logs = await scanLogs(client!, {
-        address: deployment.marketplace,
-        event: multiListedEvent,
-        args: { collection, tokenId },
-        fromBlock: FROM_BLOCK,
-      });
-      // Newest first, de-duplicated: a seller who re-lists appears twice.
-      const seen = new Set<string>();
-      const sellers: `0x${string}`[] = [];
-      for (let i = logs.length - 1; i >= 0; i--) {
-        const s = (logs[i]!.args as { seller?: `0x${string}` }).seller;
-        if (s === undefined || seen.has(s.toLowerCase())) continue;
-        seen.add(s.toLowerCase());
-        sellers.push(s);
-      }
-      return sellers;
-    },
-  });
+  const listings = useMemo<MultiListing[]>(() => {
+    if (tokenId === undefined) return [];
 
-  const sellers = sellersQuery.data ?? [];
+    const rows = all
+      .filter((o) => o.tokenId === tokenId && o.amount > 0n)
+      .map((order) => ({
+        seller: order.maker,
+        /**
+         * Seaport prices the lot, not the unit. Dividing here keeps several
+         * wallets selling the same edition comparable, which is the only thing
+         * anyone wants from this list.
+         */
+        unitPrice: unitPrice(order.priceWei, order.amount),
+        /** What is left after any partial fills. */
+        amount: order.size > 0n ? order.amount - (order.amount * order.filled) / order.size : order.amount,
+        expiry: order.endTime,
+        order,
+      }))
+      .filter((l) => l.amount > 0n);
 
-  // The events only say who *has* listed. The contract says who still is.
-  const { data, refetch } = useReadContracts({
-    contracts: sellers.map((seller) => ({
-      address: deployment.marketplace,
-      abi: ValueChainMarketplaceAbi,
-      functionName: "getMultiListing" as const,
-      args: [collection, tokenId, seller] as const,
-    })),
-    query: { enabled: sellers.length > 0, refetchInterval: 15_000 },
-  });
-
-  const now = BigInt(Math.floor(Date.now() / 1000));
-  const listings: MultiListing[] = [];
-  data?.forEach((r, i) => {
-    if (r.status !== "success") return;
-    const l = r.result as unknown as {
-      unitPrice: bigint;
-      amount: bigint;
-      expiry: bigint;
-    };
-    if (l.amount === 0n) return;
-    if (l.expiry !== 0n && l.expiry <= now) return;
-    listings.push({ seller: sellers[i]!, unitPrice: l.unitPrice, amount: l.amount, expiry: l.expiry });
-  });
-
-  // Cheapest first — the only ordering that makes sense when several wallets
-  // are selling the same thing.
-  listings.sort((a, b) => (a.unitPrice < b.unitPrice ? -1 : a.unitPrice > b.unitPrice ? 1 : 0));
+    // Cheapest first - the only ordering that makes sense when several wallets
+    // are selling the same thing.
+    return rows.sort((a, b) => (a.unitPrice < b.unitPrice ? -1 : a.unitPrice > b.unitPrice ? 1 : 0));
+  }, [all, tokenId]);
 
   return {
     listings,
-    isLoading: sellersQuery.isLoading,
-    refetch: () => {
-      void sellersQuery.refetch();
-      void refetch();
-    },
+    isLoading,
+    /** The scan polls itself; kept so callers do not have to change shape. */
+    refetch: () => undefined,
   };
 }
 
@@ -142,7 +109,7 @@ export function useMultiBalance(collection: `0x${string}` | undefined, tokenId: 
     address: collection,
     abi: balanceOfAbi,
     functionName: "isApprovedForAll",
-    args: address === undefined ? undefined : [address, deployment.marketplace],
+    args: address === undefined ? undefined : [address, SEAPORT],
     query: { enabled: address !== undefined && collection !== undefined },
   });
 

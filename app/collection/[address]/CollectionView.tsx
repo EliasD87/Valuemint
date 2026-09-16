@@ -5,8 +5,9 @@ import Link from "next/link";
 import { useAccount, useReadContract, useReadContracts } from "wagmi";
 import { erc721Abi } from "viem";
 import { ERC721_INTERFACE_ID, enumerableAbi, erc165Abi } from "@/config/erc721";
-import { ValueChainMarketplaceAbi, deployment } from "@/config/contracts";
-import type { Listing } from "@/hooks/useCollection";
+import { deployment } from "@/config/contracts";
+import { useBestListings } from "@/hooks/useSeaportOrders";
+import { toListing, type Listing } from "@/lib/seaport";
 import { useGenericTokens } from "@/hooks/useGenericTokens";
 import { useTokenIds } from "@/hooks/useTokenIds";
 import { MintPanel } from "@/components/MintPanel";
@@ -68,15 +69,14 @@ export function CollectionView({ params }: { params: Promise<{ address: string }
 
   const { tokens, isLoading } = useGenericTokens(collection, ids);
 
-  const { data: listingResults } = useReadContracts({
-    contracts: ids.map((id) => ({
-      address: deployment.marketplace,
-      abi: ValueChainMarketplaceAbi,
-      functionName: "getListing" as const,
-      args: [collection ?? "0x0", id],
-    })),
-    query: { enabled: collection !== undefined && ids.length > 0, refetchInterval: 20_000 },
-  });
+  /**
+   * Listings for this collection, from the shared Seaport scan.
+   *
+   * This used to be one `getListing` call per id on screen - sixty reads to
+   * discover that most of a collection is not for sale. Seaport announces each
+   * order once, so the whole market is already in memory and this is a lookup.
+   */
+  const { best: bestListings } = useBestListings(collection);
 
   /**
    * Sorting and trait filtering.
@@ -94,12 +94,10 @@ export function CollectionView({ params }: { params: Promise<{ address: string }
   const [traitFilter, setTraitFilter] = useState<Record<string, string>>({});
 
   const listings = new Map<string, Listing>();
-  listingResults?.forEach((entry, i) => {
-    const id = ids[i];
-    if (entry.status !== "success" || id === undefined) return;
-    const l = entry.result as Listing;
-    if (l.seller !== "0x0000000000000000000000000000000000000000") listings.set(id.toString(), l);
-  });
+  for (const id of ids) {
+    const order = bestListings.get(`${(collection ?? "0x0").toLowerCase()}-${id}`);
+    if (order !== undefined) listings.set(id.toString(), toListing(order));
+  }
 
   /** Every trait this collection actually publishes, with value counts. */
   const traitOptions = useMemo(() => {

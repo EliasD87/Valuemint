@@ -26,8 +26,13 @@ export const FROM_BLOCK = 13_736_386n;
  *                          refused, halved four times and retried: 54 requests
  *                          for a full scan, **27 of them failures**.
  *
- * 20,000 sits comfortably inside the measured 30,000 ceiling on both endpoints,
- * and a full scan costs 34 requests and 10.5s with nothing wasted.
+ * Re-measured 2026-09-16 by binary search against both endpoints: the largest
+ * accepted range is ~29,793 blocks. 20,000 sits inside that with 1.5x headroom.
+ *
+ * Cost, measured the same day over 673,876 blocks (~16 days of ValueChain):
+ * 34 requests, 8 in flight, 2.9s — about 86ms per request amortised. The same
+ * scan run strictly sequentially took ~23s, which is what the fan-out below
+ * removes.
  *
  * The number matters less than `ceiling` below, which is what stops the next
  * change of theirs from costing a failure on every chunk again.
@@ -53,6 +58,35 @@ const MIN_CHUNK = 250n;
  * one of them learned.
  */
 let ceiling = CHUNK;
+
+/**
+ * Has `ceiling` actually been accepted by this endpoint yet?
+ *
+ * This gates fanning out, and it is the whole reason discovery stays cheap.
+ * Eight parallel requests at a width the endpoint refuses is eight failures
+ * instead of one — it would multiply the cost of finding the limit by the
+ * concurrency, every time the cap moves. So the first request of a session goes
+ * out alone; only once a width has come back does the scan widen to a wave.
+ *
+ * Reset to false whenever an entire wave fails, which is what a cap tightening
+ * under us looks like. The scan then returns to probing one at a time.
+ */
+let proven = false;
+
+/**
+ * How many ranges to request at once, once a width is known good.
+ *
+ * The scan used to be strictly sequential, so its cost grew with the age of the
+ * chain: at ValueChain's ~41,700 blocks a day and 20,000 blocks a request, three
+ * months of history is ~188 round trips one after another, about 38 seconds
+ * before a first-time visitor sees a market. Eight at a time turns that into ~24
+ * waves. Combined with the floor in lib/seaport.ts, the order book scan is
+ * bounded rather than growing.
+ *
+ * Eight rather than more because these are somebody else's public endpoints and
+ * every visitor runs this. The limit that bites next is theirs, not ours.
+ */
+const CONCURRENCY = 8;
 
 interface Cached {
   /** Highest block already scanned, inclusive. */
@@ -110,42 +144,93 @@ export async function scanLogs(
     return collected as Array<{ args: unknown; blockNumber: bigint }>;
   }
 
-  // Start no wider than this endpoint has already proved it will accept.
-  let chunk = ceiling;
+  const fetchRange = (from: bigint, to: bigint) =>
+    client.getLogs({
+      address: params.address,
+      event: params.event,
+      args: params.args as never,
+      fromBlock: from,
+      toBlock: to,
+    });
+
+  /**
+   * Narrow after a refusal, and remember it for the rest of the session.
+   *
+   * Returns false once the range is so small that the endpoint is clearly
+   * refusing for some other reason and halving again would just loop.
+   */
+  const narrow = (): boolean => {
+    if (ceiling <= MIN_CHUNK) return false;
+    ceiling = ceiling / 2n;
+    proven = false;
+    return true;
+  };
+
   while (cursor <= latest) {
-    const to = cursor + chunk - 1n > latest ? latest : cursor + chunk - 1n;
-    try {
-      const logs = await client.getLogs({
-        address: params.address,
-        event: params.event,
-        args: params.args as never,
-        fromBlock: cursor,
-        toBlock: to,
-      });
-      collected.push(...logs);
-      cursor = to + 1n;
-      // Creep back up after a successful chunk, so one bad range does not pin
-      // the scan at a small window — but never back to a width already refused.
-      if (chunk < ceiling) chunk = chunk * 2n > ceiling ? ceiling : chunk * 2n;
-    } catch (err) {
-      if (chunk > MIN_CHUNK) {
+    /**
+     * Probe first. Until a width has actually come back from this endpoint, go
+     * one request at a time — a wave at a refused width costs eight failures
+     * to learn what one teaches.
+     */
+    if (!proven) {
+      const to = cursor + ceiling - 1n > latest ? latest : cursor + ceiling - 1n;
+      try {
+        collected.push(...(await fetchRange(cursor, to)));
+        cursor = to + 1n;
+        proven = true;
+      } catch (err) {
+        if (narrow()) continue;
         /**
-         * Almost always "range too large" or "too many results". Halve, retry
-         * the same start block, and remember not to come back up here — this
-         * width is now known bad for the rest of the session.
+         * Persist what was read before giving up. A partial feed is worth more
+         * than none, and the next poll resumes from here rather than starting
+         * over.
          */
-        chunk = chunk / 2n;
-        if (chunk < ceiling) ceiling = chunk;
-        continue;
+        cache.set(key, { through: cursor - 1n, logs: collected });
+        throw err;
       }
-      /**
-       * Persist what was read before giving up. A partial feed is worth more
-       * than none, and the next poll resumes from here rather than starting
-       * over.
-       */
-      cache.set(key, { through: cursor - 1n, logs: collected });
-      throw err;
+      continue;
     }
+
+    // A width that works is known. Fan out.
+    const ranges: Array<[bigint, bigint]> = [];
+    for (let from = cursor; from <= latest && ranges.length < CONCURRENCY; from += ceiling) {
+      ranges.push([from, from + ceiling - 1n > latest ? latest : from + ceiling - 1n]);
+    }
+
+    const results = await Promise.allSettled(ranges.map(([from, to]) => fetchRange(from, to)));
+
+    /**
+     * Only the unbroken run from the start of the wave can be committed.
+     *
+     * The cache holds a single watermark — "everything up to here has been
+     * read" — so a gap in the middle cannot be recorded. Accepting ranges past
+     * a failure would advance that watermark over blocks nobody fetched, and
+     * those logs would be missing for the life of the page with nothing to say
+     * so. Anything after the first failure is simply re-requested next loop.
+     */
+    let advanced = false;
+    for (let i = 0; i < results.length; i++) {
+      const result = results[i]!;
+      if (result.status !== "fulfilled") break;
+      collected.push(...result.value);
+      cursor = ranges[i]![1] + 1n;
+      advanced = true;
+    }
+
+    if (advanced) {
+      // A partial failure still means this width is now suspect. Narrow, but
+      // keep the ground already gained.
+      if (results.some((r) => r.status === "rejected")) narrow();
+      continue;
+    }
+
+    // The whole wave failed: the endpoint has tightened under us.
+    const failure = results.find((r) => r.status === "rejected");
+    if (narrow()) continue;
+    cache.set(key, { through: cursor - 1n, logs: collected });
+    throw failure !== undefined && failure.status === "rejected"
+      ? failure.reason
+      : new Error("eth_getLogs failed");
   }
 
   cache.set(key, { through: latest, logs: collected });
@@ -162,4 +247,5 @@ export async function scanLogs(
 export function resetLogCache(): void {
   cache.clear();
   ceiling = CHUNK;
+  proven = false;
 }

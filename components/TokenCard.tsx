@@ -3,10 +3,10 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useAccount } from "wagmi";
-import { useAllOffers, offerKey } from "@/hooks/useAllOffers";
+import { useOffersForToken } from "@/hooks/useSeaportOrders";
 import { OfferDialog } from "@/components/OfferDialog";
 import type { LoadedToken } from "@/hooks/useTokens";
-import type { Listing } from "@/hooks/useCollection";
+import type { Listing } from "@/lib/seaport";
 import { formatSoso } from "@/lib/format";
 import { Art } from "@/components/Art";
 import "./TokenCard.css";
@@ -36,12 +36,17 @@ export function TokenCard({ token, collection, listing, owner, viewerAddress, pr
   const tier = token.tier?.toLowerCase() ?? "common";
 
   /**
-   * One query for the whole marketplace, shared by every card. React Query
+   * One scan for the whole marketplace, shared by every card. React Query
    * collapses the identical key, so a grid of twenty cards costs one log scan
    * rather than twenty.
+   *
+   * This now includes collection-wide bids, so a card shows a price somebody
+   * will actually pay for it even when nobody has named this exact piece -
+   * which, for a collection of one design in five editions, is most of them.
    */
-  const allOffers = useAllOffers();
-  const offer = allOffers.get(offerKey(collection, token.id));
+  const { offers } = useOffersForToken(collection, token.id);
+  const offer =
+    offers.length === 0 ? undefined : { count: offers.length, best: offers[0]!.priceWei };
   const [offering, setOffering] = useState(false);
 
   /**

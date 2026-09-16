@@ -1,4 +1,5 @@
 import "server-only";
+import { limiter } from "@/lib/rateLimit";
 import {
   createPublicClient,
   fallback,
@@ -69,23 +70,26 @@ const client = createPublicClient({
 });
 
 /**
- * Signatures already spent.
+ * Signatures already spent — in the shared store, not in this lambda's memory.
  *
- * Freshness alone still leaves a five-minute window in which a captured
- * signature could be replayed against the identical upload. Entries live only
- * as long as that window, so this stays small.
+ * Freshness alone leaves a five-minute window in which a captured signature can
+ * be replayed against the identical upload. This closes it.
+ *
+ * It used to be a module-level `Map`, which is exactly the failure already
+ * measured, documented and fixed one file over for the rate limiter: on Vercel
+ * every instance has its own memory, so "already spent" meant "already spent
+ * *here*", and any instance that had not seen the signature would accept it.
+ * The same reasoning was available and the same conclusion was not drawn.
+ *
+ * `limiter.take(key, 1, window)` is exactly a burn: the first caller is allowed,
+ * everyone else inside the window is not. Reusing it means no new
+ * infrastructure, and it inherits the limiter's own degraded fallback to memory
+ * when Redis is unreachable — available rather than perfectly strict, which for
+ * a replay guard behind a signature check is the right way round.
  */
-const spent = new Map<string, number>();
-
-function burn(signature: string): boolean {
-  const now = Date.now();
-  if (spent.size > 512) {
-    for (const [sig, at] of spent) if (at + FRESHNESS_MS <= now) spent.delete(sig);
-  }
-  const seen = spent.get(signature);
-  if (seen !== undefined && seen + FRESHNESS_MS > now) return false;
-  spent.set(signature, now);
-  return true;
+async function burn(signature: string): Promise<boolean> {
+  const decision = await limiter.take(`upload-sig:${signature.toLowerCase()}`, 1, FRESHNESS_MS);
+  return decision.ok;
 }
 
 export { CLAIM_HEADERS };
@@ -196,7 +200,7 @@ export async function authoriseUpload(input: {
     return { ok: false, status: 401, error: "That signature does not match this upload." };
   }
 
-  if (!burn(signature)) {
+  if (!(await burn(signature))) {
     return { ok: false, status: 401, error: "That signature has already been used." };
   }
 

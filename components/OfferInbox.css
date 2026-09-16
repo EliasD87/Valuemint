@@ -67,6 +67,20 @@
 }
 
 .inbox-thumb {
+  /**
+   * `position: relative` is load-bearing, not decoration.
+   *
+   * `Art` renders through next/image with `fill`, which is `position: absolute;
+   * inset: 0` — so it sizes against the nearest *positioned* ancestor. Without
+   * this it escaped the 56px box entirely and stretched to the page, covering
+   * the portfolio with one enormous piece of artwork. `overflow: hidden` does
+   * not save it: the child is not laid out inside this box at all.
+   *
+   * Every other Art slot in the app already does this (`.tcard-media`,
+   * `.od-thumb`); this one was the exception because it rendered only when an
+   * offer existed, and until Seaport landed nobody had ever seen one.
+   */
+  position: relative;
   width: 56px;
   height: 56px;
   flex: 0 0 56px;

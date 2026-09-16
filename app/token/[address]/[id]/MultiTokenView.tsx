@@ -6,7 +6,7 @@ import { useAccount } from "wagmi";
 import { formatEther } from "viem";
 import { trait } from "@/hooks/useCollection";
 import { useMultiTokenMetadata } from "@/hooks/useMultiMetadata";
-import { useTrade } from "@/hooks/useTrade";
+import { useSeaportFill, useSeaportTrade } from "@/hooks/useSeaportTrade";
 import { useMultiBalance, useMultiListings } from "@/hooks/useMultiToken";
 import { TxResult } from "@/components/TxResult";
 import { ShareLink } from "@/components/ShareLink";
@@ -37,7 +37,9 @@ export function MultiTokenView({
 }) {
   const { address } = useAccount();
   const { data: metadata, isLoading } = useMultiTokenMetadata(collection, tokenId);
-  const trade = useTrade(collection);
+  const trade = useSeaportTrade(collection);
+  const fill = useSeaportFill();
+  const busy = trade.busy || fill.busy;
   const { listings, isLoading: loadingListings, refetch: refetchListings } = useMultiListings(
     collection,
     tokenId,
@@ -50,13 +52,13 @@ export function MultiTokenView({
 
   // On the receipt, never on the click — see the note in TokenView.
   useEffect(() => {
-    if (trade.isSuccess) {
+    if (trade.isSuccess || fill.isSuccess) {
       refetchListings();
       refetchBalance();
       void trade.refetchApproval();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [trade.isSuccess, trade.hash]);
+  }, [trade.isSuccess, trade.hash, fill.isSuccess, fill.hash]);
 
   const image = resolveMediaUrl(metadata?.image);
   const mine = listings.find((l) => address !== undefined && l.seller.toLowerCase() === address.toLowerCase());
@@ -155,8 +157,8 @@ export function MultiTokenView({
                         <button
                           type="button"
                           className="btn btn-block"
-                          disabled={trade.busy}
-                          onClick={() => trade.cancelMultiListing(tokenId)}
+                          disabled={busy}
+                          onClick={() => trade.cancelOrder(l.order)}
                         >
                           {trade.busy ? "Working…" : "Cancel listing"}
                         </button>
@@ -176,8 +178,15 @@ export function MultiTokenView({
                           <button
                             type="button"
                             className="btn btn-primary"
-                            disabled={trade.busy || !valid || address === undefined}
-                            onClick={() => trade.buyMulti(tokenId, l.seller, want, l.unitPrice)}
+                            disabled={busy || !valid || address === undefined}
+                            /**
+                             * A partial fill, expressed as a fraction of the
+                             * original order rather than a quantity: Seaport
+                             * takes `numerator / denominator` of everything in
+                             * the order, which is what keeps the price and the
+                             * units in step when only some are taken.
+                             */
+                            onClick={() => fill.buyPartial(l.order, want)}
                           >
                             {address === undefined
                               ? "Connect a wallet"
@@ -246,7 +255,7 @@ export function MultiTokenView({
                   <button
                     className="btn btn-primary btn-lg btn-block"
                     disabled={
-                      trade.busy ||
+                      busy ||
                       wantedToSell <= 0n ||
                       wantedToSell > balance ||
                       unitPrice === "" ||
@@ -268,10 +277,10 @@ export function MultiTokenView({
           ) : null}
 
           <TxResult
-            hash={trade.hash}
-            confirming={trade.confirming}
-            success={trade.isSuccess}
-            error={trade.error}
+            hash={fill.hash ?? trade.hash}
+            confirming={fill.confirming || trade.confirming}
+            success={fill.isSuccess || trade.isSuccess}
+            error={fill.error ?? trade.error}
             successLabel="Done"
           />
 

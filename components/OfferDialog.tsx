@@ -2,9 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { useOffers } from "@/hooks/useOffers";
+import { useAccount } from "wagmi";
+import { useOffersForToken } from "@/hooks/useSeaportOrders";
 import { OfferForm, useTokenOfferTarget } from "@/components/OfferForm";
 import { formatSoso, shortAddress } from "@/lib/format";
+import { currencyLabel } from "@/lib/seaport";
 import { whenExpires } from "@/components/Offers";
 import "./OfferDialog.css";
 import { Soso } from "@/components/Soso";
@@ -31,7 +33,10 @@ export function OfferDialog({
   name: string;
   onClose: () => void;
 }) {
-  const { offers, mine } = useOffers(collection, tokenId);
+  const { address } = useAccount();
+  const { offers } = useOffersForToken(collection, tokenId);
+  const isMine = (maker: string) =>
+    address !== undefined && maker.toLowerCase() === address.toLowerCase();
   const offerTarget = useTokenOfferTarget(collection, tokenId);
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
@@ -71,14 +76,16 @@ export function OfferDialog({
           {offers.length > 0 ? (
             <ul className="od-standing">
               {offers.slice(0, 3).map((o) => (
-                <li key={o.bidder}>
+                <li key={o.hash}>
                   <span className="mono">
-                    <Soso size={16} unit="WSOSO">
-                      {formatSoso(o.price)}
+                    <Soso size={16} unit={currencyLabel(o.currency)}>
+                      {formatSoso(o.priceWei)}
                     </Soso>
                   </span>
                   <span>
-                    {o.mine ? "You" : shortAddress(o.bidder, 4)} &middot; {whenExpires(o.expiry)}
+                    {isMine(o.maker) ? "You" : shortAddress(o.maker, 4)} &middot;{" "}
+                    {o.tokenId === undefined ? "any piece · " : ""}
+                    {whenExpires(o.endTime)}
                   </span>
                 </li>
               ))}
@@ -87,7 +94,7 @@ export function OfferDialog({
             <p className="od-empty">No offers on this one yet.</p>
           )}
 
-          <OfferForm target={offerTarget} replacing={mine !== undefined} onDone={() => undefined} />
+          <OfferForm target={offerTarget} replacing={false} onDone={() => undefined} />
         </div>
       </div>
     </>,

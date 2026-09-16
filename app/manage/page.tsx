@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useConnect } from "wagmi";
+import { useAccount, useConnect } from "wagmi";
 import { useOwnedCollections } from "@/hooks/useAllCollections";
 import { formatCount, formatSoso } from "@/lib/format";
 import { Art } from "@/components/Art";
@@ -18,6 +18,7 @@ import "@/styles/home.css";
  */
 export default function Manage() {
   const { owned, isLoading, connected } = useOwnedCollections();
+  const { address } = useAccount();
 
   /**
    * The same covers /collections uses, so a creator sees their own work here
@@ -88,10 +89,24 @@ export default function Manage() {
         </div>
       ) : owned.length === 0 ? (
         <div className="market-empty">
-          <h3>You don&rsquo;t own any collections yet.</h3>
+          {/**
+           * "You don't own any collections yet" is a claim about the person.
+           * What is actually known is narrower: *this wallet* owns none. A
+           * creator who deployed from a second wallet — which is normal, and
+           * which happened here — reads the wider claim, believes their
+           * collection failed to appear, and goes looking for a bug that is not
+           * there. Say what is true instead, and name the wallet it is true of.
+           */}
+          <h3>Nothing owned by this wallet.</h3>
           <p className="muted">
-            Deploying one costs gas and nothing else. You own the contract outright and manage it
-            from here.
+            Collections are listed by whoever owns the contract, so only the wallet that created
+            one sees it here. If you made a collection from a different wallet, switch to it.
+          </p>
+          {address === undefined ? null : (
+            <p className="muted mono">connected: {address}</p>
+          )}
+          <p className="muted">
+            A collection with nothing minted still appears — supply is not what decides this.
           </p>
           <Link className="btn btn-primary mt-sm" href="/create">
             Create a collection
@@ -125,6 +140,9 @@ export default function Manage() {
                     {c.symbol}
                   </div>
                 </div>
+                {/* Say why it is not on the marketplace, rather than leaving
+                    its owner to wonder where it went. */}
+                {c.hidden === true ? <span className="chip">Unlisted</span> : null}
                 <span
                   className={`chip ${c.publicMintEnabled === true ? "chip-up" : ""}`}
                 >

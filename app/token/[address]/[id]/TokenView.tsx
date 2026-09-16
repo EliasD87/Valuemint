@@ -3,11 +3,14 @@
 import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import { useAccount, useReadContract } from "wagmi";
-import { ValueChainCollectionAbi, ValueChainMarketplaceAbi, deployment } from "@/config/contracts";
+import { ValueChainCollectionAbi, deployment } from "@/config/contracts";
+import { SEAPORT } from "@/config/seaport";
 import { useTokenMetadata, trait } from "@/hooks/useCollection";
 import { useTokenStandard } from "@/hooks/useTokenStandard";
 import { MultiTokenView } from "./MultiTokenView";
-import { usePreviewSale, useTrade } from "@/hooks/useTrade";
+import { useSeaportFill, useSeaportTrade } from "@/hooks/useSeaportTrade";
+import { useListingFor } from "@/hooks/useSeaportOrders";
+import { splitFee } from "@/lib/seaport";
 import { Offers } from "@/components/Offers";
 import { TxResult } from "@/components/TxResult";
 import { ShareLink } from "@/components/ShareLink";
@@ -44,8 +47,22 @@ export function TokenView({
    */
   const { standard, isLoading: loadingStandard } = useTokenStandard(collection);
   const { data: metadata, isLoading } = useTokenMetadata(collection, tokenId);
-  const trade = useTrade(collection);
+  const trade = useSeaportTrade(collection);
+  const fill = useSeaportFill();
   const [price, setPrice] = useState("");
+
+  /**
+   * Which button was last pressed.
+   *
+   * The result banner used to take its wording from the panel's *state* rather
+   * than from what happened: `successLabel={listed ? "Done" : "Listed"}`. So
+   * approving — which is step one of two and lists nothing — reported "Listed."
+   * while the piece was still unlisted and the real work had not begun. The
+   * only thing that knows what a receipt means is the button that caused it.
+   */
+  const [lastAction, setLastAction] = useState<
+    "approve" | "list" | "cancel" | "buy" | undefined
+  >(undefined);
 
   const { data: owner, refetch: refetchOwner } = useReadContract({
     address: collection,
@@ -55,23 +72,36 @@ export function TokenView({
     query: { enabled: tokenId !== undefined && collection !== undefined },
   });
 
-  const { data: listing, refetch: refetchListing } = useReadContract({
-    address: deployment.marketplace,
-    abi: ValueChainMarketplaceAbi,
-    functionName: "getListing",
-    args: tokenId === undefined || collection === undefined ? undefined : [collection, tokenId],
-    query: { enabled: tokenId !== undefined && collection !== undefined, refetchInterval: 12_000 },
+  const { listing } = useListingFor(collection, tokenId);
+
+  /**
+   * Whether the listing can actually be filled.
+   *
+   * Seaport holds no listing state of its own, so "stale" is not something the
+   * order can tell us - the order stays perfectly valid while the seller walks
+   * the token out of their wallet or revokes approval. Both are read from the
+   * collection, and only a listing whose seller still holds the token and still
+   * lets Seaport move it is offered as buyable.
+   */
+  const { data: sellerApproved, refetch: refetchApprovalState } = useReadContract({
+    address: collection,
+    abi: ValueChainCollectionAbi,
+    functionName: "isApprovedForAll",
+    args: listing === undefined ? undefined : [listing.maker, SEAPORT],
+    query: { enabled: listing !== undefined && collection !== undefined, refetchInterval: 15_000 },
   });
 
-  const { data: active, refetch: refetchActive } = useReadContract({
-    address: deployment.marketplace,
-    abi: ValueChainMarketplaceAbi,
-    functionName: "isListingActive",
-    args: tokenId === undefined || collection === undefined ? undefined : [collection, tokenId],
-    query: { enabled: tokenId !== undefined && collection !== undefined, refetchInterval: 12_000 },
-  });
-
-  const preview = usePreviewSale(collection, tokenId, price);
+  /** What listing at the typed price would pay out. No contract call: it is arithmetic. */
+  const preview = (() => {
+    let asked = 0n;
+    try {
+      asked = price === "" ? 0n : BigInt(Math.round(Number(price) * 1e18));
+    } catch {
+      asked = 0n;
+    }
+    const { fee, net } = splitFee(asked);
+    return { price: asked, proceeds: net, fee };
+  })();
 
   /**
    * Lifted above the early returns below. It used to sit after them, so an
@@ -81,9 +111,9 @@ export function TokenView({
    * then.
    */
   useEffect(() => {
-    if (trade.isSuccess) afterAction();
+    if (trade.isSuccess || fill.isSuccess) afterAction();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [trade.isSuccess, trade.hash]);
+  }, [trade.isSuccess, trade.hash, fill.isSuccess, fill.hash]);
 
   if (tokenId === undefined || collection === undefined) {
     return (
@@ -118,8 +148,16 @@ export function TokenView({
 
   const isOwner =
     owner !== undefined && address !== undefined && (owner as string).toLowerCase() === address.toLowerCase();
-  const listed = listing !== undefined && (listing as { seller: string }).seller !== "0x0000000000000000000000000000000000000000";
-  const listPrice = listed ? (listing as { price: bigint }).price : 0n;
+  const listed = listing !== undefined;
+  const listPrice = listing?.priceWei ?? 0n;
+  /** Fillable now: the seller still holds it, and Seaport is still allowed to move it. */
+  const active =
+    listing !== undefined &&
+    sellerApproved === true &&
+    owner !== undefined &&
+    (owner as string).toLowerCase() === listing.maker.toLowerCase();
+  /** One flag for both sides of the panel — making an order, and taking one. */
+  const busy = trade.busy || fill.busy;
   const image = resolveMediaUrl(metadata?.image);
 
   /**
@@ -135,22 +173,20 @@ export function TokenView({
    *
    * Every read that a write can change belongs in here, and two were missing.
    *
-   * `isListingActive` was the visible one: listing a token refetched
-   * `getListing` but not this, so `listed` flipped true while `active` still
-   * held the `false` it was given before the listing existed. That combination
-   * renders as "Listed (stale)" over a banner telling the owner their brand new
-   * listing is broken and cannot be bought — the exact opposite of what just
-   * happened. It cleared itself on the 12s poll, which is precisely why it was
-   * easy to miss and alarming to hit.
-   *
    * `ownerOf` was the quieter one: it has no poll at all, so after a purchase
    * the page kept naming the previous owner until a manual reload.
+   *
+   * The listing itself is not refetched here. It comes from a log scan cached
+   * across the whole app, and clearing that to pick up one order would throw
+   * away the entire market's history; its own 30s poll finds the new order.
+   * Staleness is checked separately — `sellerApproved` and `ownerOf` are what
+   * decide whether a listing is buyable, and both are refreshed here.
    */
   const afterAction = () => {
-    void refetchListing();
-    void refetchActive();
     void refetchOwner();
+    void refetchApprovalState();
     void trade.refetchApproval();
+    void trade.refetchCounter();
   };
 
   return (
@@ -197,7 +233,7 @@ export function TokenView({
             </div>
             <div>
               <dt>Status</dt>
-              <dd>{listed ? (active === true ? "For sale" : "Listed (stale)") : "Not listed"}</dd>
+              <dd>{listed ? (active ? "For sale" : "Listed (stale)") : "Not listed"}</dd>
               <LastSale collection={collection} tokenId={tokenId} />
             </div>
           </dl>
@@ -211,7 +247,7 @@ export function TokenView({
                   <span className="token-price mono">{formatSoso(listPrice)} SOSO</span>
                 </div>
 
-                {active === false ? (
+                {!active ? (
                   <p className="token-warn">
                     This listing is stale — the owner moved the token or withdrew the
                     marketplace&rsquo;s approval. Buying it would fail, so the button is disabled.
@@ -221,9 +257,10 @@ export function TokenView({
                 {isOwner ? (
                   <button
                     className="btn btn-block"
-                    disabled={trade.busy}
+                    disabled={busy}
                     onClick={() => {
-                      trade.cancel(tokenId);
+                      setLastAction("cancel");
+                      if (listing !== undefined) trade.cancelOrder(listing);
                     }}
                   >
                     {trade.busy ? "Cancelling…" : "Cancel listing"}
@@ -231,16 +268,17 @@ export function TokenView({
                 ) : (
                   <button
                     className="btn btn-primary btn-lg btn-block"
-                    disabled={trade.busy || active !== true || address === undefined}
+                    disabled={busy || !active || address === undefined}
                     onClick={() => {
-                      trade.buy(tokenId, listPrice);
+                      setLastAction("buy");
+                      if (listing !== undefined) fill.buy(listing);
                     }}
                   >
                     {address === undefined
                       ? "Connect wallet to buy"
-                      : trade.signing
+                      : fill.signing
                         ? "Confirm in wallet…"
-                        : trade.confirming
+                        : fill.confirming
                           ? "Buying…"
                           : `Buy for ${formatSoso(listPrice)} SOSO`}
                   </button>
@@ -269,14 +307,37 @@ export function TokenView({
                       <dd className="mono">{formatSoso(preview.proceeds)}</dd>
                     </div>
                     <div>
-                      <dt>Royalty</dt>
-                      <dd className="mono">{formatSoso(preview.royalty)}</dd>
-                    </div>
-                    <div>
                       <dt>Marketplace</dt>
                       <dd className="mono">{formatSoso(preview.fee)}</dd>
                     </div>
                   </dl>
+                ) : null}
+
+                {/**
+                 * Listing is two transactions the first time, and saying so up
+                 * front is the whole point. Someone who is told "one
+                 * transaction" and then asked for a second one reasonably
+                 * assumes the first failed — which is how a double approval
+                 * happens.
+                 */}
+                {trade.needsApproval || lastAction === "approve" ? (
+                  <ol
+                    className="token-steps"
+                    aria-label={`Listing: step ${trade.needsApproval ? 1 : 2} of 2`}
+                  >
+                    <li className={trade.needsApproval ? "is-now" : "is-done"}>
+                      <span className="token-step-n" aria-hidden="true">
+                        {trade.needsApproval ? "1" : "✓"}
+                      </span>
+                      Approve once
+                    </li>
+                    <li className={trade.needsApproval ? "" : "is-now"}>
+                      <span className="token-step-n" aria-hidden="true">
+                        2
+                      </span>
+                      List it
+                    </li>
+                  </ol>
                 ) : null}
 
                 {trade.needsApproval ? (
@@ -287,8 +348,9 @@ export function TokenView({
                     </p>
                     <button
                       className="btn btn-primary btn-block"
-                      disabled={trade.busy}
+                      disabled={busy}
                       onClick={() => {
+                        setLastAction("approve");
                         trade.approve();
                       }}
                     >
@@ -298,8 +360,9 @@ export function TokenView({
                 ) : (
                   <button
                     className="btn btn-primary btn-lg btn-block"
-                    disabled={trade.busy || preview.price <= 0n}
+                    disabled={busy || preview.price <= 0n}
                     onClick={() => {
+                      setLastAction("list");
                       trade.list(tokenId, price);
                     }}
                   >
@@ -315,11 +378,23 @@ export function TokenView({
             )}
 
             <TxResult
-              hash={trade.hash}
-              confirming={trade.confirming}
-              success={trade.isSuccess}
-              error={trade.error}
-              successLabel={listed ? "Done" : "Listed"}
+              hash={fill.hash ?? trade.hash}
+              confirming={busy && (fill.confirming || trade.confirming)}
+              success={fill.isSuccess || trade.isSuccess}
+              error={fill.error ?? trade.error}
+              /* What happened, from the button that caused it — never from the
+                 panel's state. See `lastAction`. */
+              successLabel={
+                lastAction === "approve"
+                  ? "Approved — now set a price and list it"
+                  : lastAction === "list"
+                    ? "Listed"
+                    : lastAction === "cancel"
+                      ? "Listing cancelled"
+                      : lastAction === "buy"
+                        ? "Bought"
+                        : "Done"
+              }
             />
           </div>
 

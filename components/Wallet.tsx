@@ -39,16 +39,31 @@ export function Wallet() {
   const [picking, setPicking] = useState(false);
   useEffect(() => setMounted(true), []);
 
-  if (!isConnected) {
-    // Stable placeholder until the browser has been inspected.
-    if (!mounted) {
-      return (
-        <button className="btn btn-solid" disabled>
-          Connect<span className="wide-only">&nbsp;wallet</span>
-        </button>
-      );
-    }
+  /**
+   * The placeholder gates EVERY branch, not just the disconnected one.
+   *
+   * It used to sit inside `if (!isConnected)`, which left the connected path
+   * unguarded — and that is the path that breaks. wagmi restores a previous
+   * connection from storage during the first client render, so the server
+   * emitted this button while the browser immediately rendered `<div
+   * className="wallet">` in its place. React cannot patch a mismatch that
+   * changes the element, so it threw away the server's HTML and re-rendered the
+   * whole tree on the client.
+   *
+   * That re-render is what made the root layout's inline `<script>` warn, and
+   * why the warning appeared at odd moments — an offer arriving would render,
+   * then the recovery would blow it away a frame later. The script was never
+   * the problem; this was.
+   */
+  if (!mounted) {
+    return (
+      <button className="btn btn-solid" disabled>
+        Connect<span className="wide-only">&nbsp;wallet</span>
+      </button>
+    );
+  }
 
+  if (!isConnected) {
     /**
      * One button, and it always asks.
      *

@@ -3,11 +3,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { useReadContracts } from "wagmi";
 import { erc721Abi } from "viem";
-import { ValueChainMarketplaceAbi, deployment } from "@/config/contracts";
 import { enumerableAbi } from "@/config/erc721";
 import { resolveMediaUrl } from "@/lib/format";
 import { useAllCollections, type CollectionSummary } from "@/hooks/useAllCollections";
-import type { Listing, TokenMetadata } from "@/hooks/useCollection";
+import { useBestListings } from "@/hooks/useSeaportOrders";
+import { toListing, type Listing } from "@/lib/seaport";
+import type { TokenMetadata } from "@/hooks/useCollection";
 
 /**
  * Tokens across every collection on the chain, rather than one hardcoded address.
@@ -34,7 +35,6 @@ export interface ChainToken {
   image?: string;
 }
 
-const ZERO = "0x0000000000000000000000000000000000000000";
 
 function traitOf(m: TokenMetadata | undefined, name: string): string | undefined {
   const hit = m?.attributes?.find((a) => a.trait_type === name);
@@ -67,6 +67,17 @@ async function fetchLimited(urls: string[], limit: number) {
 
 export function useEverything(perCollection = 30) {
   const { collections, isLoading: loadingCollections } = useAllCollections();
+
+  /**
+   * Listings come from Seaport's own event log, not from a per-token call.
+   *
+   * The previous shape asked the marketplace `getListing(collection, id)` for
+   * every token on screen - a third of every multicall spent finding out that
+   * most tokens are not for sale. Seaport announces each order once, so one
+   * cached scan answers for every token at once and the per-token reads drop
+   * from three to two.
+   */
+  const { best: bestListings } = useBestListings();
 
   // Supply per collection, so we know which ids exist without guessing.
   const { data: supplies } = useReadContracts({
@@ -124,18 +135,12 @@ export function useEverything(perCollection = 30) {
     contracts: slots.flatMap((s) => [
       { address: s.collection.address, abi: erc721Abi, functionName: "ownerOf" as const, args: [s.id] },
       { address: s.collection.address, abi: erc721Abi, functionName: "tokenURI" as const, args: [s.id] },
-      {
-        address: deployment.marketplace,
-        abi: ValueChainMarketplaceAbi,
-        functionName: "getListing" as const,
-        args: [s.collection.address, s.id],
-      },
     ]),
     query: { enabled: slots.length > 0, refetchInterval: 25_000 },
   });
 
   const uris = slots.map((_, i) => {
-    const entry = chainData?.[i * 3 + 1];
+    const entry = chainData?.[i * 2 + 1];
     return entry?.status === "success" ? (entry.result as string) : undefined;
   });
 
@@ -148,9 +153,8 @@ export function useEverything(perCollection = 30) {
   });
 
   const tokens: ChainToken[] = slots.map((slot, i) => {
-    const ownerEntry = chainData?.[i * 3];
-    const listingEntry = chainData?.[i * 3 + 2];
-    const listing = listingEntry?.status === "success" ? (listingEntry.result as Listing) : undefined;
+    const ownerEntry = chainData?.[i * 2];
+    const order = bestListings.get(`${slot.collection.address.toLowerCase()}-${slot.id}`);
     const m = metadata?.[i];
 
     return {
@@ -158,7 +162,7 @@ export function useEverything(perCollection = 30) {
       collectionName: slot.collection.name,
       id: slot.id,
       owner: ownerEntry?.status === "success" ? (ownerEntry.result as `0x${string}`) : undefined,
-      listing: listing !== undefined && listing.seller !== ZERO ? listing : undefined,
+      listing: order === undefined ? undefined : toListing(order),
       metadata: m,
       design: traitOf(m, "Design") ?? m?.name,
       tier: traitOf(m, "Tier"),

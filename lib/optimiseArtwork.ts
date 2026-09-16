@@ -85,7 +85,21 @@ export async function optimiseArtwork(
   let image: Sharp;
   let meta: Metadata;
   try {
-    image = sharp(content, { failOn: "none" });
+    /**
+     * Two limits, both deliberate.
+     *
+     * `failOn: "error"` — "none" told libvips to push on through truncated and
+     * malformed input, which widens the parser surface exposed to bytes a
+     * stranger chose. A file we cannot read cleanly is stored unchanged below;
+     * we do not need libvips to guess at it.
+     *
+     * `limitInputPixels` — sharp defaults to ~268 megapixels. PNG compresses
+     * flat colour enormously, so an 8 MB upload well inside MAX_FILE_BYTES can
+     * decode to 16384x16384: about a gigabyte of RAM, on a lambda with one.
+     * Sniffing the magic bytes identifies the format; it says nothing about the
+     * decoded dimensions. 50 MP is ~7000x7000, far past MAX_EDGE of 1500.
+     */
+    image = sharp(content, { failOn: "error", limitInputPixels: 50_000_000 });
     meta = await image.metadata();
   } catch {
     // Not something sharp can read. The route has already checked the declared

@@ -58,14 +58,25 @@ export async function GET(request: Request, { params }: { params: Promise<{ addr
   const tier = standing.found ? tierFor(standing.volumeUsd) : undefined;
   const next = nextTier(tier);
 
+  /**
+   * Only what the claim page renders.
+   *
+   * `/api/trenches/authorise` deliberately stopped returning `volumeUsd`,
+   * reasoning that anyone could POST any address and read that wallet's
+   * all-time SoDEX volume, which made it the convenient endpoint for profiling
+   * the SoDEX user base in bulk. This route then returned `volumeUsd`,
+   * `pnlUsd`, `rank` and `accountId` for any address, unauthenticated, at four
+   * times the rate budget — so the control added there was undone by its
+   * sibling.
+   *
+   * SoDEX publishes these figures themselves, so this is a proxy rather than a
+   * leak. But it was a CORS-free, generously-limited proxy under our domain and
+   * our reputation, and the tier is all the page ever needed. `pnlUsd`, `rank`
+   * and `accountId` are read by nothing.
+   */
   return NextResponse.json({
     address: wallet,
     found: standing.found,
-    volumeUsd: standing.volumeUsd,
-    pnlUsd: standing.pnlUsd,
-    rank: standing.rank,
-    accountId: standing.accountId,
-    snapshotAt: standing.snapshotAt,
     tier: tier === undefined ? null : { n: tier.n, name: tier.name, min: tier.min },
     next:
       next === undefined

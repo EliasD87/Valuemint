@@ -75,12 +75,47 @@ const cache = new Map<string, { manifest: CollectionManifest; assignments: Assig
  */
 const MAX_CACHED_MANIFESTS = 200;
 
+/**
+ * The cache is bounded by what it *holds*, not by how many things it holds.
+ *
+ * It used to evict on entry count alone, and the comment justifying 200
+ * reasoned about manifest size — "manifests are about a kilobyte". But a
+ * manifest is not what is retained: `assignDesigns` expands it into one object
+ * per token, so a single entry's cost scales with declared supply, not with the
+ * document. 200 entries of 100,000 tokens is twenty million objects.
+ *
+ * Both limits now apply, whichever binds first. A few large collections evict
+ * each other; many small ones coexist, which is the case this cache exists for.
+ */
+const MAX_CACHED_ASSIGNMENTS = 200_000;
+
+let cachedAssignments = 0;
+
 function remember(cid: string, entry: { manifest: CollectionManifest; assignments: Assignment[] }) {
-  if (cache.size >= MAX_CACHED_MANIFESTS) {
+  const evictOldest = () => {
     const oldest = cache.keys().next();
-    if (!oldest.done) cache.delete(oldest.value);
+    if (oldest.done) return false;
+    cachedAssignments -= cache.get(oldest.value)?.assignments.length ?? 0;
+    cache.delete(oldest.value);
+    return true;
+  };
+
+  while (
+    (cache.size >= MAX_CACHED_MANIFESTS ||
+      cachedAssignments + entry.assignments.length > MAX_CACHED_ASSIGNMENTS) &&
+    cache.size > 0
+  ) {
+    if (!evictOldest()) break;
   }
+
+  /**
+   * One collection larger than the whole budget is served but not kept —
+   * caching it would evict everything else on every request for it.
+   */
+  if (entry.assignments.length > MAX_CACHED_ASSIGNMENTS) return;
+
   cache.set(cid, entry);
+  cachedAssignments += entry.assignments.length;
 }
 
 /** CIDv1 base32 (`bafy…`) or CIDv0 base58 (`Qm…`). */

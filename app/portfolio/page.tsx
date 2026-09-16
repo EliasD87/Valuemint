@@ -2,10 +2,8 @@
 
 import { useMemo } from "react";
 import Link from "next/link";
-import { useAccount, useBalance, useConnect, useReadContract, useWriteContract } from "wagmi";
+import { useAccount, useBalance, useConnect } from "wagmi";
 import { useQueryClient } from "@tanstack/react-query";
-import { ValueChainMarketplaceAbi, deployment } from "@/config/contracts";
-import { valuechain } from "@/config/chain";
 import { useHoldings } from "@/hooks/useHoldings";
 import { OfferInbox } from "@/components/OfferInbox";
 import { TokenCard, TokenCardSkeleton } from "@/components/TokenCard";
@@ -19,16 +17,16 @@ export default function Portfolio() {
   const { tokens: mine, collections, unlistable, isLoading } = useHoldings(address);
   const { data: balance } = useBalance({ address, query: { enabled: address !== undefined } });
 
-  /** Native SOSO owed from a payout that could not be delivered directly. */
-  const { data: pending, refetch: refetchPending } = useReadContract({
-    address: deployment.marketplace,
-    abi: ValueChainMarketplaceAbi,
-    functionName: "pendingWithdrawals",
-    args: address === undefined ? undefined : [address],
-    query: { enabled: address !== undefined, refetchInterval: 20_000 },
-  });
-
-  const { writeContract, isPending: claiming } = useWriteContract();
+  /**
+   * There is no "waiting for you" balance any more, and there is nothing to
+   * claim.
+   *
+   * The previous marketplace escrowed a payout whose transfer failed, so this
+   * page carried a pendingWithdrawals read and a Claim button. Seaport pays the
+   * consideration directly inside the fill - if a payout cannot be delivered the
+   * whole sale reverts, so money is never left holding. All three old
+   * marketplace contracts were checked before removing this: each holds 0 SOSO.
+   */
 
   /**
    * Accepting an offer changes everything this page reads at once: the piece
@@ -39,7 +37,6 @@ export default function Portfolio() {
   const queryClient = useQueryClient();
   const afterSale = () => {
     void queryClient.invalidateQueries();
-    void refetchPending();
   };
 
   const listed = mine.filter((t) => t.listing !== undefined);
@@ -112,33 +109,6 @@ export default function Portfolio() {
           balance
         </span>
       </div>
-
-      {pending !== undefined && (pending as bigint) > 0n ? (
-        <div className="portfolio-pending">
-          <div>
-            <strong>{formatSoso(pending as bigint)} SOSO is waiting for you.</strong>
-            <p className="muted">
-              A sale paid out to you but the transfer could not be delivered directly, so the
-              marketplace is holding it. Nobody else can claim it.
-            </p>
-          </div>
-          <button
-            className="btn btn-primary"
-            disabled={claiming}
-            onClick={() => {
-              writeContract({
-                chainId: valuechain.id,
-                address: deployment.marketplace,
-                abi: ValueChainMarketplaceAbi,
-                functionName: "withdraw",
-              });
-              void refetchPending();
-            }}
-          >
-            {claiming ? "Claiming…" : "Claim it"}
-          </button>
-        </div>
-      ) : null}
 
       {/*
         Above the grid on purpose: it is the only thing on this page that is

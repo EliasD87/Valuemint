@@ -44,7 +44,16 @@ export function Soso({
 }: {
   children: React.ReactNode;
   /** WSOSO wherever an offer is shown — the marketplace refuses native ones. */
-  unit?: "SOSO" | "WSOSO";
+  /**
+   * Free text, not a closed union.
+   *
+   * It used to be `"SOSO" | "WSOSO"`, which is why every offer row carried the
+   * literal `unit="WSOSO"` — the type made a hardcoded label the path of least
+   * resistance, and that is precisely how a counterfeit token passed for the
+   * real one (C1, 2026-09-16). The label is now derived from the order's own
+   * currency by `currencyLabel`.
+   */
+  unit?: string;
   size?: number;
 }) {
   return (
