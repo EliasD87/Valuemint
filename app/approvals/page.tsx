@@ -86,13 +86,13 @@ export default function Approvals() {
       />
 
       {isLoading && approvals.length === 0 ? (
-        <div className="approvals-list">
-          {Array.from({ length: 2 }, (_, i) => (
-            <div key={i} className="approvals-row card">
-              <div className="skeleton" style={{ height: "3.5rem" }} />
-            </div>
+        <ul className="approvals-list">
+          {Array.from({ length: 3 }, (_, i) => (
+            <li key={i} className="approvals-row">
+              <div className="skeleton approvals-skeleton" />
+            </li>
           ))}
-        </div>
+        </ul>
       ) : approvals.length === 0 ? (
         <div className="market-empty">
           <h3>Nothing is approved.</h3>
@@ -112,7 +112,7 @@ export default function Approvals() {
             </p>
           ) : null}
 
-          <div className="approvals-list">
+          <ul className="approvals-list">
             {approvals.map((a) => (
               <Row
                 key={`${a.collection.address}-${a.operator.address}`}
@@ -125,7 +125,7 @@ export default function Approvals() {
                 }}
               />
             ))}
-          </div>
+          </ul>
         </>
       )}
     </section>
@@ -151,49 +151,37 @@ function Row({
   const retired = operator.standing === "retired";
 
   return (
-    <div className={`approvals-row card ${retired ? "is-retired" : ""}`}>
-      <div className="approvals-main">
-        <div className="min-0">
-          <b>{collection.name}</b>
-          <div className="approvals-sub">
-            can be moved by{" "}
-            <a
-              href={`${deployment.explorer}/address/${operator.address}`}
-              target="_blank"
-              rel="noreferrer noopener"
-            >
-              {operator.name}
-            </a>{" "}
-            <span className="mono dim">{shortAddress(operator.address, 4)}</span>
-          </div>
-        </div>
-        <span className={`chip ${retired ? "chip-warn" : ""}`}>
-          {retired ? "Not in use" : "In use"}
-        </span>
+    <li className={`approvals-row ${retired ? "is-retired" : ""}`}>
+      <div className="approvals-what">
+        <b>{collection.name}</b>
+        {retired ? <span className="chip chip-warn">Not in use</span> : null}
       </div>
 
-      <p className="approvals-why">{operator.why}</p>
-
-      <div className="approvals-foot">
-        {/* The number is the point: an approval over nothing is a different
-            decision from an approval over everything you own. */}
-        <span className="approvals-exposure">
-          {held === 0n ? (
-            <>Nothing held &mdash; covers anything you receive</>
-          ) : (
-            <>
-              <b>{formatCount(held)}</b> {held === 1n ? "piece" : "pieces"}
-            </>
-          )}
-        </span>
-        <button
-          className={retired ? "btn btn-primary" : "btn"}
-          disabled={anyBusy}
-          onClick={onRevoke}
+      <p className="approvals-sub">
+        <a
+          href={`${deployment.explorer}/address/${operator.address}`}
+          target="_blank"
+          rel="noreferrer noopener"
         >
-          {busy ? "Revoking…" : "Revoke"}
-        </button>
-      </div>
-    </div>
+          {operator.name}
+        </a>
+        <span className="dim"> {shortAddress(operator.address, 4)}</span>
+        <span className="dim"> &middot; {operator.why}</span>
+      </p>
+
+      {/* The number is the point: an approval over nothing is a different
+          decision from an approval over everything you own. */}
+      <span className="approvals-held">
+        {held === 0n ? <span className="dim">none held</span> : <b>{formatCount(held)}</b>}
+      </span>
+
+      <button
+        className={retired ? "btn btn-sm btn-primary" : "btn btn-sm"}
+        disabled={anyBusy}
+        onClick={onRevoke}
+      >
+        {busy ? "Revoking…" : "Revoke"}
+      </button>
+    </li>
   );
 }
