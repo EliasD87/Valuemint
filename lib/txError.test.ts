@@ -78,3 +78,48 @@ describe("explainTxError", () => {
     );
   });
 });
+
+/**
+ * Losing a race is the ordinary way a trade fails on a marketplace, and it used
+ * to be unexplainable: the Seaport ABI carried no error entries, so viem could
+ * not decode the revert and produced a message ending in a bare 4-byte
+ * selector. `explainTxError` takes the first line, which threw the selector
+ * away and left a sentence ending in a colon.
+ */
+describe("explainTxError - Seaport concurrency failures", () => {
+  const viemShape = (name: string) =>
+    `The contract function "fulfillOrder" reverted.
+
+Error: ${name}(0xabc)
+
+Contract Call:...`;
+
+  it("explains losing a buy race", () => {
+    const said = explainTxError(viemShape("OrderAlreadyFilled"));
+    expect(said).toMatch(/somebody else bought this first/i);
+    // And it says the money was not taken, which is the thing a person needs.
+    expect(said).toMatch(/nothing was charged beyond gas/i);
+  });
+
+  it("explains an order cancelled underneath you", () => {
+    expect(explainTxError(viemShape("OrderIsCancelled"))).toMatch(/cancelled it before/i);
+  });
+
+  it("explains a lot partly taken while confirming", () => {
+    expect(explainTxError(viemShape("OrderPartiallyFilled"))).toMatch(/no longer available/i);
+  });
+
+  it("explains an order that expired mid-flight", () => {
+    expect(explainTxError(viemShape("InvalidTime"))).toMatch(/expired/i);
+  });
+
+  it("explains a stale listing whose seller moved the token", () => {
+    expect(explainTxError("execution reverted: TRANSFER_FROM_FAILED")).toMatch(/stale/i);
+  });
+
+  it("does not claim to understand an error it has no rule for", () => {
+    const said = explainTxError(viemShape("SomeErrorNobodyHasSeen"));
+    expect(said).not.toMatch(/somebody else bought/i);
+    expect(said.length).toBeGreaterThan(0);
+  });
+});

@@ -102,6 +102,81 @@ const RULES: Array<{ test: RegExp; say: string }> = [
     test: /MaxSupplyReached|PublicAllocationExhausted/,
     say: "This collection is sold out.",
   },
+
+  /* ---------------------------------------------------------------- Seaport
+   * Losing a race is the normal way a trade fails on a marketplace, and until
+   * the ABI carried Seaport's errors none of these could be decoded at all —
+   * viem produced a message ending in a bare selector and the first line of it
+   * said nothing. Every rule below is a *concurrency* outcome: somebody else
+   * got there first, or the order stopped being available between the render
+   * and the click. They are expected, they are not the user's mistake, and the
+   * wording says so.
+   *
+   * These are matched ahead of nothing and after the wallet-level rules,
+   * because a chain mismatch or a rejection is a better explanation when both
+   * are present.
+   */
+  {
+    test: /OrderAlreadyFilled/,
+    say:
+      "Somebody else bought this first. Your transaction reverted, so nothing " +
+      "was charged beyond gas, and you still hold what you held.",
+  },
+  {
+    test: /OrderIsCancelled/,
+    say:
+      "The person who made this order cancelled it before your transaction " +
+      "landed. Nothing was exchanged.",
+  },
+  {
+    test: /OrderPartiallyFilled/,
+    say:
+      "Someone took part of this lot while you were confirming, so the amount " +
+      "you asked for is no longer available. Try again for what is left.",
+  },
+  {
+    test: /InvalidTime/,
+    say: "This order expired before your transaction landed.",
+  },
+  {
+    test: /NoSpecifiedOrdersAvailable/,
+    say: "That order is no longer available to fill.",
+  },
+  {
+    test: /InsufficientNativeTokensSupplied|InvalidMsgValue/,
+    say:
+      "The amount sent did not match the order's price. The price may have " +
+      "changed since this page loaded — reload and try again.",
+  },
+  {
+    test: /ConsiderationNotMet/,
+    say:
+      "This order asks for something the transaction did not provide. Reload " +
+      "the page so you are looking at its current terms.",
+  },
+  {
+    test: /BadFraction|PartialFillsNotEnabledForOrder/,
+    say: "This listing cannot be split into the quantity you asked for.",
+  },
+  {
+    test: /InvalidCanceller/,
+    say: "Only the account that made an order can cancel it.",
+  },
+  {
+    test: /InvalidSigner|BadSignature/,
+    say: "This order could not be authorised. It may have been replaced or withdrawn.",
+  },
+  {
+    /**
+     * Seaport reverts here when the offerer no longer holds the token or no
+     * longer approves Seaport — the stale-listing case the order book tries to
+     * hide with `fillable`, surfacing when the UI's read was a moment behind.
+     */
+    test: /ERC721: caller is not token owner|ERC1155: caller is not|NOT_AUTHORIZED|TRANSFER_FROM_FAILED|UNAUTHORIZED/i,
+    say:
+      "The seller no longer holds this piece, or has withdrawn the marketplace's " +
+      "permission to move it. The listing is stale.",
+  },
 ];
 
 /** True when the person chose to stop, which is not a failure. */
