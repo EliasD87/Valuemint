@@ -6,12 +6,27 @@ import { parseAbiItem } from "viem";
 import { SEAPORT, SEAPORT_FROM_BLOCK } from "@/config/seaport";
 import { scanLogs } from "@/lib/logScan";
 import {
+  orderBookFloor,
   readFulfilment,
   readOrder,
   type OrderParameters,
   type ReceivedItem,
   type SpentItem,
 } from "@/lib/seaport";
+
+/**
+ * The most rows this feed will ever hold.
+ *
+ * `useSeaportOrders` caps its candidate set at 2,000 because `OrderValidated`
+ * is free for anyone to emit — `validate(Order[])` takes an array, so thousands
+ * land in one transaction. This hook reads the same event and had no cap at
+ * all, so the flood the order book now survives still arrived here in full, on
+ * every collection page and every token page, decoded and held in memory.
+ *
+ * Newest first, so the cap drops the oldest history rather than the activity
+ * anyone is looking at.
+ */
+const MAX_ACTIVITY_ROWS = 2_000;
 
 /**
  * What has actually happened to a token, or to a collection.
@@ -91,7 +106,18 @@ export function useActivity(
     enabled: client !== undefined,
     staleTime: 60_000,
     queryFn: async (): Promise<ActivityRow[]> => {
-      const base = { address: SEAPORT, fromBlock: SEAPORT_FROM_BLOCK };
+      /**
+       * The same floor `useSeaportOrders` scans from, and deliberately so.
+       *
+       * It was `SEAPORT_FROM_BLOCK`, which grows without bound as the chain
+       * ages — the one thing `orderBookFloor` exists to stop. It also quietly
+       * cost twice: `scanLogs` keys its cache on `fromBlock`, so the moment the
+       * head passed `deployedAt + ORDER_BOOK_WINDOW_BLOCKS` the two scans
+       * diverged and the page paid for both, exactly when the comment above
+       * claims they share.
+       */
+      const floor = orderBookFloor(await client!.getBlockNumber(), SEAPORT_FROM_BLOCK);
+      const base = { address: SEAPORT, fromBlock: floor };
 
       /**
        * Settled, not `all`. Three independent scans, and one failing - a node
@@ -197,7 +223,7 @@ export function useActivity(
             ? -1
             : 1,
       );
-      return rows;
+      return rows.slice(0, MAX_ACTIVITY_ROWS);
     },
   });
 
