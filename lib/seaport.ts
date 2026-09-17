@@ -369,6 +369,34 @@ export interface ReadOrder {
  */
 export const MAX_FULFILLER_OUTLAY_BPS = 1_000n;
 
+/**
+ * What accepting this bid will actually cost the holder, beyond the NFT.
+ *
+ * Read from the order's own consideration rather than assumed from `FEE_BPS`.
+ * The UI used to compute the acceptor's fee as `splitFee(priceWei).fee` — 2.5%,
+ * our own rate — while `unsafeReason` admits any bid whose outlay is up to
+ * MAX_FULFILLER_OUTLAY_BPS, i.e. 10%. A third-party bid carrying a larger fee
+ * line was therefore displayed as costing 2.5% and budgeted an allowance for
+ * 2.5%.
+ *
+ * For a holder with no standing bids that merely reverts. For a holder who has
+ * bid before — and so carries a WSOSO allowance sized to cover their own bids —
+ * it settles, and they receive up to 7.5% less than the figure they were shown.
+ *
+ * The order has said so all along; nothing was reading it.
+ */
+export function fulfillerOutlay(p: OrderParameters): bigint {
+  let outlay = 0n;
+  for (const i of p.consideration) {
+    // Only ERC-20 lines cost the acceptor anything; the NFT line is what they
+    // are handing over, and `unsafeReason` has already refused any bid whose
+    // non-NFT lines are not all the one accepted currency.
+    if (i.itemType !== ItemType.ERC20) continue;
+    outlay += i.startAmount;
+  }
+  return outlay;
+}
+
 /** More than this many payees is not a shape this app can present honestly. */
 const MAX_CONSIDERATION_ITEMS = 5;
 
@@ -405,6 +433,18 @@ export type UnsafeReason =
   | "order-names-a-zone"
   | "order-type-unsupported"
   | "order-never-expires"
+  /**
+   * Not returned by `unsafeReason`, and deliberately kept.
+   *
+   * The equivalent gate lives in `readFulfilment`, which returns `undefined`
+   * rather than a reason because its caller wants a fulfilment or nothing. This
+   * member documents that the currency rule exists on the history path too —
+   * the gate the codebase records as having been missed once, after `readOrder`
+   * was already protected.
+   *
+   * A reviewer reading only this union would otherwise conclude the history
+   * path is ungated. Deleting it would be tidier and less honest.
+   */
   | "settlement-currency-not-recognised"
   | "fulfiller-outlay-too-high"
   | "amount-varies-over-time"
@@ -465,6 +505,23 @@ export function unsafeReason(p: OrderParameters): UnsafeReason | undefined {
   if (p.endTime === 0n) return "order-never-expires";
 
   /**
+   * The declared consideration count must match the array.
+   *
+   * Seaport treats `totalOriginalConsiderationItems` as the number of items the
+   * *offerer* committed to; a fulfiller may append beyond it. An order whose
+   * declared count is lower than its array therefore carries items this app
+   * would display as the offerer's terms while Seaport treats them as somebody
+   * else's addition — and one whose count is higher will not settle at all.
+   *
+   * Every order this app builds sets it from `consideration.length`. A foreign
+   * order where the two disagree is not a shape we build, which is the whole
+   * test this whitelist applies.
+   */
+  if (p.totalOriginalConsiderationItems !== BigInt(p.consideration.length)) {
+    return "order-type-unsupported";
+  }
+
+  /**
    * Every amount must be fixed. Seaport interpolates between start and end over
    * the order's lifetime, so a varying amount means the price displayed is not
    * the price charged — and the direction that hurts is the one where the
@@ -494,6 +551,39 @@ export function unsafeReason(p: OrderParameters): UnsafeReason | undefined {
      */
     for (const i of p.consideration) {
       if (i.itemType !== ItemType.NATIVE) return "listing-consideration-must-be-native";
+      /**
+       * A NATIVE item must also *be* native.
+       *
+       * Checking `itemType` alone let this rule and `sumOf` disagree about the
+       * same item: the whitelist admitted it, and `sumOf` — which additionally
+       * requires `token === zeroAddress` — skipped it when adding up the price.
+       * So a listing whose consideration was [1 wei to seller, 1000 SOSO to
+       * seller with token 0x…01] passed here and displayed as **1 wei**, and
+       * set that collection's floor.
+       *
+       * Seaport refuses such an item at fill time (`_revertUnusedItemParameters`
+       * when `uint160(token) | identifier != 0`), which makes it worse rather
+       * than better: nobody can clear the fake by buying it, so it sits there
+       * poisoning the floor for the order's full 90 days. Asserting exactly what
+       * Seaport asserts makes the two agree by construction.
+       */
+      if (i.token !== zeroAddress || i.identifierOrCriteria !== 0n) {
+        return "listing-consideration-must-be-native";
+      }
+    }
+
+    /**
+     * An ERC-721 offer must be for exactly one token.
+     *
+     * The counterpart of `bid-quantity-unsupported`, which was never written
+     * for the listing side. Seaport treats an ERC-721 item's amount as 1
+     * regardless, so a larger value does not move more tokens — but it does
+     * change `_getFraction` arithmetic on a PARTIAL_OPEN order, and nothing on
+     * screen shows an offer amount, so a listing declaring 10 would render
+     * identically to one declaring 1 while filling differently.
+     */
+    if (offered.itemType === ItemType.ERC721 && offered.startAmount !== 1n) {
+      return "offer-item-type-unsupported";
     }
     return undefined;
   }
@@ -720,6 +810,25 @@ export function readFulfilment(
   const recognised = (token: Address) =>
     token === zeroAddress || token.toLowerCase() === ACCEPTED_BID_CURRENCY.toLowerCase();
 
+  /**
+   * A trade with yourself is not a sale.
+   *
+   * The currency gate stops a wash trade in a token the attacker minted, but it
+   * does nothing about a wash trade in a *real* one: fill your own order and
+   * the money goes in a circle, costing gas and nothing else, while the piece
+   * records a "last sale" at whatever figure you chose. Every price signal on
+   * the site is built from these rows — last sale, volume, the floor a buyer
+   * anchors on.
+   *
+   * Seaport has no opinion here and should not: settling an order between two
+   * addresses that happen to be one address is a perfectly valid settlement.
+   * Whether it counts as a market is our question, not its.
+   *
+   * Checked before either branch — a self-fill is a self-fill whether the
+   * offerer was selling or bidding.
+   */
+  if (offerer.toLowerCase() === recipient.toLowerCase()) return undefined;
+
   const sold = offer.find((i) => isNft(i.itemType));
   if (sold !== undefined) {
     // A listing: the offerer gave the NFT and was paid in the consideration.
@@ -749,6 +858,7 @@ export function readFulfilment(
   const paid = offer.find((i) => i.itemType === ItemType.ERC20 || i.itemType === ItemType.NATIVE);
   if (bought === undefined || paid === undefined) return undefined;
   if (!recognised(paid.token)) return undefined;
+
 
   return {
     collection: bought.token,

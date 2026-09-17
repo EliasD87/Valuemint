@@ -1,27 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { zeroAddress } from "viem";
-import {
-  FEE_BPS,
-  FEE_RECIPIENT,
-  ItemType,
-  OrderType,
-  buildListing,
-  buildOffer,
-  isExpired,
-  listingIsFillable,
-  offerIsFillable,
-  lotPrice,
-  orderBookFloor,
-  ORDER_BOOK_WINDOW_BLOCKS,
-  readFulfilment,
-  readOrder,
-  splitFee,
-  toComponents,
-  unitPrice,
-  unsafeReason,
-  ACCEPTED_BID_CURRENCY,
-  type OrderParameters,
-} from "./seaport";
+import { ACCEPTED_BID_CURRENCY, FEE_BPS, FEE_RECIPIENT, ItemType, ORDER_BOOK_WINDOW_BLOCKS, OrderType, buildListing, buildOffer, fulfillerOutlay, isExpired, listingIsFillable, lotPrice, offerIsFillable, orderBookFloor, readFulfilment, readOrder, splitFee, toComponents, type OrderParameters, unitPrice, unsafeReason } from "./seaport";
 import { deployment } from "@/config/contracts";
 
 /**
@@ -866,5 +845,195 @@ describe("isExpired", () => {
   /** Seaport treats endTime 0 as no expiry; nothing here builds one, but a stranger's order might. */
   it("treats a zero end time as never expiring", () => {
     expect(isExpired(0n, 2_000_000_000)).toBe(false);
+  });
+});
+
+/**
+ * The gap this closes: the UI computed an acceptor's cost from our own FEE_BPS
+ * (2.5%) while `unsafeReason` admits bids charging up to
+ * MAX_FULFILLER_OUTLAY_BPS (10%). A holder with a standing WSOSO allowance —
+ * anyone who has bid before — would have settled at the higher figure while
+ * being shown the lower one.
+ */
+describe("fulfillerOutlay", () => {
+  const erc20 = (amount: bigint) => ({
+    itemType: 1,
+    token: WSOSO,
+    identifierOrCriteria: 0n,
+    startAmount: amount,
+    endAmount: amount,
+    recipient: SELLER,
+  });
+  const nft = {
+    itemType: 2,
+    token: COLLECTION,
+    identifierOrCriteria: 7n,
+    startAmount: 1n,
+    endAmount: 1n,
+    recipient: BUYER,
+  };
+
+  it("counts nothing when a bid charges the acceptor nothing", () => {
+    expect(fulfillerOutlay({ consideration: [nft] } as never)).toBe(0n);
+  });
+
+  it("reports our own 2.5% fee line", () => {
+    const p = { consideration: [nft, erc20(25n)] } as never;
+    expect(fulfillerOutlay(p)).toBe(25n);
+  });
+
+  it("reports a third-party fee larger than our own rate", () => {
+    // 10% on a 1000 bid — admitted by unsafeReason, and previously displayed
+    // to the holder as 2.5%.
+    const p = { consideration: [nft, erc20(100n)] } as never;
+    expect(fulfillerOutlay(p)).toBe(100n);
+  });
+
+  it("sums every currency line rather than trusting the first", () => {
+    const p = { consideration: [nft, erc20(25n), erc20(60n)] } as never;
+    expect(fulfillerOutlay(p)).toBe(85n);
+  });
+
+  it("never counts the NFT the acceptor is handing over", () => {
+    const p = { consideration: [nft] } as never;
+    expect(fulfillerOutlay(p)).toBe(0n);
+  });
+});
+
+describe("unsafeReason - gaps closed after the 2026-09-17 review", () => {
+  /**
+   * The whitelist and the pricing function disagreed about the same item.
+   * `unsafeReason` checked `itemType === NATIVE`; `sumOf` additionally required
+   * `token === zeroAddress`, so an item with a non-zero token passed the gate
+   * and was skipped when adding up the price.
+   */
+  it("refuses a NATIVE consideration item carrying a non-zero token", () => {
+    const order = buildListing({
+      seller: SELLER,
+      collection: COLLECTION,
+      tokenId: 1n,
+      priceWei: TEN,
+    });
+    const poisoned = {
+      ...order,
+      consideration: [
+        { ...order.consideration[0]!, startAmount: 1n, endAmount: 1n },
+        {
+          ...order.consideration[0]!,
+          token: "0x0000000000000000000000000000000000000001" as const,
+          startAmount: TEN,
+          endAmount: TEN,
+        },
+      ],
+      totalOriginalConsiderationItems: 2n,
+    };
+    expect(unsafeReason(poisoned)).toBe("listing-consideration-must-be-native");
+  });
+
+  it("refuses a NATIVE consideration item carrying a non-zero identifier", () => {
+    const order = buildListing({
+      seller: SELLER,
+      collection: COLLECTION,
+      tokenId: 1n,
+      priceWei: TEN,
+    });
+    const odd = {
+      ...order,
+      consideration: order.consideration.map((c) => ({ ...c, identifierOrCriteria: 5n })),
+    };
+    expect(unsafeReason(odd)).toBe("listing-consideration-must-be-native");
+  });
+
+  /**
+   * Seaport treats totalOriginalConsiderationItems as what the offerer
+   * committed to; a fulfiller may append past it. An order where the declared
+   * count disagrees with the array is not a shape this app builds.
+   */
+  it("refuses an order whose declared consideration count is a lie", () => {
+    const order = buildListing({
+      seller: SELLER,
+      collection: COLLECTION,
+      tokenId: 1n,
+      priceWei: TEN,
+    });
+    expect(unsafeReason({ ...order, totalOriginalConsiderationItems: 1n })).toBe(
+      "order-type-unsupported",
+    );
+    expect(unsafeReason({ ...order, totalOriginalConsiderationItems: 99n })).toBe(
+      "order-type-unsupported",
+    );
+  });
+
+  it("still accepts the orders this app itself builds", () => {
+    const listing = buildListing({
+      seller: SELLER,
+      collection: COLLECTION,
+      tokenId: 1n,
+      priceWei: TEN,
+    });
+    expect(unsafeReason(listing)).toBeUndefined();
+  });
+});
+
+describe("readFulfilment - self-fill", () => {
+  const nftOut = [
+    { itemType: 2, token: COLLECTION, identifier: 1n, amount: 1n },
+  ] as never;
+  const paid = (to: string) =>
+    [
+      {
+        itemType: 0,
+        token: "0x0000000000000000000000000000000000000000",
+        identifier: 0n,
+        amount: TEN,
+        recipient: to,
+      },
+    ] as never;
+
+  it("reads a genuine sale between two parties", () => {
+    const f = readFulfilment(SELLER, BUYER, nftOut, paid(SELLER));
+    expect(f).toBeDefined();
+    expect(f?.priceWei).toBe(TEN);
+  });
+
+  /**
+   * Filling your own order costs gas and moves nothing, but it used to write a
+   * "last sale" at any figure you chose — and every price signal on the site is
+   * built from these rows.
+   */
+  it("refuses a trade where the offerer is also the fulfiller", () => {
+    expect(readFulfilment(SELLER, SELLER, nftOut, paid(SELLER))).toBeUndefined();
+  });
+
+  it("refuses it regardless of address casing", () => {
+    expect(
+      readFulfilment(SELLER.toLowerCase() as typeof SELLER, SELLER, nftOut, paid(SELLER)),
+    ).toBeUndefined();
+  });
+});
+
+describe("low-severity gaps closed 2026-09-17", () => {
+  it("refuses an ERC-721 listing that offers more than one", () => {
+    const order = buildListing({
+      seller: SELLER,
+      collection: COLLECTION,
+      tokenId: 1n,
+      priceWei: TEN,
+    });
+    const greedy = {
+      ...order,
+      offer: [{ ...order.offer[0]!, startAmount: 10n, endAmount: 10n }],
+    };
+    expect(unsafeReason(greedy)).toBe("offer-item-type-unsupported");
+  });
+
+  it("still accepts a single-token listing", () => {
+    const order = buildListing({
+      seller: SELLER,
+      collection: COLLECTION,
+      tokenId: 1n,
+      priceWei: TEN,
+    });
+    expect(unsafeReason(order)).toBeUndefined();
   });
 });
