@@ -74,6 +74,16 @@ const COUNTER_INCREMENTED = parseAbiItem(
  */
 const MAX_CANDIDATE_ORDERS = 2_000;
 
+/**
+ * The most orders any one address may occupy in the candidate set.
+ *
+ * Chosen so the cap cannot be exhausted by a handful of addresses: at 200, it
+ * takes ten distinct offerers to fill the book, and each one costs a funded
+ * wallet rather than an array element. No honest maker on this marketplace has
+ * ever held more than a few dozen live orders.
+ */
+const MAX_ORDERS_PER_OFFERER = 200;
+
 /** ERC-1155 has no `ownerOf`; a holding is a balance. */
 const erc1155BalanceAbi = [
   {
@@ -166,8 +176,23 @@ function useValidatedOrders() {
         const read = readOrder(args.orderParameters);
         if (read === undefined) continue; // A shape this app does not price.
 
+        /**
+         * The LATEST validation wins, not the earliest.
+         *
+         * This was `existing.blockNumber <= log.blockNumber`, which kept the
+         * first announcement of an order and discarded every later one. That is
+         * fine on its own — the parameters are identical — and wrong the moment
+         * it meets `voidedAfter`: a maker who calls `incrementCounter` to void
+         * everything and then re-validates an order is live again on chain, but
+         * the book still remembered the ORIGINAL block, which is before the
+         * increment. So the re-listed order was hidden from everyone, including
+         * the seller, with no way to bring it back short of a new order hash.
+         *
+         * Keeping the most recent validation is what makes "validated after the
+         * counter moved" mean what it says.
+         */
         const existing = byHash.get(args.orderHash);
-        if (existing !== undefined && existing.blockNumber <= log.blockNumber) continue;
+        if (existing !== undefined && existing.blockNumber >= log.blockNumber) continue;
 
         byHash.set(args.orderHash, {
           hash: args.orderHash,
@@ -196,9 +221,41 @@ function useValidatedOrders() {
        * path — one scan serving every visitor — and this keeps the failure
        * graceful until that exists.
        */
-      const candidates = [...byHash.values()]
-        .sort((a, b) => Number(b.blockNumber - a.blockNumber))
-        .slice(0, MAX_CANDIDATE_ORDERS);
+      /**
+       * Newest first, but no single offerer may take the whole book.
+       *
+       * The global cap alone was the wrong shape of defence. Sorting newest
+       * first and slicing from the front means new orders evict old ones, so
+       * `validate(Order[])` — which takes an array — let one cheap transaction
+       * publish `MAX_CANDIDATE_ORDERS` shaped-but-worthless orders and displace
+       * every genuine listing and bid on the chain, refreshed every 30s.
+       *
+       * The second-order effect was worse than the empty market: with a
+       * bidder's own standing bids evicted, `useOwnOfferExposure` returns 0n,
+       * so the next `allow()` sets the WSOSO allowance to just the bid being
+       * placed — silently revoking the cover for bids already on chain, which
+       * is the exact failure `alsoCover` exists to prevent.
+       *
+       * A per-offerer quota bounds one address to its share, so a flood
+       * displaces itself rather than everyone. It is not the structural answer
+       * — that is a cached read path serving every visitor — but it makes the
+       * cheap attack cost an address per slot instead of a transaction.
+       */
+      const newestFirst = [...byHash.values()].sort((a, b) =>
+        Number(b.blockNumber - a.blockNumber),
+      );
+
+      const perOfferer = new Map<string, number>();
+      const candidates: typeof newestFirst = [];
+
+      for (const c of newestFirst) {
+        if (candidates.length >= MAX_CANDIDATE_ORDERS) break;
+        const maker = c.read.maker.toLowerCase();
+        const taken = perOfferer.get(maker) ?? 0;
+        if (taken >= MAX_ORDERS_PER_OFFERER) continue;
+        perOfferer.set(maker, taken + 1);
+        candidates.push(c);
+      }
 
       if (byHash.size > MAX_CANDIDATE_ORDERS) {
         console.warn(
@@ -335,13 +392,29 @@ export function useSeaportOrders() {
   const orders = useMemo<SeaportOrder[]>(
     () =>
       standing.map((o, i) => {
-        const first = fillChecks?.[i * 2];
-        const second = fillChecks?.[i * 2 + 1];
+        /**
+         * "Not loaded yet" and "the call reverted" are different answers.
+         *
+         * This branch used to treat both as fillable, so that a read still in
+         * flight could not make a live listing flicker. But a *reverted* read
+         * is an answer, and it is the answer "this token does not exist" —
+         * `ownerOf` reverts on a nonexistent id. `validate()` needs no
+         * signature when the offerer is `msg.sender` and checks nothing about
+         * ownership, so anyone could publish a well-shaped listing offering
+         * token 999999 of a real collection at any price they liked: the shape
+         * passed `unsafeReason`, `ownerOf` reverted, and this returned
+         * fillable. The fake then survived the `fillable` filter and set that
+         * collection's displayed floor.
+         *
+         * So absence still means fillable, and a refusal now means not.
+         */
+        if (fillChecks === undefined) return { ...o, fillable: true };
 
-        // Unknown counts as fillable: a read that has not landed yet must not
-        // make a live listing vanish and reappear on every poll.
+        const first = fillChecks[i * 2];
+        const second = fillChecks[i * 2 + 1];
+
         if (first?.status !== "success" || second?.status !== "success") {
-          return { ...o, fillable: true };
+          return { ...o, fillable: false };
         }
 
         if (o.kind === "listing") {
