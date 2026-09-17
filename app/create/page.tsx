@@ -9,9 +9,9 @@ import {
   useConnect,
   useSignMessage,
   useSwitchChain,
-  useWaitForTransactionReceipt,
   useWriteContract,
 } from "wagmi";
+import { useTxOutcome } from "@/hooks/useTxOutcome";
 import {
   ValueChainCollectionAbi,
   ValueChainCollectionFactoryAbi,
@@ -75,7 +75,7 @@ export default function Create() {
   const fileInput = useRef<HTMLInputElement>(null);
 
   const { writeContract, data: hash, isPending: txSigning, error: writeError, reset } = useWriteContract();
-  const { isLoading: confirming, isSuccess, data: receipt } = useWaitForTransactionReceipt({ hash });
+  const { isLoading: confirming, isSuccess, data: receipt } = useTxOutcome({ hash });
 
   /**
    * The collection's address, read out of its own creation receipt.
@@ -107,7 +107,7 @@ export default function Create() {
     isPending: openSigning,
     error: openError,
   } = useWriteContract();
-  const { isLoading: openConfirming, isSuccess: minting } = useWaitForTransactionReceipt({
+  const { isLoading: openConfirming, isSuccess: minting } = useTxOutcome({
     hash: openHash,
   });
 

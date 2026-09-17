@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo } from "react";
-import { useAccount, useReadContracts, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
+import { useAccount, useReadContracts, useWriteContract } from "wagmi";
+import { useTxOutcome } from "@/hooks/useTxOutcome";
 import { ValueChainCollectionAbi, deployment } from "@/config/contracts";
 import { SEAPORT } from "@/config/seaport";
 import { valuechain } from "@/config/chain";
@@ -152,7 +153,7 @@ export function useApprovals() {
 /** Revoking one approval. One write, and it reports what it did. */
 export function useRevoke(onDone?: () => void) {
   const { writeContract, data: hash, isPending: signing, error, reset } = useWriteContract();
-  const { isLoading: confirming, isSuccess } = useWaitForTransactionReceipt({ hash });
+  const { isLoading: confirming, isSuccess } = useTxOutcome({ hash });
 
   /**
    * Refetch on the receipt, never in the click handler. A read fired next to

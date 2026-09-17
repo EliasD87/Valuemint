@@ -1,11 +1,13 @@
 "use client";
 
 import { useCallback } from "react";
-import { useAccount, useReadContract, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
+import { useAccount, useReadContract, useWriteContract } from "wagmi";
+import { useTxOutcome } from "@/hooks/useTxOutcome";
 import { parseEther, zeroHash, type Address } from "viem";
 import { ValueChainCollectionAbi } from "@/config/contracts";
 import { SEAPORT, SeaportAbi } from "@/config/seaport";
 import { valuechain } from "@/config/chain";
+import { useVerifiedContracts } from "@/hooks/useVerifiedContracts";
 import {
   CONDUIT_KEY,
   DEFAULT_ORDER_DAYS,
@@ -107,10 +109,26 @@ export function useSeaportTrade(collection: Address | undefined) {
   });
 
   const { writeContract, data: hash, isPending: signing, error, reset } = useWriteContract();
-  const { isLoading: confirming, isSuccess } = useWaitForTransactionReceipt({ hash });
+  const { isLoading: confirming, isSuccess } = useTxOutcome({ hash });
+
+  /**
+   * The identity check gates this one write specifically.
+   *
+   * `setApprovalForAll` is the most consequential thing this app ever asks for:
+   * blanket operator rights over every token the wallet holds in a collection,
+   * for as long as it holds them. If `SEAPORT` is not the contract this build
+   * believes it is, that grant goes to whoever the wrong literal names — and it
+   * is not recoverable by noticing afterwards.
+   *
+   * Refusing to *send* is the right response rather than warning, because a
+   * warning is dismissible and this is not a judgement call: the chain has
+   * already said the address is wrong.
+   */
+  const identity = useVerifiedContracts();
 
   const approve = useCallback(() => {
     if (collection === undefined) return;
+    if (identity.mismatch) return;
     reset();
     writeContract({
       chainId: valuechain.id,
@@ -119,7 +137,7 @@ export function useSeaportTrade(collection: Address | undefined) {
       functionName: "setApprovalForAll",
       args: [SEAPORT, true],
     });
-  }, [collection, reset, writeContract]);
+  }, [collection, identity.mismatch, reset, writeContract]);
 
   const list = useCallback(
     (tokenId: bigint, priceInSoso: string, days: number = DEFAULT_ORDER_DAYS) => {
@@ -263,6 +281,8 @@ export function useSeaportTrade(collection: Address | undefined) {
   }, [reset, writeContract]);
 
   return {
+    /** The chain disagrees with this build about Seaport or WSOSO. */
+    contractsMismatch: identity.mismatch,
     needsApproval: approvedForAll === false,
     refetchApproval,
     refetchCounter,
@@ -294,7 +314,7 @@ export function useSeaportTrade(collection: Address | undefined) {
 export function useSeaportFill() {
   const { address } = useAccount();
   const { writeContract, data: hash, isPending: signing, error, reset } = useWriteContract();
-  const { isLoading: confirming, isSuccess } = useWaitForTransactionReceipt({ hash });
+  const { isLoading: confirming, isSuccess } = useTxOutcome({ hash });
 
   /**
    * Buy a listing at the price shown.

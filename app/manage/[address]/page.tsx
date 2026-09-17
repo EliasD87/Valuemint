@@ -7,9 +7,9 @@ import {
   useAccount,
   useBalance,
   useReadContracts,
-  useWaitForTransactionReceipt,
   useWriteContract,
 } from "wagmi";
+import { useTxOutcome } from "@/hooks/useTxOutcome";
 import { ValueChainCollectionAbi, deployment } from "@/config/contracts";
 import { valuechain } from "@/config/chain";
 import { TxResult } from "@/components/TxResult";
@@ -65,7 +65,7 @@ export default function ManageCollection({ params }: { params: Promise<{ address
   const currentBase = at<string>(10);
 
   const { writeContract, data: hash, isPending: signing, error, reset } = useWriteContract();
-  const { isLoading: confirming, isSuccess } = useWaitForTransactionReceipt({ hash });
+  const { isLoading: confirming, isSuccess } = useTxOutcome({ hash });
   const busy = signing || confirming;
 
   /**

@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect } from "react";
 import { parseEther, type Address } from "viem";
-import { useAccount, useReadContract, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
+import { useAccount, useReadContract, useWriteContract } from "wagmi";
+import { useTxOutcome } from "@/hooks/useTxOutcome";
 import { deployment } from "@/config/contracts";
 import { WsosoAbi } from "@/config/wsoso";
 import { SEAPORT } from "@/config/seaport";
@@ -56,7 +57,7 @@ export function useWsoso(needed: bigint, spender: Address = SEAPORT, alsoCover: 
   });
 
   const { writeContract, data: hash, isPending: signing, error, reset } = useWriteContract();
-  const { isLoading: confirming, isSuccess } = useWaitForTransactionReceipt({ hash });
+  const { isLoading: confirming, isSuccess } = useTxOutcome({ hash });
 
   /**
    * Re-read the moment a receipt lands, not on the 15s poll.

@@ -1,8 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useAccount, useReadContract, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
-import { TRENCHES_ABI, TRENCHES_ADDRESS } from "@/config/trenches";
+import { useAccount, useReadContract, useWriteContract } from "wagmi";
+import { useTxOutcome } from "@/hooks/useTxOutcome";
+import { TRENCHES_ABI, TRENCHES_ADDRESS, TRENCHES_CHAIN_ID } from "@/config/trenches";
+import { valuechain } from "@/config/chain";
 
 /**
  * Claiming the depths a wallet has earned.
@@ -71,7 +73,7 @@ export function useTrenchesClaim(earned: number) {
 
   const { writeContractAsync, reset } = useWriteContract();
   const [hash, setHash] = useState<`0x${string}` | undefined>();
-  const { isSuccess } = useWaitForTransactionReceipt({ hash });
+  const { isSuccess } = useTxOutcome({ hash });
 
   const claim = useCallback(async () => {
     if (address === undefined || !deployed) return;
@@ -103,6 +105,13 @@ export function useTrenchesClaim(earned: number) {
     try {
       sent = await writeContractAsync({
         ...contract,
+        // The only write in the app that was missing this. Without it wagmi
+        // sends to whatever network the wallet happens to be on, and a claim
+        // broadcast to a chain that has never heard of this contract fails as
+        // the node's own "resource not available" rather than as a refusal.
+        // Configurable so a local build can point at a local chain; wagmi's
+        // type wants the literal, and this is that value at runtime.
+        chainId: TRENCHES_CHAIN_ID as typeof valuechain.id,
         functionName: "claim",
         args: [auth.maxTier, BigInt(auth.deadline), auth.signature],
       });

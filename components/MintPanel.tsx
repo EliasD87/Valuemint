@@ -8,9 +8,9 @@ import {
   useConnect,
   useReadContracts,
   useSwitchChain,
-  useWaitForTransactionReceipt,
   useWriteContract,
 } from "wagmi";
+import { useTxOutcome } from "@/hooks/useTxOutcome";
 import { ValueChainCollectionAbi, deployment } from "@/config/contracts";
 import { valuechain } from "@/config/chain";
 import { formatCount, formatSoso } from "@/lib/format";
@@ -59,7 +59,7 @@ export function MintPanel({ address: collection }: { address: `0x${string}` }) {
   const yourRemaining = address === undefined ? perWallet : Number(at<bigint>(6) ?? 0n);
 
   const { writeContract, data: hash, isPending: signing, error, reset } = useWriteContract();
-  const { isLoading: confirming, isSuccess } = useWaitForTransactionReceipt({ hash });
+  const { isLoading: confirming, isSuccess } = useTxOutcome({ hash });
 
   useEffect(() => {
     if (isSuccess) void refetch();

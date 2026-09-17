@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useAccount, useConnect, useReadContract, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
+import { useAccount, useConnect, useReadContract, useWriteContract } from "wagmi";
+import { useTxOutcome } from "@/hooks/useTxOutcome";
 import {
   decodeAbiParameters,
   keccak256,
@@ -380,6 +381,7 @@ export default function SafeConsole() {
               txHash={txHash}
               to={to.trim()}
               data={data.trim()}
+              callIsSafe={call.safe}
               onDone={() => void refetchNonce()}
             />
           )}
@@ -390,7 +392,7 @@ export default function SafeConsole() {
 }
 
 function ApproveRow({
-  safeAddress, owners, threshold, txHash, to, data, onDone,
+  safeAddress, owners, threshold, txHash, to, data, callIsSafe, onDone,
 }: {
   safeAddress: `0x${string}` | undefined;
   owners: readonly `0x${string}`[] | undefined;
@@ -398,6 +400,16 @@ function ApproveRow({
   txHash: `0x${string}` | undefined;
   to: string;
   data: string;
+  /**
+   * Whether `describeCall` could account for every byte of the calldata.
+   *
+   * The page already computed this and already printed "Do not approve this"
+   * above an unrecognised selector, calldata with trailing bytes, or arguments
+   * that would not decode — and then left the Approve button enabled anyway.
+   * A console whose entire purpose is to make signing unambiguous must not
+   * offer the action it has just told you not to take.
+   */
+  callIsSafe: boolean;
   onDone: () => void;
 }) {
   const { address } = useAccount();
@@ -409,7 +421,7 @@ function ApproveRow({
    * the guard that stops a transaction being sent to the wrong network.
    */
   const { writeContract, data: sent, isPending: signing, error } = useWriteContract();
-  const { isLoading: confirming, isSuccess } = useWaitForTransactionReceipt({ hash: sent });
+  const { isLoading: confirming, isSuccess } = useTxOutcome({ hash: sent });
   const busy = signing || confirming;
 
   // One read per owner, so the page shows who is still missing rather than only a count.
@@ -480,7 +492,7 @@ function ApproveRow({
       {isOwner && !alreadyApproved ? (
         <button
           className="btn btn-primary btn-block"
-          disabled={busy || txHash === undefined}
+          disabled={busy || txHash === undefined || !callIsSafe}
           onClick={() =>
             writeContract({
               chainId: valuechain.id,
@@ -492,14 +504,21 @@ function ApproveRow({
             })
           }
         >
-          {busy ? "Confirm in your wallet…" : "Approve"}
+          {busy ? "Confirm in your wallet…" : !callIsSafe ? "Calldata not understood" : "Approve"}
         </button>
+      ) : null}
+
+      {!callIsSafe ? (
+        <p className="safe-warn">
+          Approving is disabled because this calldata could not be fully accounted for.
+          Fix it, or verify it independently, before signing anything.
+        </p>
       ) : null}
 
       {enough ? (
         <button
           className="btn btn-primary btn-block"
-          disabled={busy}
+          disabled={busy || !callIsSafe}
           onClick={() =>
             writeContract({
               chainId: valuechain.id,
