@@ -11,6 +11,7 @@ import { useAllCollections } from "@/hooks/useAllCollections";
 import { useSeaportListings } from "@/hooks/useSeaportOrders";
 import type { TokenMetadata } from "@/hooks/useCollection";
 import type { ChainToken } from "@/hooks/useEverything";
+import { readTokenMetadata, traitOf } from "@/lib/tokenMetadata";
 
 /**
  * Every live listing on the marketplace.
@@ -40,7 +41,7 @@ async function fetchLimited(urls: string[], limit: number) {
         if (url === undefined || url === "") continue;
         try {
           const res = await fetch(url, { signal: AbortSignal.timeout(20_000) });
-          if (res.ok) out[i] = (await res.json()) as TokenMetadata;
+          if (res.ok) out[i] = readTokenMetadata(await res.json());
         } catch {
           // A listing with unreachable art is still a listing.
         }
@@ -51,10 +52,7 @@ async function fetchLimited(urls: string[], limit: number) {
   return out;
 }
 
-function traitOf(m: TokenMetadata | undefined, name: string): string | undefined {
-  const hit = m?.attributes?.find((a) => a.trait_type === name);
-  return hit === undefined ? undefined : String(hit.value);
-}
+
 
 export function useListingFeed() {
   const { collections, isLoading: loadingCollections } = useAllCollections();

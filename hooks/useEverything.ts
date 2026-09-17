@@ -9,6 +9,7 @@ import { useAllCollections, type CollectionSummary } from "@/hooks/useAllCollect
 import { useBestListings } from "@/hooks/useSeaportOrders";
 import { toListing, type Listing } from "@/lib/seaport";
 import type { TokenMetadata } from "@/hooks/useCollection";
+import { readTokenMetadata, traitOf } from "@/lib/tokenMetadata";
 
 /**
  * Tokens across every collection on the chain, rather than one hardcoded address.
@@ -47,10 +48,7 @@ export interface ChainToken {
 }
 
 
-function traitOf(m: TokenMetadata | undefined, name: string): string | undefined {
-  const hit = m?.attributes?.find((a) => a.trait_type === name);
-  return hit === undefined ? undefined : String(hit.value);
-}
+
 
 /** Fetches many documents without stampeding the gateway. */
 async function fetchLimited(urls: string[], limit: number) {
@@ -65,7 +63,7 @@ async function fetchLimited(urls: string[], limit: number) {
         if (url === undefined || url === "") continue;
         try {
           const res = await fetch(url, { signal: AbortSignal.timeout(20_000) });
-          if (res.ok) out[i] = (await res.json()) as TokenMetadata;
+          if (res.ok) out[i] = readTokenMetadata(await res.json());
         } catch {
           // A collection with unreachable metadata still renders as a token.
         }

@@ -5,6 +5,7 @@ import { useReadContract } from "wagmi";
 import { resolveMediaUrl } from "@/lib/format";
 import type { TokenMetadata } from "@/hooks/useCollection";
 import { expandIdTemplate } from "@/lib/erc1155";
+import { readTokenMetadata } from "@/lib/tokenMetadata";
 
 /**
  * Metadata for an ERC-1155 id.
@@ -59,7 +60,7 @@ export function useMultiTokenMetadata(
     staleTime: Infinity,
     gcTime: Infinity,
     retry: 1,
-    queryFn: async (): Promise<TokenMetadata> => {
+    queryFn: async (): Promise<TokenMetadata | undefined> => {
       const url = resolveMediaUrl(uri!);
       if (url === undefined) throw new Error("Token has no metadata URI");
 
@@ -73,7 +74,7 @@ export function useMultiTokenMetadata(
       try {
         const res = await fetch(url, { signal: controller.signal });
         if (!res.ok) throw new Error(`Metadata responded ${res.status}`);
-        return (await res.json()) as TokenMetadata;
+        return readTokenMetadata(await res.json());
       } finally {
         clearTimeout(timer);
       }

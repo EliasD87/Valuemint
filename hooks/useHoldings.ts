@@ -10,6 +10,7 @@ import { useAllCollections } from "@/hooks/useAllCollections";
 import { useOwnedTokens } from "@/hooks/useOwnedTokens";
 import type { TokenMetadata } from "@/hooks/useCollection";
 import type { ChainToken } from "@/hooks/useEverything";
+import { readTokenMetadata, traitOf } from "@/lib/tokenMetadata";
 
 /**
  * Exactly what one address holds, across every collection.
@@ -42,10 +43,7 @@ const ownerIndexAbi = [
   },
 ] as const;
 
-function traitOf(m: TokenMetadata | undefined, name: string): string | undefined {
-  const hit = m?.attributes?.find((a) => a.trait_type === name);
-  return hit === undefined ? undefined : String(hit.value);
-}
+
 
 async function fetchLimited(urls: string[], limit: number) {
   const out = new Array<TokenMetadata | undefined>(urls.length);
@@ -59,7 +57,7 @@ async function fetchLimited(urls: string[], limit: number) {
         if (url === undefined || url === "") continue;
         try {
           const res = await fetch(url, { signal: AbortSignal.timeout(20_000) });
-          if (res.ok) out[i] = (await res.json()) as TokenMetadata;
+          if (res.ok) out[i] = readTokenMetadata(await res.json());
         } catch {
           // Unreachable metadata still leaves a token you demonstrably own.
         }

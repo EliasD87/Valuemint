@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useReadContract, useReadContracts } from "wagmi";
 import { ValueChainCollectionAbi, deployment } from "@/config/contracts";
 import { resolveMediaUrl } from "@/lib/format";
+import { readTokenMetadata, type TokenMetadata } from "@/lib/tokenMetadata";
 
 const collection = { address: deployment.collection, abi: ValueChainCollectionAbi } as const;
 
@@ -15,12 +16,12 @@ const collection = { address: deployment.collection, abi: ValueChainCollectionAb
  * collection's supply as the whole marketplace's. For chain-wide figures use
  * `useChainStats`; for a specific collection pass its address explicitly.
  */
-export interface TokenMetadata {
-  name: string;
-  description: string;
-  image?: string;
-  attributes: Array<{ trait_type: string; value: string | number }>;
-}
+/**
+ * Re-exported so the shape and the validator that produces it stay together.
+ * Everything already imports `TokenMetadata` from here; `lib/tokenMetadata.ts`
+ * is where it is now defined, and it is free of wagmi so it can be tested.
+ */
+export type { TokenMetadata };
 
 export interface Token {
   id: bigint;
@@ -89,14 +90,14 @@ export function useTokenMetadata(
     staleTime: Infinity,
     gcTime: Infinity,
     retry: 2,
-    queryFn: async (): Promise<TokenMetadata> => {
+    queryFn: async (): Promise<TokenMetadata | undefined> => {
       const url = resolveMediaUrl(uri as string);
       if (url === undefined) throw new Error("Token has no metadata URI");
 
       const res = await fetch(url, { signal: AbortSignal.timeout(20_000) });
       if (!res.ok) throw new Error(`Metadata unavailable (HTTP ${res.status})`);
 
-      return (await res.json()) as TokenMetadata;
+      return readTokenMetadata(await res.json());
     },
   });
 
@@ -113,8 +114,8 @@ export function useTokenMetadata(
   return { ...query, uri: typeof uri === "string" ? uri : undefined };
 }
 
-/** Pulls a named trait out of metadata without callers repeating the find. */
-export function trait(metadata: TokenMetadata | undefined, name: string): string | undefined {
-  const found = metadata?.attributes?.find((a) => a.trait_type === name);
-  return found === undefined ? undefined : String(found.value);
-}
+/**
+ * Pulls a named trait out of metadata. Kept under this name because the token
+ * pages import it from here; the implementation is the shared one.
+ */
+export { traitOf as trait } from "@/lib/tokenMetadata";
