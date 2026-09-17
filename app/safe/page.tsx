@@ -2,7 +2,14 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useAccount, useConnect, useReadContract, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
-import { parseGwei, keccak256, stringToBytes } from "viem";
+import {
+  decodeAbiParameters,
+  keccak256,
+  parseGwei,
+  stringToBytes,
+  type AbiParameter,
+  type Hex,
+} from "viem";
 import { valuechain } from "@/config/chain";
 import { deployment } from "@/config/contracts";
 import { TxResult } from "@/components/TxResult";
@@ -104,16 +111,103 @@ const safeAbi = [
  */
 const PINNED_SAFE = "0xfc8d033038f406cca952c230b194dc7eca212f94bb6bb0841af7787532a2ec63";
 
-const KNOWN_CALLS: Record<string, string> = {
-  "0x79ba5097": "acceptOwnership() — take ownership of the target contract",
-  "0x8456cb59": "pause() — halt all trading",
-  "0x3f4ba83a": "unpause() — resume trading",
-  "0x3ccfd60b": "withdraw() — sweep the target's balance",
-  "0xf2fde38b": "transferOwnership(address) — hand ownership to someone else",
+/**
+ * What each call does — and, where it takes one, what it does it *to*.
+ *
+ * This used to be a flat selector -> sentence table, which meant the one call
+ * on it that carries an argument was described as "transferOwnership(address) —
+ * hand ownership to someone else" with the someone left out. The address is the
+ * entire decision. An owner reading that sentence, checking the recomputed hash
+ * against it and signing has confirmed nothing at all: the same sentence sits
+ * above handing the factory to the Safe and above handing it to a stranger.
+ *
+ * So arguments are decoded from the calldata the hash was computed over, and
+ * shown. Anything that does not decode says so rather than falling back to the
+ * reassuring half of the truth.
+ */
+interface KnownCall {
+  /** The call with no arguments to show. */
+  label: string;
+  /** ABI types, when the call takes arguments that must be read before signing. */
+  params?: readonly { readonly type: string }[];
+  render?: (args: readonly unknown[]) => string;
+}
+
+const KNOWN_CALLS: Record<string, KnownCall> = {
+  "0x79ba5097": { label: "acceptOwnership() — take ownership of the target contract" },
+  "0x8456cb59": { label: "pause() — halt all trading" },
+  "0x3f4ba83a": { label: "unpause() — resume trading" },
+  "0x3ccfd60b": { label: "withdraw() — sweep the target's balance to its fee recipient" },
+  "0xf2fde38b": {
+    label: "transferOwnership(address)",
+    params: [{ type: "address" }] as const,
+    render: ([to]) =>
+      `transferOwnership(${String(to)}) — hands ownership to that address, permanently. Read it character by character before approving.`,
+  },
+  "0x704b6c02": {
+    label: "setAuthoriser(address)",
+    params: [{ type: "address" }] as const,
+    render: ([who]) => `setAuthoriser(${String(who)}) — makes that address the one whose signature mints.`,
+  },
+  "0xe74b981b": {
+    label: "setFeeRecipient(address)",
+    params: [{ type: "address" }] as const,
+    render: ([who]) => `setFeeRecipient(${String(who)}) — sends all future fees to that address.`,
+  },
 };
 
+/**
+ * The sentence shown above the hash an owner is about to approve.
+ *
+ * Every failure mode is spelled out rather than softened, because the whole
+ * safety argument of this page is that the description and the hash describe
+ * the same call.
+ */
+function describeCall(raw: string): { text: string; safe: boolean } {
+  const data = raw.trim().toLowerCase();
+  if (!/^0x([0-9a-f]{2})*$/.test(data)) {
+    return { text: "That is not valid calldata.", safe: false };
+  }
+  if (data.length < 10) {
+    return { text: "Too short to name a function — check the calldata.", safe: false };
+  }
+
+  const selector = data.slice(0, 10);
+  const known = KNOWN_CALLS[selector];
+  if (known === undefined) {
+    return { text: `an unrecognised call (${selector}) — check the calldata`, safe: false };
+  }
+
+  const argBytes = `0x${data.slice(10)}` as Hex;
+
+  if (known.params === undefined) {
+    // Trailing bytes after a no-argument selector are ignored on chain but are
+    // not nothing: they are in the hash, and they are a sign the calldata was
+    // not built by whoever wrote the description.
+    if (data.length > 10) {
+      return {
+        text: `${known.label} — but there are ${(data.length - 10) / 2} unexpected bytes after the selector. Do not approve this.`,
+        safe: false,
+      };
+    }
+    return { text: known.label, safe: true };
+  }
+
+  try {
+    const args = decodeAbiParameters(known.params as readonly AbiParameter[], argBytes);
+    return { text: known.render?.(args) ?? known.label, safe: true };
+  } catch {
+    return {
+      text: `${known.label} — the arguments could not be read from this calldata. Do not approve it.`,
+      safe: false,
+    };
+  }
+}
+
 const TARGETS: Record<string, string> = {
-  [deployment.marketplace.toLowerCase()]: "Marketplace v3 (live)",
+  // Paused by this very console on 2026-09-16. Calling it "live" to the person
+  // approving the next transaction against it is exactly backwards.
+  [deployment.marketplace.toLowerCase()]: "Marketplace v3 (superseded, paused)",
   "0xb1153aa3dbadd59e3e6aa61452f2daa90b99a859": "Legacy factory — the rehearsal target",
   [deployment.factory.toLowerCase()]: "Collection factory",
 };
@@ -186,7 +280,7 @@ export default function SafeConsole() {
     query: { enabled: safeAddress !== undefined && validTo && validData && safeNonce !== undefined },
   });
 
-  const what = KNOWN_CALLS[data.trim().slice(0, 10).toLowerCase()] ?? "an unrecognised call — check the calldata";
+  const call = describeCall(data);
   const targetName = TARGETS[to.trim().toLowerCase()] ?? "an unrecognised contract";
 
   return (
@@ -247,7 +341,7 @@ export default function SafeConsole() {
 
           <div className="safe-reads">
             <p><b>{targetName}</b></p>
-            <p className="dim">{what}</p>
+            <p className={call.safe ? "dim" : "safe-warn"}>{call.text}</p>
           </div>
 
           {txHash !== undefined ? (
