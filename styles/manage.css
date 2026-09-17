@@ -123,14 +123,13 @@
   border-radius: var(--r-sm);
 }
 
-.manage-error {
-  font-size: var(--step--1);
-  color: var(--danger);
-  background: var(--danger-wash);
-  padding: 0.85rem 1rem;
-  border-radius: var(--r-sm);
-  margin-bottom: 1.5rem;
-  word-break: break-word;
+/* The shared transaction banner carries its own top margin but no bottom one,
+   because everywhere else it is the last thing in its card. Here it sits
+   between the stats and the controls, so the gap has to come from this side.
+   Adjacent-sibling, so an absent banner - TxResult renders null when there is
+   nothing to report - costs the grid nothing. */
+.txr + .manage-grid {
+  margin-top: 1.5rem;
 }
 
 .manage-denied {

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { getAddress, parseEther } from "viem";
+import { getAddress, parseEther, parseEventLogs } from "viem";
 import {
   useAccount,
   useChainId,
@@ -12,9 +12,14 @@ import {
   useWaitForTransactionReceipt,
   useWriteContract,
 } from "wagmi";
-import { ValueChainCollectionFactoryAbi, deployment } from "@/config/contracts";
+import {
+  ValueChainCollectionAbi,
+  ValueChainCollectionFactoryAbi,
+  deployment,
+} from "@/config/contracts";
 import { valuechain } from "@/config/chain";
 import { CLAIM_HEADERS, contentDigest, fileHash, uploadMessage } from "@/lib/uploadClaim";
+import { TxResult } from "@/components/TxResult";
 import "@/styles/create.css";
 
 /**
@@ -71,6 +76,40 @@ export default function Create() {
 
   const { writeContract, data: hash, isPending: txSigning, error: writeError, reset } = useWriteContract();
   const { isLoading: confirming, isSuccess, data: receipt } = useWaitForTransactionReceipt({ hash });
+
+  /**
+   * The collection's address, read out of its own creation receipt.
+   *
+   * Without it the success screen could only send people to the Manage index
+   * and hope they found the right row — which is how "Open minting" ended up
+   * being a link to a list rather than the thing it named.
+   */
+  const createdAddress = useMemo(() => {
+    if (receipt === undefined) return undefined;
+    const [event] = parseEventLogs({
+      abi: ValueChainCollectionFactoryAbi,
+      eventName: "CollectionCreated",
+      logs: receipt.logs,
+    });
+    return (event?.args as { collection?: `0x${string}` } | undefined)?.collection;
+  }, [receipt]);
+
+  /**
+   * Opening minting is its own transaction, so it needs its own write hook.
+   *
+   * Reusing the deploy's would reset `isSuccess` the moment this was sent, and
+   * `isSuccess` is what holds this screen open — pressing the button would have
+   * thrown the user back into the form.
+   */
+  const {
+    writeContract: writeOpen,
+    data: openHash,
+    isPending: openSigning,
+    error: openError,
+  } = useWriteContract();
+  const { isLoading: openConfirming, isSuccess: minting } = useWaitForTransactionReceipt({
+    hash: openHash,
+  });
 
   useEffect(() => () => designs.forEach((d) => URL.revokeObjectURL(d.preview)), [designs]);
 
@@ -269,16 +308,64 @@ export default function Create() {
          * most important thing on this screen, not a footnote.
          */}
         <p className="eyebrow">Created</p>
-        <h1 className="create-title">{name} is deployed. One step left.</h1>
+        <h1 className="create-title">
+          {minting ? `${name} is open for minting.` : `${name} is deployed. One step left.`}
+        </h1>
         <p className="lede">
           You own it outright — {effectiveSupply} tokens,{" "}
           {usingUpload ? `${designs.length} designs` : "your metadata"}, already attached.{" "}
-          <strong>Public minting is closed until you open it</strong>, so nobody can mint yet.
+          {minting ? (
+            <>Anyone can mint it now.</>
+          ) : (
+            <>
+              <strong>Public minting is closed until you open it</strong>, so nobody can mint yet.
+            </>
+          )}
         </p>
+
         <div className="create-actions">
-          <Link className="btn btn-primary btn-lg" href="/manage">
-            Open minting
-          </Link>
+          {/**
+           * A real transaction, not a link to the page that has one.
+           *
+           * This was `<Link href="/manage">Open minting</Link>` — an action label
+           * on a navigation control. Pressing it produced no wallet prompt, so
+           * the only reasonable conclusion was that the app was broken, and the
+           * creator then had to find the collection in a list and press the real
+           * button there. A control says exactly what happens when you press it.
+           */}
+          {minting ? (
+            <Link className="btn btn-primary btn-lg" href={`/manage/${createdAddress}`}>
+              Manage it
+            </Link>
+          ) : createdAddress === undefined ? (
+            /* The receipt carried no CollectionCreated log, so there is no
+               address to send the transaction to. Send them to the page that
+               finds it by ownership rather than leaving a dead button. */
+            <Link className="btn btn-primary btn-lg" href="/manage">
+              Open minting in Manage
+            </Link>
+          ) : (
+            <button
+              type="button"
+              className="btn btn-primary btn-lg"
+              disabled={openSigning || openConfirming}
+              onClick={() => {
+                writeOpen({
+                  chainId: valuechain.id,
+                  address: createdAddress,
+                  abi: ValueChainCollectionAbi,
+                  functionName: "setPublicMintEnabled",
+                  args: [true],
+                });
+              }}
+            >
+              {openSigning
+                ? "Confirm in wallet…"
+                : openConfirming
+                  ? "Opening…"
+                  : "Open minting"}
+            </button>
+          )}
           <a
             className="btn btn-lg"
             href={`${deployment.explorer}/tx/${receipt?.transactionHash}`}
@@ -288,10 +375,26 @@ export default function Create() {
             View transaction
           </a>
         </div>
-        <p className="field-hint create-next">
-          Manage lists collections owned by the <strong>connected wallet</strong>. If you do not see
-          this one there, you are on a different wallet than the one that created it.
-        </p>
+
+        <TxResult
+          hash={openHash}
+          confirming={openConfirming}
+          success={minting}
+          error={openError}
+          successLabel="Minting is open"
+        />
+
+        {minting ? null : (
+          <p className="field-hint create-next">
+            You can leave this until later — it is the same button on{" "}
+            {createdAddress === undefined ? (
+              "the collection's Manage page"
+            ) : (
+              <Link href={`/manage/${createdAddress}`}>its Manage page</Link>
+            )}
+            , which lists collections owned by the <strong>connected wallet</strong>.
+          </p>
+        )}
       </section>
     );
   }

@@ -12,7 +12,7 @@ import {
 } from "wagmi";
 import { ValueChainCollectionAbi, deployment } from "@/config/contracts";
 import { valuechain } from "@/config/chain";
-import { explainTxError } from "@/lib/txError";
+import { TxResult } from "@/components/TxResult";
 import { formatCount, formatSoso, shortAddress } from "@/lib/format";
 import "@/styles/manage.css";
 
@@ -68,6 +68,22 @@ export default function ManageCollection({ params }: { params: Promise<{ address
   const { isLoading: confirming, isSuccess } = useWaitForTransactionReceipt({ hash });
   const busy = signing || confirming;
 
+  /**
+   * What the write in flight will have done, so the banner can say it.
+   *
+   * Five buttons share one `useWriteContract`, and this page rendered only the
+   * error branch of it — the receipt was consumed silently to refetch. So
+   * "Withdraw to my wallet" greyed its button for a moment and then the page
+   * said nothing, ever, with no hash to carry anywhere. On a chain whose
+   * explorer has shown day-old transactions as pending, silence is
+   * indistinguishable from failure and the reasonable response is to press
+   * again — which is the whole reason `TxResult` exists.
+   *
+   * `reset()` at the top of `call` clears the hash, so the previous action's
+   * receipt can never be read as this one's.
+   */
+  const [didLabel, setDidLabel] = useState("Done");
+
   useEffect(() => {
     if (isSuccess) void refetch();
   }, [isSuccess, refetch]);
@@ -103,8 +119,9 @@ export default function ManageCollection({ params }: { params: Promise<{ address
    *
    * Every write in `useTrade` already carries this. These did not.
    */
-  const call = (functionName: string, args: unknown[]) => {
+  const call = (functionName: string, args: unknown[], didLabel: string) => {
     reset();
+    setDidLabel(didLabel);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     writeContract({ ...base, chainId: valuechain.id, functionName, args } as any);
   };
@@ -188,7 +205,13 @@ export default function ManageCollection({ params }: { params: Promise<{ address
         <Stat label="Per wallet" value={perWallet === 0n ? "No cap" : formatCount(perWallet)} />
       </div>
 
-      {error !== null ? <p className="manage-error">{explainTxError(error.message, 220)}</p> : null}
+      <TxResult
+        hash={hash}
+        confirming={confirming}
+        success={isSuccess}
+        error={error}
+        successLabel={didLabel}
+      />
 
       <div className="manage-grid">
         {/* --- the switch that matters most --------------------------- */}
@@ -220,7 +243,13 @@ export default function ManageCollection({ params }: { params: Promise<{ address
           <button
             className={open === true ? "btn btn-block" : "btn btn-primary btn-block"}
             disabled={busy || (metadataMissing && open !== true && !openAnyway)}
-            onClick={() => call("setPublicMintEnabled", [open !== true])}
+            onClick={() =>
+              call(
+                "setPublicMintEnabled",
+                [open !== true],
+                open === true ? "Minting closed" : "Minting is open",
+              )
+            }
           >
             {busy ? "Working…" : open === true ? "Close minting" : "Open minting"}
           </button>
@@ -247,9 +276,9 @@ export default function ManageCollection({ params }: { params: Promise<{ address
           <button
             className="btn btn-primary btn-block"
             disabled={busy || baseUri.trim() === "" || !baseUri.trim().endsWith("/")}
-            onClick={() => call("setBaseURI", [baseUri.trim()])}
+            onClick={() => call("setBaseURI", [baseUri.trim()], "Artwork updated")}
           >
-            Update artwork
+            {busy ? "Working…" : "Update artwork"}
           </button>
         </Card>
 
@@ -268,9 +297,9 @@ export default function ManageCollection({ params }: { params: Promise<{ address
           <button
             className="btn btn-primary btn-block"
             disabled={busy || newPrice.trim() === "" || Number.isNaN(Number(newPrice))}
-            onClick={() => call("setMintPrice", [parseEther(newPrice)])}
+            onClick={() => call("setMintPrice", [parseEther(newPrice)], "Price updated")}
           >
-            Update price
+            {busy ? "Working…" : "Update price"}
           </button>
         </Card>
 
@@ -314,13 +343,17 @@ export default function ManageCollection({ params }: { params: Promise<{ address
               Number(batchCount) > 25
             }
             onClick={() =>
-              call("mintBatch", [
-                batchTo.trim() === "" ? viewer : batchTo.trim(),
-                Array.from({ length: Number(batchCount) }, () => ""),
-              ])
+              call(
+                "mintBatch",
+                [
+                  batchTo.trim() === "" ? viewer : batchTo.trim(),
+                  Array.from({ length: Number(batchCount) }, () => ""),
+                ],
+                batchTo.trim() === "" ? "Minted to your wallet" : "Minted",
+              )
             }
           >
-            Mint {batchCount || "0"} to wallet
+            {busy ? "Working…" : `Mint ${batchCount || "0"} to wallet`}
           </button>
         </Card>
 
@@ -333,9 +366,9 @@ export default function ManageCollection({ params }: { params: Promise<{ address
           <button
             className="btn btn-primary btn-block"
             disabled={busy}
-            onClick={() => call("withdraw", [viewer])}
+            onClick={() => call("withdraw", [viewer], "Withdrawn to your wallet")}
           >
-            Withdraw to my wallet
+            {busy ? "Working…" : "Withdraw to my wallet"}
           </button>
         </Card>
 
