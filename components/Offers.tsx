@@ -6,7 +6,7 @@ import { useOffersForToken, useOwnOfferExposure } from "@/hooks/useSeaportOrders
 import { useSeaportFill, useSeaportTrade } from "@/hooks/useSeaportTrade";
 import { useCanPayFeeInWsoso } from "@/hooks/useWsoso";
 import { formatSoso, shortAddress } from "@/lib/format";
-import { currencyLabel, splitFee } from "@/lib/seaport";
+import { currencyLabel, fulfillerOutlay } from "@/lib/seaport";
 import { deployment } from "@/config/contracts";
 import { OfferForm, useTokenOfferTarget } from "@/components/OfferForm";
 import { TxResult } from "@/components/TxResult";
@@ -50,7 +50,7 @@ export function Offers({
   onChange: () => void;
 }) {
   const { address, isConnected } = useAccount();
-  const { offers } = useOffersForToken(collection, tokenId);
+  const { offers, logsUnavailable } = useOffersForToken(collection, tokenId);
 
   /** Only accept and withdraw run from here; the form owns its own writes. */
   const trade = useSeaportTrade(collection);
@@ -68,7 +68,8 @@ export function Offers({
    * fails as a bare wallet revert when it is.
    */
   const best = offers[0];
-  const feeOnBest = best === undefined ? 0n : splitFee(best.priceWei).fee;
+  // What this order actually charges, not what our own fee rate would be.
+  const feeOnBest = best === undefined ? 0n : fulfillerOutlay(best.params);
   /**
    * Allowances are exact, so approving for the fee alone would revoke the cover
    * for any bid this wallet has standing elsewhere. Ask for both together.
@@ -103,7 +104,12 @@ export function Offers({
         <p className="eyebrow">Offers</p>
         {offers.length > 0 ? (
           <span className="offers-count">
-            {offers.length} live &middot; best {formatSoso(offers[0]!.priceWei)} WSOSO
+            {/* Derived, not a literal. The whitelist guarantees WSOSO today, so
+                this is not exploitable — but a hardcoded unit beside a number
+                is exactly the shape that rendered an attacker's worthless token
+                as "1,000,000 WSOSO" to a holder about to accept it. */}
+            {offers.length} live &middot; best {formatSoso(offers[0]!.priceWei)}{" "}
+            {currencyLabel(offers[0]!.currency)}
           </span>
         ) : null}
       </div>
@@ -121,7 +127,16 @@ export function Offers({
         </p>
       ) : null}
 
-      {offers.length === 0 ? (
+      {offers.length === 0 && logsUnavailable ? (
+        /* "No offers yet" is a claim about the chain. When the node refused the
+           logs we have not established it — and a holder who believes there are
+           no bids on their piece makes different decisions than one who knows
+           we could not look. */
+        <p className="offers-empty">
+          Offers could not be loaded just now — the node would not serve event logs.
+          This does not mean there are none.
+        </p>
+      ) : offers.length === 0 ? (
         <p className="offers-empty">No offers yet.</p>
       ) : (
         <ul className="offers-list">

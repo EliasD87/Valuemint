@@ -81,7 +81,7 @@ export function Activity({
   limit?: number;
   title?: string;
 }) {
-  const { rows, isLoading } = useActivity(collection, tokenId);
+  const { rows, isLoading, logsUnavailable, logsPartial } = useActivity(collection, tokenId);
   const shown = rows.slice(0, limit);
 
   return (
@@ -94,6 +94,14 @@ export function Activity({
             <div key={i} className="skeleton act-skeleton" />
           ))}
         </div>
+      ) : logsUnavailable ? (
+        /* Not "nothing traded" - we could not read what traded. Saying the
+           first when only the second is known is how a buyer concludes a piece
+           has no history and prices it accordingly. */
+        <p className="token-note">
+          The node would not serve event logs just now, so this history could not be
+          read. It is not empty - try again in a moment.
+        </p>
       ) : shown.length === 0 ? (
         <p className="token-note">
           Nothing has traded here yet. Every sale, listing and offer made through this
@@ -110,6 +118,12 @@ export function Activity({
           ))}
         </ul>
       )}
+
+      {logsPartial && shown.length > 0 ? (
+        <p className="act-more dim">
+          Some event types could not be read, so this history is incomplete.
+        </p>
+      ) : null}
 
       {rows.length > limit ? (
         <p className="act-more dim">

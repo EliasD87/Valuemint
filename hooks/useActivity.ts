@@ -29,6 +29,20 @@ import {
 const MAX_ACTIVITY_ROWS = 2_000;
 
 /**
+ * What the scan produced, and how much of it is trustworthy.
+ *
+ * The row list alone cannot distinguish "nothing happened" from "nothing could
+ * be read", so the refusal count travels with it.
+ */
+interface ActivityResult {
+  rows: ActivityRow[];
+  /** How many of the three event scans the node refused. */
+  failed: number;
+  /** How many were attempted, so a caller can tell partial from total. */
+  scans: number;
+}
+
+/**
  * What has actually happened to a token, or to a collection.
  *
  * Every other figure on the site is an *asking* price. Without this, a buyer
@@ -105,7 +119,7 @@ export function useActivity(
     queryKey: ["seaport-activity"],
     enabled: client !== undefined,
     staleTime: 60_000,
-    queryFn: async (): Promise<ActivityRow[]> => {
+    queryFn: async (): Promise<ActivityResult> => {
       /**
        * The same floor `useSeaportOrders` scans from, and deliberately so.
        *
@@ -124,11 +138,24 @@ export function useActivity(
        * that dislikes a particular topic filter, say - should cost that row
        * type rather than the whole feed.
        */
-      const [fulfilled, validated, cancelled] = await Promise.allSettled([
+      const settled = await Promise.allSettled([
         scanLogs(client!, { ...base, event: ORDER_FULFILLED }),
         scanLogs(client!, { ...base, event: ORDER_VALIDATED }),
         scanLogs(client!, { ...base, event: ORDER_CANCELLED }),
       ]);
+      const [fulfilled, validated, cancelled] = settled;
+
+      /**
+       * How many of the three scans the node refused.
+       *
+       * `allSettled` is what keeps one bad topic filter from costing the whole
+       * feed, and it is also why this query never rejects — so react-query's
+       * own `error` is always null here and the hook had no way to say anything
+       * had gone wrong. An empty array then rendered as "Nothing has traded
+       * here yet", which is a claim about the chain made from a failure to read
+       * it. Counting the refusals is the only honest signal available.
+       */
+      const failed = settled.filter((s) => s.status === "rejected").length;
 
       const rows: ActivityRow[] = [];
 
@@ -223,11 +250,13 @@ export function useActivity(
             ? -1
             : 1,
       );
-      return rows.slice(0, MAX_ACTIVITY_ROWS);
+      return { rows: rows.slice(0, MAX_ACTIVITY_ROWS), failed, scans: settled.length };
     },
   });
 
-  const all = query.data ?? [];
+  const all = query.data?.rows ?? [];
+  const failed = query.data?.failed ?? 0;
+  const scans = query.data?.scans ?? 3;
 
   const rows = all.filter((r) => {
     if (collection !== undefined && r.collection.toLowerCase() !== collection.toLowerCase()) {
@@ -253,6 +282,16 @@ export function useActivity(
     volume: sales.reduce((sum, r) => sum + (r.price ?? 0n) * r.amount, 0n),
     salesCount: sales.length,
     isLoading: query.isLoading,
+    /**
+     * The node would not serve some or all of the logs this feed is built from.
+     *
+     * Callers must render this rather than an empty state. "Nothing has traded
+     * here" and "we could not find out what traded here" are different
+     * statements, and only one of them is ever true after a refused scan.
+     */
+    logsUnavailable: query.error != null || failed >= scans,
+    /** Some event types were refused; what is shown is real but incomplete. */
+    logsPartial: failed > 0 && failed < scans,
     refetch: query.refetch,
   };
 }

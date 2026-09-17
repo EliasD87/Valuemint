@@ -35,7 +35,7 @@ export interface MultiListing {
 }
 
 export function useMultiListings(collection: `0x${string}` | undefined, tokenId: bigint | undefined) {
-  const { listings: all, isLoading } = useSeaportListings(collection);
+  const { listings: all, isLoading, logsUnavailable } = useSeaportListings(collection);
 
   const listings = useMemo<MultiListing[]>(() => {
     if (tokenId === undefined) return [];
@@ -66,8 +66,7 @@ export function useMultiListings(collection: `0x${string}` | undefined, tokenId:
     listings,
     isLoading,
     /** The scan polls itself; kept so callers do not have to change shape. */
-    refetch: () => undefined,
-  };
+    refetch: () => undefined, logsUnavailable };
 }
 
 const balanceOfAbi = [

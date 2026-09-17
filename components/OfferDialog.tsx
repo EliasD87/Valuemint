@@ -34,7 +34,7 @@ export function OfferDialog({
   onClose: () => void;
 }) {
   const { address } = useAccount();
-  const { offers } = useOffersForToken(collection, tokenId);
+  const { offers, logsUnavailable } = useOffersForToken(collection, tokenId);
   const isMine = (maker: string) =>
     address !== undefined && maker.toLowerCase() === address.toLowerCase();
   const offerTarget = useTokenOfferTarget(collection, tokenId);
@@ -91,7 +91,11 @@ export function OfferDialog({
               ))}
             </ul>
           ) : (
-            <p className="od-empty">No offers on this one yet.</p>
+            <p className="od-empty">
+              {logsUnavailable
+                ? "Offers could not be loaded — the node would not serve event logs."
+                : "No offers on this one yet."}
+            </p>
           )}
 
           <OfferForm target={offerTarget} replacing={false} onDone={() => undefined} />

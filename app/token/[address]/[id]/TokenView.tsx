@@ -1,5 +1,7 @@
 "use client";
 
+import { parseEther } from "viem";
+
 import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import { useAccount, useReadContract } from "wagmi";
@@ -17,6 +19,26 @@ import { ShareLink } from "@/components/ShareLink";
 import { formatSoso, resolveMediaUrl, shortAddress } from "@/lib/format";
 import "@/styles/token.css";
 import { Activity, LastSale } from "@/components/Activity";
+
+
+/**
+ * The typed price as wei, or 0n if it is not a number yet.
+ *
+ * The preview used `BigInt(Math.round(Number(price) * 1e18))` while the order
+ * itself is built with `parseEther`. The two agree for ordinary input and
+ * diverge past ~15 significant digits, so the split shown to a seller was not
+ * always the split they got. It also threw on a half-typed value — `parseEther`
+ * rejects "0." and "1.2.3" — which is exactly what a controlled input contains
+ * between keystrokes.
+ */
+function safeParseEther(value: string): bigint {
+  if (value.trim() === "") return 0n;
+  try {
+    return parseEther(value);
+  } catch {
+    return 0n;
+  }
+}
 
 export function TokenView({
   params,
@@ -69,10 +91,23 @@ export function TokenView({
     abi: ValueChainCollectionAbi,
     functionName: "ownerOf",
     args: tokenId === undefined ? undefined : [tokenId],
-    query: { enabled: tokenId !== undefined && collection !== undefined },
+    /**
+     * Polled, because this read decides more than a label.
+     *
+     * `owner` drives the Owner field, `active` (whether Buy is offered), and
+     * `isOwner`, which is handed to `Offers` and gates every Accept button. It
+     * had no `refetchInterval`, so on a page left open it was only ever as
+     * fresh as the last mount or the last write — while the order book beside
+     * it refreshed every 25-30s. A holder who sold elsewhere kept being offered
+     * Accept, and a buyer kept being offered Buy against a token that had moved.
+     */
+    query: {
+      enabled: tokenId !== undefined && collection !== undefined,
+      refetchInterval: 25_000,
+    },
   });
 
-  const { listing } = useListingFor(collection, tokenId);
+  const { listing, logsUnavailable } = useListingFor(collection, tokenId);
 
   /**
    * Whether the listing can actually be filled.
@@ -95,7 +130,7 @@ export function TokenView({
   const preview = (() => {
     let asked = 0n;
     try {
-      asked = price === "" ? 0n : BigInt(Math.round(Number(price) * 1e18));
+      asked = price === "" ? 0n : safeParseEther(price);
     } catch {
       asked = 0n;
     }
@@ -233,7 +268,15 @@ export function TokenView({
             </div>
             <div>
               <dt>Status</dt>
-              <dd>{listed ? (active ? "For sale" : "Listed (stale)") : "Not listed"}</dd>
+              <dd>
+                {listed
+                  ? active
+                    ? "For sale"
+                    : "Listed (stale)"
+                  : logsUnavailable
+                    ? "Unknown"
+                    : "Not listed"}
+              </dd>
               <LastSale collection={collection} tokenId={tokenId} />
             </div>
           </dl>
@@ -370,6 +413,16 @@ export function TokenView({
                   </button>
                 )}
               </>
+            ) : logsUnavailable ? (
+              /* A seller told "not listed" over a live listing relists at a
+                 different price. Both orders are valid, both fillable, and a
+                 buyer takes the cheaper one — so the seller loses the spread on
+                 a piece they believed was unlisted. */
+              <p className="token-note">
+                Whether this is listed could not be read &mdash; the node would not serve
+                event logs. Do not list it again until this loads; you could end up with
+                two live listings at different prices.
+              </p>
             ) : (
               <p className="token-note">
                 Not listed for sale. Only its owner can set a price &mdash; but anyone can

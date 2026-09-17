@@ -40,7 +40,12 @@ export function MultiTokenView({
   const trade = useSeaportTrade(collection);
   const fill = useSeaportFill();
   const busy = trade.busy || fill.busy;
-  const { listings, isLoading: loadingListings, refetch: refetchListings } = useMultiListings(
+  const {
+    listings,
+    isLoading: loadingListings,
+    logsUnavailable,
+    refetch: refetchListings,
+  } = useMultiListings(
     collection,
     tokenId,
   );
@@ -110,7 +115,8 @@ export function MultiTokenView({
               <dt>From</dt>
               <dd>
                 {cheapest === undefined ? (
-                  "Not listed"
+                  // Absence of data is not absence of listings.
+                  logsUnavailable ? "Unknown" : "Not listed"
                 ) : (
                   <Soso size={16}>{formatSoso(cheapest.unitPrice)}</Soso>
                 )}
