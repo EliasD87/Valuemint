@@ -20,13 +20,12 @@ import { scanLogs } from "@/lib/logScan";
 import {
   ItemType,
   isExpired,
-  listingIsFillable,
-  offerIsFillable,
   orderBookFloor,
   readOrder,
   type OrderParameters,
   type ReadOrder,
   type SeaportOrder,
+  resolveFillable,
 } from "@/lib/seaport";
 
 export type { SeaportOrder } from "@/lib/seaport";
@@ -384,48 +383,37 @@ export function useSeaportOrders() {
       ];
   });
 
-  const { data: fillChecks } = useReadContracts({
+  const { data: fillChecks, isError: fillChecksFailed } = useReadContracts({
     contracts: fillabilityReads,
     query: { enabled: standing.length > 0, refetchInterval: 25_000 },
   });
+
+  /**
+   * Whether fillability is known yet, as opposed to true or false.
+   *
+   * There are three states here and the code below used to have two. See the
+   * note on the `fillChecks === undefined` branch.
+   */
+  const checking = standing.length > 0 && fillChecks === undefined && !fillChecksFailed;
 
   const orders = useMemo<SeaportOrder[]>(
     () =>
       standing.map((o, i) => {
         /**
-         * "Not loaded yet" and "the call reverted" are different answers.
-         *
-         * This branch used to treat both as fillable, so that a read still in
-         * flight could not make a live listing flicker. But a *reverted* read
-         * is an answer, and it is the answer "this token does not exist" —
-         * `ownerOf` reverts on a nonexistent id. `validate()` needs no
-         * signature when the offerer is `msg.sender` and checks nothing about
-         * ownership, so anyone could publish a well-shaped listing offering
-         * token 999999 of a real collection at any price they liked: the shape
-         * passed `unsafeReason`, `ownerOf` reverted, and this returned
-         * fillable. The fake then survived the `fillable` filter and set that
-         * collection's displayed floor.
-         *
-         * So absence still means fillable, and a refusal now means not.
+         * Three states, not two: not checked yet, checked and refused, checked
+         * and answered. `resolveFillable` in `lib/seaport.ts` is the rule and
+         * carries the reasoning and the tests; the one thing worth repeating
+         * here is that "not checked yet" is NOT fillable, and `isLoading` below
+         * is what keeps that from reading as an empty market.
          */
-        if (fillChecks === undefined) return { ...o, fillable: true };
-
-        const first = fillChecks[i * 2];
-        const second = fillChecks[i * 2 + 1];
-
-        if (first?.status !== "success" || second?.status !== "success") {
-          return { ...o, fillable: false };
-        }
-
-        if (o.kind === "listing") {
-          const isMulti = o.params.offer[0]?.itemType === ItemType.ERC1155;
-          const holder = isMulti ? (first.result as bigint) : (first.result as Address);
-          return { ...o, fillable: listingIsFillable(o, holder, second.result === true) };
-        }
-
         return {
           ...o,
-          fillable: offerIsFillable(o, first.result as bigint, second.result as bigint),
+          fillable: resolveFillable(
+            o,
+            fillChecks === undefined
+              ? undefined
+              : { first: fillChecks[i * 2], second: fillChecks[i * 2 + 1] },
+          ),
         };
       }),
     [standing, fillChecks],
@@ -433,9 +421,24 @@ export function useSeaportOrders() {
 
   return {
     orders,
-    isLoading: scanning || loadingStatus,
-    /** The feed is built from logs; if the endpoint refuses them, say so rather than showing an empty market. */
-    logsUnavailable: error !== null && error !== undefined,
+    /**
+     * `checking` belongs here, not in a separate flag.
+     *
+     * Every public view filters on `fillable`, which is now `false` until the
+     * ownership reads land. Without this the market would render its empty
+     * state for a second or two on every load and then fill in — which reads
+     * as "nothing for sale" at exactly the moment somebody arrived to buy.
+     */
+    isLoading: scanning || loadingStatus || checking,
+    /**
+     * The feed is built from logs; if the endpoint refuses them, say so rather
+     * than showing an empty market.
+     *
+     * The fillability reads count too. If they cannot be made, every order is
+     * held back as unverified, and an empty grid would be a lie about the
+     * market rather than a fact about it.
+     */
+    logsUnavailable: (error !== null && error !== undefined) || fillChecksFailed,
   };
 }
 

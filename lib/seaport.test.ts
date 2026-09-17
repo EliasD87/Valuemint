@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { zeroAddress } from "viem";
-import { ACCEPTED_BID_CURRENCY, FEE_BPS, FEE_RECIPIENT, ItemType, ORDER_BOOK_WINDOW_BLOCKS, OrderType, buildListing, buildOffer, fulfillerOutlay, isExpired, listingIsFillable, lotPrice, offerIsFillable, orderBookFloor, readFulfilment, readOrder, splitFee, toComponents, type OrderParameters, unitPrice, unsafeReason } from "./seaport";
+import { ACCEPTED_BID_CURRENCY, FEE_BPS, FEE_RECIPIENT, ItemType, ORDER_BOOK_WINDOW_BLOCKS, OrderType, buildListing, buildOffer, fulfillerOutlay, isExpired, listingIsFillable, lotPrice, resolveFillable, offerIsFillable, orderBookFloor, readFulfilment, readOrder, splitFee, toComponents, type OrderParameters, unitPrice, unsafeReason } from "./seaport";
 import { deployment } from "@/config/contracts";
 
 /**
@@ -1035,5 +1035,83 @@ describe("low-severity gaps closed 2026-09-17", () => {
       priceWei: TEN,
     });
     expect(unsafeReason(order)).toBeUndefined();
+  });
+});
+
+
+/**
+ * The three-state rule.
+ *
+ * This is the branch that decides whether a stranger is shown a Buy button, so
+ * the interesting cases are the ones where the app does NOT know the answer —
+ * those are the ones that have been wrong, in both directions.
+ */
+describe("resolveFillable", () => {
+  const listing = {
+    maker: SELLER as `0x${string}`,
+    amount: 1n,
+    priceWei: 1n,
+    kind: "listing" as const,
+    params: { offer: [{ itemType: ItemType.ERC721 }] },
+  };
+  const ok = (result: unknown) => ({ status: "success" as const, result });
+  const reverted = { status: "failure" as const };
+
+  it("is fillable when the seller still holds it and Seaport may move it", () => {
+    expect(resolveFillable(listing, { first: ok(SELLER), second: ok(true) })).toBe(true);
+  });
+
+  /**
+   * The whole reason this was extracted.
+   *
+   * Six listings were in this state on chain when it was found: their tokens
+   * had been sold by accepting an offer, which leaves the listing valid because
+   * Seaport tracks cancellation and fills and nothing else. Until the reads
+   * land the app does not know that, and "I have not checked" must never render
+   * a Buy button — the click costs the buyer gas on a revert.
+   */
+  it("is NOT fillable while the checks are still in flight", () => {
+    expect(resolveFillable(listing, undefined)).toBe(false);
+  });
+
+  /** An id that does not exist: `ownerOf` reverts, and that is an answer. */
+  it("is not fillable when a read reverted", () => {
+    expect(resolveFillable(listing, { first: reverted, second: ok(true) })).toBe(false);
+    expect(resolveFillable(listing, { first: ok(SELLER), second: reverted })).toBe(false);
+  });
+
+  it("is not fillable once the token belongs to somebody else", () => {
+    expect(resolveFillable(listing, { first: ok(BUYER), second: ok(true) })).toBe(false);
+  });
+
+  it("is not fillable when approval was revoked", () => {
+    expect(resolveFillable(listing, { first: ok(SELLER), second: ok(false) })).toBe(false);
+  });
+
+  it("uses a balance rather than an owner for an edition", () => {
+    const edition = { ...listing, amount: 3n, params: { offer: [{ itemType: ItemType.ERC1155 }] } };
+    expect(resolveFillable(edition, { first: ok(3n), second: ok(true) })).toBe(true);
+    expect(resolveFillable(edition, { first: ok(2n), second: ok(true) })).toBe(false);
+  });
+
+  describe("bids", () => {
+    const bid = {
+      maker: BUYER as `0x${string}`,
+      amount: 1n,
+      priceWei: 100n,
+      kind: "offer" as const,
+      params: { offer: [{ itemType: ItemType.ERC20 }] },
+    };
+
+    it("needs both the balance and the allowance to cover it", () => {
+      expect(resolveFillable(bid, { first: ok(100n), second: ok(100n) })).toBe(true);
+      expect(resolveFillable(bid, { first: ok(99n), second: ok(100n) })).toBe(false);
+      expect(resolveFillable(bid, { first: ok(100n), second: ok(99n) })).toBe(false);
+    });
+
+    /** A seller must not be shown Accept against a bid nobody has checked. */
+    it("is NOT fillable while the checks are still in flight", () => {
+      expect(resolveFillable(bid, undefined)).toBe(false);
+    });
   });
 });

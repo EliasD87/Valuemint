@@ -1026,6 +1026,61 @@ export function offerIsFillable(
   return balance >= order.priceWei && allowance >= order.priceWei;
 }
 
+/** One entry of a wagmi multicall: it either answered or it did not. */
+export type ChainAnswer = { status: "success" | "failure"; result?: unknown };
+
+/**
+ * Whether an order can be filled right now, from the two reads that decide it.
+ *
+ * Extracted from `useSeaportOrders` so it can be tested, because it is a
+ * security rule rather than a rendering detail and it has been wrong twice in
+ * two different directions.
+ *
+ * Three inputs, three outcomes, and the whole point is that they are three:
+ *
+ *   checks undefined   the reads have not landed. NOT fillable. "I have not
+ *                      checked" is not evidence that something is buyable, and
+ *                      this is the read that decides whether the seller still
+ *                      owns the token. Seaport tracks cancellation and fills
+ *                      and nothing else, so accepting an offer on a listed
+ *                      token leaves that listing valid on chain while the token
+ *                      walks away - ownership is the only thing that retires
+ *                      it. Treating unknown as fillable published those as
+ *                      buyable, and clicking one costs the buyer gas on a
+ *                      revert. The caller reports this state as *loading* so a
+ *                      page shows skeletons rather than a wrongly empty market.
+ *
+ *   a read reverted    an answer, and the answer is no. `ownerOf` reverts on an
+ *                      id that does not exist, and `validate()` checks nothing
+ *                      about ownership - so anyone could publish a well-shaped
+ *                      listing offering token 999999 of a real collection at
+ *                      any price. It passed `unsafeReason`, `ownerOf` reverted,
+ *                      and an earlier version called that fillable; the fake
+ *                      then set the collection's floor.
+ *
+ *   both succeeded     the real rules, `listingIsFillable` / `offerIsFillable`.
+ */
+export function resolveFillable(
+  order: Pick<ReadOrder, "maker" | "amount" | "priceWei" | "kind"> & {
+    params: { offer: ReadonlyArray<{ itemType: number }> };
+  },
+  checks: { first: ChainAnswer | undefined; second: ChainAnswer | undefined } | undefined,
+): boolean {
+  // Not checked yet. Never "probably fine".
+  if (checks === undefined) return false;
+
+  const { first, second } = checks;
+  if (first?.status !== "success" || second?.status !== "success") return false;
+
+  if (order.kind === "listing") {
+    const isMulti = order.params.offer[0]?.itemType === ItemType.ERC1155;
+    const holder = isMulti ? (first.result as bigint) : (first.result as Address);
+    return listingIsFillable(order, holder, second.result === true);
+  }
+
+  return offerIsFillable(order, first.result as bigint, second.result as bigint);
+}
+
 /** Turn order parameters back into the shape `cancel` and `getOrderHash` want. */
 export function toComponents(p: OrderParameters, counter: bigint): OrderComponents {
   const { totalOriginalConsiderationItems: _total, ...rest } = p;
