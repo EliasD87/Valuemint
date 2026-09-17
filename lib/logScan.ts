@@ -1,10 +1,21 @@
 import type { AbiEvent, PublicClient } from "viem";
 
 /**
- * The block the marketplace was deployed in. Nothing it emitted exists before
- * this, so scanning from genesis would be wasted work.
+ * How far behind the head to stop reading.
+ *
+ * `scanLogs` used to take its watermark from `eth_blockNumber` and commit it,
+ * which assumed two things that are not true. The head can be reorganised away,
+ * and — more likely here — the transport is a two-endpoint `fallback` whose
+ * members are documented as being "within one block of each other", so the head
+ * can be read from one endpoint and the logs served by the other. Either way the
+ * newest block's logs go missing **permanently for the life of the page**,
+ * because the watermark has already moved past them and nothing ever re-reads a
+ * committed range.
+ *
+ * Six blocks is ~12 seconds on a 2-second chain. The cost is that a brand-new
+ * listing takes one extra poll to appear; the alternative is silently losing it.
  */
-export const FROM_BLOCK = 13_736_386n;
+export const CONFIRMATIONS = 6n;
 
 /**
  * How many blocks to ask for at once.
@@ -52,12 +63,39 @@ const MIN_CHUNK = 250n;
  * whose only purpose was to rediscover a limit the previous chunk had already
  * found.
  *
- * Lowering this is permanent for the life of the page, so an endpoint that
- * tightens its cap costs one failed request per session rather than one per
- * chunk. It is module scope on purpose: every scan on the page shares what any
- * one of them learned.
+ * It is module scope on purpose: every scan on the page shares what any one of
+ * them learned.
  */
 let ceiling = CHUNK;
+
+/**
+ * The narrowest width this endpoint has actually refused, if any.
+ *
+ * Lowering `ceiling` used to be permanent for the life of the page. That is the
+ * right call against an endpoint that has genuinely tightened its cap and the
+ * wrong one against a transient refusal — and the two look identical at the
+ * moment they happen. The consequence was that **an attacker had a lever on
+ * it**: result-count refusals are driven by log density, `validate(Order[])`
+ * takes an array, so a dense stretch could drop a visitor's session toward the
+ * 156-block floor and leave it there for as long as the tab stayed open.
+ *
+ * The fix is to let the ceiling recover, but never to re-probe a width the
+ * endpoint has already said no to. Recovery is bounded strictly below
+ * `knownBad`, so an endpoint with a real cap is never tested against it twice —
+ * which is the invariant the original design was protecting, and which
+ * `logScan.test.ts` asserts — while a session that narrowed transiently still
+ * climbs back toward the widest width that has actually worked.
+ *
+ * What this does NOT fix: a cascade where every width down to the floor is
+ * refused, because then `knownBad` is small too. That needs per-range narrowing
+ * rather than a per-session ceiling, since the dense range is the problem and
+ * not the endpoint. Recorded as a known limit rather than papered over.
+ */
+let knownBad: bigint | undefined;
+
+/** Consecutive clean requests at the current width. */
+let streak = 0;
+const WIDEN_AFTER = 16;
 
 /**
  * Has `ceiling` actually been accepted by this endpoint yet?
@@ -105,13 +143,39 @@ interface Cached {
  */
 const cache = new Map<string, Cached>();
 
+/**
+ * Scans currently in flight, keyed identically to the cache.
+ *
+ * Without this, two callers of the same query both miss the cache and both walk
+ * the range. On a cold load `useSeaportOrders` and `useActivity` start their
+ * `OrderValidated` scans simultaneously, so that range was fetched twice — and
+ * worse, once a cache entry existed both appended into the **same array
+ * object**, so a second concurrent scan could duplicate every log it read.
+ * `useSeaportOrders` dedupes by order hash and survived that; `useActivity`
+ * does not dedupe and would have rendered each row twice.
+ *
+ * Sharing the promise fixes both at once: one walk, one array, both callers get
+ * the same result.
+ */
+const inFlight = new Map<string, Promise<Array<{ args: unknown; blockNumber: bigint }>>>();
+
 function keyOf(params: ScanParams): string {
   return JSON.stringify({
     a: params.address,
-    e: params.event.name,
+    // The full signature, not `event.name`. Two different events with the same
+    // name on one address would otherwise share a cache entry and serve each
+    // other's logs. Nothing in this app does that today; it costs nothing to
+    // make impossible.
+    e: signatureOf(params.event),
     g: params.args ?? null,
     f: params.fromBlock.toString(),
   });
+}
+
+/** `Transfer(address,address,uint256)` — enough to tell two same-named events apart. */
+function signatureOf(event: AbiEvent): string {
+  const inputs = (event.inputs ?? []).map((i) => i.type).join(",");
+  return `${event.name}(${inputs})`;
 }
 
 export interface ScanParams {
@@ -127,17 +191,54 @@ export interface ScanParams {
  * The first call for a query walks the whole range once. Every call after it
  * asks only for blocks mined since — which on a 2-second chain is a few hundred
  * at most, however old the contract gets.
+ *
+ * Concurrent callers of the same query share one walk; see `inFlight`.
  */
 export async function scanLogs(
   client: PublicClient,
   params: ScanParams,
 ): Promise<Array<{ args: unknown; blockNumber: bigint }>> {
   const key = keyOf(params);
-  const latest = await client.getBlockNumber();
+
+  const running = inFlight.get(key);
+  if (running !== undefined) return running;
+
+  const walk = scanUncoalesced(client, params, key).finally(() => {
+    inFlight.delete(key);
+  });
+  inFlight.set(key, walk);
+  return walk;
+}
+
+async function scanUncoalesced(
+  client: PublicClient,
+  params: ScanParams,
+  key: string,
+): Promise<Array<{ args: unknown; blockNumber: bigint }>> {
+  const head = await client.getBlockNumber();
+
+  /**
+   * Stop short of the head. A range that ends at `head` can be served by an
+   * endpoint that has not seen `head` yet, and the watermark would then commit
+   * over blocks nobody read. `head` below `CONFIRMATIONS` (a fresh chain, or a
+   * test) means there is nothing settled to read yet.
+   */
+  const latest = head > CONFIRMATIONS ? head - CONFIRMATIONS : 0n;
+
   const entry = cache.get(key);
 
   let cursor = entry === undefined ? params.fromBlock : entry.through + 1n;
-  const collected: unknown[] = entry === undefined ? [] : entry.logs;
+
+  /**
+   * A copy, not the cached array.
+   *
+   * `collected` used to be a reference to `entry.logs`, so anything appended
+   * during a failed or concurrent walk mutated the cache in place — leaving
+   * duplicated or partially-committed logs behind a watermark that had not
+   * moved. The cache is now only ever replaced wholesale, at a point where the
+   * watermark and the contents agree.
+   */
+  const collected: unknown[] = entry === undefined ? [] : [...entry.logs];
 
   // Nothing new. Costs one `eth_blockNumber` instead of a full rescan.
   if (cursor > latest) {
@@ -160,10 +261,33 @@ export async function scanLogs(
    * refusing for some other reason and halving again would just loop.
    */
   const narrow = (): boolean => {
+    streak = 0;
+    // Remember the width that was refused, so recovery never tries it again.
+    if (knownBad === undefined || ceiling < knownBad) knownBad = ceiling;
     if (ceiling <= MIN_CHUNK) return false;
     ceiling = ceiling / 2n;
     proven = false;
     return true;
+  };
+
+  /**
+   * Count clean requests, and widen once a width has clearly held.
+   *
+   * The doubled width must stay strictly below anything already refused, so an
+   * endpoint with a genuine cap is probed for it exactly once per session.
+   */
+  const succeeded = (requests: number): void => {
+    streak += requests;
+    if (streak < WIDEN_AFTER || ceiling >= CHUNK) return;
+
+    const wider = ceiling * 2n > CHUNK ? CHUNK : ceiling * 2n;
+    if (knownBad !== undefined && wider >= knownBad) return;
+
+    ceiling = wider;
+    streak = 0;
+    // Re-prove the new width one request at a time rather than fanning out
+    // eight requests at a size that has not been accepted yet.
+    proven = false;
   };
 
   while (cursor <= latest) {
@@ -178,6 +302,7 @@ export async function scanLogs(
         collected.push(...(await fetchRange(cursor, to)));
         cursor = to + 1n;
         proven = true;
+        succeeded(1);
       } catch (err) {
         if (narrow()) continue;
         /**
@@ -208,19 +333,20 @@ export async function scanLogs(
      * those logs would be missing for the life of the page with nothing to say
      * so. Anything after the first failure is simply re-requested next loop.
      */
-    let advanced = false;
+    let advanced = 0;
     for (let i = 0; i < results.length; i++) {
       const result = results[i]!;
       if (result.status !== "fulfilled") break;
       collected.push(...result.value);
       cursor = ranges[i]![1] + 1n;
-      advanced = true;
+      advanced += 1;
     }
 
-    if (advanced) {
+    if (advanced > 0) {
       // A partial failure still means this width is now suspect. Narrow, but
       // keep the ground already gained.
       if (results.some((r) => r.status === "rejected")) narrow();
+      else succeeded(advanced);
       continue;
     }
 
@@ -246,6 +372,9 @@ export async function scanLogs(
  */
 export function resetLogCache(): void {
   cache.clear();
+  inFlight.clear();
   ceiling = CHUNK;
+  knownBad = undefined;
+  streak = 0;
   proven = false;
 }
