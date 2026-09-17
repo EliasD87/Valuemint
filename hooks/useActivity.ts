@@ -104,7 +104,20 @@ interface RawLog {
 export function useActivity(
   collection: `0x${string}` | undefined,
   tokenId?: bigint,
-  { salesOnly = false }: { salesOnly?: boolean } = {},
+  {
+    salesOnly = false,
+    wallet,
+  }: {
+    salesOnly?: boolean;
+    /**
+     * Only rows this address was a party to, on either side.
+     *
+     * Free to apply: the scan is already global and already shared, so a
+     * personal history costs no extra requests — it is the same rows, filtered
+     * differently.
+     */
+    wallet?: `0x${string}`;
+  } = {},
 ) {
   const client = usePublicClient();
 
@@ -264,6 +277,12 @@ export function useActivity(
     }
     if (tokenId !== undefined && r.tokenId !== tokenId) return false;
     if (salesOnly && r.kind !== "sale") return false;
+    if (wallet !== undefined) {
+      const me = wallet.toLowerCase();
+      // Either side. A listing you made and a purchase you made are both yours.
+      const mine = r.from?.toLowerCase() === me || r.to?.toLowerCase() === me;
+      if (!mine) return false;
+    }
     return true;
   });
 

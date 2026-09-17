@@ -6,6 +6,7 @@ import { useAccount, useBalance, useConnect } from "wagmi";
 import { useQueryClient } from "@tanstack/react-query";
 import { useHoldings } from "@/hooks/useHoldings";
 import { OfferInbox } from "@/components/OfferInbox";
+import { MyTrades } from "@/components/MyTrades";
 import { TokenCard, TokenCardSkeleton } from "@/components/TokenCard";
 import { formatSoso } from "@/lib/format";
 import "@/styles/home.css";
@@ -177,6 +178,13 @@ export default function Portfolio() {
           ))}
         </div>
       )}
+
+      {/* Below the holdings, because what you own is the question people come
+          to this page with and what you traded is the follow-up. Costs no
+          extra requests: the activity scan is global and already running for
+          the market, so this is the same rows filtered to one address. */}
+      <MyTrades address={address} />
+
     </section>
   );
 }
