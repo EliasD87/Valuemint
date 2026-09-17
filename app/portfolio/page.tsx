@@ -120,9 +120,13 @@ export default function Portfolio() {
 
       {unlistable.length > 0 ? (
         <p className="portfolio-note">
-          You hold pieces in {unlistable.map((c) => c.name).join(", ")}, but{" "}
-          {unlistable.length === 1 ? "it doesn't" : "they don't"} publish a per-owner index, so they
-          can&rsquo;t be listed here. Open the collection directly to find them.
+          {/* Reached only when a collection neither enumerates NOR resolves
+              through the explorer index — rare now that the fallback exists,
+              and a genuine dead end rather than a marketplace limitation. */}
+          Pieces you hold in {unlistable.map((c) => c.name).join(", ")} could not be
+          identified. {unlistable.length === 1 ? "It doesn't" : "They don't"} publish a
+          per-owner index and the explorer has no record of them either. Open the token
+          directly by address if you know its number.
         </p>
       ) : null}
 

@@ -7,6 +7,7 @@ import { useBestListings } from "@/hooks/useSeaportOrders";
 import { toListing } from "@/lib/seaport";
 import { resolveMediaUrl } from "@/lib/format";
 import { useAllCollections } from "@/hooks/useAllCollections";
+import { useOwnedTokens } from "@/hooks/useOwnedTokens";
 import type { TokenMetadata } from "@/hooks/useCollection";
 import type { ChainToken } from "@/hooks/useEverything";
 
@@ -106,7 +107,7 @@ export function useHoldings(address: `0x${string}` | undefined) {
     query: { enabled: address !== undefined && slots.length > 0 },
   });
 
-  const held = slots
+  const enumerated = slots
     .map((s, i) => {
       const entry = idResults?.[i];
       return entry?.status === "success"
@@ -114,6 +115,32 @@ export function useHoldings(address: `0x${string}` | undefined) {
         : undefined;
     })
     .filter((v): v is { collection: (typeof collections)[number]; id: bigint } => v !== undefined);
+
+  /**
+   * Collections this wallet holds in but could not enumerate.
+   *
+   * `tokenOfOwnerByIndex` is the Enumerable extension and plenty of ordinary
+   * ERC-721s skip it. For those, `balanceOf` says how many and nothing says
+   * which — and without an id there is no token page and no way to list.
+   */
+  const needsFallback = collections
+    .filter((c, i) => {
+      const balance = balances?.[i];
+      if (balance?.status !== "success" || (balance.result as bigint) === 0n) return false;
+      return !enumerated.some((h) => h.collection.address === c.address);
+    })
+    .map((c) => c.address);
+
+  const { byCollection: recoveredIds, isLoading: loadingTransfers } = useOwnedTokens(
+    needsFallback,
+    address,
+  );
+
+  const recovered = collections.flatMap((c) =>
+    (recoveredIds[c.address.toLowerCase()] ?? []).map((id) => ({ collection: c, id })),
+  );
+
+  const held = [...enumerated, ...recovered];
 
   const { data: details, isLoading: loadingDetails } = useReadContracts({
     contracts: held.map((h) => ({
@@ -169,7 +196,12 @@ queryKey: ["holdings", address, uris.filter(Boolean).join("|")],
     };
   });
 
-  // Collections where the balance is non-zero but ids could not be enumerated.
+  /**
+   * Genuinely unreachable: a balance the chain confirms, no Enumerable index,
+   * and no Transfer history that resolves to a token this wallet still holds.
+   * That is rare now — it means the collection neither enumerates nor emits
+   * a Transfer we can follow.
+   */
   const unlistable = collections.filter((c, i) => {
     const balance = balances?.[i];
     if (balance?.status !== "success" || Number(balance.result as bigint) === 0) return false;
@@ -181,6 +213,6 @@ queryKey: ["holdings", address, uris.filter(Boolean).join("|")],
     collections,
     unlistable,
     isLoading:
-      loadingCollections || loadingBalances || loadingIds || loadingDetails || loadingMeta,
+      loadingCollections || loadingBalances || loadingIds || loadingTransfers || loadingDetails || loadingMeta,
   };
 }
