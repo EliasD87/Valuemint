@@ -37,7 +37,15 @@ export function useChainStats() {
      * decided when the order is built, by `FEE_BPS` in lib/seaport.ts. Asking a
      * contract for it would be asking the wrong question.
      */
+    /**
+     * Reported as what THIS BUILD charges, not as an independently established
+     * fact — because it is the same constant the orders are built from. If
+     * `FEE_BPS` were wrong, this would confirm the wrong number rather than
+     * catch it. The only real anchor would be on-chain fee state, which needs a
+     * contract this marketplace does not have.
+     */
     protocolFeeBps: FEE_BPS,
+    protocolFeeIsSelfReported: true,
     /** True once every collection's supply has been read. */
     complete: collections.length > 0 && withSupply.length === collections.length,
     isLoading,

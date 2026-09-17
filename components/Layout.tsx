@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useVerifiedContracts } from "@/hooks/useVerifiedContracts";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Wallet } from "./Wallet";
 import { ThemeToggle } from "./ThemeToggle";
@@ -246,6 +247,8 @@ export function Layout({ children }: { children: ReactNode }) {
         onClick={() => setMenuOpen(false)}
       />
 
+      <ContractIdentityBanner />
+
       <main id="main">{children}</main>
 
       <footer className="footer">
@@ -349,5 +352,34 @@ function Mark() {
         d="M16 0a16 16 0 1 1 0 32 16 16 0 0 1 0-32ZM9 9.5 14.1 22h3.8L23 9.5h-3.5L16 18.1 12.5 9.5H9Z"
       />
     </svg>
+  );
+}
+
+/**
+ * Says so, loudly, when the chain disagrees with this build about the two
+ * addresses everything is approved to.
+ *
+ * Deliberately silent while loading and silent on an unreachable node: an
+ * unanswered question is not a failed one, and a banner that cries wolf during
+ * every RPC hiccup gets ignored on the day it matters. It appears only when the
+ * chain has actually answered and the answer was wrong.
+ */
+function ContractIdentityBanner() {
+  const { mismatch, problems } = useVerifiedContracts();
+  if (!mismatch) return null;
+
+  return (
+    <div className="identity-alarm" role="alert">
+      <strong>Stop. This site is not talking to the contracts it should be.</strong>
+      <ul>
+        {problems.map((p) => (
+          <li key={p}>{p}</li>
+        ))}
+      </ul>
+      <p>
+        Do not approve anything and do not send a transaction. Approving would grant
+        blanket rights over your collection to whatever contract this is.
+      </p>
+    </div>
   );
 }

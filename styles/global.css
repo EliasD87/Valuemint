@@ -1117,3 +1117,33 @@ textarea {
 .search-actions .btn {
   flex: 1 1 auto;
 }
+
+/* ============================================================ identity alarm */
+/* Shown only when the chain has contradicted the build about Seaport or WSOSO.
+   Deliberately the loudest thing on the page - it gates approving an operator. */
+.identity-alarm {
+  margin: 0;
+  padding: 1rem 1.25rem;
+  background: var(--danger-wash);
+  color: var(--ink);
+  border-bottom: 2px solid var(--danger);
+  font-size: var(--step--1);
+  line-height: 1.55;
+}
+
+.identity-alarm strong {
+  display: block;
+  font-weight: 700;
+  color: var(--danger);
+  margin-bottom: 0.35rem;
+}
+
+.identity-alarm ul {
+  margin: 0 0 0.45rem;
+  padding-left: 1.1rem;
+}
+
+.identity-alarm p {
+  margin: 0;
+  color: var(--ink-2);
+}
