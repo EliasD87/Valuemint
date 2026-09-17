@@ -3,6 +3,7 @@
 import { parseEther } from "viem";
 
 import { use, useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useAccount, useReadContract } from "wagmi";
 import { ValueChainCollectionAbi, deployment } from "@/config/contracts";
@@ -184,6 +185,27 @@ export function TokenView({
   const isOwner =
     owner !== undefined && address !== undefined && (owner as string).toLowerCase() === address.toLowerCase();
   const listed = listing !== undefined;
+
+  /**
+   * The listing is on chain but the order book has not seen it yet.
+   *
+   * A listing reaches the chain through `validate()`, and the book is rebuilt
+   * from logs — which the scanner deliberately reads six confirmations behind
+   * the head, then polls every thirty seconds. So for up to about forty
+   * seconds after a successful list, the transaction has succeeded and
+   * `listing` is still undefined.
+   *
+   * What the page did with that gap was contradict itself: STATUS said "Not
+   * listed", the sell form reopened with the price still typed in it, and the
+   * green "Listed." banner sat underneath. The obvious reading is that it did
+   * not work, and the obvious response is to list again — which produces two
+   * live orders at two prices, and a buyer takes the cheaper one.
+   *
+   * Cancelling has the same gap in the other direction.
+   */
+  const justListed = lastAction === "list" && trade.isSuccess && listing === undefined;
+  const justCancelled = lastAction === "cancel" && trade.isSuccess && listing !== undefined;
+  const settling = justListed || justCancelled;
   const listPrice = listing?.priceWei ?? 0n;
   /** Fillable now: the seller still holds it, and Seaport is still allowed to move it. */
   const active =
@@ -217,6 +239,32 @@ export function TokenView({
    * Staleness is checked separately — `sellerApproved` and `ownerOf` are what
    * decide whether a listing is buyable, and both are refreshed here.
    */
+  const queryClient = useQueryClient();
+
+  /**
+   * While a write is settling, chase it instead of waiting for the poll.
+   *
+   * The order book refetches every thirty seconds and reads six confirmations
+   * behind the head, so a listing could take the better part of a minute to
+   * appear — during which the page had already said "Listed." An immediate
+   * refetch cannot help: the block is not readable yet. Asking every six
+   * seconds until the book agrees turns roughly forty seconds into roughly
+   * fifteen, and stops by itself the moment `settling` goes false.
+   */
+  useEffect(() => {
+    if (!settling) return;
+    const tick = () => {
+      void queryClient.invalidateQueries({ queryKey: ["seaport-validated"] });
+    };
+    const interval = setInterval(tick, 6_000);
+    // Give up after a minute rather than polling a page somebody left open.
+    const stop = setTimeout(() => clearInterval(interval), 60_000);
+    return () => {
+      clearInterval(interval);
+      clearTimeout(stop);
+    };
+  }, [settling, queryClient]);
+
   const afterAction = () => {
     void refetchOwner();
     void refetchApprovalState();
@@ -269,13 +317,17 @@ export function TokenView({
             <div>
               <dt>Status</dt>
               <dd>
-                {listed
-                  ? active
-                    ? "For sale"
-                    : "Listed (stale)"
-                  : logsUnavailable
-                    ? "Unknown"
-                    : "Not listed"}
+                {settling
+                  ? justListed
+                    ? "Listing…"
+                    : "Cancelling…"
+                  : listed
+                    ? active
+                      ? "For sale"
+                      : "Listed (stale)"
+                    : logsUnavailable
+                      ? "Unknown"
+                      : "Not listed"}
               </dd>
               <LastSale collection={collection} tokenId={tokenId} />
             </div>
@@ -327,6 +379,12 @@ export function TokenView({
                   </button>
                 )}
               </>
+            ) : settling ? (
+              <p className="token-note">
+                {justListed
+                  ? "Your listing is on chain. It takes up to a minute to appear in the market, because the book is rebuilt from confirmed blocks. Do not list it again — you would end up with two live listings at different prices."
+                  : "Your cancellation is on chain and the listing will stop showing shortly."}
+              </p>
             ) : isOwner ? (
               <>
                 <p className="token-panel-title">Sell this piece</p>
