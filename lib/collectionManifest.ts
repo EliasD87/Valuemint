@@ -49,6 +49,18 @@ export interface CollectionManifest {
 }
 
 /** Rejects anything that is not a manifest we can safely expand. */
+/**
+ * The most tokens one manifest may describe.
+ *
+ * Exported because `/api/pin` has to refuse at the same number this refuses at.
+ * It did not: the writer accepted 100,000 and this reader stopped at 10,000, so
+ * a creator could pin a manifest for 50,000 tokens, watch it succeed, deploy a
+ * collection against it — and `baseURI` is immutable — and every token in it
+ * would answer 404 forever, with no way back. A ceiling enforced on one side of
+ * a write/read pair is not a ceiling; it is a trap.
+ */
+export const MAX_MANIFEST_SUPPLY = 10_000;
+
 export function parseManifest(value: unknown): CollectionManifest | undefined {
   if (typeof value !== "object" || value === null) return undefined;
   const m = value as Record<string, unknown>;
@@ -83,7 +95,7 @@ export function parseManifest(value: unknown): CollectionManifest | undefined {
      * of pinned manifests exhaust a lambda's memory. 10,000 is past anything a
      * real collection here has reached by two orders of magnitude.
      */
-    if (supply > 10_000) return undefined;
+    if (supply > MAX_MANIFEST_SUPPLY) return undefined;
     designs.push({
       file: d.file,
       name: d.name,
