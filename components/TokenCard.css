@@ -227,3 +227,19 @@
   width: calc(100% + 8px);
   height: 44px;
 }
+
+/* An explorer-discovered collection, not one this marketplace created. Quiet
+   enough not to shout on every card, loud enough to read before buying. */
+.tcard-unverified {
+  display: inline-block;
+  margin-right: 0.35rem;
+  padding: 0.05rem 0.3rem;
+  border-radius: var(--r-sm);
+  background: var(--warn-wash);
+  color: var(--warn);
+  font-size: var(--step--3);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  cursor: help;
+}

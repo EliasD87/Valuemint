@@ -20,6 +20,22 @@ interface Props {
   owner?: `0x${string}`;
   viewerAddress?: `0x${string}`;
   /**
+   * Does anything vouch for this collection — the factory, or `known.ts`?
+   *
+   * `undefined` means the caller does not know and the card says nothing. The
+   * distinction matters: the marketplace lists any ERC-721 the explorer has
+   * indexed, so "we have heard of this contract" was being shown in a way that
+   * reads as "we vouch for this contract". Anyone can deploy a contract named
+   * after a real collection, point its tokenURI at copies of the artwork, list
+   * it, and appear in the same grid under the same name.
+   *
+   * Deliberately NOT `fromFactory` alone: The Trenches is a first-party
+   * collection deployed by script rather than through the factory, and flagging
+   * it identically to a stranger's impersonation would teach people to ignore
+   * the badge.
+   */
+  vouched?: boolean;
+  /**
    * Set on the handful of cards above the fold. Everything else stays lazy —
    * marking a whole grid priority just moves the queue rather than shortening
    * it.
@@ -27,7 +43,15 @@ interface Props {
   priority?: boolean;
 }
 
-export function TokenCard({ token, collection, listing, owner, viewerAddress, priority = false }: Props) {
+export function TokenCard({
+  token,
+  collection,
+  listing,
+  owner,
+  viewerAddress,
+  vouched,
+  priority = false,
+}: Props) {
   const { isConnected } = useAccount();
   const isYours =
     owner !== undefined &&
@@ -103,7 +127,17 @@ export function TokenCard({ token, collection, listing, owner, viewerAddress, pr
             <dd>{token.edition ?? "—"}</dd>
           </div>
           <div className="tcard-cell tcard-cell-end">
-            <dt>{listing !== undefined ? "Price" : "Status"}</dt>
+            <dt>
+              {vouched === false ? (
+                <span
+                  className="tcard-unverified"
+                  title="Not created through ValueMint. Check the contract address before buying — anyone can deploy a collection using someone else's name and artwork."
+                >
+                  Unverified
+                </span>
+              ) : null}
+              {listing !== undefined ? "Price" : "Status"}
+            </dt>
             <dd className={listing !== undefined ? "tcard-price" : "tcard-none"}>
               {listing !== undefined ? (
                 <Soso>{formatSoso(listing.price)}</Soso>

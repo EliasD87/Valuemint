@@ -13,6 +13,23 @@ export interface CollectionSummary {
   name: string;
   symbol: string;
   fromFactory: boolean;
+  /**
+   * Does anything actually vouch for this collection?
+   *
+   * True when it came from ValueMint's own factory, or when it is named in
+   * `known.ts` — the hand-maintained list of first-party collections deployed
+   * by script rather than through the factory, which The Trenches is.
+   *
+   * False means the only reason the marketplace knows about it is that
+   * Blockscout indexed it, which is true of every ERC-721 on the chain. That is
+   * not a reason to trust a name or a picture: anyone can deploy a contract
+   * called "ValueChain Genesis" and point its artwork at copies of the real
+   * thing.
+   *
+   * `fromFactory` alone was the wrong signal for this — it flags The Trenches,
+   * which is ours, identically to a stranger's impersonation.
+   */
+  vouched: boolean;
   owner?: `0x${string}`;
   totalSupply?: bigint;
   maxSupply?: bigint;
@@ -40,7 +57,18 @@ export function useAllCollections() {
   const { data: discovered, isLoading: discovering, error } = useDiscoveredCollections();
 
   const merged = useMemo(() => {
-    const byAddress = new Map<string, CollectionSummary>();
+    // `vouched` is decided at the boundary below, once every source has been
+    // merged, so the intermediate entries do not carry it yet.
+    const byAddress = new Map<string, Omit<CollectionSummary, "vouched">>();
+
+    /**
+     * Addresses an explicit allow-list vouches for, remembered separately.
+     *
+     * The merge below is last-write-wins by source, so an entry seeded from
+     * `known.ts` gets overwritten when the explorer reports the same address.
+     * Keeping the fact here means it survives that.
+     */
+    const vouchedFor = new Set(KNOWN_COLLECTIONS.map((c) => c.address.toLowerCase()));
 
     // Lowest precedence: real registry and explorer data overwrite these
     // placeholder names if either knows the collection.
@@ -85,7 +113,11 @@ export function useAllCollections() {
      * and every public view is unchanged; `useOwnedCollections` reads the
      * unfiltered set, because ownership is not a matter of taste.
      */
-    return [...byAddress.values()].map((c) => ({ ...c, hidden: isHidden(c.address) }));
+    return [...byAddress.values()].map((c) => ({
+      ...c,
+      hidden: isHidden(c.address),
+      vouched: c.fromFactory || vouchedFor.has(c.address.toLowerCase()),
+    }));
   }, [discovered, fromFactory]);
 
   const { data, isLoading: loadingState } = useReadContracts({

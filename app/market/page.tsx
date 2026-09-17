@@ -17,6 +17,17 @@ export default function Market() {
   const { address } = useAccount();
   const { tokens: listed, collections, isLoading, logsUnavailable } = useListingFeed();
   const { floorFor, tierFloorsFor } = useFloors();
+
+  /**
+   * Which listed collections anything actually vouches for.
+   *
+   * Built once here rather than looked up per card. A collection the feed knows
+   * about only because Blockscout indexed it is vouched for by nothing.
+   */
+  const vouchedFor = useMemo(
+    () => new Map(collections.map((c) => [c.address.toLowerCase(), c.vouched])),
+    [collections],
+  );
   const [sort, setSort] = useState<Sort>("price-asc");
   const [filterTo, setFilterTo] = useState<string>("all");
 
@@ -172,6 +183,7 @@ export default function Market() {
               listing={t.listing}
               owner={t.owner}
               viewerAddress={address}
+              vouched={vouchedFor.get(t.collection.toLowerCase())}
             />
           ))}
         </div>
