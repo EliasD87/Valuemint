@@ -42,11 +42,8 @@ export default function Approvals() {
     return (
       <section className="page section market-empty">
         <p className="eyebrow">Approvals</p>
-        <h2>Connect a wallet to see what it has approved.</h2>
-        <p className="muted">
-          Approvals are read from each collection contract, so whatever this wallet has granted
-          shows up here — including approvals given before this page existed.
-        </p>
+        <h2>What can move your NFTs</h2>
+        <p className="muted">Connect a wallet to see what it has approved.</p>
         <button
           className="btn btn-primary btn-lg"
           disabled={isPending}
@@ -73,11 +70,11 @@ export default function Approvals() {
         </Link>
       </div>
 
+      {/* One line. The rows carry the detail — a page that has to explain
+          itself in a paragraph before showing anything is a page nobody
+          reads. */}
       <p className="lede approvals-lede">
-        Listing anything asks a collection for <strong>approval for all</strong> — permission for
-        one contract to move <em>every</em> token you hold in it, now and in future, without asking
-        again. That is how every marketplace works. It is also the whole of what an attacker needs,
-        so it is worth keeping to the contracts you actually use.
+        Each of these can move every token you hold in that collection, until you revoke it.
       </p>
 
       <TxResult
@@ -99,10 +96,7 @@ export default function Approvals() {
       ) : approvals.length === 0 ? (
         <div className="market-empty">
           <h3>Nothing is approved.</h3>
-          <p className="muted">
-            No contract can move anything this wallet holds. Listing a piece will ask for approval
-            on that collection, and it will appear here once granted.
-          </p>
+          <p className="muted">Nothing can move what this wallet holds.</p>
           <p className="muted mono">{address}</p>
         </div>
       ) : (
@@ -111,10 +105,10 @@ export default function Approvals() {
             <p className="approvals-warn">
               <strong>
                 {retired.length === 1
-                  ? "One approval is to a contract nothing uses any more."
-                  : `${retired.length} approvals are to contracts nothing uses any more.`}
+                  ? "1 approval is to a marketplace nothing uses."
+                  : `${retired.length} approvals are to marketplaces nothing uses.`}
               </strong>{" "}
-              They grant exactly what they always did. Revoking costs gas and breaks nothing.
+              Revoking costs gas and breaks nothing.
             </p>
           ) : null}
 
@@ -185,10 +179,10 @@ function Row({
             decision from an approval over everything you own. */}
         <span className="approvals-exposure">
           {held === 0n ? (
-            <>Covers nothing right now — and anything you receive later.</>
+            <>Nothing held &mdash; covers anything you receive</>
           ) : (
             <>
-              Covers <b>{formatCount(held)}</b> {held === 1n ? "piece" : "pieces"} you hold.
+              <b>{formatCount(held)}</b> {held === 1n ? "piece" : "pieces"}
             </>
           )}
         </span>

@@ -40,13 +40,13 @@ export const OPERATORS: readonly Operator[] = [
     address: SEAPORT,
     name: "Seaport 1.6",
     standing: "needed",
-    why: "Settles every trade on ValueMint. Revoking cancels nothing, but your listings stop being fillable until you approve again.",
+    why: "Needed to trade here. Revoking pauses your listings until you approve again.",
   },
   {
     address: deployment.marketplace,
     name: "ValueMint marketplace v3",
     standing: "retired",
-    why: "Superseded by Seaport and paused. Nothing can trade through it, and nothing here asks for it.",
+    why: "Paused and replaced. Nothing uses it.",
   },
   {
     address: "0xe8f896dea94EC68fF70dbE7406877fbC6448a02E",
