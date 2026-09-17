@@ -11,7 +11,7 @@ import { useOwnOfferExposure, useSeaportOrders, type SeaportOrder } from "@/hook
 import { useSeaportFill, useSeaportTrade } from "@/hooks/useSeaportTrade";
 import { useCanPayFeeInWsoso } from "@/hooks/useWsoso";
 import { formatSoso, shortAddress } from "@/lib/format";
-import { currencyLabel, splitFee } from "@/lib/seaport";
+import { currencyLabel, fulfillerOutlay } from "@/lib/seaport";
 import { deployment } from "@/config/contracts";
 import "./OfferInbox.css";
 
@@ -125,7 +125,8 @@ function InboxRow({ row, onChange }: { row: Row; onChange: () => void }) {
    * The previous marketplace took its cut from the money in flight and never
    * asked, so this one fails as a bare wallet revert when it is skipped.
    */
-  const feeAllowance = useCanPayFeeInWsoso(splitFee(offer.priceWei).fee, ownBids);
+  // Read from the order, not from FEE_BPS - a third-party bid may charge more.
+  const feeAllowance = useCanPayFeeInWsoso(fulfillerOutlay(offer.params), ownBids);
 
   useEffect(() => {
     if (trade.isSuccess || fill.isSuccess || feeAllowance.isSuccess) {

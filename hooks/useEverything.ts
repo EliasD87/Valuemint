@@ -145,7 +145,20 @@ export function useEverything(perCollection = 30) {
   });
 
   const { data: metadata, isLoading: loadingMeta } = useQuery({
-    queryKey: ["everything", uris.filter(Boolean).join("|")],
+    /**
+     * Positions matter in this key.
+     *
+     * It was `uris.filter(Boolean).join("|")`, which drops the gaps — so two
+     * different arrangements of the same URIs produced the SAME cache key while
+     * the results are read back positionally (`metadata?.[i]` against the full
+     * slot list). `[undefined, "A", "B"]` and `["A", "B", undefined]` both keyed
+     * as "A|B", and whichever landed first was served for the other: the wrong
+     * picture and the wrong name against a token somebody might be about to buy.
+     *
+     * Keeping the gaps as empty strings makes the key describe the array actually
+     * being fetched.
+     */
+queryKey: ["everything", uris.filter(Boolean).join("|")],
     enabled: uris.some((u) => u !== undefined),
     staleTime: Infinity,
     gcTime: Infinity,

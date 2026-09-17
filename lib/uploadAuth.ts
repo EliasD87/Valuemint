@@ -200,10 +200,6 @@ export async function authoriseUpload(input: {
     return { ok: false, status: 401, error: "That signature does not match this upload." };
   }
 
-  if (!(await burn(signature))) {
-    return { ok: false, status: 401, error: "That signature has already been used." };
-  }
-
   // --- stake ----------------------------------------------------------------
   let balance: bigint;
   try {
@@ -225,6 +221,23 @@ export async function authoriseUpload(input: {
         `This wallet needs at least ${formatEther(MIN_BALANCE_WEI)} SOSO to upload artwork. ` +
         `You will need SOSO for gas to deploy the collection anyway.`,
     };
+  }
+
+  /**
+   * Burned last, once every other check has passed.
+   *
+   * This used to run before the on-chain balance read, which meant a transient
+   * RPC failure — a 503 the caller had nothing to do with — consumed their
+   * one-time signature. They could not retry without signing again, and the
+   * error said only that the chain was unreachable, so the second attempt
+   * failed as "already used" and looked like a different bug entirely.
+   *
+   * Burning last narrows the window where a signature is spent without an
+   * upload happening to the pinning step itself, which is the part that
+   * actually costs something.
+   */
+  if (!(await burn(signature))) {
+    return { ok: false, status: 401, error: "That signature has already been used." };
   }
 
   return { ok: true, address: getAddress(address) };

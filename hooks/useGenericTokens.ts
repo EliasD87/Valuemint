@@ -52,7 +52,20 @@ export function useGenericTokens(collection: `0x${string}` | undefined, ids: big
     uriResults?.[i]?.status === "success" ? (uriResults[i].result as string) : undefined,
   );
 
-  const key = `${collection ?? ""}:${uris.filter(Boolean).join("|")}`;
+  /**
+   * Positions matter in this key.
+   *
+   * It was `uris.filter(Boolean).join("|")`, which drops the gaps — so two
+   * different arrangements of the same URIs produced the SAME cache key while
+   * the results are read back positionally (`metadata?.[i]` against the full
+   * slot list). `[undefined, "A", "B"]` and `["A", "B", undefined]` both keyed
+   * as "A|B", and whichever landed first was served for the other: the wrong
+   * picture and the wrong name against a token somebody might be about to buy.
+   *
+   * Keeping the gaps as empty strings makes the key describe the array actually
+   * being fetched.
+   */
+const key = `${collection ?? ""}:${uris.filter(Boolean).join("|")}`;
 
   const { data: metadata, isLoading: metaLoading } = useQuery({
     queryKey: ["generic-tokens", key],

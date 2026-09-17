@@ -20,7 +20,21 @@ export function Providers({ children }: { children: ReactNode }) {
         defaultOptions: {
           queries: {
             retry: 2,
-            refetchOnWindowFocus: false,
+            /**
+             * Refetch when the tab comes back.
+             *
+             * This was false, which is defensible for a page of static content
+             * and wrong for one where every row is an offer to spend money. A
+             * backgrounded tab's `refetchInterval` is throttled hard by the
+             * browser, so a tab left open for an hour could present an
+             * arbitrarily old order book the moment it was focused again — and
+             * the person returning to the tab is precisely the person about to
+             * click Buy.
+             *
+             * `staleTime` still prevents a storm: only queries older than 10s
+             * actually refetch.
+             */
+            refetchOnWindowFocus: true,
             // Chain reads are cheap but not free, and blocks land every ~2s.
             staleTime: 10_000,
           },
