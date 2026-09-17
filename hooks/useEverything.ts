@@ -130,13 +130,21 @@ export function useEverything(perCollection = 30) {
   });
 
   /** One flat list of every (collection, tokenId) worth loading. */
-  const slots: Array<{ collection: CollectionSummary; id: bigint }> = indexSlots.map((s, i) => {
+  const slots: Array<{ collection: CollectionSummary; id: bigint; fromIndex: boolean }> = indexSlots.map((s, i) => {
     const entry = idsByIndex?.[i];
+    const answered = entry?.status === "success";
     return {
       collection: s.collection,
-      // Not Enumerable, or the call has not landed yet: fall back to the old
-      // assumption, which is correct for every collection from our factory.
-      id: entry?.status === "success" ? (entry.result as bigint) : BigInt(s.index + 1),
+      /**
+       * Not Enumerable, or the call has not landed yet: guess sequentially.
+       *
+       * Correct for every collection from our factory, and wrong for a
+       * collection that numbers its tokens any other way - so the guess is
+       * marked, and filtered out below unless `ownerOf` vouches for it.
+       */
+      id: answered ? (entry.result as bigint) : BigInt(s.index + 1),
+      /** The contract's own answer, rather than our assumption about it. */
+      fromIndex: answered,
     };
   });
 
@@ -174,6 +182,21 @@ queryKey: ["everything", uris.filter(Boolean).join("|")],
     queryFn: () => fetchLimited(uris.map((u) => resolveMediaUrl(u) ?? ""), 10),
   });
 
+  /**
+   * A guessed id has to be vouched for before it can reach a page.
+   *
+   * This is the same fault `useTokenIds` had, in the second of the two places
+   * that guess: TestSoDEXTreasureBox reports a supply of 3,121 whose lowest id
+   * is 4,408, because its pieces are task rewards handed out as people earn
+   * them. Walking 1..n found none of them and drew a card for each miss - a
+   * permanent grey tile, no owner, linking to a token page for nothing.
+   *
+   * `ownerOf` is already read for every slot below, so the gate is free: an id
+   * that came from `tokenByIndex` is the contract's own answer and is trusted,
+   * and an id we guessed is kept only when the chain confirms somebody owns it.
+   * While the read is still in flight nothing is dropped, so the grid fills in
+   * rather than flickering.
+   */
   const tokens: ChainToken[] = slots.map((slot, i) => {
     const ownerEntry = chainData?.[i * 2];
     const order = bestListings.get(`${slot.collection.address.toLowerCase()}-${slot.id}`);
@@ -192,7 +215,17 @@ queryKey: ["everything", uris.filter(Boolean).join("|")],
       image: resolveMediaUrl(m?.image),
       uri: uris[i],
     };
-  });
+  })
+    .filter((_t, i) => {
+      const slot = slots[i];
+      if (slot === undefined) return false;
+      // The contract's own id: always keep it.
+      if (slot.fromIndex) return true;
+      // Still reading: keep it, so the grid fills in rather than flickering.
+      if (chainData === undefined) return true;
+      // A guess. It stays only if somebody actually owns it.
+      return chainData[i * 2]?.status === "success";
+    });
 
   return {
     tokens,
