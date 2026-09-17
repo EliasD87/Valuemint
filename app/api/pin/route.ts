@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { assignDesigns, supplyOf, type DesignInput } from "@/lib/buildMetadata";
-import type { CollectionManifest, ManifestDesign } from "@/lib/collectionManifest";
+import {
+  MAX_MANIFEST_SUPPLY,
+  type CollectionManifest,
+  type ManifestDesign,
+} from "@/lib/collectionManifest";
 import { filebaseAvailable, pinFile, pinFiles, verifyFilebase } from "@/lib/filebase";
 import { optimiseArtwork } from "@/lib/optimiseArtwork";
 
@@ -17,6 +21,7 @@ function storageAvailable(): boolean {
 import { gatewayUrl, pinDirectory, pinningAvailable, verifyCredential } from "@/lib/pinning";
 import { randomUUID } from "node:crypto";
 import { authoriseUpload, precheckClaim } from "@/lib/uploadAuth";
+import { cappedBody, isBodyTooLarge } from "@/lib/cappedBody";
 import { callerKey, limiter, limiterIsShared } from "@/lib/rateLimit";
 import { sniffImage, SVG_REFUSAL } from "@/lib/sniffImage";
 import { fileHash } from "@/lib/uploadClaim";
@@ -71,11 +76,21 @@ const MAX_FILE_BYTES = 8 * 1024 * 1024;
 const MAX_FILES = 50;
 const MAX_TOTAL_BYTES = 60 * 1024 * 1024;
 /**
- * Supply no longer costs pinned files — one manifest describes any size — so
- * this cap is now only about work per request: the assignment shuffle is O(n)
- * and the result is held in memory. It matches the manifest parser's own guard.
+ * The hard ceiling on bytes this route will read, multipart framing included.
+ * Ten percent over the file allowance covers boundaries, part headers and the
+ * config part. See `lib/cappedBody.ts` for why the declared size is not enough.
  */
-const MAX_SUPPLY = 100_000;
+const MAX_BODY_BYTES = Math.ceil(MAX_TOTAL_BYTES * 1.1);
+/**
+ * Supply no longer costs pinned files — one manifest describes any size — so
+ * this cap is only about work per request: the assignment shuffle is O(n) and
+ * the result is held in memory.
+ *
+ * Taken from the reader rather than restated. This said it "matches the
+ * manifest parser's own guard" while being ten times larger than it, which
+ * meant the writer happily pinned manifests the reader would never parse.
+ */
+const MAX_SUPPLY = MAX_MANIFEST_SUPPLY;
 
 export async function GET(request: Request) {
   // Lets the creator be told up front whether uploads work at all, rather than
@@ -143,8 +158,13 @@ export async function POST(request: Request) {
 
   let form: FormData;
   try {
-    form = await request.formData();
-  } catch {
+    form = await cappedBody(request, MAX_BODY_BYTES).formData();
+  } catch (e) {
+    // A stream aborted mid-parse surfaces as a parse failure, so the cause has
+    // to be recovered rather than inferred from where it was thrown.
+    if (isBodyTooLarge(e)) {
+      return NextResponse.json({ error: "That upload is too large in total." }, { status: 413 });
+    }
     return NextResponse.json({ error: "Expected a multipart upload." }, { status: 400 });
   }
 
