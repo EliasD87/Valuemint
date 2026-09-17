@@ -287,6 +287,7 @@ export default function Home() {
                     key={`${token.collection}-${token.id}`}
                     token={token}
                     collection={token.collection}
+                    collectionName={token.collectionName}
                     listing={token.listing}
                     owner={token.owner}
                     viewerAddress={address}

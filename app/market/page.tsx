@@ -180,6 +180,7 @@ export default function Market() {
               key={`${t.collection}-${t.id}`}
               token={t}
               collection={t.collection}
+              collectionName={t.collectionName}
               listing={t.listing}
               owner={t.owner}
               viewerAddress={address}

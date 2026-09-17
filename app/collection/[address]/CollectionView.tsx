@@ -302,6 +302,7 @@ export function CollectionView({ params }: { params: Promise<{ address: string }
               key={t.id.toString()}
               token={t}
               collection={collection!}
+              collectionName={name}
               listing={listings.get(t.id.toString())}
               viewerAddress={viewer}
             />

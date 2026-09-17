@@ -16,6 +16,16 @@ interface Props {
   token: LoadedToken;
   /** Which collection this token belongs to; the card links into it. */
   collection: `0x${string}`;
+  /**
+   * The collection's on-chain `name()`, used as the token's identity when the
+   * token has none of its own.
+   *
+   * `name()` is mandatory ERC-721 Metadata and answers even for a collection
+   * that publishes nothing per token, so a piece is never really nameless -
+   * "Unnamed" was us discarding the one name that exists. Optional because not
+   * every caller has it to hand; the card falls back further when it is absent.
+   */
+  collectionName?: string;
   listing?: Listing;
   owner?: `0x${string}`;
   viewerAddress?: `0x${string}`;
@@ -46,6 +56,7 @@ interface Props {
 export function TokenCard({
   token,
   collection,
+  collectionName,
   listing,
   owner,
   viewerAddress,
@@ -58,6 +69,23 @@ export function TokenCard({
     viewerAddress !== undefined &&
     owner.toLowerCase() === viewerAddress.toLowerCase();
   const tier = token.tier?.toLowerCase() ?? "common";
+
+  /**
+   * The contract answered, and its answer was nothing.
+   *
+   * `tokenURI` returning an empty string is not a failure and not a slow
+   * gateway — it is a collection that publishes no metadata at all, so there is
+   * no name, no image and no traits to find anywhere. TestSoDEXTreasureBox is
+   * one: it reports `supportsInterface(ERC721Metadata) = true` and then returns
+   * `""` for every token, and its `baseURI()` is empty too.
+   *
+   * Showing the loading shimmer for that is a lie that never resolves, and the
+   * reasonable reading of it is that ValueMint is broken. It is not: only the
+   * collection's owner can publish artwork, and this one never did.
+   *
+   * `undefined` still means the read has not landed — that one keeps shimmering.
+   */
+  const noMetadata = token.uri !== undefined && token.uri.trim() === "";
 
   /**
    * One scan for the whole marketplace, shared by every card. React Query
@@ -87,7 +115,7 @@ export function TokenCard({
       <Link
         href={`/token/${collection}/${token.id}`}
         className="tcard-hit"
-        aria-label={`${token.design ?? "Token"} #${token.id.toString()}`}
+        aria-label={`${token.design ?? collectionName ?? "Token"} #${token.id.toString()}`}
       />
       <div className="tcard-media">
         {token.image !== undefined ? (
@@ -102,10 +130,14 @@ export function TokenCard({
            */
           <Art
             src={token.image}
-            alt={token.design ?? `Token ${token.id}`}
+            alt={token.design ?? `${collectionName ?? "Token"} ${token.id}`}
             sizes="(max-width: 560px) 50vw, (max-width: 1100px) 33vw, 260px"
             priority={priority}
           />
+        ) : noMetadata ? (
+          <div className="tcard-placeholder tcard-bare">
+            <span>No artwork published</span>
+          </div>
         ) : (
           <div className="tcard-placeholder skeleton" aria-hidden="true" />
         )}
@@ -117,7 +149,14 @@ export function TokenCard({
 
       <div className="tcard-body">
         <div className="tcard-head">
-          <span className="tcard-title">{token.design ?? "—"}</span>
+          <span className="tcard-title">
+            {token.design ??
+              (noMetadata ? (
+                <span className="tcard-fallback-name">{collectionName ?? "Unnamed"}</span>
+              ) : (
+                "—"
+              ))}
+          </span>
           <span className="tcard-num">#{token.id.toString()}</span>
         </div>
 

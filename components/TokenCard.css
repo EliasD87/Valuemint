@@ -243,3 +243,25 @@
   text-transform: uppercase;
   cursor: help;
 }
+
+/* A collection that publishes no metadata at all.
+   Not a loading state and not an error: there is nothing to load. It reads as
+   a quiet, finished absence rather than a shimmer that never resolves. */
+.tcard-bare {
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: var(--surface-2);
+  color: var(--ink-3, var(--ink-2));
+  font-size: var(--step--2);
+  text-align: center;
+  text-wrap: balance;
+}
+
+/* The collection's name standing in for a token that has none of its own.
+   Set apart from a real per-token name, because it is a weaker claim: it says
+   what the piece belongs to, not what the piece is. */
+.tcard-fallback-name {
+  color: var(--ink-2);
+  font-weight: 600;
+}

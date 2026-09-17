@@ -147,6 +147,7 @@ export default function AddressPage({
               key={`${t.collection}-${t.id}`}
               token={t}
               collection={t.collection}
+              collectionName={t.collectionName}
               listing={t.listing}
               viewerAddress={viewer}
             />

@@ -158,6 +158,7 @@ queryKey: ["listing-meta", uris.filter(Boolean).join("|")],
       tier: traitOf(m, "Tier"),
       edition: traitOf(m, "Edition"),
       image: resolveMediaUrl(m?.image),
+      uri: uris[i],
     };
   });
 

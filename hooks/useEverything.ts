@@ -33,6 +33,17 @@ export interface ChainToken {
   tier?: string;
   edition?: string;
   image?: string;
+  /**
+   * The raw `tokenURI`, carried so a card can tell two very different things
+   * apart: `undefined` is "the contract has not answered yet", and `""` is
+   * "the contract answered, and its answer was nothing".
+   *
+   * Without it both rendered the same loading shimmer, so a collection that
+   * publishes no metadata at all looked like a collection that was still
+   * loading — forever. TestSoDEXTreasureBox is exactly that: it claims
+   * ERC721Metadata support and returns an empty string for every token.
+   */
+  uri?: string;
 }
 
 
@@ -181,6 +192,7 @@ queryKey: ["everything", uris.filter(Boolean).join("|")],
       tier: traitOf(m, "Tier"),
       edition: traitOf(m, "Edition"),
       image: resolveMediaUrl(m?.image),
+      uri: uris[i],
     };
   });
 

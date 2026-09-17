@@ -83,7 +83,7 @@ export function useTokenMetadata(
     query: { enabled: tokenId !== undefined && collectionAddress !== undefined, staleTime: Infinity },
   });
 
-  return useQuery({
+  const query = useQuery({
     queryKey: ["metadata", uri],
     enabled: typeof uri === "string" && uri !== "",
     staleTime: Infinity,
@@ -99,6 +99,18 @@ export function useTokenMetadata(
       return (await res.json()) as TokenMetadata;
     },
   });
+
+  /**
+   * The raw answer, handed back alongside the parsed document.
+   *
+   * The query above is deliberately disabled for an empty `tokenURI`, which
+   * leaves it idle rather than errored - indistinguishable, from outside, from
+   * a fetch still in flight. So a collection that publishes nothing showed a
+   * loading shimmer that never resolved, and read as a broken marketplace
+   * rather than an empty contract. `uri === ""` is the difference, and only
+   * this hook can see it.
+   */
+  return { ...query, uri: typeof uri === "string" ? uri : undefined };
 }
 
 /** Pulls a named trait out of metadata without callers repeating the find. */

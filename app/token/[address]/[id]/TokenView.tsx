@@ -69,7 +69,26 @@ export function TokenView({
    * the rest are declared.
    */
   const { standard, isLoading: loadingStandard } = useTokenStandard(collection);
-  const { data: metadata, isLoading } = useTokenMetadata(collection, tokenId);
+  const { data: metadata, isLoading, uri: tokenUri } = useTokenMetadata(collection, tokenId);
+
+  /**
+   * The collection's own `name()`, which is a different question from the
+   * token's.
+   *
+   * A collection can publish no per-token metadata and still be perfectly
+   * well named on chain - `name()` is mandatory ERC-721 Metadata and
+   * TestSoDEXTreasureBox answers it fine. So "Token #4456" was throwing away
+   * the one piece of identity that IS available. `TestSoDEXTreasureBox #4456`
+   * is what the explorer and every other marketplace shows for the same piece.
+   *
+   * Above the early returns, like every hook in this component.
+   */
+  const { data: collectionName } = useReadContract({
+    address: collection,
+    abi: ValueChainCollectionAbi,
+    functionName: "name",
+    query: { enabled: collection !== undefined, staleTime: Infinity, gcTime: Infinity },
+  });
   const trade = useSeaportTrade(collection);
   const fill = useSeaportFill();
   const [price, setPrice] = useState("");
@@ -151,6 +170,69 @@ export function TokenView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [trade.isSuccess, trade.hash, fill.isSuccess, fill.hash]);
 
+  /**
+   * The listing is on chain but the order book has not seen it yet.
+   *
+   * A listing reaches the chain through `validate()`, and the book is rebuilt
+   * from logs — which the scanner deliberately reads six confirmations behind
+   * the head, then polls every thirty seconds. So for up to about forty
+   * seconds after a successful list, the transaction has succeeded and
+   * `listing` is still undefined.
+   *
+   * What the page did with that gap was contradict itself: STATUS said "Not
+   * listed", the sell form reopened with the price still typed in it, and the
+   * green "Listed." banner sat underneath. The obvious reading is that it did
+   * not work, and the obvious response is to list again — which produces two
+   * live orders at two prices, and a buyer takes the cheaper one.
+   *
+   * Cancelling has the same gap in the other direction.
+   */
+  const justListed = lastAction === "list" && trade.isSuccess && listing === undefined;
+  const justCancelled = lastAction === "cancel" && trade.isSuccess && listing !== undefined;
+  const settling = justListed || justCancelled;
+
+  /**
+   * Also lifted above the early returns, and for the same hard reason.
+   *
+   * These two used to sit below the `loadingStandard` and `erc1155` branches.
+   * The first render of any token whose standard was not already cached takes
+   * the loading branch and stops before them; the render after it runs the
+   * whole body and reaches them. That is two extra hooks appearing on the
+   * second render of the same component — React #310, "rendered more hooks
+   * than during the previous render" — and it took the whole page down with
+   * the error boundary rather than degrading. It only showed on collections
+   * the app had not read a standard for yet, which is why it survived: every
+   * first-party collection was warm.
+   *
+   * The lifted effect above this one carries the same note. A hook added to
+   * this component goes ABOVE this line, always.
+   */
+  const queryClient = useQueryClient();
+
+  /**
+   * While a write is settling, chase it instead of waiting for the poll.
+   *
+   * The order book refetches every thirty seconds and reads six confirmations
+   * behind the head, so a listing could take the better part of a minute to
+   * appear — during which the page had already said "Listed." An immediate
+   * refetch cannot help: the block is not readable yet. Asking every six
+   * seconds until the book agrees turns roughly forty seconds into roughly
+   * fifteen, and stops by itself the moment `settling` goes false.
+   */
+  useEffect(() => {
+    if (!settling) return;
+    const tick = () => {
+      void queryClient.invalidateQueries({ queryKey: ["seaport-validated"] });
+    };
+    const interval = setInterval(tick, 6_000);
+    // Give up after a minute rather than polling a page somebody left open.
+    const stop = setTimeout(() => clearInterval(interval), 60_000);
+    return () => {
+      clearInterval(interval);
+      clearTimeout(stop);
+    };
+  }, [settling, queryClient]);
+
   if (tokenId === undefined || collection === undefined) {
     return (
       <section className="page section">
@@ -186,26 +268,6 @@ export function TokenView({
     owner !== undefined && address !== undefined && (owner as string).toLowerCase() === address.toLowerCase();
   const listed = listing !== undefined;
 
-  /**
-   * The listing is on chain but the order book has not seen it yet.
-   *
-   * A listing reaches the chain through `validate()`, and the book is rebuilt
-   * from logs — which the scanner deliberately reads six confirmations behind
-   * the head, then polls every thirty seconds. So for up to about forty
-   * seconds after a successful list, the transaction has succeeded and
-   * `listing` is still undefined.
-   *
-   * What the page did with that gap was contradict itself: STATUS said "Not
-   * listed", the sell form reopened with the price still typed in it, and the
-   * green "Listed." banner sat underneath. The obvious reading is that it did
-   * not work, and the obvious response is to list again — which produces two
-   * live orders at two prices, and a buyer takes the cheaper one.
-   *
-   * Cancelling has the same gap in the other direction.
-   */
-  const justListed = lastAction === "list" && trade.isSuccess && listing === undefined;
-  const justCancelled = lastAction === "cancel" && trade.isSuccess && listing !== undefined;
-  const settling = justListed || justCancelled;
   const listPrice = listing?.priceWei ?? 0n;
   /** Fillable now: the seller still holds it, and Seaport is still allowed to move it. */
   const active =
@@ -216,6 +278,15 @@ export function TokenView({
   /** One flag for both sides of the panel — making an order, and taking one. */
   const busy = trade.busy || fill.busy;
   const image = resolveMediaUrl(metadata?.image);
+
+  /**
+   * The contract answered, and its answer was nothing.
+   *
+   * An empty `tokenURI` is not a slow gateway: there is no document to fetch,
+   * anywhere. Rendering the shimmer for it promises something that never
+   * arrives. `undefined` still means the read has not landed.
+   */
+  const noMetadata = tokenUri !== undefined && tokenUri.trim() === "";
 
   /**
    * Re-read the chain when a receipt lands — never when a button is clicked.
@@ -239,32 +310,6 @@ export function TokenView({
    * Staleness is checked separately — `sellerApproved` and `ownerOf` are what
    * decide whether a listing is buyable, and both are refreshed here.
    */
-  const queryClient = useQueryClient();
-
-  /**
-   * While a write is settling, chase it instead of waiting for the poll.
-   *
-   * The order book refetches every thirty seconds and reads six confirmations
-   * behind the head, so a listing could take the better part of a minute to
-   * appear — during which the page had already said "Listed." An immediate
-   * refetch cannot help: the block is not readable yet. Asking every six
-   * seconds until the book agrees turns roughly forty seconds into roughly
-   * fifteen, and stops by itself the moment `settling` goes false.
-   */
-  useEffect(() => {
-    if (!settling) return;
-    const tick = () => {
-      void queryClient.invalidateQueries({ queryKey: ["seaport-validated"] });
-    };
-    const interval = setInterval(tick, 6_000);
-    // Give up after a minute rather than polling a page somebody left open.
-    const stop = setTimeout(() => clearInterval(interval), 60_000);
-    return () => {
-      clearInterval(interval);
-      clearTimeout(stop);
-    };
-  }, [settling, queryClient]);
-
   const afterAction = () => {
     void refetchOwner();
     void refetchApprovalState();
@@ -278,6 +323,18 @@ export function TokenView({
         <figure className="token-figure">
           {image !== undefined ? (
             <img src={image} alt={metadata?.name ?? `Token ${id}`} />
+          ) : noMetadata ? (
+            /* Nothing is loading here and nothing ever will. See `noMetadata`. */
+            <div className="token-placeholder token-bare">
+              <span>No artwork published</span>
+              <small>
+                {typeof collectionName === "string" && collectionName !== ""
+                  ? `${collectionName} does not publish per-token metadata, `
+                  : "This collection does not publish per-token metadata, "}
+                so there is no picture or traits to show &mdash; only its creator can add
+                them. The piece itself is real and trades normally.
+              </small>
+            </div>
           ) : (
             <div className="token-placeholder skeleton" />
           )}
@@ -288,7 +345,12 @@ export function TokenView({
             <Link href={`/collection/${collectionParam}`} className="token-crumb">
               &larr; Back to the collection
             </Link>
-            <h1 className="token-title">{metadata?.name ?? (isLoading ? "Loading…" : `Token #${id}`)}</h1>
+            <h1 className="token-title">
+              {metadata?.name ??
+                (isLoading
+                  ? "Loading…"
+                  : `${typeof collectionName === "string" && collectionName !== "" ? collectionName : "Token"} #${id}`)}
+            </h1>
             <div className="token-chips">
               {trait(metadata, "Tier") !== undefined ? (
                 <span className={`chip chip-${trait(metadata, "Tier")?.toLowerCase()}`}>

@@ -437,3 +437,30 @@
     transition: none;
   }
 }
+
+/* A collection that publishes no metadata at all. Not loading, not an error —
+   there is simply nothing to fetch, and saying so beats a shimmer that never
+   resolves. */
+.token-bare {
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 0.5rem;
+  padding: 2rem 1.5rem;
+  background: var(--surface-2);
+  text-align: center;
+  text-wrap: balance;
+}
+
+.token-bare span {
+  font-size: var(--step-0);
+  font-weight: 700;
+  letter-spacing: -0.015em;
+}
+
+.token-bare small {
+  max-width: 34ch;
+  font-size: var(--step--2);
+  color: var(--ink-2);
+  line-height: 1.55;
+}
