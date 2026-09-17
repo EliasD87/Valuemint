@@ -187,7 +187,13 @@ function InboxRow({ row, onChange }: { row: Row; onChange: () => void }) {
             else fill.acceptOffer(offer, token.id);
           }}
         >
-          {busy ? "Working…" : mustApprove ? "Approve first" : mustAllowFee ? "Allow fee" : "Accept"}
+          {busy
+            ? "Working…"
+            : mustApprove
+              ? "Approve, then accept"
+              : mustAllowFee
+                ? "Allow fee, then accept"
+                : "Accept offer"}
         </button>
         {mustApprove ? (
           <span className="inbox-fine">One approval per collection, then accept.</span>

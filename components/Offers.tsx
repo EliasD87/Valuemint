@@ -122,8 +122,13 @@ export function Offers({
         </p>
       ) : mustAllowFee && offers.length > 0 ? (
         <p className="offers-approve-note">
-          One more permission: the marketplace fee is taken in WSOSO out of what you are paid.
-          Nothing leaves your wallet now, and you never need to hold WSOSO yourself.
+          {/* Leads with the goal, not the paperwork. "One more permission"
+              answers a question nobody asked; what a seller wants to know is
+              why accepting needs a second signature and whether it costs
+              anything. */}
+          Last step before you can accept. The marketplace fee comes out of what the buyer
+          pays you, in WSOSO, so it needs permission to take that much — nothing leaves your
+          wallet now, and you never have to hold WSOSO yourself.
         </p>
       ) : null}
 
@@ -177,7 +182,16 @@ export function Offers({
                       else fill.acceptOffer(o, tokenId);
                     }}
                   >
-                    {mustApproveToken ? "Approve first" : mustAllowFee ? "Allow fee" : "Accept"}
+                    {/* Each rung names the step it performs AND where it leads.
+                        "Allow fee" alone said what the click does and nothing
+                        about why, so it read as an unexplained extra hurdle;
+                        "Accept" alone would have been a lie on the rungs that
+                        do not sell anything. */}
+                    {mustApproveToken
+                      ? "Approve, then accept"
+                      : mustAllowFee
+                        ? "Allow fee, then accept"
+                        : "Accept offer"}
                   </button>
                 ) : isMine ? (
                   <button
