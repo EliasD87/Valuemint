@@ -103,8 +103,24 @@ const securityHeaders = [
        * on other origins, and WalletConnect needs `wss:`. Narrower than this
        * would need every gateway enumerated, which breaks the moment a
        * collection uses one we have not listed.
+       *
+       * `data:` is for fully on-chain NFTs, and it was a real gap.
+       *
+       * A collection that stores its artwork in the contract rather than on IPFS
+       * returns its whole metadata document as the tokenURI —
+       * `data:application/json;base64,…` — and the app reads every document with
+       * `fetch`. Without `data:` here the browser refused the request outright:
+       * "Refused to connect because it violates the document's Content Security
+       * Policy". So the most durable NFTs there are, the ones that need no
+       * gateway at all, were the ones this marketplace could not show. Confirmed
+       * against a real data: URI before this line was added.
+       *
+       * It costs nothing. `connect-src` exists to bound where a compromised
+       * dependency could send an approval or exfiltrate to, and a `data:` URI
+       * has no host and reaches no network — it is bytes already in the page.
+       * `img-src` has allowed `data:` all along for exactly this reason.
        */
-      "connect-src 'self' https: wss:",
+      "connect-src 'self' https: wss: data:",
 
       /**
        * `data:` because EIP-6963 wallets supply their icons as data URIs, and
