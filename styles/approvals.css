@@ -1,0 +1,105 @@
+/* ================================================================ approvals */
+
+.approvals-lede {
+  max-width: 60ch;
+  margin-bottom: 1.5rem;
+}
+
+.approvals-warn {
+  font-size: var(--step--1);
+  color: var(--warn);
+  background: var(--warn-wash);
+  padding: 0.85rem 1rem;
+  border-radius: var(--r-sm);
+  margin: 1.25rem 0 0;
+  line-height: 1.55;
+}
+
+.approvals-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(22rem, 100%), 1fr));
+  gap: 1rem;
+  margin-top: 1.25rem;
+}
+
+.approvals-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  padding: 1.15rem;
+}
+
+/* A retired operator is the row that wants acting on, so it is the row that
+   reads as unresolved. The accent is a left rule rather than a fill, so a page
+   of them does not become a wall of colour. */
+.approvals-row.is-retired {
+  border-left: 3px solid var(--warn);
+}
+
+.approvals-main {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7rem;
+}
+
+.approvals-main b {
+  font-size: var(--step-0);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.approvals-main .chip {
+  margin-left: auto;
+  flex: none;
+}
+
+.chip-warn {
+  color: var(--warn);
+  background: var(--warn-wash);
+}
+
+.approvals-sub {
+  font-size: var(--step--2);
+  color: var(--ink-2);
+  line-height: 1.5;
+  margin-top: 0.15rem;
+}
+
+.approvals-sub a {
+  color: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.approvals-why {
+  font-size: var(--step--2);
+  color: var(--ink-3);
+  line-height: 1.55;
+}
+
+.approvals-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.7rem;
+  margin-top: auto;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--line);
+}
+
+.approvals-exposure {
+  font-size: var(--step--2);
+  color: var(--ink-2);
+  line-height: 1.5;
+  flex: 1 1 12rem;
+}
+
+.approvals-exposure b {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.approvals-foot .btn {
+  flex: none;
+}

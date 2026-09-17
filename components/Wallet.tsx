@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useAccount, useBalance, useChainId, useConnect, useDisconnect, useSwitchChain } from "wagmi";
 import { valuechain } from "@/config/chain";
@@ -141,6 +142,13 @@ export function Wallet() {
               >
                 Copy address
               </button>
+              {/* The wallet menu, not the main nav: an approval is a property
+                  of this wallet rather than a place on the site, and it is
+                  where someone goes when they are thinking about the wallet
+                  itself. */}
+              <Link className="btn btn-sm" href="/approvals" onClick={() => setOpen(false)}>
+                Approvals
+              </Link>
               <a
                 className="btn btn-sm"
                 href={`${valuechain.blockExplorers.default.url}/address/${address}`}
