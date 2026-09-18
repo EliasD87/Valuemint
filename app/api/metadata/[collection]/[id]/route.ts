@@ -51,6 +51,25 @@ const BAKED_IN: Record<string, BakedIn> = {
 };
 
 /**
+ * Collections this route answers without fetching anything.
+ *
+ * All three are compiled into the bundle - `trade-buddies` from a JSON file,
+ * KOLs and The Trenches from `config/`. They cost a map lookup and some
+ * arithmetic, never a gateway round trip, so the rate limit that exists to stop
+ * this route being an amplification vector does not apply to them.
+ *
+ * Keep this in step with the branches below. Anything that returns before
+ * `loadManifest` belongs here.
+ */
+function servedFromMemory(collection: string): boolean {
+  return (
+    BAKED_IN[collection] !== undefined ||
+    collection === KOLS_SLUG ||
+    collection === TRENCHES_SLUG
+  );
+}
+
+/**
  * Manifests already fetched, keyed by CID.
  *
  * Content-addressed data can never change under a given CID, so this is cached
@@ -216,7 +235,7 @@ export async function GET(
    * be done.
    */
   /**
-   * A baked-in collection fetches nothing, so it is never "a miss".
+   * A collection answered from memory fetches nothing, so it is never "a miss".
    *
    * This was `!cache.has(collection)` alone, and `cache` is keyed by manifest
    * CID - a slug like `trade-buddies` is never in it, so the answer was always
@@ -227,14 +246,20 @@ export async function GET(
    * Measured in production before the fix: `/api/metadata/trade-buddies/1`
    * returned `{"error":"Too many requests."}` on every attempt, twenty seconds
    * apart, while a CID-addressed collection on the same deploy returned 200.
-   * Trade Buddies' artwork simply did not load, for anyone, and it is one of the
-   * seven collections the marketplace lists.
+   * Trade Buddies' artwork simply did not load, for anyone.
+   *
+   * The first version of this fix named `BAKED_IN` alone and missed the other
+   * two, which are answered further down by their own branches rather than from
+   * that map - so The Trenches, a live collection with claiming open and room
+   * for 50,000 tokens, was still spending a token on every single token view.
+   * `servedFromMemory` is the one list, so adding a fourth such collection
+   * cannot quietly reintroduce this.
    *
    * The gate's own reason for existing - "a miss fetches from up to three
    * gateways with a 12-second timeout each" - never applied here. The data is
    * compiled into the bundle and answered from memory a hundred lines below.
    */
-  const willFetch = BAKED_IN[collection] === undefined && !cache.has(collection);
+  const willFetch = !servedFromMemory(collection) && !cache.has(collection);
   if (willFetch) {
     const gate = await limiter.take(`meta:${callerKey(request)}`, MISSES_PER_HOUR, HOUR);
     if (!gate.ok) {
