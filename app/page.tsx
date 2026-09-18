@@ -10,6 +10,7 @@ import { Art } from "@/components/Art";
 import type { ChainToken } from "@/hooks/useEverything";
 import { TokenCard, TokenCardSkeleton } from "@/components/TokenCard";
 import { formatCount, formatSoso } from "@/lib/format";
+import { stillUrl } from "@/lib/media";
 import "@/styles/home.css";
 import "@/styles/hero.css";
 import { Soso } from "@/components/Soso";
@@ -238,8 +239,17 @@ export default function Home() {
                   {art === undefined ? (
                     <span className="coll-fallback">{(c.symbol || c.name).slice(0, 2)}</span>
                   ) : (
+                    /*
+                      Through the proxy, at the size a pill actually is.
+                      
+                      This was the raw gateway URL, which for Cybereator is a
+                      6,577,743-byte animated GIF downloaded into a 40px circle
+                      — the single most expensive thing on the home page, and
+                      the exact cost /api/still was built to stop. 128px is 2x
+                      the slot and answers in a few kilobytes.
+                    */
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={art} alt="" loading="lazy" decoding="async" />
+                    <img src={stillUrl(art, 128)} alt="" loading="lazy" decoding="async" />
                   )}
                   <b>{c.name}</b>
                   <span>{c.symbol}</span>
@@ -354,8 +364,15 @@ export default function Home() {
                   {art === undefined ? (
                     <span className="mint-row-art coll-fallback">{(c.symbol || c.name).slice(0, 2)}</span>
                   ) : (
+                    /* Same 6.58 MB original, same 56px slot. See the pill above. */
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img className="mint-row-art" src={art} alt="" loading="lazy" decoding="async" />
+                    <img
+                      className="mint-row-art"
+                      src={stillUrl(art, 128)}
+                      alt=""
+                      loading="lazy"
+                      decoding="async"
+                    />
                   )}
                   <div className="mint-row-who">
                     <b>{c.name}</b>
