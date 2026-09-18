@@ -215,7 +215,26 @@ export async function GET(
    * too late, so it sits here and only fires when the work is actually going to
    * be done.
    */
-  const willFetch = !cache.has(collection);
+  /**
+   * A baked-in collection fetches nothing, so it is never "a miss".
+   *
+   * This was `!cache.has(collection)` alone, and `cache` is keyed by manifest
+   * CID - a slug like `trade-buddies` is never in it, so the answer was always
+   * "yes, this will fetch". Every single request for a baked-in collection
+   * therefore spent a token from a budget of 120 an hour, and once an hour's
+   * worth had gone, every further request got a 429.
+   *
+   * Measured in production before the fix: `/api/metadata/trade-buddies/1`
+   * returned `{"error":"Too many requests."}` on every attempt, twenty seconds
+   * apart, while a CID-addressed collection on the same deploy returned 200.
+   * Trade Buddies' artwork simply did not load, for anyone, and it is one of the
+   * seven collections the marketplace lists.
+   *
+   * The gate's own reason for existing - "a miss fetches from up to three
+   * gateways with a 12-second timeout each" - never applied here. The data is
+   * compiled into the bundle and answered from memory a hundred lines below.
+   */
+  const willFetch = BAKED_IN[collection] === undefined && !cache.has(collection);
   if (willFetch) {
     const gate = await limiter.take(`meta:${callerKey(request)}`, MISSES_PER_HOUR, HOUR);
     if (!gate.ok) {
