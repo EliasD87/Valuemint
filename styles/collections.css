@@ -222,7 +222,20 @@
   min-width: 0;
 }
 
-/* Mint and history, stacked in the second column and following the reader down. */
+/*
+ * Mint and history, stacked in the second column and following the reader down.
+ *
+ * It scrolls on its own, and it has to. `position: sticky` pins an element at
+ * its `top` offset — which means anything TALLER than the viewport has a bottom
+ * that can never be reached: the page scrolls underneath it while the panel
+ * stays put, so the last rows of a ten-row history were unreachable beside a
+ * sixty-card grid. Bounding it to the viewport and letting it overflow gives it
+ * a scrollbar of its own, which is the thing that was missing.
+ *
+ * `overscroll-behavior: contain` stops a scroll that reaches the end of this
+ * column from carrying on into the page behind it, which otherwise reads as the
+ * whole page lurching when you only meant to reach the last row.
+ */
 .coll-side {
   display: flex;
   flex-direction: column;
@@ -230,6 +243,12 @@
   min-width: 0;
   position: sticky;
   top: calc(var(--header-h) + 1.25rem);
+  max-height: calc(100svh - var(--header-h) - 2.5rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  /* Reserve the scrollbar's width always, so the panels do not shift sideways
+     the moment the history grows past the fold. */
+  scrollbar-gutter: stable;
 }
 
 /* The history is in a 21rem column here, not the full width it was designed
@@ -265,6 +284,11 @@
   */
   .coll-side {
     display: contents;
+    /* Belt and braces: `display: contents` already drops the box, so the
+       viewport cap and the scroll container above cannot apply here. A phone
+       scrolls the page, not a column inside it. */
+    max-height: none;
+    overflow: visible;
   }
 
   .coll-layout .mint-panel {
