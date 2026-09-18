@@ -258,10 +258,6 @@ export function Layout({ children }: { children: ReactNode }) {
               <Mark />
             </span>
             <p className="footer-statement">The marketplace for everything minted on ValueChain.</p>
-            <p className="footer-note">
-              Non-custodial by construction. A token never leaves its owner&rsquo;s wallet until
-              payment clears, and both move in the same transaction or neither does.
-            </p>
           </div>
 
           <div className="footer-col">

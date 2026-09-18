@@ -44,11 +44,8 @@ type State =
  * exchange for nothing. The connected wallet is still used as a default, so a
  * visitor who has one does not have to type their own address.
  */
-const ADDRESS = /^0x[0-9a-fA-F]{40}$/;
-
 export default function Trenches() {
   const { address } = useAccount();
-  const [query, setQuery] = useState("");
   const [looked, setLooked] = useState<string | undefined>(undefined);
   const [state, setState] = useState<State>({ kind: "idle" });
 
@@ -71,15 +68,16 @@ export default function Trenches() {
   }, []);
 
   /**
-   * A connected wallet is a convenience, not a requirement.
+   * The connected wallet looks itself up, once, and nothing else does.
    *
-   * It pre-fills the box and looks itself up once. After that the box is the
-   * only input that matters, so someone can check a friend's address without
-   * disconnecting.
+   * The box that let anyone paste an address is gone — it asked a visitor to
+   * type one in to be told a number they cannot act on until claiming opens.
+   * This remains because it costs nothing and it is what lights the ladder
+   * below: a wallet that has earned six depths sees six of them unlocked
+   * without asking for anything.
    */
   useEffect(() => {
     if (address === undefined || looked !== undefined) return;
-    setQuery(address);
     setLooked(address);
     const signal = { cancelled: false };
     void check(address, signal);
@@ -87,14 +85,6 @@ export default function Trenches() {
       signal.cancelled = true;
     };
   }, [address, looked, check]);
-
-  const valid = ADDRESS.test(query.trim());
-  const lookUp = () => {
-    if (!valid) return;
-    const who = query.trim();
-    setLooked(who);
-    void check(who);
-  };
 
   const reached = state.kind === "done" ? (state.data.tier?.n ?? 0) : 0;
 
@@ -115,59 +105,28 @@ export default function Trenches() {
           </p>
           <h1 className="tr-title">How deep have you traded?</h1>
 
-          <div className="tr-hero-side">
-            <p className="tr-lede">
-              Ten depths of the SoDEX leaderboard, free to whoever earned them. Take the one
-              you&rsquo;re at and every one you passed through — then come back when you go deeper.
-            </p>
-          </div>
         </div>
 
         <Fan reached={reached} />
 
         <div className="page tr-check">
-          <div className="tr-lookup">
+          {/*
+            A status and a way onward, and nothing to fill in.
+
+            This was a wallet-address box with a "Find the depth" button, which
+            asked a visitor to type an address to be told a number they cannot
+            act on yet — claiming is not open. Until it is, the honest version
+            of this section is the date-less fact and a link to the ladder.
+          */}
+          <div className="tr-claim">
             <p className="tr-soon">
               <span className="tr-soon-dot" aria-hidden="true" />
-              Claiming opens soon — check what you&rsquo;ll be owed
+              Claiming opens soon
             </p>
 
-            <div className="tr-lookup-row">
-              <input
-                className="tr-lookup-input mono"
-                placeholder="Paste a wallet address"
-                aria-label="Wallet address"
-                spellCheck={false}
-                autoComplete="off"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") lookUp();
-                }}
-              />
-              <button
-                className="btn btn-primary btn-lg"
-                disabled={!valid || state.kind === "checking"}
-                onClick={lookUp}
-              >
-                {state.kind === "checking" ? "Checking…" : "Find the depth"}
-              </button>
-            </div>
-
-            {query.trim() !== "" && !valid ? (
-              <p className="tr-lookup-hint">
-                That is not an address. A ValueChain address is 0x followed by 40 hex
-                characters.
-              </p>
-            ) : null}
-
-            {looked !== undefined ? (
-              <Result state={state} onRetry={() => void check(looked)} />
-            ) : (
-              <a className="btn btn-lg tr-btn-ghost" href="#ladder">
-                See the ten
-              </a>
-            )}
+            <a className="btn btn-lg tr-btn-ghost" href="#ladder">
+              See the ten depths
+            </a>
           </div>
         </div>
     </section>
@@ -178,7 +137,6 @@ export default function Trenches() {
           <p className="eyebrow">The ladder</p>
           <h2>Ten depths</h2>
         </div>
-        <span className="dim">Volume, not rank — so a piece never stops being true</span>
         </div>
 
         {/* Full bleed, running off both edges: the set should feel like it
@@ -189,11 +147,6 @@ export default function Trenches() {
           ))}
         </div>
 
-        <p className="page tr-note">
-          One claim per depth, per wallet. Volume rather than rank on purpose: rank moves as other
-          people trade, so a piece minted against a rank would slowly stop being true of whoever
-          holds it. Volume only goes up.
-        </p>
       </section>
     </div>
   );
@@ -226,195 +179,6 @@ function TierCard({ tier, unlocked, isCurrent }: { tier: Tier; unlocked: boolean
   );
 }
 
-function Result({ state, onRetry }: { state: State; onRetry: () => void }) {
-  if (state.kind === "checking") {
-    return (
-      <div className="tr-result">
-        <div className="skeleton tr-result-skeleton" />
-        <span className="tr-result-sub">Reading your SoDEX volume…</span>
-      </div>
-    );
-  }
-
-  if (state.kind === "error") {
-    /**
-     * A failed lookup is not the reader's fault and should not look like their
-     * mistake. This used to be red text in a panel, which reads as "you have
-     * done something wrong" for what is almost always a service being briefly
-     * unreachable.
-     *
-     * So: neutral tone, say plainly that it is our side, offer the retry, and
-     * point at the thing they can still do — the ten pieces are on the page
-     * whether or not the check works.
-     */
-    return (
-      <div className="tr-result tr-result-quiet">
-        <div className="tr-quiet-head">
-          <span className="tr-quiet-dot" aria-hidden="true" />
-          <b>The volume check is unavailable</b>
-        </div>
-        <p className="tr-quiet-body">
-          We could not reach SoDEX just now, so we can&rsquo;t tell you which depths you&rsquo;ve
-          earned yet. Nothing is lost — your volume is on their side, and your tiers will be
-          waiting whenever this comes back.
-        </p>
-        <div className="tr-quiet-actions">
-          <button className="btn" onClick={onRetry}>
-            Try again
-          </button>
-          <a className="btn tr-btn-ghost" href="#ladder">
-            See the ten meanwhile
-          </a>
-        </div>
-      </div>
-    );
-  }
-
-  if (state.kind !== "done") return null;
-  const { data } = state;
-
-  if (!data.found || data.tier === null) {
-    /**
-     * Built with the same anatomy as the found state — marker, label, name,
-     * blurb, action — so the two read as the same object in two conditions
-     * rather than a result and a fallback paragraph.
-     *
-     * The marker is a numeral rather than Ripple's artwork on purpose: that
-     * piece currently carries an XRP logo, and this is the one place it would
-     * be shown at size to someone who has not earned it.
-     */
-    const first = TIERS.find((t) => t.n === 1)!;
-    return (
-      <div className="tr-result is-empty" style={{ ["--tier" as string]: first.colour }}>
-        <div className="tr-result-head">
-          <span className="tr-result-mark" aria-hidden="true">
-            01
-          </span>
-          <div>
-            <span className="tr-result-label">Nothing here yet</span>
-            <b className="tr-result-name">{first.name}</b>
-            <span className="tr-result-sub">{first.blurb}</span>
-          </div>
-        </div>
-
-        <p className="tr-result-next">
-          We found no SoDEX trading for this wallet. <b>One trade</b> is all the first depth
-          asks — come back afterwards and it will be here.
-        </p>
-
-        <a
-          className="btn btn-primary btn-lg btn-block"
-          href="https://sodex.com"
-          target="_blank"
-          rel="noreferrer noopener"
-        >
-          Start trading on SoDEX
-        </a>
-        <p className="tr-result-fine">
-          Traded on another wallet? Paste that address instead — depths follow the wallet
-          that earned them.
-        </p>
-      </div>
-    );
-  }
-
-  const tier = TIERS.find((t) => t.n === data.tier!.n)!;
-  const claimable = data.tier.n;
-
-  return (
-    <div className="tr-result is-found" style={{ ["--tier" as string]: tier.colour }}>
-      <div className="tr-result-head">
-        <span className="tr-result-art">
-          <Art src={tierImage(tier)} alt={tier.name} sizes="80px" />
-        </span>
-        <div>
-          <span className="tr-result-label">You&rsquo;ve reached</span>
-          <b className="tr-result-name">{tier.name}</b>
-          <span className="tr-result-sub">{tier.blurb}</span>
-        </div>
-      </div>
-
-      <dl className="tr-result-figs">
-        <div>
-          <dt>All-time volume</dt>
-          <dd className="mono">{formatVolume(data.volumeUsd)}</dd>
-        </div>
-        {data.rank !== null ? (
-          <div>
-            <dt>Leaderboard</dt>
-            <dd className="mono">#{data.rank}</dd>
-          </div>
-        ) : null}
-        <div>
-          <dt>Yours to claim</dt>
-          <dd className="mono">
-            {claimable} of {TIERS.length}
-          </dd>
-        </div>
-      </dl>
-
-      {data.next !== null ? (
-        <p className="tr-result-next">
-          <b className="mono">{formatVolume(data.next.needed)}</b> more volume unlocks{" "}
-          <b>{data.next.name}</b>.
-        </p>
-      ) : (
-        <p className="tr-result-next">Nothing above you. You&rsquo;ve reached the bottom.</p>
-      )}
-
-      {/* No claim control while claiming is shut. A button that cannot do
-          anything is worse than none - it invites a click and explains nothing. */}
-      <p className="tr-result-soon">
-        {claimable === 1 ? "1 piece" : `${claimable} pieces`} waiting when claiming opens.
-      </p>
-      <p className="tr-result-fine">
-        Each depth is claimed once per wallet, and costs gas only — a fraction of a cent.
-        Depths follow the wallet that earned them.
-      </p>
-    </div>
-  );
-}
-
-/**
- * The claim control lived here and is gone while claiming is shut.
- *
- * A disabled button that cannot explain itself is worse than no button - it
- * invites a click and answers nothing - and a half-wired one is worse still.
- * `hooks/useTrenchesClaim.ts` still holds the whole flow, so restoring this is
- * rendering one component again rather than rewriting the logic.
- */
-
-/**
- * The descent: ten pieces receding into the dark.
- *
- * Replaced three coloured placeholder cards. Now that the artwork exists it can
- * carry the page, and showing all ten at once is what makes the ladder legible
- * before a visitor has connected anything.
- */
-/**
- * The ten pieces, looping.
- *
- * A CSS keyframe per plate with a staggered negative delay, rather than a
- * JavaScript index that advanced every few seconds. The index version was not
- * really a loop: a plate leaving the fan was removed from the DOM and the one
- * wrapping round reappeared at the front, so every cycle had a visible pop.
- *
- * Each plate now runs the same journey — rise out of the dark at the back,
- * come to the front, drift up and away — offset in time so the fan is always
- * populated and the wrap is never seen.
- */
-/**
- * Five cards fanned across the bottom, bleeding off the frame.
- *
- * All ten stay mounted and only their slot changes, so the browser transitions
- * between positions instead of elements appearing and vanishing. An earlier
- * version unmounted cards as they left the fan and remounted them at the front,
- * which read as a pop rather than a rotation.
- *
- * Slot is a signed distance from the centre, so a card is at -2, -1, 0, 1 or 2
- * and anything further is parked below the fold. That mapping is what lets the
- * set rotate in either direction without a seam at the wrap.
- */
 function Fan({ reached }: { reached: number }) {
   const [centre, setCentre] = useState(0);
 

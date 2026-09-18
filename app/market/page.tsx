@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useAccount } from "wagmi";
 import { useListingFeed } from "@/hooks/useListingFeed";
+import { useActivity } from "@/hooks/useActivity";
 import { TokenCard, TokenCardSkeleton } from "@/components/TokenCard";
 import { formatSoso } from "@/lib/format";
 import "@/styles/home.css";
@@ -11,7 +12,7 @@ import { Soso } from "@/components/Soso";
 import { useFloors } from "@/hooks/useFloors";
 import { Sortie } from "@/components/Sortie";
 
-type Sort = "price-asc" | "price-desc" | "recent";
+type Sort = "traded" | "price-asc" | "price-desc" | "recent";
 
 export default function Market() {
   const { address } = useAccount();
@@ -28,7 +29,27 @@ export default function Market() {
     () => new Map(collections.map((c) => [c.address.toLowerCase(), c.vouched])),
     [collections],
   );
-  const [sort, setSort] = useState<Sort>("price-asc");
+  /**
+   * How many sales each collection has ever had.
+   *
+   * From the shared activity scan, which every page already runs and caches, so
+   * this is a count over rows that are in memory rather than a request. It is
+   * also deferred by 900 ms, which is deliberate: the grid draws in whatever
+   * order it can immediately and settles into this one when the history lands,
+   * rather than holding the page for it.
+   */
+  const { sales } = useActivity(undefined, undefined, { salesOnly: true });
+
+  const tradesPerCollection = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const sale of sales) {
+      const key = sale.collection.toLowerCase();
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+    return counts;
+  }, [sales]);
+
+  const [sort, setSort] = useState<Sort>("traded");
   const [filterTo, setFilterTo] = useState<string>("all");
 
   const visible = useMemo(() => {
@@ -36,13 +57,36 @@ export default function Market() {
       (t) => filterTo === "all" || t.collection.toLowerCase() === filterTo.toLowerCase(),
     );
 
-    return [...rows].sort((a, b) => {
-      if (sort === "recent") return Number(b.id - a.id);
+    const cheapestFirst = (a: (typeof rows)[number], b: (typeof rows)[number]) => {
       const diff = a.listing!.price - b.listing!.price;
-      const n = diff > 0n ? 1 : diff < 0n ? -1 : 0;
+      return diff > 0n ? 1 : diff < 0n ? -1 : 0;
+    };
+
+    return [...rows].sort((a, b) => {
+      /**
+       * Busiest collections first, cheapest piece first within each.
+       *
+       * The default, because the alternative was an order nobody chose: the
+       * feed's own, which is whatever the log scan happened to return. Where a
+       * collection's pieces change hands often, those pieces are what somebody
+       * arriving at a marketplace most likely came to see.
+       *
+       * Counting SALES rather than listings on purpose — anyone can list
+       * anything at any price, so listings measure intent and are free to
+       * manufacture. A sale had a buyer.
+       */
+      if (sort === "traded") {
+        const ta = tradesPerCollection.get(a.collection.toLowerCase()) ?? 0;
+        const tb = tradesPerCollection.get(b.collection.toLowerCase()) ?? 0;
+        if (ta !== tb) return tb - ta;
+        return cheapestFirst(a, b);
+      }
+
+      if (sort === "recent") return Number(b.id - a.id);
+      const n = cheapestFirst(a, b);
       return sort === "price-asc" ? n : -n;
     });
-  }, [listed, sort, filterTo]);
+  }, [listed, sort, filterTo, tradesPerCollection]);
 
   /**
    * There is no market-wide floor here, deliberately.
@@ -76,6 +120,9 @@ export default function Market() {
           <h2>Everything for sale on ValueChain</h2>
         </div>
         <div className="wrap-row">
+          <Sortie active={sort === "traded"} onClick={() => setSort("traded")}>
+            Most traded
+          </Sortie>
           <Sortie active={sort === "price-asc"} onClick={() => setSort("price-asc")}>
             Price low
           </Sortie>

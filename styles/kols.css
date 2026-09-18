@@ -330,3 +330,49 @@
   color: var(--ink-3);
 }
 
+/*
+ * "Coming soon", on the same terms as the Trenches status.
+ *
+ * A label rather than a banner: uppercase, tracked, quiet, on the glass the
+ * hero is built from, with the dot carrying the only colour. It is a fact about
+ * timing, not a warning, and the page it sits on is a gallery.
+ */
+.kol-soon {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  align-self: flex-start;
+  margin-top: 0.15rem;
+  padding: 0.45rem 1rem 0.45rem 0.8rem;
+  border-radius: var(--r-pill);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  color: rgba(255, 255, 255, 0.82);
+  font-size: var(--step--2);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.kol-soon-dot {
+  width: 7px;
+  height: 7px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 3px rgba(255, 92, 0, 0.16);
+  animation: kol-soon-pulse 2.4s ease-in-out infinite;
+}
+
+/* Only a `from`, and no fill mode: the dot is fully opaque at rest, so a
+   browser that never runs this still draws it. */
+@keyframes kol-soon-pulse {
+  from {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 1;
+  }
+}

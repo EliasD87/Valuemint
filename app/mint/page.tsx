@@ -64,7 +64,6 @@ export default function Mint() {
   });
 
   const minting = rows.filter((r) => r.open === true);
-  const closed = rows.filter((r) => r.open !== true);
 
   return (
     <section className="page section">
@@ -73,9 +72,6 @@ export default function Mint() {
           <p className="eyebrow">Mint</p>
           <h2>Collections open right now</h2>
         </div>
-        <Link className="btn btn-primary" href="/create">
-          Open your own mint
-        </Link>
       </div>
 
       {minting.length === 0 ? (
@@ -115,36 +111,6 @@ export default function Mint() {
         </div>
       )}
 
-      {closed.length > 0 ? (
-        <>
-          <div className="head head-sub">
-            <div>
-              <p className="eyebrow eyebrow-dim">Not minting</p>
-              <h2>Closed, but still tradeable</h2>
-            </div>
-          </div>
-          <div className="coll-grid">
-            {closed.map((c) => (
-              <CollectionCard
-                key={c.address}
-                href={`/collection/${c.address}`}
-                name={c.name}
-                symbol={c.symbol}
-                address={c.address}
-                images={artFor(c.address)}
-                stats={[
-                  {
-                    label: "Minted",
-                    value:
-                      formatCount(c.supply) +
-                      (c.max !== undefined && c.max > 0n ? ` / ${formatCount(c.max)}` : ""),
-                  },
-                ]}
-              />
-            ))}
-          </div>
-        </>
-      ) : null}
     </section>
   );
 }

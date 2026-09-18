@@ -28,6 +28,9 @@ export function Wallet() {
   const { data: balance } = useBalance({ address, query: { refetchInterval: 15_000 } });
   const [open, setOpen] = useState(false);
 
+  /** Reset on close, so the menu never opens already saying "Copied". */
+  const [copied, setCopied] = useState(false);
+
   /**
    * Nothing here may depend on `window` until after hydration.
    *
@@ -111,7 +114,14 @@ export function Wallet() {
 
   return (
     <div className="wallet">
-      <button className="wallet-trigger" onClick={() => setOpen((v) => !v)} aria-expanded={open}>
+      <button
+        className="wallet-trigger"
+        onClick={() => {
+          setCopied(false);
+          setOpen((v) => !v);
+        }}
+        aria-expanded={open}
+      >
         <span className="wallet-dot" aria-hidden="true" />
         {/* Stacked rather than in a row: side by side this pill was the widest
             thing in the header, and the address wrapped mid-string to fit. Two
@@ -126,22 +136,43 @@ export function Wallet() {
 
       {open ? (
         <>
-          <button className="wallet-scrim" aria-label="Close" onClick={() => setOpen(false)} />
+          <button
+            className="wallet-scrim"
+            aria-label="Close"
+            onClick={() => {
+              setCopied(false);
+              setOpen(false);
+            }}
+          />
           <div className="wallet-menu">
+            {/*
+              The address IS the copy button.
+
+              It was a wrapped full address across two lines, followed by a
+              separate "Copy address" row — the address shown in a form nobody
+              reads and an action to do the only thing anyone wants with it.
+              One row now: the short form, click to copy, and it says so.
+            */}
             <div className="wallet-menu-head">
               <span className="label">Connected</span>
-              <span className="mono wallet-full">{address}</span>
-            </div>
-            <div className="wallet-menu-actions">
               <button
-                className="btn btn-sm"
+                className="wallet-copy"
+                title={address}
                 onClick={() => {
-                  if (address !== undefined) void navigator.clipboard.writeText(address);
-                  setOpen(false);
+                  if (address === undefined) return;
+                  void navigator.clipboard.writeText(address);
+                  setCopied(true);
                 }}
               >
-                Copy address
+                <span className="mono wallet-copy-addr">{shortAddress(address)}</span>
+                <span className="wallet-copy-hint">{copied ? "Copied" : "Copy"}</span>
               </button>
+              <span className="wallet-menu-bal">
+                <Soso size={13}>{formatSoso(balance?.value)}</Soso>
+              </span>
+            </div>
+
+            <div className="wallet-menu-actions">
               {/* The wallet menu, not the main nav: an approval is a property
                   of this wallet rather than a place on the site, and it is
                   where someone goes when they are thinking about the wallet
@@ -158,7 +189,7 @@ export function Wallet() {
                 View on explorer
               </a>
               <button
-                className="btn btn-sm"
+                className="btn btn-sm wallet-disconnect"
                 onClick={() => {
                   disconnect();
                   setOpen(false);

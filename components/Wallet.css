@@ -90,49 +90,96 @@
   cursor: default;
 }
 
+/*
+ * The menu, rebuilt smaller.
+ *
+ * It was 20rem wide with 1.1rem of padding and 1rem between its parts, and the
+ * first thing in it was a 42-character address wrapped over two lines followed
+ * by a button whose only job was to copy that address. A lot of room to say one
+ * thing. Now the address is the button, the balance comes with it, and the
+ * whole menu is about a third shorter.
+ */
 .wallet-menu {
   position: absolute;
-  top: calc(100% + 10px);
+  top: calc(100% + 8px);
   right: 0;
   z-index: 50;
-  min-width: 20rem;
-  padding: 1.1rem;
+  min-width: 15.5rem;
+  padding: 0.55rem;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 0.45rem;
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: var(--r-lg);
+  border-radius: var(--r-md);
   box-shadow: var(--shadow-lg);
 }
 
 .wallet-menu-head {
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
+  gap: 0.15rem;
+  padding: 0.35rem 0.4rem 0.5rem;
 }
 
 .wallet-menu-head .label {
-  font-size: var(--step--2);
+  font-size: var(--step--3);
   font-weight: 700;
   letter-spacing: 0.09em;
   text-transform: uppercase;
   color: var(--ink-3);
 }
 
-.wallet-full {
+/* The address, which is also the copy button. The hint only shows the action
+   on hover so the resting state is just the address. */
+.wallet-copy {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.6rem;
+  width: 100%;
+  padding: 0;
+  text-align: left;
+  border-radius: var(--r-sm);
+}
+
+.wallet-copy-addr {
+  font-size: var(--step--1);
+  font-weight: 650;
   font-variant-numeric: tabular-nums;
+}
+
+.wallet-copy-hint {
+  font-size: var(--step--3);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  opacity: 0;
+  transition: opacity var(--fast);
+}
+
+.wallet-copy:hover .wallet-copy-hint,
+.wallet-copy:focus-visible .wallet-copy-hint {
+  opacity: 1;
+}
+
+/* Once it says "Copied" it stays visible — the whole point is the confirmation. */
+.wallet-copy-hint:not(:empty) {
+  transition: opacity var(--fast);
+}
+
+.wallet-menu-bal {
   font-size: var(--step--2);
   color: var(--ink-2);
-  word-break: break-all;
-  line-height: 1.55;
+  font-variant-numeric: tabular-nums;
 }
 
 .wallet-menu-actions {
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
-  padding-top: 0.9rem;
+  gap: 0.1rem;
+  padding-top: 0.45rem;
   border-top: 1px solid var(--line);
 }
 
@@ -140,12 +187,19 @@
   justify-content: flex-start;
   border-color: transparent;
   border-radius: var(--r-sm);
-  padding: 0.55rem 0.7rem;
+  padding: 0.45rem 0.4rem;
+  font-size: var(--step--2);
+  min-height: 0;
 }
 
 .wallet-menu-actions .btn:hover {
   background: var(--paper-3);
   border-color: transparent;
+}
+
+/* The one destructive row, named as such only on approach. */
+.wallet-disconnect:hover {
+  color: var(--danger);
 }
 
 @media (max-width: 700px) {

@@ -62,6 +62,13 @@ export default function Kols() {
               working notes addressed at us, not at a visitor. What is left says
               what the set is and who it is for. */}
           <p className="kol-eyebrow">One of one</p>
+          {/* Said plainly and near the top, because the page otherwise reads as
+              a shop: the portraits are made and shown, and nothing about them
+              can be acted on yet. */}
+          <p className="kol-soon">
+            <span className="kol-soon-dot" aria-hidden="true" />
+            Coming soon
+          </p>
           <h1 className="kol-title">The people who show up</h1>
           <p className="kol-lede">
             Portraits of the regulars on SoDEX — the ones posting through every candle. Made
