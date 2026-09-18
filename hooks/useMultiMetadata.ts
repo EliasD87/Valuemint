@@ -5,7 +5,7 @@ import { useReadContract } from "wagmi";
 import { resolveMediaUrl } from "@/lib/format";
 import type { TokenMetadata } from "@/hooks/useCollection";
 import { expandIdTemplate } from "@/lib/erc1155";
-import { readTokenMetadata } from "@/lib/tokenMetadata";
+import { fetchTokenMetadata } from "@/lib/tokenMetadata";
 
 /**
  * Metadata for an ERC-1155 id.
@@ -69,15 +69,9 @@ export function useMultiTokenMetadata(
        * edition collection can point `uri()` anywhere, and a slow or hanging
        * endpoint should cost this page a few seconds, not the session.
        */
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 8_000);
-      try {
-        const res = await fetch(url, { signal: controller.signal });
-        if (!res.ok) throw new Error(`Metadata responded ${res.status}`);
-        return readTokenMetadata(await res.json());
-      } finally {
-        clearTimeout(timer);
-      }
+      // A status is a hint, not the decision - see `fetchTokenMetadata`. SoDEX
+      // serves the treasure boxes' documents with HTTP 501 and a valid body.
+      return fetchTokenMetadata(url, 8_000);
     },
   });
 }

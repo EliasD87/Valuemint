@@ -6,7 +6,7 @@ import { erc721Abi } from "viem";
 import { resolveMediaUrl } from "@/lib/format";
 import type { LoadedToken } from "@/hooks/useTokens";
 import type { TokenMetadata } from "@/hooks/useCollection";
-import { readTokenMetadata, traitOf } from "@/lib/tokenMetadata";
+import { fetchTokenMetadata, traitOf } from "@/lib/tokenMetadata";
 
 /**
  * Loads tokens from an arbitrary ERC-721, using only the standard interface.
@@ -78,9 +78,7 @@ const key = `${collection ?? ""}:${uris.filter(Boolean).join("|")}`;
         uris.map((u) => resolveMediaUrl(u) ?? ""),
         8,
         async (url) => {
-          const res = await fetch(url, { signal: AbortSignal.timeout(20_000) });
-          if (!res.ok) throw new Error(`HTTP ${res.status}`);
-          return readTokenMetadata(await res.json());
+          return fetchTokenMetadata(url, 20_000);
         },
       ),
   });

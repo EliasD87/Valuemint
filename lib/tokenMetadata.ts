@@ -131,3 +131,48 @@ export function traitOf(
   const hit = metadata?.attributes?.find((a) => a.trait_type === name);
   return hit === undefined ? undefined : String(hit.value);
 }
+
+/**
+ * Fetch a token document, and do not let a status code throw away a good one.
+ *
+ * Every fetch site used to be `if (!res.ok) throw` / `if (res.ok) use it`, which
+ * is the obvious thing to write and wrong for a marketplace that reads other
+ * people's servers.
+ *
+ * SoDEX serves the treasure boxes' metadata from
+ * `mainnet-gw.sodex.dev/api/v1/nft/token/sobox/<tier>` and answers **HTTP 501
+ * Not Implemented** with a complete, correct JSON document in the body —
+ * name, description, image and the tier. Confirmed on all four tiers, CORS
+ * open. Because 501 is not `ok`, the app discarded every one of them, and
+ * thousands of boxes rendered nameless and pictureless while the data sat in a
+ * response we had already paid for.
+ *
+ * We do not control that server and cannot make it return 200. We can stop
+ * caring what it says on the envelope.
+ *
+ * This is safe because the body still has to survive `readTokenMetadata`: an
+ * error page, an HTML 404 or `{"error":"..."}` has no name, no image and no
+ * traits, so it comes back `undefined` exactly as a failed fetch would. The
+ * status is a hint, never the decision.
+ *
+ * A network failure is still a failure - this throws, so React Query retries
+ * rather than caching nothing as though it were an answer.
+ */
+export async function fetchTokenMetadata(
+  url: string,
+  timeoutMs = 20_000,
+): Promise<TokenMetadata | undefined> {
+  const res = await fetch(url, { signal: AbortSignal.timeout(timeoutMs) });
+
+  let parsed: unknown;
+  try {
+    parsed = await res.json();
+  } catch {
+    // Not JSON at all. If the status also said no, report it as a failure so
+    // the caller can retry; otherwise there is simply nothing here.
+    if (!res.ok) throw new Error(`Metadata unavailable (HTTP ${res.status})`);
+    return undefined;
+  }
+
+  return readTokenMetadata(parsed);
+}

@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useReadContract, useReadContracts } from "wagmi";
 import { ValueChainCollectionAbi, deployment } from "@/config/contracts";
 import { resolveMediaUrl } from "@/lib/format";
-import { readTokenMetadata, type TokenMetadata } from "@/lib/tokenMetadata";
+import { fetchTokenMetadata, type TokenMetadata } from "@/lib/tokenMetadata";
 
 const collection = { address: deployment.collection, abi: ValueChainCollectionAbi } as const;
 
@@ -94,10 +94,7 @@ export function useTokenMetadata(
       const url = resolveMediaUrl(uri as string);
       if (url === undefined) throw new Error("Token has no metadata URI");
 
-      const res = await fetch(url, { signal: AbortSignal.timeout(20_000) });
-      if (!res.ok) throw new Error(`Metadata unavailable (HTTP ${res.status})`);
-
-      return readTokenMetadata(await res.json());
+      return fetchTokenMetadata(url, 20_000);
     },
   });
 

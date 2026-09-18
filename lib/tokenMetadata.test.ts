@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
-import { readTokenMetadata, traitOf } from "./tokenMetadata";
+import { describe, expect, it, vi } from "vitest";
+import { fetchTokenMetadata, readTokenMetadata, traitOf, type TokenMetadata } from "./tokenMetadata";
 
 /**
  * These are not shape-checking exercises. Every case below is a document a
@@ -137,5 +137,79 @@ describe("traitOf", () => {
   it("stringifies numeric values so callers can render them", () => {
     const doc = readTokenMetadata(GOOD);
     expect(traitOf(doc, "Editions Minted")).toBe("8");
+  });
+});
+
+describe("fetchTokenMetadata — a status is a hint, not the decision", () => {
+  const body = {
+    name: "SoDEXTreasureBox",
+    description: "A Common tier treasure box issued by SoDEX on ValueChain.",
+    image: "ipfs://bafybeibltyk5zokqdookfnccsfcoebl3qzp4gkx45bhtgrllm2t23kp67u",
+    attributes: [{ trait_type: "Level", value: "Common" }],
+  };
+  const respond = (status: number, payload: unknown) =>
+    vi.fn(async () => ({
+      ok: status >= 200 && status < 300,
+      status,
+      json: async () => payload,
+    })) as unknown as typeof fetch;
+
+  const withFetch = async (f: typeof fetch, run: () => Promise<unknown>) => {
+    const real = globalThis.fetch;
+    globalThis.fetch = f;
+    try {
+      return await run();
+    } finally {
+      globalThis.fetch = real;
+    }
+  };
+
+  /**
+   * The exact case that cost thousands of treasure boxes their name and
+   * picture: SoDEX answers 501 with a complete document.
+   */
+  it("keeps a good document served with HTTP 501", async () => {
+    const doc = (await withFetch(respond(501, body), () =>
+      fetchTokenMetadata("https://example.test/sobox/0"),
+    )) as TokenMetadata | undefined;
+    expect(doc?.name).toBe("SoDEXTreasureBox");
+    expect(traitOf(doc, "Level")).toBe("Common");
+    expect(doc?.image).toContain("ipfs://");
+  });
+
+  it("still keeps one served with 200", async () => {
+    const doc = (await withFetch(respond(200, body), () =>
+      fetchTokenMetadata("https://example.test/sobox/0"),
+    )) as TokenMetadata | undefined;
+    expect(doc?.name).toBe("SoDEXTreasureBox");
+  });
+
+  /** A 404's JSON error page must not become a token. */
+  it("rejects an error body whatever its status", async () => {
+    const doc = await withFetch(respond(404, { error: "not found" }), () =>
+      fetchTokenMetadata("https://example.test/missing"),
+    );
+    expect(doc).toBeUndefined();
+  });
+
+  it("rejects an empty document served with 200", async () => {
+    const doc = await withFetch(respond(200, {}), () =>
+      fetchTokenMetadata("https://example.test/empty"),
+    );
+    expect(doc).toBeUndefined();
+  });
+
+  /** Not JSON and not ok is a real failure, so the caller can retry. */
+  it("throws when the body is not JSON and the status said no", async () => {
+    const f = vi.fn(async () => ({
+      ok: false,
+      status: 502,
+      json: async () => {
+        throw new SyntaxError("Unexpected token <");
+      },
+    })) as unknown as typeof fetch;
+    await expect(
+      withFetch(f, () => fetchTokenMetadata("https://example.test/html")),
+    ).rejects.toThrow(/502/);
   });
 });

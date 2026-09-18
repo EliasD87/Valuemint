@@ -10,7 +10,7 @@ import { useAllCollections } from "@/hooks/useAllCollections";
 import { useOwnedTokens } from "@/hooks/useOwnedTokens";
 import type { TokenMetadata } from "@/hooks/useCollection";
 import type { ChainToken } from "@/hooks/useEverything";
-import { readTokenMetadata, traitOf } from "@/lib/tokenMetadata";
+import { fetchTokenMetadata, traitOf } from "@/lib/tokenMetadata";
 
 /**
  * Exactly what one address holds, across every collection.
@@ -56,8 +56,7 @@ async function fetchLimited(urls: string[], limit: number) {
         const url = urls[i];
         if (url === undefined || url === "") continue;
         try {
-          const res = await fetch(url, { signal: AbortSignal.timeout(20_000) });
-          if (res.ok) out[i] = readTokenMetadata(await res.json());
+          out[i] = await fetchTokenMetadata(url, 20_000);
         } catch {
           // Unreachable metadata still leaves a token you demonstrably own.
         }

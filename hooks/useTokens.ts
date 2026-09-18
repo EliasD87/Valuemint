@@ -5,7 +5,7 @@ import { useReadContracts } from "wagmi";
 import { ValueChainCollectionAbi, deployment } from "@/config/contracts";
 import { resolveMediaUrl } from "@/lib/format";
 import type { TokenMetadata } from "./useCollection";
-import { readTokenMetadata, traitOf } from "@/lib/tokenMetadata";
+import { fetchTokenMetadata, traitOf } from "@/lib/tokenMetadata";
 
 const collection = { address: deployment.collection, abi: ValueChainCollectionAbi } as const;
 
@@ -82,9 +82,7 @@ export function useTokens(ids: bigint[]) {
       const urls = uris.map((u) => resolveMediaUrl(u) ?? "");
       return fetchWithLimit(urls, 8, async (url) => {
         if (url === "") throw new Error("no uri");
-        const res = await fetch(url, { signal: AbortSignal.timeout(25_000) });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return readTokenMetadata(await res.json());
+        return fetchTokenMetadata(url, 25_000);
       });
     },
   });
