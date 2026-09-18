@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import {
   useAccount,
   useBalance,
@@ -83,10 +83,33 @@ export function MintPanel({ address: collection }: { address: `0x${string}` }) {
     });
   };
 
-  // A collection whose owner never opened minting has nothing to offer here, and
-  // saying so plainly beats a disabled button with no explanation.
-  const [dismissed, setDismissed] = useState(false);
-  if (open === false && dismissed) return null;
+  /**
+   * Minting is closed: render nothing at all.
+   *
+   * This used to draw a card reading "Public minting — Closed", with a sentence
+   * explaining that the owner had not opened minting and a Hide button. Three
+   * lines and a control to say that a thing which is not happening is not
+   * happening — and the Hide button is the tell: whoever added it already knew
+   * the card was in the way.
+   *
+   * It is in the way somewhere specific now. This panel shares the collection
+   * page's sidebar with the trading history, and that column is bounded to the
+   * viewport so it can scroll on its own. Every pixel this took was a row of
+   * history pushed out of view, on a collection where nothing can be minted
+   * anyway.
+   *
+   * Nothing is lost by its absence: there is no owner control in this branch —
+   * opening minting is done from `/manage` — and the page header already says
+   * how many pieces exist. A visitor who cannot mint now simply is not offered
+   * a mint.
+   *
+   * `!== true` rather than `=== false`, so it is also absent while the read is
+   * still in flight. `open` is `undefined` until the contract answers, and the
+   * header below renders that as "Public minting — Closed" — a definite claim,
+   * made before anything is known, about the one thing this panel exists to
+   * report. Better to appear when there is something to say.
+   */
+  if (open !== true) return null;
 
   const pct =
     publicLimit !== undefined && publicLimit > 0n
@@ -96,14 +119,14 @@ export function MintPanel({ address: collection }: { address: `0x${string}` }) {
   return (
     <aside className="mint-panel card">
       <div className="mint-panel-head">
-        <span className="dim">{open === true ? "Mint price" : "Public minting"}</span>
+        <span className="dim">Mint price</span>
         <span className="mint-total mono">
-          {open === true ? <Soso>{formatSoso(price)}</Soso> : "Closed"}
+          <Soso>{formatSoso(price)}</Soso>
         </span>
       </div>
 
-      {open === true ? (
-        <>
+      {/* `open` is true past the guard above, so this is unconditional. */}
+      <>
           {publicLimit !== undefined && publicLimit > 0n ? (
             <div className="mint-progress">
               <div className="mint-bar">
@@ -164,18 +187,7 @@ export function MintPanel({ address: collection }: { address: `0x${string}` }) {
               <dd className="mono">{perWallet === 0 ? "No limit" : perWallet}</dd>
             </div>
           </dl>
-        </>
-      ) : (
-        <>
-          <p className="mint-fineprint">
-            The owner of this collection hasn&rsquo;t opened public minting. Its existing pieces can
-            still be bought and sold below.
-          </p>
-          <button className="btn btn-sm" onClick={() => setDismissed(true)}>
-            Hide
-          </button>
-        </>
-      )}
+      </>
 
       {isSuccess ? (
         <div className="mint-note mint-note-good">
