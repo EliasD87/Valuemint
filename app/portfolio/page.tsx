@@ -176,7 +176,9 @@ export default function Portfolio() {
               <BulkList
                 collection={group.address as `0x${string}`}
                 collectionName={group.name}
-                tokenIds={group.items.filter((t) => t.listing === undefined).map((t) => t.id)}
+                items={group.items
+                  .filter((t) => t.listing === undefined)
+                  .map((t) => ({ id: t.id, tier: t.tier }))}
               />
 
               <div className="grid-tokens">

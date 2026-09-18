@@ -1,24 +1,34 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useBulkList } from "@/hooks/useBulkList";
 import { useSeaportTrade } from "@/hooks/useSeaportTrade";
 import { Soso } from "@/components/Soso";
 import { formatSoso, formatCount } from "@/lib/format";
 import { splitFee } from "@/lib/seaport";
+import { tierClass } from "@/lib/tokenMetadata";
 import { parseEther } from "viem";
 import "@/styles/bulklist.css";
 
 /**
- * List many of one collection's tokens at a single price.
+ * List many of one collection's tokens at a single price — one level at a time.
  *
- * The treasure boxes arrive in the thousands and unevenly - a holder with
- * hundreds is ordinary - and every one is the same object at the same tier, so
- * "price each of these individually" is not a real workflow. What a holder
+ * The treasure boxes arrive in the thousands and unevenly, and every box of a
+ * given level is interchangeable: Common #4556 and Common #4557 are the same
+ * thing. So "price each one individually" is not a real workflow. What a holder
  * wants is "put fifty of my Commons up at 0.4".
  *
- * Only shown where it helps: a wallet holding one piece of a collection already
- * has a perfectly good List button on that piece's page.
+ * **Level is not optional here, it is the whole point.** The first version of
+ * this listed N pieces at one price by taking whichever ids came first, and a
+ * wallet's boxes are mixed — the portfolio screenshot that caught it showed
+ * Uncommon, Common, Common, Common in the first four cards. "List 100 at 0.001"
+ * would have put SuperRares up at a Common's price, and someone would have
+ * bought them. A single order is easy to check before signing; a hundred built
+ * in one click is not, which is exactly why the grouping has to be the UI's job
+ * rather than the seller's.
+ *
+ * Tokens with no level at all (most collections publish none) fall into one
+ * group and behave as before.
  */
 
 /** The typed price as wei, or undefined while it is not yet a number. */
@@ -32,32 +42,59 @@ function priceOf(text: string): bigint | undefined {
   }
 }
 
+/** Tokens with no published level are one group, labelled plainly. */
+const NO_LEVEL = "Unsorted";
+
+export interface BulkListItem {
+  id: bigint;
+  tier?: string;
+}
+
 export function BulkList({
   collection,
   collectionName,
   /** Tokens the wallet holds here that are not already listed. */
-  tokenIds,
+  items,
 }: {
   collection: `0x${string}`;
   collectionName: string;
-  tokenIds: readonly bigint[];
+  items: readonly BulkListItem[];
 }) {
   const { listMany, progress, error, perTransaction, reset } = useBulkList(collection);
 
   /**
    * Approval is per collection and once, so the bulk path needs exactly the
-   * same grant the single path does. Reusing `useSeaportTrade` rather than
-   * re-implementing it keeps one answer to "is Seaport allowed to move these".
+   * same grant the single path does. Reusing `useSeaportTrade` keeps one answer
+   * to "is Seaport allowed to move these".
    */
   const trade = useSeaportTrade(collection);
 
   const [open, setOpen] = useState(false);
+  const [level, setLevel] = useState<string | undefined>(undefined);
   const [count, setCount] = useState("");
   const [price, setPrice] = useState("");
 
-  const max = tokenIds.length;
+  /** Unlisted holdings grouped by level, largest group first. */
+  const groups = useMemo(() => {
+    const map = new Map<string, bigint[]>();
+    for (const it of items) {
+      const key = it.tier ?? NO_LEVEL;
+      map.set(key, [...(map.get(key) ?? []), it.id]);
+    }
+    return [...map.entries()]
+      .map(([name, ids]) => ({ name, ids }))
+      .sort((a, b) => b.ids.length - a.ids.length);
+  }, [items]);
 
-  /** How many to list: blank means all of them, which is the common intent. */
+  /** Default to the biggest group, and never leave a stale level selected. */
+  const chosen = groups.find((g) => g.name === level) ?? groups[0];
+  useEffect(() => {
+    if (chosen !== undefined && chosen.name !== level) setLevel(chosen.name);
+  }, [chosen, level]);
+
+  const max = chosen?.ids.length ?? 0;
+
+  /** How many to list: blank means all of that level, which is the common intent. */
   const wanted = useMemo(() => {
     if (count.trim() === "") return max;
     const n = Number.parseInt(count, 10);
@@ -76,7 +113,7 @@ export function BulkList({
     return net * BigInt(wanted);
   }, [priceWei, wanted]);
 
-  if (max < 2) return null;
+  if (items.length < 2 || chosen === undefined) return null;
 
   if (!open) {
     return (
@@ -88,6 +125,33 @@ export function BulkList({
 
   return (
     <div className="bulk">
+      {/*
+        Level first, and it drives everything below it. A Common and a SuperRare
+        are different goods; pricing them together is the mistake this exists to
+        make impossible.
+      */}
+      <div className="bulk-levels" role="radiogroup" aria-label="Which level to list">
+        {groups.map((g) => (
+          <button
+            key={g.name}
+            type="button"
+            role="radio"
+            aria-checked={g.name === chosen.name}
+            className={`bulk-level chip chip-${tierClass(g.name) ?? "common"}${
+              g.name === chosen.name ? " is-on" : ""
+            }`}
+            disabled={progress.busy}
+            onClick={() => {
+              setLevel(g.name);
+              setCount("");
+            }}
+          >
+            {g.name}
+            <b>{formatCount(BigInt(g.ids.length))}</b>
+          </button>
+        ))}
+      </div>
+
       <div className="bulk-row">
         <label className="bulk-field">
           <span>How many</span>
@@ -101,7 +165,9 @@ export function BulkList({
             onChange={(e) => setCount(e.target.value)}
             disabled={progress.busy}
           />
-          <small>of {formatCount(BigInt(max))} unlisted</small>
+          <small>
+            of {formatCount(BigInt(max))} unlisted {chosen.name}
+          </small>
         </label>
 
         <label className="bulk-field">
@@ -118,12 +184,13 @@ export function BulkList({
         </label>
       </div>
 
-      {/* Said before the first prompt, not discovered during it: a run of 626
-          is thirteen wallet confirmations and there is no way around that. */}
+      {/* Said before the first prompt, not discovered during it: a run of 626 is
+          thirteen wallet confirmations and there is no way around that. */}
       <p className="bulk-note">
         {ready ? (
           <>
-            {formatCount(BigInt(wanted))} {wanted === 1 ? "piece" : "pieces"} in{" "}
+            {formatCount(BigInt(wanted))} <b>{chosen.name}</b>{" "}
+            {wanted === 1 ? "piece" : "pieces"} in{" "}
             <b>
               {batches} {batches === 1 ? "transaction" : "transactions"}
             </b>{" "}
@@ -134,7 +201,10 @@ export function BulkList({
             if every piece sells.
           </>
         ) : (
-          <>Up to {perTransaction} pieces per transaction, so fewer confirmations than pieces.</>
+          <>
+            Only your {chosen.name} pieces go up, at one price. Up to {perTransaction} per
+            transaction.
+          </>
         )}
       </p>
 
@@ -163,10 +233,12 @@ export function BulkList({
             disabled={!ready}
             onClick={() => {
               reset();
-              void listMany(tokenIds.slice(0, wanted), price);
+              void listMany(chosen.ids.slice(0, wanted), price);
             }}
           >
-            {progress.busy ? "Check your wallet…" : `List ${formatCount(BigInt(wanted))}`}
+            {progress.busy
+              ? "Check your wallet…"
+              : `List ${formatCount(BigInt(wanted))} ${chosen.name}`}
           </button>
         )}
         <button className="btn" disabled={progress.busy} onClick={() => setOpen(false)}>
@@ -175,8 +247,8 @@ export function BulkList({
       </div>
 
       <p className="bulk-fine">
-        Every piece goes up at the same price. {collectionName} pieces you have already listed are
-        not touched.
+        Only {chosen.name} pieces are listed, all at the same price. Other levels, and{" "}
+        {collectionName} pieces you have already listed, are not touched.
       </p>
     </div>
   );

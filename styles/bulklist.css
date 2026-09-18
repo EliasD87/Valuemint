@@ -93,3 +93,49 @@
 .bulk .wrap-row {
   margin-top: 0.9rem;
 }
+
+/* --- levels -------------------------------------------------------------- *
+ *
+ * Which level to list, and how many of it are unlisted.
+ *
+ * These are the same chips the cards wear, so the thing being priced is
+ * recognisable at a glance — a seller about to put SuperRares up sees amethyst.
+ * Pressed state is a ring rather than a fill, because the fill already carries
+ * the level's own meaning and overriding it would be the one colour that lies.
+ */
+.bulk-levels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0 0 0.9rem;
+}
+
+.bulk-level {
+  gap: 0.45rem;
+  border: 1px solid transparent;
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--step--3);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.bulk-level b {
+  font-variant-numeric: tabular-nums;
+  opacity: 0.7;
+}
+
+.bulk-level.is-on {
+  border-color: currentColor;
+  box-shadow: 0 0 0 1px currentColor;
+}
+
+.bulk-level:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.bulk-level:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
