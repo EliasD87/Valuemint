@@ -223,32 +223,32 @@
 }
 
 /*
- * Mint and history, stacked in the second column and following the reader down.
+ * Mint and history, stacked in the second column.
  *
- * It scrolls on its own, and it has to. `position: sticky` pins an element at
- * its `top` offset — which means anything TALLER than the viewport has a bottom
- * that can never be reached: the page scrolls underneath it while the panel
- * stays put, so the last rows of a ten-row history were unreachable beside a
- * sixty-card grid. Bounding it to the viewport and letting it overflow gives it
- * a scrollbar of its own, which is the thing that was missing.
+ * Deliberately NOT sticky, and deliberately not a scroll container.
  *
- * `overscroll-behavior: contain` stops a scroll that reaches the end of this
- * column from carrying on into the page behind it, which otherwise reads as the
- * whole page lurching when you only meant to reach the last row.
+ * It was both, and each caused the other. Sticky pins an element at its `top`
+ * offset, so anything taller than the viewport has a bottom that can never be
+ * scrolled to — the page moves underneath while the panel stays put. Capping it
+ * to the viewport and letting it overflow fixed that by giving it a scrollbar
+ * of its own, which then meant a wheel over this column moved the column
+ * instead of the page: the one region of the page that did not scroll like the
+ * page.
+ *
+ * A plain column has neither problem. Everything in it is reachable because the
+ * page scrolls it, the wheel does the same thing here as everywhere else, and
+ * it is still beside the pieces rather than below them, which is the whole
+ * reason it moved here.
+ *
+ * What made this affordable: the mint card is gone for collections that are not
+ * minting, and the history is ten rows with a link to the rest, so this column
+ * is short. It has no business being taller than a screen.
  */
 .coll-side {
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
   min-width: 0;
-  position: sticky;
-  top: calc(var(--header-h) + 1.25rem);
-  max-height: calc(100svh - var(--header-h) - 2.5rem);
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  /* Reserve the scrollbar's width always, so the panels do not shift sideways
-     the moment the history grows past the fold. */
-  scrollbar-gutter: stable;
 }
 
 /* The history is in a 21rem column here, not the full width it was designed
@@ -282,13 +282,15 @@
     to be ABOVE the pieces on a phone and the history below them, which is not
     something one wrapper can express — but two grid items can, with `order`.
   */
+  /*
+    Dissolve the wrapper so its two panels are grid children again.
+
+    That is the whole reason for `display: contents` here: the mint panel wants
+    to be ABOVE the pieces on a phone and the history below them, which is not
+    something one wrapper can express — but two grid items can, with `order`.
+  */
   .coll-side {
     display: contents;
-    /* Belt and braces: `display: contents` already drops the box, so the
-       viewport cap and the scroll container above cannot apply here. A phone
-       scrolls the page, not a column inside it. */
-    max-height: none;
-    overflow: visible;
   }
 
   .coll-layout .mint-panel {
