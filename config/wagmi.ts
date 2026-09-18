@@ -2,7 +2,7 @@
 
 import { createConfig, fallback, http, webSocket } from "wagmi";
 import { injected, walletConnect } from "wagmi/connectors";
-import { valuechain, BLOCK_TIME_MS, RPC_HTTP } from "@/config/chain";
+import { valuechain, BLOCK_TIME_MS, RPC_HTTP, RPC_WS } from "@/config/chain";
 
 /**
  * WalletConnect needs a project id. It is free, from cloud.reown.com, and it is
@@ -111,7 +111,7 @@ export const wagmiConfig = createConfig({
   transports: {
     [valuechain.id]: fallback(
       [
-        webSocket(valuechain.rpcUrls.default.webSocket?.[0], { retryCount: 2 }),
+        ...RPC_WS.map((url) => webSocket(url, { retryCount: 2 })),
         ...RPC_HTTP.map((url) => http(url, { batch: true, retryCount: 2 })),
       ],
       { rank: { interval: 60_000 } },

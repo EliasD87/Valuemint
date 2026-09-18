@@ -80,3 +80,31 @@ export const RPC_HTTP: string[] = (() => {
   // other. A guessed hostname here would cost a DNS failure on every failover.
   return ["https://mainnet.valuechain.xyz", "https://rpc.valuechain.xyz"];
 })();
+
+/**
+ * WebSocket endpoints, same idea and for the same reason.
+ *
+ * This existed only as a literal inside the chain definition, and `wagmi.ts`
+ * puts the socket in the same ranked fallback as the HTTP endpoints - so
+ * setting `NEXT_PUBLIC_RPC_URLS` alone moved only part of the traffic off the
+ * public node and left the rest on it, which is a confusing thing to discover
+ * after paying for a private one.
+ *
+ * Comma separated, highest preference first, exactly like `NEXT_PUBLIC_RPC_URLS`.
+ * Both should be set together, or neither.
+ *
+ * **These are `NEXT_PUBLIC_`, so whatever is here ships in the browser bundle
+ * and is readable by anyone.** That is unavoidable - the reads happen in the
+ * visitor's browser, so there is nowhere to hide a URL. A private endpoint here
+ * therefore has to be one that is safe to publish: restricted by origin or
+ * referrer to this site, or rate limited per caller by whoever runs it. A
+ * secret key embedded in the URL would not be secret.
+ */
+export const RPC_WS: string[] = (() => {
+  const configured = (process.env.NEXT_PUBLIC_RPC_WS_URLS ?? "")
+    .split(",")
+    .map((u) => u.trim())
+    .filter((u) => u !== "");
+  if (configured.length > 0) return configured;
+  return ["wss://mainnet-ws.valuechain.xyz"];
+})();
