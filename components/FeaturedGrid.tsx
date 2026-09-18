@@ -4,6 +4,17 @@ import Link from "next/link";
 import { Art } from "@/components/Art";
 import { FEATURED } from "@/config/featured";
 import { tierClass } from "@/lib/tokenMetadata";
+/**
+ * The card styles, imported HERE and not only by `TokenCard`.
+ *
+ * This grid borrows `TokenCard`'s markup without rendering a `TokenCard`, and
+ * the front page no longer renders one at all — so nothing was pulling this
+ * stylesheet into the route. The result was not a slightly plain card: with
+ * `.tcard-media` unstyled it has no `position: relative`, so `<Image fill>`
+ * positioned itself against the viewport and one piece of artwork covered the
+ * entire page. Exactly the failure `Art.tsx` warns about at its top.
+ */
+import "@/components/TokenCard.css";
 
 /**
  * The front page's grid, drawn from a list rather than from the chain.
