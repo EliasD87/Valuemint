@@ -57,6 +57,44 @@ export const HIDDEN_COLLECTIONS: HiddenCollection[] = [
       "Hidden from listings at the owner's request; still fully tradeable on " +
       "chain and still reachable at /collection/<address>.",
   },
+  {
+    address: "0xA99E205296A3354E5d42c0247C50dB06Ffd69750",
+    reason:
+      "testsample011 (TST011) — a throwaway made while testing the create flow, " +
+      "the same as alpha and vv above. Deployed through the factory by " +
+      "0x0879A87D…BC84, and totalSupply is 0: nothing was ever minted, so there " +
+      "is no holder to inconvenience and nothing to trade. It is invisible to " +
+      "the explorer's token index — an index only learns about a collection once " +
+      "it has a token — and reached the marketplace through the factory registry, " +
+      "which is why searching for it on the explorer finds nothing at all.",
+  },
+  /**
+   * Trading Beasts, three times over.
+   *
+   * Three separate ERC-1155 contracts with the same name and the same symbol,
+   * all deployed and owned by 0x36a2D7e0…35C6, none of them ours. Identical
+   * names are exactly the case the Unverified badge exists for, and three rows
+   * reading "Trading Beasts" with nothing to tell them apart is worse than
+   * that: a buyer choosing between them has no way to know which one anybody
+   * means, and two of the three are necessarily not the one they want.
+   *
+   * Hidden at the marketplace owner's request. As with everything in this file
+   * that only affects what this frontend enumerates - all three remain live on
+   * chain, still hold whatever they hold, and are still reachable directly at
+   * /collection/<address>.
+   */
+  {
+    address: "0x24267f7c4084e092D021A1db6626AA50adda28B3",
+    reason: "Trading Beasts (BEAST) — one of three identically named ERC-1155s from 0x36a2D7e0…35C6.",
+  },
+  {
+    address: "0x5506e870b0e6b776BB3bfcf8879ea96E538aDaBf",
+    reason: "Trading Beasts (BEAST) — one of three identically named ERC-1155s from 0x36a2D7e0…35C6.",
+  },
+  {
+    address: "0x698ECFbd5c0855810Ddb4385bA212D989107B011",
+    reason: "Trading Beasts (BEAST) — one of three identically named ERC-1155s from 0x36a2D7e0…35C6.",
+  },
 ];
 
 /**
