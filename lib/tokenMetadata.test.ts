@@ -3,6 +3,7 @@ import {
   fetchManyTokenMetadata,
   fetchTokenMetadata,
   readTokenMetadata,
+  tierClass,
   tierOf,
   traitOf,
   type TokenMetadata,
@@ -352,5 +353,32 @@ describe("tierOf — collections do not agree on what to call rarity", () => {
   /** Widening which names count must not loosen how a name is matched. */
   it("stays case-sensitive", () => {
     expect(tierOf(withTrait("level", "Common"))).toBeUndefined();
+  });
+});
+
+describe("tierClass — a tier becomes exactly one class", () => {
+  it.each([
+    ["SuperRare", "superrare"],
+    ["Super Rare", "superrare"],
+    ["super-rare", "superrare"],
+    ["Common", "common"],
+    ["Uncommon", "uncommon"],
+  ])("%s -> chip-%s", (tier, slug) => {
+    expect(tierClass(tier)).toBe(slug);
+  });
+
+  /**
+   * The bug this prevents: a space ends the class, so `chip-${"Super Rare"}`
+   * renders `class="chip chip-super rare"` — a chip wearing a colour meant for
+   * something else, plus a stray class.
+   */
+  it("never emits a space", () => {
+    expect(tierClass("Super Rare")).not.toContain(" ");
+  });
+
+  it("is undefined when there is no tier, so no chip is drawn", () => {
+    expect(tierClass(undefined)).toBeUndefined();
+    expect(tierClass("   ")).toBeUndefined();
+    expect(tierClass("★")).toBeUndefined();
   });
 });

@@ -490,6 +490,17 @@ textarea {
   background: var(--common-wash);
   color: var(--common);
 }
+/* The treasure box ladder. `rare` above is already the sapphire box's blue, so
+   these are the two the rarity scale did not have. The class comes from the
+   trait value lowercased with spaces stripped, so "SuperRare" is one word. */
+.chip-uncommon {
+  background: var(--uncommon-wash);
+  color: var(--uncommon);
+}
+.chip-superrare {
+  background: var(--superrare-wash);
+  color: var(--superrare);
+}
 .chip-accent {
   background: var(--accent-wash);
   color: var(--accent);

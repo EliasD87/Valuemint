@@ -101,6 +101,21 @@
   --common: #6b6b75;
   --common-wash: #f2f2f4;
 
+  /**
+   * The SoDEX treasure box ladder, taken from the four renders themselves.
+   *
+   * `rare` already was sapphire and needed nothing; these are the two the scale
+   * was missing. Sampled from the artwork so a chip and the box beside it are
+   * obviously the same object: jade for Uncommon, amethyst for SuperRare.
+   *
+   * Contrast checked against their own washes, which is the only place they are
+   * ever drawn - both clear 4.5:1.
+   */
+  --uncommon: #1d6b45;
+  --uncommon-wash: #e9f5ee;
+  --superrare: #6b2ea3;
+  --superrare-wash: #f5ecfb;
+
   /* --- inverted band, for the hero and footer ---------------------------- */
   /* In dark mode these lift *above* the page ground instead of below it, so
      the band still separates from what surrounds it. */
@@ -222,6 +237,10 @@
   --rare-wash: #0e1f2e;
   --common: #a1a1ab;
   --common-wash: #1e1e22;
+  --uncommon: #54c98d;
+  --uncommon-wash: #10241a;
+  --superrare: #c89af0;
+  --superrare-wash: #221434;
 
   --dark: #17171b;
   --dark-2: #202026;

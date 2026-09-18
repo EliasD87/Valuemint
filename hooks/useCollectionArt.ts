@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ValueChainCollectionAbi } from "@/config/contracts";
 import { useEverything } from "@/hooks/useEverything";
 import { resolveMediaUrl } from "@/lib/format";
+import { fetchTokenMetadata } from "@/lib/tokenMetadata";
 
 /** How many thumbnails a cover strip shows. */
 const COVER = 4;
@@ -56,8 +57,30 @@ export function useCollectionArt(perCollection = COVER) {
    * that worked.
    */
   const unminted = useMemo(
-    () => collections.filter((c) => (c.totalSupply ?? 0n) === 0n).map((c) => c.address),
-    [collections],
+    () =>
+      collections
+        .filter((c) => {
+          // Nothing minted: the original reason this path exists.
+          if ((c.totalSupply ?? 0n) === 0n) return true;
+          /**
+           * Or minted, and we still have no picture for it.
+           *
+           * `fromMinted` comes from `useEverything`, which finds ids by
+           * `tokenByIndex` and falls back to guessing 1..n. A guessed id is now
+           * dropped unless `ownerOf` vouches for it - correctly, because it was
+           * drawing cards for tokens that do not exist - and that leaves a
+           * non-Enumerable collection with scattered ids contributing no tokens
+           * at all. TestSoDEXTreasureBox is exactly that: 5,117 minted, ids
+           * starting at 3,840, and so no cover on /collections.
+           *
+           * Asking `baseURI` needs no id, which is the whole point. For that
+           * collection `baseURI` + "1" is `.../sobox/1` - a real tier document
+           * with real artwork.
+           */
+          return (fromMinted.get(c.address.toLowerCase()) ?? []).length === 0;
+        })
+        .map((c) => c.address),
+    [collections, fromMinted],
   );
 
   /**
@@ -117,13 +140,18 @@ export function useCollectionArt(perCollection = COVER) {
               try {
                 // Generous, because this is a cold gateway read behind an API
                 // route; 8s was short enough to drop half of them.
-                const res = await fetch(`${base}${id}`, { signal: AbortSignal.timeout(15_000) });
-                // 429 included: a rate-limited miss is a retryable condition,
-                // not "this collection has no art", and must not be cached as
-                // one. Returning undefined lets the next mount ask again.
-                if (!res.ok) return undefined;
-                const meta = (await res.json()) as { image?: string };
-                return resolveMediaUrl(meta.image);
+                /**
+                 * Through `fetchTokenMetadata`, which does not let a status
+                 * code throw away a good body.
+                 *
+                 * This was `if (!res.ok) return undefined`, and SoDEX serves
+                 * the treasure boxes' documents with HTTP 501 - so the cover
+                 * was discarded for the same reason every box card was
+                 * nameless. A 429 still yields nothing here, which stays right:
+                 * a rate-limited miss is retryable, not "no art".
+                 */
+                const meta = await fetchTokenMetadata(`${base}${id}`, 15_000);
+                return resolveMediaUrl(meta?.image);
               } catch {
                 // A collection whose metadata is unreachable simply has no
                 // preview. It must not take the whole strip down with it.

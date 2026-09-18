@@ -8,6 +8,7 @@ import { OfferDialog } from "@/components/OfferDialog";
 import type { LoadedToken } from "@/hooks/useTokens";
 import type { Listing } from "@/lib/seaport";
 import { formatSoso } from "@/lib/format";
+import { tierClass } from "@/lib/tokenMetadata";
 import { Art } from "@/components/Art";
 import "./TokenCard.css";
 import { Soso } from "@/components/Soso";
@@ -68,7 +69,7 @@ export function TokenCard({
     owner !== undefined &&
     viewerAddress !== undefined &&
     owner.toLowerCase() === viewerAddress.toLowerCase();
-  const tier = token.tier?.toLowerCase() ?? "common";
+  const tier = tierClass(token.tier) ?? "common";
 
   /**
    * The contract answered, and its answer was nothing.

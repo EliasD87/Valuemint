@@ -166,6 +166,25 @@ export function tierOf(metadata: TokenMetadata | undefined): string | undefined 
 }
 
 /**
+ * A tier as a CSS class suffix.
+ *
+ * `\`chip-${tier.toLowerCase()}\`` is fine for "Common" and breaks the moment a
+ * collection writes "Super Rare": the space ends the class and the browser sees
+ * `chip-super` plus a stray `rare` class, which is how a chip ends up wearing
+ * the wrong colour rather than none. Anything that is not a letter or a digit
+ * is dropped, so "SuperRare", "Super Rare" and "super-rare" all land on
+ * `chip-superrare`.
+ *
+ * Returns `undefined` when there is no tier, so the caller renders no chip at
+ * all rather than a `chip-undefined`.
+ */
+export function tierClass(tier: string | undefined): string | undefined {
+  if (tier === undefined) return undefined;
+  const slug = tier.toLowerCase().replace(/[^a-z0-9]/g, "");
+  return slug === "" ? undefined : slug;
+}
+
+/**
  * Fetch a token document, and do not let a status code throw away a good one.
  *
  * Every fetch site used to be `if (!res.ok) throw` / `if (res.ok) use it`, which
