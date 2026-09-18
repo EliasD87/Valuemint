@@ -92,3 +92,27 @@ export function coverFor(address: string): string[] | undefined {
   const named = COLLECTION_COVERS[address.toLowerCase()];
   return named !== undefined && named.length > 0 ? named : undefined;
 }
+
+/**
+ * The one piece of artwork a collection uses for every token, when it has one.
+ *
+ * Only returns something when the cover above is a SINGLE image, and that
+ * restriction is the whole point. Cybereator's 2,233 tokens are one file and
+ * TestCybereator's are the same file again, so showing it for a token whose
+ * metadata could not be read is not a guess — it is that token's picture.
+ *
+ * The treasure boxes have four covers, one per tier, and which tier a box is
+ * comes from the metadata itself. With that unreadable there is no way to pick
+ * between them, so nothing is returned and the card shows its id alone. A
+ * plausible-looking wrong picture on a piece somebody might buy is worse than
+ * no picture.
+ *
+ * This exists because it happened: SoDEX's metadata gateway answered 503 for
+ * every token of all three of its collections, so pages of theirs rendered as
+ * numbered grey tiles. The artwork was reachable the whole time.
+ */
+export function soleArtworkFor(address: string | undefined): string | undefined {
+  if (address === undefined) return undefined;
+  const cover = COLLECTION_COVERS[address.toLowerCase()];
+  return cover !== undefined && cover.length === 1 ? cover[0] : undefined;
+}
