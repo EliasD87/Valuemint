@@ -179,11 +179,28 @@ queryKey: ["holdings", address, uris.filter(Boolean).join("|")],
    * That is rare now — it means the collection neither enumerates nor emits
    * a Transfer we can follow.
    */
-  const unlistable = collections.filter((c, i) => {
-    const balance = balances?.[i];
-    if (balance?.status !== "success" || Number(balance.result as bigint) === 0) return false;
-    return !held.some((h) => h.collection.address === c.address);
-  });
+  /**
+   * And only once discovery has actually finished.
+   *
+   * "No ids for this collection" is true of *every* non-Enumerable collection
+   * while recovery is still running, so computing this eagerly made the
+   * portfolio open by announcing that the visitor's boxes could not be
+   * identified — and then take it back a second later once the ids arrived.
+   * For a wallet holding 626 of them that is an alarming thing to read about
+   * your own property.
+   *
+   * A conclusion drawn from missing data is not a conclusion. Until the reads
+   * that would populate it have settled, there is nothing to report.
+   */
+  const stillLooking = loadingCollections || loadingBalances || loadingIds || loadingTransfers;
+
+  const unlistable = stillLooking
+    ? []
+    : collections.filter((c, i) => {
+        const balance = balances?.[i];
+        if (balance?.status !== "success" || Number(balance.result as bigint) === 0) return false;
+        return !held.some((h) => h.collection.address === c.address);
+      });
 
   return {
     tokens,

@@ -41,7 +41,7 @@ export function useTokenIds(
   collection: `0x${string}` | undefined,
   total: bigint | undefined,
   limit = 60,
-): bigint[] {
+): { ids: bigint[]; isLoading: boolean } {
   const count = total === undefined ? 0 : Math.min(Number(total), limit);
 
   const { data } = useReadContracts({
@@ -77,10 +77,31 @@ export function useTokenIds(
    */
   const notEnumerable = count > 0 && data !== undefined && enumerated.length === 0;
 
-  const { ids: recovered } = useMintedIds(collection, notEnumerable, limit);
+  const { ids: recovered, settled: recoveryDone } = useMintedIds(collection, notEnumerable, limit);
 
-  return useMemo(
+  const ids = useMemo(
     () => (enumerated.length > 0 ? enumerated : recovered),
     [enumerated, recovered],
   );
+
+  /**
+   * "No ids" and "no ids *yet*" are different answers, and the page renders
+   * them very differently.
+   *
+   * Recovery is asynchronous - the explorer, then an `ownerOf` multicall - so
+   * for a second or two a non-Enumerable collection has no ids at all. The
+   * collection page read that as an empty result and rendered "Nothing matches
+   * those traits" over a collection with 1,968 tokens in it, before replacing
+   * it with the grid. It looked like the collection was broken.
+   *
+   * The sequential guess used to hide this by answering instantly and wrongly.
+   * Now that ids are real, the waiting has to be visible instead.
+   */
+  const isLoading =
+    // The Enumerable read has not come back yet.
+    (count > 0 && data === undefined) ||
+    // It came back empty, and recovery has not finished having an opinion.
+    (notEnumerable && !recoveryDone);
+
+  return { ids, isLoading };
 }

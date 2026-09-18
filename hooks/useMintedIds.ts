@@ -160,6 +160,16 @@ export function useMintedIds(
   return {
     ids: query.data ?? [],
     isLoading: query.isLoading,
+    /**
+     * Whether this has finished having an opinion.
+     *
+     * Not `!isLoading`: a disabled query is not loading and has not answered
+     * either, and the caller needs to tell those apart. A collection that turns
+     * out to have no recoverable ids has to reach a settled, empty answer -
+     * otherwise the page waits on it forever and shows skeletons where it
+     * should say plainly that there is nothing to list.
+     */
+    settled: !enabled || query.isFetched,
     /** True when the lookup was needed and could not be answered at all. */
     unavailable: enabled && query.isError,
   };

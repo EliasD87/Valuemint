@@ -56,8 +56,16 @@ export function CollectionView({ params }: { params: Promise<{ address: string }
   const name = meta?.[0]?.status === "success" ? (meta[0].result as string) : undefined;
   const symbol = meta?.[1]?.status === "success" ? (meta[1].result as string) : undefined;
 
-  // `totalSupply` belongs to the Enumerable extension, which is optional.
-  const { data: supply } = useReadContract({
+  /**
+   * `totalSupply` belongs to the Enumerable extension, which is optional.
+   *
+   * `isFetched` matters as much as the value. `supply === undefined` means both
+   * "the call has not come back" and "this contract has no totalSupply", and
+   * the page told the visitor the second before it could possibly know: the
+   * first paint of every collection read "This collection doesn't publish a
+   * token list", then replaced itself with the grid a second later.
+   */
+  const { data: supply, isFetched: supplyKnown } = useReadContract({
     address: collection,
     abi: enumerableAbi,
     functionName: "totalSupply",
@@ -65,7 +73,7 @@ export function CollectionView({ params }: { params: Promise<{ address: string }
   });
 
   // Cap the first page; a large collection should not fire thousands of reads.
-  const ids = useTokenIds(collection, supply as bigint | undefined, 60);
+  const { ids, isLoading: findingIds } = useTokenIds(collection, supply as bigint | undefined, 60);
 
   const { tokens, isLoading } = useGenericTokens(collection, ids);
 
@@ -274,7 +282,7 @@ export function CollectionView({ params }: { params: Promise<{ address: string }
 
       <div className="coll-layout">
         <div className="coll-layout-main">
-      {supply === undefined ? (
+      {supplyKnown && supply === undefined ? (
         <div className="market-empty">
           <h3>This collection doesn&rsquo;t publish a token list.</h3>
           <p className="muted">
@@ -283,7 +291,7 @@ export function CollectionView({ params }: { params: Promise<{ address: string }
             contents from the chain alone. Open a token directly if you know its id.
           </p>
         </div>
-      ) : isLoading && tokens.length === 0 ? (
+      ) : (!supplyKnown || isLoading || findingIds) && tokens.length === 0 ? (
         <div className="grid-tokens">
           {Array.from({ length: 8 }, (_, i) => (
             <TokenCardSkeleton key={i} />

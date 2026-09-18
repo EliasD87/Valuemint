@@ -162,7 +162,7 @@ export default function Collections() {
         </div>
       ) : (
         <div className="coll-grid">
-          {(showAll ? all : all.slice(0, FIRST_PAGE)).map((c, i) => {
+          {all.map((c, i) => {
             const s = statsFor(i);
 
             return (
@@ -209,17 +209,6 @@ export default function Collections() {
           })}
         </div>
       )}
-
-      {/* Only drawn when something is behind it, and the count is named
-          rather than left as "more" so the choice is informed. */}
-      {!showAll && all.length > FIRST_PAGE ? (
-        <div className="coll-more">
-          <button type="button" className="btn" onClick={() => setShowAll(true)}>
-            See {all.length - FIRST_PAGE} more collection
-            {all.length - FIRST_PAGE === 1 ? "" : "s"}
-          </button>
-        </div>
-      ) : null}
 
       <div className="coll-cta card">
         <div>
