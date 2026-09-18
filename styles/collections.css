@@ -293,8 +293,8 @@
     display: contents;
   }
 
+  /* Mint above the pieces on a phone; the history keeps its place below them. */
   .coll-layout .mint-panel {
-    position: static;
     order: -1;
   }
 

@@ -30,9 +30,21 @@
 
 /* ================================================================== panel */
 
+/*
+ * Not sticky, and that is a correction rather than a preference.
+ *
+ * It was, from when this panel was the ONLY thing in the collection page's
+ * second column — nothing below it, so pinning it cost nothing. It has a
+ * sibling now: the trading history sits under it in the same flex column, and a
+ * sticky element still occupies its place in flow while drifting downward
+ * through the page, so it slid straight over the rows beneath it. The card has
+ * a solid background, so the result was the mint panel printed on top of the
+ * history.
+ *
+ * Nothing wants it pinned. It is the second thing in a short column that
+ * scrolls with the page like everything else.
+ */
 .mint-panel {
-  position: sticky;
-  top: calc(var(--header-h) + 1.25rem);
   padding: 1.35rem;
   display: flex;
   flex-direction: column;
@@ -116,8 +128,4 @@
   line-height: 1.55;
 }
 
-@media (max-width: 860px) {
-  .mint-panel {
-    position: static;
-  }
-}
+
