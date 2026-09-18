@@ -124,6 +124,14 @@ export async function GET(request: Request) {
   return NextResponse.json({ ready, rateLimitShared: limiterIsShared });
 }
 
+/**
+ * Uploads resize and pin several images, which is well past the platform's
+ * 10-second default. Killed mid-flight, the request leaves objects already
+ * written to the bucket with no collection pointing at them — so the cost of
+ * being cut off is not a failed upload, it is a failed upload plus litter.
+ */
+export const maxDuration = 60;
+
 export async function POST(request: Request) {
   if (!storageAvailable()) {
     return NextResponse.json(
