@@ -3,12 +3,12 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useAccount } from "wagmi";
-import { useEverything } from "@/hooks/useEverything";
+import { useAllCollections } from "@/hooks/useAllCollections";
 import { useListingFeed } from "@/hooks/useListingFeed";
 import { useCollectionArt } from "@/hooks/useCollectionArt";
 import { Art } from "@/components/Art";
-import type { ChainToken } from "@/hooks/useEverything";
-import { TokenCard, TokenCardSkeleton } from "@/components/TokenCard";
+import { FeaturedGrid } from "@/components/FeaturedGrid";
+import { WarmChain } from "@/components/WarmChain";
 import { formatCount, formatSoso } from "@/lib/format";
 import { stillUrl } from "@/lib/media";
 import "@/styles/home.css";
@@ -17,7 +17,6 @@ import { Soso } from "@/components/Soso";
 import { HERO_DECK } from "@/config/heroDeck";
 
 /** "all", "listed", or a collection address. */
-type Filter = string;
 
 /**
  * Round-robin across groups.
@@ -44,7 +43,16 @@ function interleave<T>(groups: T[][]): T[] {
 
 export default function Home() {
   const { address } = useAccount();
-  const { tokens, collections, isLoading, loadingMetadata } = useEverything(12);
+  /**
+   * Collections only. No tokens.
+   *
+   * This was `useEverything(12)`, which walked twelve tokens of every
+   * collection — supply, then `tokenByIndex`, then `ownerOf` and `tokenURI`,
+   * then a metadata document each — about 216 contract calls and 108 documents,
+   * to fill a grid of twenty. The grid is `config/featured.ts` now, so none of
+   * that is needed; the rails below only ever wanted the collections.
+   */
+  const { collections, isLoading } = useAllCollections();
 
   /**
    * The listings, read from events rather than sampled.
@@ -58,19 +66,7 @@ export default function Home() {
    */
   const { tokens: listedTokens } = useListingFeed();
   const { artFor } = useCollectionArt();
-  const [filter, setFilter] = useState<Filter>("all");
 
-  /** Sampled pieces grouped by collection, so counts and order stay honest. */
-  const grouped = useMemo(() => {
-    const map = new Map<string, { name: string; items: typeof tokens }>();
-    for (const t of tokens) {
-      const key = t.collection.toLowerCase();
-      const entry = map.get(key) ?? { name: t.collectionName, items: [] };
-      entry.items.push(t);
-      map.set(key, entry);
-    }
-    return map;
-  }, [tokens]);
 
   /**
    * The rail shows five, ranked, not everything.
@@ -116,84 +112,7 @@ export default function Home() {
    */
   const deck = HERO_DECK;
 
-  /**
-   * The filter chips.
-   *
-   * These used to be Genesis's rarity tiers - Legendary, Epic, Rare, Common -
-   * hardcoded into a marketplace that hosts anyone's collection. Collections
-   * with no tiers, which is most of them, could not be filtered to at all, and
-   * clicking a tier hid every piece that was not from that one collection.
-   * Collections are the axis every piece actually has.
-   */
-  const chips = useMemo(
-    () =>
-      [...grouped.entries()]
-        .map(([address, g]) => ({ address, name: g.name, count: g.items.length }))
-        .sort((a, b) => b.count - a.count),
-    [grouped],
-  );
 
-  /**
-   * Buyable first, then the rest.
-   *
-   * This is a marketplace front page, and a grid that opens with rows of "Not
-   * listed" buries the only pieces a visitor can act on. Anything with a
-   * listing therefore comes first.
-   *
-   * Each band is interleaved on its own rather than sorting the whole list,
-   * which keeps the reason `interleave` exists: one collection's items must not
-   * fill the grid before another's appear. So the listed pieces are mixed
-   * across collections, and the unlisted ones are mixed across collections
-   * beneath them.
-   */
-  const featured = useMemo(() => {
-    const key = (t: ChainToken) => `${t.collection.toLowerCase()}-${t.id}`;
-
-    /**
-     * Live listings first, whatever their token id.
-     *
-     * Grouped by collection and interleaved, so one collection with ten
-     * listings cannot fill the grid before another's first one appears - the
-     * same reason `interleave` exists for the sampled tokens below.
-     */
-    /**
-     * Art decides the order, never whether a token appears at all.
-     *
-     * These bands used to be filtered by `image !== undefined`, and the images
-     * come from IPFS gateways seconds after the token ids come from the chain.
-     * So for the first several seconds every token was dropped: the grid was
-     * empty, `isLoading` was already false because the chain reads had landed,
-     * and the page rendered "Nothing matches that filter" above a chip row
-     * reading 12, 12, 12, 7, 5. Measured cold: DOM ready at 260ms, first card
-     * at 8.2s.
-     *
-     * `TokenCard` has always drawn a skeleton for a missing image, so there was
-     * never a reason to hide the card too. Sorting art-first instead means the
-     * grid is populated immediately, resolved pieces rise to the top as their
-     * metadata lands, and a token whose document genuinely has no image sinks
-     * to the bottom rather than emptying the page.
-     */
-    const artFirst = (rows: ChainToken[]) => [
-      ...rows.filter((t) => t.image !== undefined),
-      ...rows.filter((t) => t.image === undefined),
-    ];
-
-    const forSale = listedTokens.filter((t) => t.active);
-    const byCollection = new Map<string, ChainToken[]>();
-    for (const t of forSale) {
-      const k = t.collection.toLowerCase();
-      byCollection.set(k, [...(byCollection.get(k) ?? []), t]);
-    }
-    const listed = artFirst(interleave([...byCollection.values()]));
-
-    // Anything already shown as a listing must not appear again below it.
-    const shown = new Set(listed.map(key));
-    const unlisted = [...grouped.values()].map((g) =>
-      g.items.filter((t) => !shown.has(key(t))),
-    );
-
-    return [...listed, ...artFirst(interleave(unlisted))];
-  }, [grouped, listedTokens]);
 
   /** Collections a visitor can mint from right now, cheapest first. */
   const mintable = useMemo(
@@ -204,14 +123,15 @@ export default function Home() {
     [collections],
   );
 
-  const visible = useMemo(() => {
-    if (filter === "all") return featured;
-    if (filter === "listed") return featured.filter((t) => t.listing !== undefined);
-    return featured.filter((t) => t.collection.toLowerCase() === filter);
-  }, [featured, filter]);
 
   return (
     <>
+      {/* Nothing renders; it fills the shared caches a moment after paint so
+          that clicking into a collection finds the order book already read.
+          Measured: with that scan warm, a collection page reached its first
+          image at 2,177 ms instead of 4,669 ms. */}
+      <WarmChain />
+
       <Hero deck={deck} />
 
       <section className="page section">
@@ -271,56 +191,24 @@ export default function Home() {
           </Link>
         </div>
 
-        {chips.length > 1 ? (
-          <div className="filters" role="group" aria-label="Filter pieces by collection">
-            <Filt active={filter === "all"} onClick={() => setFilter("all")}>
-              All <em>{featured.length}</em>
-            </Filt>
-            {chips.map((c) => (
-              <Filt key={c.address} active={filter === c.address} onClick={() => setFilter(c.address)}>
-                {c.name} <em>{c.count}</em>
-              </Filt>
-            ))}
-            <Filt active={filter === "listed"} onClick={() => setFilter("listed")}>
-              For sale <em>{featured.filter((t) => t.listing !== undefined).length}</em>
-            </Filt>
-          </div>
-        ) : null}
+        {/*
+          Twelve pieces named in config/featured.ts, and nothing else.
 
-        <div className="grid-tokens">
-          {tokens.length === 0
-            ? Array.from({ length: 10 }, (_, i) => <TokenCardSkeleton key={i} />)
-            : visible
-                .slice(0, 20)
-                .map((token, i) => (
-                  <TokenCard
-                    key={`${token.collection}-${token.id}`}
-                    token={token}
-                    collection={token.collection}
-                    collectionName={token.collectionName}
-                    listing={token.listing}
-                    owner={token.owner}
-                    viewerAddress={address}
-                    // The first row or so is on screen before any scrolling.
-                    priority={i < 4}
-                  />
-                ))}
-        </div>
+          The grid used to be whatever the chain answered with: every
+          collection, then supply, ids, tokenURI and a metadata document per
+          token — five round trips in strict order before anything knew what to
+          draw. Measured live with a warm cache, a 106 ms TTFB and the DOM ready
+          at 383 ms, the first image was not REQUESTED until 4,240 ms.
 
-        {/**
-          * Only once there is something to have filtered.
-          *
-          * This hung off `!isLoading`, and that flag is false in the window
-          * between collections resolving and the token reads returning - so a
-          * cold load rendered "Nothing matches that filter" for several seconds
-          * over a chip row that already showed real counts. Loading flags cannot
-          * express this; having data can. With no tokens at all we cannot tell
-          * an empty marketplace from an unfinished fetch, and the grid above is
-          * already drawing skeletons for exactly that case.
-          */}
-        {tokens.length > 0 && visible.length === 0 ? (
-          <p className="empty">Nothing matches that filter.</p>
-        ) : null}
+          It also meant the front page belonged to whoever deployed last. Both
+          problems have one answer: name the pieces. The grid is now HTML on the
+          first paint, and what is on it is a decision.
+
+          The filter chips went with it. They existed to cut down a list nobody
+          chose; a chosen list of twelve does not need filtering, and the market
+          is one link away for browsing properly.
+        */}
+        <FeaturedGrid />
       </section>
 
       <section className="page section">
@@ -636,18 +524,3 @@ function DeckTile({
   );
 }
 
-function Filt({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button className="filt" aria-pressed={active} onClick={onClick}>
-      {children}
-    </button>
-  );
-}
