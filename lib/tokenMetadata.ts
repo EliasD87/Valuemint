@@ -176,3 +176,55 @@ export async function fetchTokenMetadata(
 
   return readTokenMetadata(parsed);
 }
+
+/**
+ * Fetch many token documents, asking for each distinct URL exactly once.
+ *
+ * Collections that share a document between tokens are not an edge case here,
+ * they are the main event. The SoDEX treasure boxes put the *tier* in the URL —
+ * `.../sobox/0` through `.../sobox/3` — so a wallet holding 626 boxes points at
+ * two distinct documents, and one holding 3,000 still points at four. Measured
+ * on 30 consecutive box ids: 2 distinct URLs.
+ *
+ * Without deduping, a whale's portfolio issued one request per token: 626
+ * requests for 2 documents, and 3,000 for 4. That is the difference between a
+ * page that opens and a page that hammers someone else's API until it stops
+ * answering.
+ *
+ * It is not universal — TestCybereator gives every token its own URL, and 30
+ * ids there are 30 documents — so this changes nothing for collections that
+ * genuinely differ per token. It costs one Map either way.
+ *
+ * The concurrency limit still applies, to the distinct URLs rather than to the
+ * tokens, so a collection with a thousand real documents is still fetched
+ * politely rather than all at once.
+ */
+export async function fetchManyTokenMetadata(
+  urls: Array<string | undefined>,
+  limit: number,
+  timeoutMs = 20_000,
+): Promise<Array<TokenMetadata | undefined>> {
+  /** One promise per distinct URL, shared by every slot that asked for it. */
+  const byUrl = new Map<string, Promise<TokenMetadata | undefined>>();
+
+  const distinct = [...new Set(urls.filter((u): u is string => u !== undefined && u !== ""))];
+
+  let cursor = 0;
+  await Promise.all(
+    Array.from({ length: Math.min(limit, distinct.length) }, async () => {
+      while (cursor < distinct.length) {
+        const url = distinct[cursor++];
+        if (url === undefined) continue;
+        // Store the settled value, not a rejecting promise: one unreachable
+        // document must not reject the whole batch.
+        const settled = fetchTokenMetadata(url, timeoutMs).catch(() => undefined);
+        byUrl.set(url, settled);
+        await settled;
+      }
+    }),
+  );
+
+  return Promise.all(
+    urls.map(async (u) => (u === undefined || u === "" ? undefined : byUrl.get(u))),
+  );
+}

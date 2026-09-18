@@ -11,45 +11,9 @@ import { useAllCollections } from "@/hooks/useAllCollections";
 import { useSeaportListings } from "@/hooks/useSeaportOrders";
 import type { TokenMetadata } from "@/hooks/useCollection";
 import type { ChainToken } from "@/hooks/useEverything";
-import { fetchTokenMetadata, traitOf } from "@/lib/tokenMetadata";
+import { fetchManyTokenMetadata, traitOf } from "@/lib/tokenMetadata";
 
-/**
- * Every live listing on the marketplace.
- *
- * Seaport's `OrderValidated` log is the order book, so this is a scan and a
- * filter rather than a walk over tokens. The alternative - asking each token in
- * each collection whether it is for sale - either misses listings past whatever
- * sample size is chosen or costs a call per token in existence.
- *
- * `useSeaportOrders` has already dropped anything cancelled, filled, expired or
- * swept away by a counter increment. What it cannot know is whether the seller
- * still holds the token and still lets Seaport move it, because that lives on
- * the collection rather than in the order. A seller who transfers a listed token
- * elsewhere leaves an order that looks perfect and reverts on contact, so both
- * are checked here and the result is exposed as `active`.
- */
 
-async function fetchLimited(urls: string[], limit: number) {
-  const out = new Array<TokenMetadata | undefined>(urls.length);
-  let cursor = 0;
-
-  await Promise.all(
-    Array.from({ length: Math.min(limit, urls.length) }, async () => {
-      while (cursor < urls.length) {
-        const i = cursor++;
-        const url = urls[i];
-        if (url === undefined || url === "") continue;
-        try {
-          out[i] = await fetchTokenMetadata(url, 20_000);
-        } catch {
-          // A listing with unreachable art is still a listing.
-        }
-      }
-    }),
-  );
-
-  return out;
-}
 
 
 
@@ -124,7 +88,7 @@ queryKey: ["listing-meta", uris.filter(Boolean).join("|")],
     enabled: uris.some((u) => u !== undefined),
     staleTime: Infinity,
     gcTime: Infinity,
-    queryFn: () => fetchLimited(uris.map((u) => resolveMediaUrl(u) ?? ""), 10),
+    queryFn: () => fetchManyTokenMetadata(uris.map((u) => resolveMediaUrl(u)), 10),
   });
 
   const nameOf = (address: `0x${string}`) =>

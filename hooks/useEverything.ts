@@ -9,7 +9,7 @@ import { useAllCollections, type CollectionSummary } from "@/hooks/useAllCollect
 import { useBestListings } from "@/hooks/useSeaportOrders";
 import { toListing, type Listing } from "@/lib/seaport";
 import type { TokenMetadata } from "@/hooks/useCollection";
-import { fetchTokenMetadata, traitOf } from "@/lib/tokenMetadata";
+import { fetchManyTokenMetadata, traitOf } from "@/lib/tokenMetadata";
 
 /**
  * Tokens across every collection on the chain, rather than one hardcoded address.
@@ -50,28 +50,7 @@ export interface ChainToken {
 
 
 
-/** Fetches many documents without stampeding the gateway. */
-async function fetchLimited(urls: string[], limit: number) {
-  const out = new Array<TokenMetadata | undefined>(urls.length);
-  let cursor = 0;
 
-  await Promise.all(
-    Array.from({ length: Math.min(limit, urls.length) }, async () => {
-      while (cursor < urls.length) {
-        const i = cursor++;
-        const url = urls[i];
-        if (url === undefined || url === "") continue;
-        try {
-          out[i] = await fetchTokenMetadata(url, 20_000);
-        } catch {
-          // A collection with unreachable metadata still renders as a token.
-        }
-      }
-    }),
-  );
-
-  return out;
-}
 
 export function useEverything(perCollection = 30) {
   const { collections, isLoading: loadingCollections } = useAllCollections();
@@ -178,7 +157,7 @@ queryKey: ["everything", uris.filter(Boolean).join("|")],
     enabled: uris.some((u) => u !== undefined),
     staleTime: Infinity,
     gcTime: Infinity,
-    queryFn: () => fetchLimited(uris.map((u) => resolveMediaUrl(u) ?? ""), 10),
+    queryFn: () => fetchManyTokenMetadata(uris.map((u) => resolveMediaUrl(u)), 10),
   });
 
   /**

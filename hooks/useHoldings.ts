@@ -10,7 +10,7 @@ import { useAllCollections } from "@/hooks/useAllCollections";
 import { useOwnedTokens } from "@/hooks/useOwnedTokens";
 import type { TokenMetadata } from "@/hooks/useCollection";
 import type { ChainToken } from "@/hooks/useEverything";
-import { fetchTokenMetadata, traitOf } from "@/lib/tokenMetadata";
+import { fetchManyTokenMetadata, traitOf } from "@/lib/tokenMetadata";
 
 /**
  * Exactly what one address holds, across every collection.
@@ -45,27 +45,7 @@ const ownerIndexAbi = [
 
 
 
-async function fetchLimited(urls: string[], limit: number) {
-  const out = new Array<TokenMetadata | undefined>(urls.length);
-  let cursor = 0;
 
-  await Promise.all(
-    Array.from({ length: Math.min(limit, urls.length) }, async () => {
-      while (cursor < urls.length) {
-        const i = cursor++;
-        const url = urls[i];
-        if (url === undefined || url === "") continue;
-        try {
-          out[i] = await fetchTokenMetadata(url, 20_000);
-        } catch {
-          // Unreachable metadata still leaves a token you demonstrably own.
-        }
-      }
-    }),
-  );
-
-  return out;
-}
 
 export function useHoldings(address: `0x${string}` | undefined) {
   const { collections, isLoading: loadingCollections } = useAllCollections();
@@ -172,7 +152,7 @@ queryKey: ["holdings", address, uris.filter(Boolean).join("|")],
     enabled: uris.some((u) => u !== undefined),
     staleTime: Infinity,
     gcTime: Infinity,
-    queryFn: () => fetchLimited(uris.map((u) => resolveMediaUrl(u) ?? ""), 10),
+    queryFn: () => fetchManyTokenMetadata(uris.map((u) => resolveMediaUrl(u)), 10),
   });
 
   const tokens: ChainToken[] = held.map((h, i) => {

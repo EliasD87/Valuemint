@@ -1,5 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
-import { fetchTokenMetadata, readTokenMetadata, traitOf, type TokenMetadata } from "./tokenMetadata";
+import {
+  fetchManyTokenMetadata,
+  fetchTokenMetadata,
+  readTokenMetadata,
+  traitOf,
+  type TokenMetadata,
+} from "./tokenMetadata";
 
 /**
  * These are not shape-checking exercises. Every case below is a document a
@@ -211,5 +217,96 @@ describe("fetchTokenMetadata — a status is a hint, not the decision", () => {
     await expect(
       withFetch(f, () => fetchTokenMetadata("https://example.test/html")),
     ).rejects.toThrow(/502/);
+  });
+});
+
+describe("fetchManyTokenMetadata — one request per distinct document", () => {
+  const doc = (tier: string) => ({
+    name: "SoDEXTreasureBox",
+    description: `A ${tier} tier treasure box.`,
+    image: `ipfs://cid-${tier}`,
+    attributes: [{ trait_type: "Level", value: tier }],
+  });
+
+  const counting = () => {
+    const calls: string[] = [];
+    const f = (async (url: string) => {
+      calls.push(url);
+      const tier = url.endsWith("/0") ? "Common" : "Uncommon";
+      return { ok: true, status: 200, json: async () => doc(tier) };
+    }) as unknown as typeof fetch;
+    return { f, calls };
+  };
+
+  const withFetch = async <T,>(f: typeof fetch, run: () => Promise<T>): Promise<T> => {
+    const real = globalThis.fetch;
+    globalThis.fetch = f;
+    try {
+      return await run();
+    } finally {
+      globalThis.fetch = real;
+    }
+  };
+
+  /**
+   * The case this exists for. A wallet holding 626 boxes points at two
+   * documents, because the tier is in the URL. Before deduping that was 626
+   * requests to somebody else's API for two answers.
+   */
+  it("asks once per URL however many tokens share it", async () => {
+    const { f, calls } = counting();
+    const urls = Array.from({ length: 626 }, (_, i) =>
+      i % 5 === 0
+        ? "https://gw.test/api/v1/nft/token/sobox/1"
+        : "https://gw.test/api/v1/nft/token/sobox/0",
+    );
+
+    const out = await withFetch(f, () => fetchManyTokenMetadata(urls, 10));
+
+    // Two requests for 626 tokens. That is the whole point.
+    expect(calls).toHaveLength(2);
+    expect(out).toHaveLength(626);
+    // Every fifth slot is the Uncommon URL, the rest Common — and each slot
+    // must carry its own document, not whichever one resolved last.
+    expect(traitOf(out[0], "Level")).toBe("Uncommon");
+    expect(traitOf(out[1], "Level")).toBe("Common");
+    expect(traitOf(out[5], "Level")).toBe("Uncommon");
+    expect(out.filter((d) => traitOf(d, "Level") === "Uncommon")).toHaveLength(126);
+  });
+
+  it("still fetches every URL when they genuinely differ", async () => {
+    const { f, calls } = counting();
+    const urls = Array.from({ length: 30 }, (_, i) => `https://gw.test/cybr/${i + 1}`);
+    await withFetch(f, () => fetchManyTokenMetadata(urls, 10));
+    expect(calls).toHaveLength(30);
+  });
+
+  it("keeps the slots lined up with the URLs, gaps included", async () => {
+    const { f } = counting();
+    const out = await withFetch(f, () =>
+      fetchManyTokenMetadata(
+        ["https://gw.test/sobox/0", undefined, "", "https://gw.test/sobox/1"],
+        10,
+      ),
+    );
+    expect(out).toHaveLength(4);
+    expect(traitOf(out[0], "Level")).toBe("Common");
+    expect(out[1]).toBeUndefined();
+    expect(out[2]).toBeUndefined();
+    expect(traitOf(out[3], "Level")).toBe("Uncommon");
+  });
+
+  /** One unreachable document must not cost the others theirs. */
+  it("survives one URL failing", async () => {
+    const f = (async (url: string) => {
+      if (String(url).endsWith("/bad")) throw new TypeError("Failed to fetch");
+      return { ok: true, status: 200, json: async () => doc("Rare") };
+    }) as unknown as typeof fetch;
+
+    const out = await withFetch(f, () =>
+      fetchManyTokenMetadata(["https://gw.test/bad", "https://gw.test/good"], 10),
+    );
+    expect(out[0]).toBeUndefined();
+    expect(traitOf(out[1], "Level")).toBe("Rare");
   });
 });
