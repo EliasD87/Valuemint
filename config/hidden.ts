@@ -58,6 +58,14 @@ export const HIDDEN_COLLECTIONS: HiddenCollection[] = [
       "chain and still reachable at /collection/<address>.",
   },
   {
+    address: "0xe1C322BC972f78E78cfac98f71aA986C65D9C3bD",
+    reason:
+      "Trade Buddies (BUDDY) — hidden at the owner's request. 107 of 1000 minted " +
+      "and it is a first-party collection, so this is a choice about what the " +
+      "front page leads with rather than a judgement about the collection. " +
+      "Unhiding it is deleting these six lines.",
+  },
+  {
     address: "0xA99E205296A3354E5d42c0247C50dB06Ffd69750",
     reason:
       "testsample011 (TST011) — a throwaway made while testing the create flow, " +
