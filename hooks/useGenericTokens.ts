@@ -1,10 +1,9 @@
 "use client";
 
-import { useQueries } from "@tanstack/react-query";
 import { useReadContracts } from "wagmi";
 import { erc721Abi } from "viem";
 import { resolveMediaUrl } from "@/lib/format";
-import { loadTokenDocument } from "@/lib/metadataBatch";
+import { useTokenDocuments } from "@/hooks/useTokenDocuments";
 import type { LoadedToken } from "@/hooks/useTokens";
 import { tierOf, traitOf } from "@/lib/tokenMetadata";
 
@@ -61,40 +60,17 @@ export function useGenericTokens(collection: `0x${string}` | undefined, ids: big
   );
 
   /**
-   * Keyed by the resolved URL and nothing else.
+   * The same per-token loader every other surface uses.
    *
-   * Not by collection or token id: a document is the document, wherever it was
-   * reached from. That is what makes two tokens sharing a URL one fetch, and a
-   * token already seen on the market page free here.
-   *
-   * The positional hazard the old code carried a long comment about is gone
-   * with it — there is no array of results to line up against an array of
-   * slots any more, because each slot holds its own query.
+   * This hook had its own copy of it, which is how it also had its own copy of
+   * the bug: a queryFn returning `undefined` makes React Query v5 error the
+   * query and retry it, and "no readable metadata" is an ordinary answer here,
+   * not a failure. One implementation, in useTokenDocuments.
    */
-  const results = useQueries({
-    queries: uris.map((raw) => {
-      const url = resolveMediaUrl(raw) ?? "";
-      return {
-        queryKey: ["token-metadata", url],
-        enabled: url !== "",
-        staleTime: Infinity,
-        gcTime: Infinity,
-        /**
-         * Metadata that cannot be read is a card without a picture, never a
-         * thrown page.
-         *
-         * `loadTokenDocument` asks for this one token and resolves with this
-         * one token, but collects the asks that land beside it into a single
-         * `?ids=` request where the endpoint is ours. Sixty cards therefore
-         * cost one request while each still paints as its own answer arrives.
-         */
-        queryFn: () => loadTokenDocument(url, 20_000).catch(() => undefined),
-      };
-    }),
-  });
+  const { documents: metadata, isLoading: loadingMeta } = useTokenDocuments(uris);
 
   const tokens: LoadedToken[] = ids.map((id, i) => {
-    const m = results[i]?.data;
+    const m = metadata[i];
     return {
       id,
       uri: uris[i],
@@ -112,8 +88,5 @@ export function useGenericTokens(collection: `0x${string}` | undefined, ids: big
    * all — not that some straggler is outstanding. Reporting true until the last
    * document landed is what held the whole grid behind the slowest one.
    */
-  const anyFetching = results.some((r) => r.fetchStatus === "fetching");
-  const noneYet = results.length > 0 && results.every((r) => r.data === undefined);
-
-  return { tokens, isLoading: urisLoading || (anyFetching && noneYet) };
+  return { tokens, isLoading: urisLoading || loadingMeta };
 }

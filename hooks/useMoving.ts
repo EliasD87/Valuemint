@@ -119,21 +119,15 @@ export function useMoving(
     /** The width the still is already being shown at. */
     still,
     /**
-     * The width to ask for the animation at, by screen — smaller, because an
-     * animation costs many times its still.
+     * The width to ask for the animation at — smaller than the still, because
+     * an animation costs many times one.
      *
-     * Measured on Cybereator's 125 frames through `/api/still`:
-     *
-     *     192px    500,500 B
-     *     256px    799,648 B
-     *     384px  1,592,266 B
-     *     512px  2,302,150 B
-     *
-     * A desktop card renders about 325px, so 256 would visibly soften the
-     * moment the picture started moving — which is its own bug report. A phone
-     * card is about 180px, where 256 is already generous. Hence two numbers,
-     * chosen at upgrade time rather than at render, so the server and the
-     * client cannot disagree about the URL.
+     * Measured through the route on Cybereator's 125 frames: 500,500 B at
+     * 192px, 799,648 B at 256, 1,592,266 B at 384, 2,302,150 B at 512. One
+     * width for every caller, so each artwork has ONE animated file that every
+     * screen shares — two widths meant two files, each generated and cached
+     * separately, and the first request for a width nobody had asked for
+     * measured 8,217 ms against a warm 904 ms.
      */
     moving,
     /**
@@ -148,7 +142,7 @@ export function useMoving(
     whenVisible = true,
   }: {
     still: number;
-    moving: { wide: number; narrow: number };
+    moving: number;
     enabled?: boolean;
     whenVisible?: boolean;
   },
@@ -221,9 +215,7 @@ export function useMoving(
     if (!enabled || !seen) return;
     if (!wanted()) return;
 
-    /** Client-side only, so this can read the screen without a mismatch. */
-    const width = window.innerWidth >= 700 ? moving.wide : moving.narrow;
-    const movingSrc = stillUrl(src, width, true);
+    const movingSrc = stillUrl(src, moving, true);
 
     /**
      * A host `/api/still` will not fetch gets its original untouched, so there
@@ -243,7 +235,7 @@ export function useMoving(
     return () => {
       live = false;
     };
-  }, [enabled, seen, src, stillSrc, moving.wide, moving.narrow]);
+  }, [enabled, seen, src, stillSrc, moving]);
 
   /**
    * A stable callback ref. React attaches refs before effects run, so the

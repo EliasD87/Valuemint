@@ -33,18 +33,23 @@ const STILL_WIDTH = 512;
 /**
  * And the width the *animation* is asked for, which is not the same number.
  *
- * Measured through the route on Cybereator's 125 frames: 500,500 B at 192px,
- * 799,648 B at 256, 1,592,266 B at 384, 2,302,150 B at 512. A still is cheap
- * enough to serve at 2x everywhere; an animation is not.
+ * ONE width, not one per screen size. It was 384 on desktop and 256 on a phone,
+ * chosen for sharpness, and that was a bad trade for three reasons:
  *
- * Two widths rather than one, because a desktop card renders about 325px and a
- * phone card about 180. At 256 the desktop grid would visibly soften the
- * instant it started moving, which is its own bug report; at 384 a phone would
- * pay 1.59 MB for a picture it is showing at 180px. Whichever is chosen, it is
- * one file for the whole grid — these collections point every token at the
- * same artwork.
+ *   - it doubles the files. Every artwork then has a 256 AND a 384 animation,
+ *     each generated and cached separately, so the cache hits half as often.
+ *   - the first request for a width nobody has asked for is slow. Measured on
+ *     the live CDN the moment 384 was introduced: 1,592,266 B, 8,217 ms, MISS.
+ *     Until that finished, every card sat on its still — which is exactly the
+ *     "why is it not playing" that prompted this.
+ *   - 384 is twice the bytes of 256 (1,592,266 against 799,648) and the picture
+ *     is MOVING. Sharpness is what you lose least of in an animation.
+ *
+ * So: 256 everywhere. Half the download, one file per artwork rather than two,
+ * and it starts playing about twice as soon. The still stays at 512, so what is
+ * on screen before the swap is as sharp as ever.
  */
-const MOVING_WIDTH = { wide: 384, narrow: 256 };
+const MOVING_WIDTH = 256;
 
 export function Art({
   src,
@@ -92,6 +97,15 @@ export function Art({
     still: STILL_WIDTH,
     moving: MOVING_WIDTH,
     enabled: motion,
+    /**
+     * The first row does not wait to be told it is visible.
+     *
+     * `priority` already means "this is on screen before any scrolling", so
+     * making it prove that through an observer only delays it. Everything below
+     * the fold still waits, which is what keeps a long grid from downloading
+     * animations nobody scrolls to.
+     */
+    whenVisible: !priority,
   });
 
   if (!canOptimise(src) || failed === src) {

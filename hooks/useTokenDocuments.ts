@@ -51,8 +51,22 @@ export function useTokenDocuments(uris: Array<string | undefined>): {
         /** Immutable content: a document at a URL is that document forever. */
         staleTime: Infinity,
         gcTime: Infinity,
-        /** Unreadable metadata is a card without a picture, never a thrown page. */
-        queryFn: () => loadTokenDocument(url, 20_000).catch(() => undefined),
+        /**
+         * `null`, never `undefined`.
+         *
+         * React Query v5 treats an `undefined` return as a programming error —
+         * "Query data cannot be undefined" — and then errors the query and
+         * retries it. But "this token has no readable metadata" is a perfectly
+         * ordinary answer here: SoDEX serves its treasure-box documents with
+         * HTTP 501, some collections publish none at all, and a gateway can
+         * simply refuse. Those became failed queries with retries behind them,
+         * three requests each, for an answer we already had.
+         *
+         * `null` is a value, so the query succeeds and holds "nothing", which is
+         * the truth. It is mapped back to `undefined` at the boundary because
+         * that is what every consumer of a metadata document expects.
+         */
+        queryFn: () => loadTokenDocument(url, 20_000).then((d) => d ?? null).catch(() => null),
       };
     }),
   });
@@ -67,7 +81,7 @@ export function useTokenDocuments(uris: Array<string | undefined>): {
   const noneYet = results.length > 0 && results.every((r) => r.data === undefined);
 
   return {
-    documents: results.map((r) => r.data as TokenMetadata | undefined),
+    documents: results.map((r) => (r.data ?? undefined) as TokenMetadata | undefined),
     isLoading: anyFetching && noneYet,
   };
 }
