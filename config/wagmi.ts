@@ -84,7 +84,30 @@ export const wagmiConfig = createConfig({
    * about one frame: long enough for a render pass to queue everything a page
    * mounts at once, short enough that nobody perceives it.
    */
-  batch: { multicall: { wait: 16 } },
+  /**
+   * `batchSize` in BYTES of calldata, and the default is 1024 - which is small
+   * enough to matter.
+   *
+   * `getOrderStatus(bytes32)` is 36 bytes of calldata, so the default packs 28
+   * of them into a chunk. At the 2,000-order ceiling the order book's periodic
+   * re-check costs 569 separate `eth_call`s every 25 seconds *per open tab*,
+   * and there is no shared read path - no server caches any of this - so
+   * visitors multiply that load rather than share it. 100 people on /market is
+   * ~2,300 eth_call/s at the ceiling, against a public node nobody here owns.
+   *
+   * Measured against that node, 400 real `ownerOf` calls:
+   *
+   *    1024 (default)   15 chunks   1356ms
+   *    4096              4 chunks    648ms
+   *    8192              2 chunks    724ms
+   *   16384              1 chunk    1032ms
+   *
+   * 8192 is the knee. It is 7.5x fewer requests for identical data and the same
+   * wall time; past it a single call gets slower without costing the node less.
+   * The work the node does is unchanged either way - this is purely about how
+   * many requests it is asked in.
+   */
+  batch: { multicall: { wait: 16, batchSize: 8192 } },
   transports: {
     [valuechain.id]: fallback(
       [
