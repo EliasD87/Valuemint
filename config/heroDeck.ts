@@ -16,48 +16,100 @@
  * So the deck is a curated snapshot now, bundled and served from our own
  * origin. It paints immediately.
  *
- * **The cost, stated plainly:** this is a hardcoded list of collections, which
- * is the thing CLAUDE.md warns about, and it will not notice a new collection
- * or one that gets hidden. That is acceptable for a decorative fan of five
- * cards and would not be for anything that quotes a number. If the set of
- * collections changes, update this file - the artwork lives in `public/hero/`
- * and `scripts/refresh-hero.mjs` re-downloads it.
+ * **The cost, stated plainly:** this is a hardcoded list, which is the thing
+ * CLAUDE.md warns about, and it will not notice a new collection or one that
+ * gets hidden. That is acceptable for a decorative fan of five cards and would
+ * not be for anything that quotes a number. The artwork lives in `public/hero/`
+ * and `public/boxes/`; `scripts/refresh-hero.mjs` re-downloads the former.
  *
- * Everything below the hero is still live.
+ * Everything below the hero is still live, including the collections rail - so
+ * the front page still answers "what is on this marketplace" even while the
+ * deck is pointed at one thing.
+ *
+ * ---
+ *
+ * **Why the deck is the SoDEX treasure boxes.**
+ *
+ * They are not minted and cannot be bought. SoDEX sends them to people who
+ * finish tasks, so a holder did not buy one and cannot buy another - the only
+ * thing left to do with it is trade it, and this is where that happens. That
+ * makes them the best answer this page has to "why would I come here", which
+ * is the hero's whole job.
+ *
+ * The four boxes are a rarity ladder and keep that order outward from the
+ * centre - common and uncommon on the left, rare and super rare on the right -
+ * so the fan still reads left to right the way the tiers do. The Cybereator
+ * takes the middle slot, which is the front of the fan, because it is the only
+ * animated card and the other four are stills of the same object.
  */
 
 export interface HeroCard {
-  /** Where the card links. Live, so a wrong address here is a broken link. */
-  address: `0x${string}`;
+  /**
+   * Where the card links. Live, so a wrong address here is a broken link.
+   *
+   * Optional, because a card can exist before its collection does. The SoDEX
+   * boxes are announced and not yet deployed: there is no address to link to,
+   * and inventing one sends people to somebody else's contract. A card without
+   * an address renders as a card rather than a link.
+   *
+   * **On the day the real collection ships**, add its address to the four box
+   * cards and they start linking. Nothing else needs to change - the rest of
+   * the site picks the collection up on its own, because the marketplace lists
+   * any ERC-721 the explorer indexes.
+   */
+  address?: `0x${string}`;
   name: string;
-  /** Bundled, 600px WebP. See public/hero/. */
+  /** Bundled WebP, served from our own origin. See `public/`. */
   image: string;
+  /**
+   * The line under the name.
+   *
+   * Defaults to "View collection", which is a promise a card cannot keep when
+   * there is no collection yet. For the boxes it carries the tier instead,
+   * which is the useful thing to say about four pictures of the same object.
+   */
+  caption?: string;
 }
 
 export const HERO_DECK: HeroCard[] = [
   {
-    address: "0xaAb0dC8f2835Ed903b35d2f52FF17c4bc92Bec19",
-    name: "The Trenches",
-    image: "/hero/trenches.webp",
+    name: "Common box",
+    image: "/boxes/common.webp",
+    caption: "SoDEX reward",
   },
   {
-    address: "0x0273DF41B56E3480886Fe8f0451349bEc0f8edf6",
-    name: "SoDex Larpers",
-    image: "/hero/larpers.webp",
+    name: "Uncommon box",
+    image: "/boxes/uncommon.webp",
+    caption: "SoDEX reward",
   },
   {
-    address: "0x5Fadc59297e86aceA20Bff519aea0f9651Cdc90B",
-    name: "ValueChain Genesis",
-    image: "/hero/genesis.webp",
+    /**
+     * The middle slot, which is the front of the fan.
+     *
+     * `axis` is `(deck.length - 1) / 2`, so on five cards index 2 sits at slot
+     * 0: no tilt, no offset, on top of the other four. It is the one card
+     * anybody looks at first, and it is the only animated one - the other four
+     * are stills of the same object in four materials and would waste the
+     * position.
+     *
+     * Animated, and the only card here that is. Converted from the 1,053 KB
+     * source GIF to a 324 KB animated WebP - all 33 frames, a 69% saving. It is
+     * still the heaviest thing in the deck by far (the next is 55 KB), which
+     * matters because every card is above the fold and fetched at high
+     * priority. Worth it for the front card; do not add a second.
+     */
+    name: "Cybereator",
+    image: "/boxes/cybereator.webp",
+    caption: "Unrevealed",
   },
   {
-    address: "0xe1C322BC972f78E78cfac98f71aA986C65D9C3bD",
-    name: "Trade Buddies",
-    image: "/hero/buddies.webp",
+    name: "Rare box",
+    image: "/boxes/rare.webp",
+    caption: "SoDEX reward",
   },
   {
-    address: "0x01c28095bfffc9973Da4c4e8A34E9d5b6649C988",
-    name: "Hypno Plush",
-    image: "/hero/hypno.webp",
+    name: "Super rare box",
+    image: "/boxes/superrare.webp",
+    caption: "SoDEX reward",
   },
 ];

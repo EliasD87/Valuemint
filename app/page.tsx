@@ -402,9 +402,11 @@ export default function Home() {
  * config/heroDeck.ts, which is now the only source for these.
  */
 interface DeckCard {
-  address: string;
+  /** Absent until the collection is deployed; the card then does not link. */
+  address?: `0x${string}`;
   name: string;
   image: string;
+  caption?: string;
 }
 
 /**
@@ -480,43 +482,22 @@ function Hero({ deck }: { deck: DeckCard[] }) {
 
       <div className="hx-deck">
         {deck.map((c, i) => (
-          <Link
-            key={c.address}
-            href={`/collection/${c.address}`}
-            className={
-              `hx-card` +
-              (Math.abs(i - axis) === nearest ? " is-centre" : "") +
-              // Marked rather than derived in CSS: the phone rule has to drop
-              // the widest cards, and `:has(+ .is-centre)` cannot express that
-              // when an even count leaves two cards tied for the middle.
-              //
-              // The threshold is 1.5 because slots are half-integers on an even
-              // count: four cards sit at ±0.5 and ±1.5 and all four fit a
-              // phone, while five reach ±2 and the outermost pair does not.
-              (Math.abs(i - axis) > 1.5 ? " is-far" : "")
-            }
-            style={{ ["--slot" as string]: i - axis, ["--abs" as string]: Math.abs(i - axis) }}
-          >
-            <span className="hx-card-art">
-              {/*
-                A plain <img>, not <Art>. These are our own 600px WebPs served
-                from this origin, so the optimiser would add a round trip to
-                save nothing - the same reasoning as the SOSO mark.
+          <DeckTile
+            key={`${c.name}-${i}`}
+            card={c}
+            slot={i - axis}
+            centre={Math.abs(i - axis) === nearest}
+            /*
+              Marked rather than derived in CSS: the phone rule has to drop the
+              widest cards, and `:has(+ .is-centre)` cannot express that when an
+              even count leaves two cards tied for the middle.
 
-                `fetchPriority="high"` and no lazy attribute: every card is
-                above the fold and they are the first thing anyone sees.
-              */}
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={c.image} alt="" width={600} height={600} fetchPriority="high" decoding="async" />
-            </span>
-            <span className="hx-card-body">
-              <b>{c.name}</b>
-              {/* The live "N shown" count went with the query. A number that
-                  cannot refresh is worse than no number; the name is enough on
-                  a card whose only job is to be clicked. */}
-              <span>View collection</span>
-            </span>
-          </Link>
+              The threshold is 1.5 because slots are half-integers on an even
+              count: four cards sit at ±0.5 and ±1.5 and all four fit a phone,
+              while five reach ±2 and the outermost pair does not.
+            */
+            far={Math.abs(i - axis) > 1.5}
+          />
         ))}
       </div>
     </section>
@@ -524,6 +505,73 @@ function Hero({ deck }: { deck: DeckCard[] }) {
 }
 
 
+
+/**
+ * One card in the fan.
+ *
+ * Its own component for a dull but real reason: a card links only when its
+ * collection exists, and expressing that as a dynamic tag with a spread
+ * (`const Card = address ? Link : "div"`) made React lose track of the `key` and
+ * warn on every render. Two explicit branches are clearer and quieter.
+ *
+ * The SoDEX boxes are announced and not yet deployed, so there is no collection
+ * page for them - `/collection/undefined` renders "that isn't a valid address",
+ * which is a worse first impression than a card that simply does not move.
+ */
+function DeckTile({
+  card,
+  slot,
+  centre,
+  far,
+}: {
+  card: DeckCard;
+  slot: number;
+  centre: boolean;
+  far: boolean;
+}) {
+  const className = `hx-card${centre ? " is-centre" : ""}${far ? " is-far" : ""}`;
+  const style = { ["--slot" as string]: slot, ["--abs" as string]: Math.abs(slot) };
+
+  const inner = (
+    <>
+      <span className="hx-card-art">
+        {/*
+          A plain <img>, not <Art>. These are our own WebPs served from this
+          origin, so the optimiser would add a round trip to save nothing - the
+          same reasoning as the SOSO mark.
+
+          `fetchPriority="high"` and no lazy attribute: every card is above the
+          fold and they are the first thing anyone sees.
+        */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={card.image} alt="" width={600} height={600} fetchPriority="high" decoding="async" />
+      </span>
+      <span className="hx-card-body">
+        <b>{card.name}</b>
+        {/* The live "N shown" count went with the query. A number that cannot
+            refresh is worse than no number.
+
+            "View collection" is the default and a promise a card cannot keep
+            before its collection exists, so a card may override it. */}
+        <span>{card.caption ?? "View collection"}</span>
+      </span>
+    </>
+  );
+
+  if (card.address === undefined) {
+    return (
+      <div className={className} style={style}>
+        {inner}
+      </div>
+    );
+  }
+
+  return (
+    <Link href={`/collection/${card.address}`} className={className} style={style}>
+      {inner}
+    </Link>
+  );
+}
 
 function Filt({
   active,
