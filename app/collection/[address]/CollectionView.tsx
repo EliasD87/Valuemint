@@ -2,9 +2,8 @@
 
 import { use, useMemo, useState } from "react";
 import Link from "next/link";
-import { useAccount, useReadContracts } from "wagmi";
-import { erc721Abi } from "viem";
-import { ERC721_INTERFACE_ID, enumerableAbi, erc165Abi } from "@/config/erc721";
+import { useAccount } from "wagmi";
+import { useCollectionBasics } from "@/hooks/useCollectionBasics";
 import { deployment } from "@/config/contracts";
 import { useBestListings } from "@/hooks/useSeaportOrders";
 import { toListing, type Listing } from "@/lib/seaport";
@@ -34,61 +33,15 @@ export function CollectionView({ params }: { params: Promise<{ address: string }
 
   const valid = /^0x[0-9a-fA-F]{40}$/.test(raw);
   const collection = valid ? (raw as `0x${string}`) : undefined;
-  const base = { address: collection, abi: erc721Abi } as const;
 
   /**
-   * Everything the page needs before it can ask for anything else, in ONE call.
+   * One multicall for the four things everything else waits on.
    *
-   * These were three hooks — a `supportsInterface` probe, a name/symbol pair,
-   * and `totalSupply` — and wagmi gave each its own round trip. Nothing about
-   * them is sequential; each simply waited its turn. Measured on the live site,
-   * the collection page spent 312 ms to 3,504 ms in nine serial RPC round trips
-   * of roughly 320 ms each, and the first metadata request did not go out until
-   * 3,629 ms. Artwork cannot appear before the reads that name it, so that
-   * waterfall WAS the loading time.
-   *
-   * One `useReadContracts` is one multicall is one round trip. Three waves
-   * become one, and the reads that genuinely do depend on this one start about
-   * 700 ms earlier.
-   *
-   * `retry: false` because a collection that is not an ERC-721, or has no
-   * `totalSupply`, must fail fast — those reverts are answers, not errors.
+   * The hook is shared with the home page's background warmer, so that opening
+   * a collection from there finds this already read — see hooks/useCollectionBasics.ts.
    */
-  const {
-    data: basics,
-    isLoading: probing,
-    isFetched: supplyKnown,
-  } = useReadContracts({
-    contracts: [
-      {
-        address: collection,
-        abi: erc165Abi,
-        functionName: "supportsInterface" as const,
-        args: [ERC721_INTERFACE_ID],
-      },
-      { ...base, functionName: "name" as const },
-      { ...base, functionName: "symbol" as const },
-      { address: collection, abi: enumerableAbi, functionName: "totalSupply" as const },
-    ],
-    query: { enabled: collection !== undefined, retry: false },
-  });
-
-  const isErc721 = basics?.[0]?.status === "success" ? (basics[0].result as boolean) : undefined;
-  const name = basics?.[1]?.status === "success" ? (basics[1].result as string) : undefined;
-  const symbol = basics?.[2]?.status === "success" ? (basics[2].result as string) : undefined;
-
-  /**
-   * `totalSupply` belongs to the Enumerable extension, which is optional.
-   *
-   * Whether the read has LANDED matters as much as its value. `supply ===
-   * undefined` means both "the call has not come back" and "this contract has
-   * no totalSupply", and the page told the visitor the second before it could
-   * possibly know: the first paint of every collection read "This collection
-   * doesn't publish a token list", then replaced itself with the grid a second
-   * later. `supplyKnown` is the multicall's `isFetched`, which is exactly the
-   * same signal it was when this was its own hook.
-   */
-  const supply = basics?.[3]?.status === "success" ? (basics[3].result as bigint) : undefined;
+  const { isErc721, name, symbol, supply, supplyKnown, probing } =
+    useCollectionBasics(collection);
 
   // Cap the first page; a large collection should not fire thousands of reads.
   const { ids, isLoading: findingIds } = useTokenIds(collection, supply, 60);

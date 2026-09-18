@@ -171,3 +171,29 @@ export const FEATURED: FeaturedPiece[] = [
     image: "https://ipfs.filebase.io/ipfs/QmZhR1M4Tmnu42Qgz5c5EcjCBJK7JVaTjgXuRNM2LfkiDq",
   },
 ];
+
+/**
+ * Collections to read in the background while somebody is on the front page,
+ * so that opening one is instant.
+ *
+ * ── KEEP THIS SHORT ──────────────────────────────────────────────────────
+ *
+ * Each entry costs roughly sixty `tokenByIndex` and sixty `tokenURI` calls
+ * plus one batched metadata request, paid by every visitor to the home page
+ * whether or not they ever click through. Two or three is the right size; a
+ * list of everything would spend more than it saves.
+ *
+ * They are warmed one at a time, a couple of seconds apart, after the front
+ * page's own artwork has had the network to itself. See `components/WarmChain.tsx`.
+ */
+export const WARM_COLLECTIONS: ReadonlyArray<`0x${string}`> = [
+  /** Cybereator — the real one. */
+  "0xCD30D4bCaa99E556B70A2C4bDFC4050D26E48D30",
+
+  /** The treasure boxes. Only the test contract exists so far; when the real
+      one is deployed, add it here and it is warmed like the rest. */
+  "0x761C3DD0f7a9282E9c5D108394EC7f3AB524A213",
+
+  /** TestCybereator, which is what most of the traded pieces are today. */
+  "0x412D8af16B7fF3FE75e1CD380BD86Ef33dD8AD0f",
+];

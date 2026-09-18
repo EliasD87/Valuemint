@@ -2,29 +2,82 @@
 
 import { useBestListings } from "@/hooks/useSeaportOrders";
 import { useAllCollections } from "@/hooks/useAllCollections";
+import { useCollectionBasics } from "@/hooks/useCollectionBasics";
+import { useTokenIds } from "@/hooks/useTokenIds";
+import { useGenericTokens } from "@/hooks/useGenericTokens";
 import { useDeferred } from "@/hooks/useDeferred";
+import { WARM_COLLECTIONS } from "@/config/featured";
 
 /**
  * Read the chain while somebody is looking at the front page, so the page they
  * open next has already been read.
  *
- * The expensive part of a collection page is not the collection — it is the
- * Seaport order book, rebuilt from logs, which every page shares through one
- * React Query entry. Measured on a cold collection page, those log scans took
- * the RPC connection for 1.4 s in the gap between `totalSupply` and
- * `tokenByIndex`, the two reads every picture waits on. The control case is
- * the whole argument for this file: with that scan already cached,
- * `tokenByIndex` went out 26 ms after supply rather than 1,417 ms, and the
- * first image appeared at **2,177 ms instead of 4,669 ms**.
+ * The front page itself needs none of this any more — its grid is a list of
+ * named pictures — which is precisely what frees the connection to do this
+ * instead. The visitor is reading; by the time they click, the answer is in
+ * memory.
  *
- * The front page no longer needs any of it. Its grid is a list of named
- * pictures now, so the reads that used to block it are free to happen in the
- * background instead — the visitor is reading, and by the time they click,
- * the answer is in memory.
+ * Two kinds of warming, in order of what they save:
  *
- * Mounted late rather than gated internally, because these hooks fire on mount
- * and have no switch. Mounting is the switch.
+ *   1. **The order book.** Rebuilt from Seaport's logs, shared by every page
+ *      through one React Query entry, and the single most expensive thing a
+ *      collection page waits on. Measured on a cold collection page, those log
+ *      scans held the RPC connection for 1.4 s in the gap between `totalSupply`
+ *      and `tokenByIndex` — the two reads every picture waits for. With the
+ *      scan already cached, `tokenByIndex` went out 26 ms after supply instead
+ *      of 1,417 ms, and the first image appeared at **2,177 ms instead of
+ *      4,669 ms**.
+ *
+ *   2. **The collections themselves** — their ids, their token URIs and their
+ *      metadata, for the few that people actually open. That is the rest of the
+ *      ladder, done in advance.
+ *
+ * It is not free, so it is not done for everything. Each warmed collection is
+ * roughly sixty `tokenByIndex` and sixty `tokenURI` calls plus one batched
+ * metadata request, paid by every visitor whether or not they ever click. The
+ * list in `config/featured.ts` is deliberately short, and they are staggered so
+ * that no two are ever in flight together.
+ *
+ * Correctness rests on one thing: the warmer runs the SAME hooks as the
+ * collection page, so wagmi and React Query key the results identically and the
+ * page finds them rather than refetching. That is why `useCollectionBasics`
+ * exists as a shared hook instead of the page holding its own copy of the call.
  */
+
+/** One collection, read exactly as its own page would read it. */
+function WarmCollection({ address }: { address: `0x${string}` }) {
+  const { supply } = useCollectionBasics(address);
+
+  /** 60 is the collection page's own first-page cap; a different number would miss. */
+  const { ids } = useTokenIds(address, supply, 60);
+
+  /** Token URIs and, through the batcher, one metadata request for all of them. */
+  useGenericTokens(address, ids);
+
+  return null;
+}
+
+/**
+ * Mounted one after another rather than all at once.
+ *
+ * Mounting is the only switch these hooks have, and staggering keeps the
+ * background work from arriving as one burst on a connection the page still
+ * wants. Each waits for the one before it plus a gap.
+ */
+function WarmQueue({ addresses, after }: { addresses: readonly `0x${string}`[]; after: number }) {
+  const ready = useDeferred(after);
+  const [first, ...rest] = addresses;
+
+  if (!ready || first === undefined) return null;
+
+  return (
+    <>
+      <WarmCollection address={first} />
+      {rest.length > 0 ? <WarmQueue addresses={rest} after={2_500} /> : null}
+    </>
+  );
+}
+
 function Warm() {
   /** The order book. The one read worth having before it is asked for. */
   useBestListings();
@@ -44,5 +97,14 @@ export function WarmChain() {
    * landing page before clicking anything.
    */
   const ready = useDeferred(1_500);
-  return ready ? <Warm /> : null;
+  if (!ready) return null;
+
+  return (
+    <>
+      <Warm />
+      {/* The collections behind the pinned pieces, one at a time, starting once
+          the shared scans above have had a moment to themselves. */}
+      <WarmQueue addresses={WARM_COLLECTIONS} after={2_000} />
+    </>
+  );
 }
