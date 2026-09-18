@@ -14,6 +14,7 @@ import { Soso } from "@/components/Soso";
 import { formatSoso, resolveMediaUrl, shortAddress } from "@/lib/format";
 import "@/styles/token.css";
 import { Activity } from "@/components/Activity";
+import { MovingArt } from "@/components/MovingArt";
 
 /**
  * The ERC-1155 token page.
@@ -88,8 +89,9 @@ export function MultiTokenView({
           {image === undefined ? (
             <div className="token-art-empty">{isLoading ? "Loading…" : "No artwork"}</div>
           ) : (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={image} alt={metadata?.name ?? `#${tokenId}`} />
+            /* Through the proxy, same as the 721 page: the original can be a
+               6.58 MB GIF, and this rendered it raw. See `MovingArt`. */
+            <MovingArt src={image} alt={metadata?.name ?? `#${tokenId}`} />
           )}
         </div>
 
