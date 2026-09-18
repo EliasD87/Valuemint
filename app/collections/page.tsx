@@ -110,8 +110,22 @@ export default function Collections() {
 
       {error !== null ? (
         <p className="coll-warn">
-          The block explorer&rsquo;s token list is unavailable right now, so only collections from
-          the factory are shown. You can still open any collection by pasting its address above.
+          {/*
+            No longer "paste its address above". That box was removed from this
+            page, and the sentence outlived it — a message telling somebody to
+            use a control that is not there is worse than no message, because it
+            reads as the page being broken in a second way.
+
+            What is left is true and complete: the factory's own collections are
+            unaffected, the missing ones are only those the explorer indexed,
+            and nothing about the shortfall is permanent. The way out it points
+            at is the header search, which takes an address and opens the
+            collection at it — that still exists.
+          */}
+          The block explorer&rsquo;s token list is unavailable right now, so this shows only the
+          collections deployed through ValueMint. Others are still tradeable &mdash; search an
+          address to open one &mdash; and they reappear here as soon as the explorer answers
+          again.
         </p>
       ) : null}
 
