@@ -8,7 +8,6 @@ import { OfferDialog } from "@/components/OfferDialog";
 import type { LoadedToken } from "@/hooks/useTokens";
 import type { Listing } from "@/lib/seaport";
 import { formatSoso } from "@/lib/format";
-import { soleArtworkFor } from "@/config/covers";
 import { tierClass } from "@/lib/tokenMetadata";
 import { Art } from "@/components/Art";
 import "./TokenCard.css";
@@ -104,20 +103,6 @@ export function TokenCard({
   const [offering, setOffering] = useState(false);
 
   /**
-   * The collection's own artwork, when the token's metadata cannot be read.
-   *
-   * Only for collections whose every token is the same one file — see
-   * `soleArtworkFor`, which returns nothing otherwise. For those, this is not a
-   * guess about what the piece looks like, it is what the piece looks like.
-   *
-   * It earns its place: SoDEX's metadata gateway answered 503 for every token
-   * of all three of its collections, and a 2,233-piece collection rendered as
-   * numbered grey tiles. The picture was reachable the whole time — we simply
-   * could not read the document that names it.
-   */
-  const image = token.image ?? soleArtworkFor(collection);
-
-  /**
    * The card used to be a single `<Link>` wrapping everything, which left
    * nowhere valid to put a button: a button inside an anchor is invalid HTML
    * and the click handling is ambiguous even where browsers tolerate it.
@@ -134,7 +119,7 @@ export function TokenCard({
         aria-label={`${token.design ?? collectionName ?? "Token"} #${token.id.toString()}`}
       />
       <div className="tcard-media">
-        {image !== undefined ? (
+        {token.image !== undefined ? (
           /**
            * Through `Art`, not a bare <img>.
            *
@@ -145,7 +130,7 @@ export function TokenCard({
            * the whole reason `Art` exists — this card simply never used it.
            */
           <Art
-            src={image}
+            src={token.image}
             alt={token.design ?? `${collectionName ?? "Token"} ${token.id}`}
             sizes="(max-width: 560px) 50vw, (max-width: 1100px) 33vw, 260px"
             priority={priority}
