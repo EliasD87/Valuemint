@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useState } from "react";
-import { canOptimise } from "@/lib/media";
+import { canOptimise, stillUrl } from "@/lib/media";
 
 /**
  * A piece of collection artwork.
@@ -86,7 +86,7 @@ export function Art({
    */
   return (
     <Image
-      src={`/api/still?url=${encodeURIComponent(src)}&size=${STILL_WIDTH}`}
+      src={stillUrl(src, STILL_WIDTH)}
       alt={alt}
       fill
       sizes={sizes}

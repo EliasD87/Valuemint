@@ -62,3 +62,24 @@ export function canOptimise(src: string): boolean {
     return false;
   }
 }
+
+/**
+ * The `/api/still` URL for a piece of artwork.
+ *
+ * `animate` keeps every frame, which is only worth it where a visitor is
+ * looking at one image on purpose. Measured on Cybereator's 6.27 MB GIF: a
+ * still is 22 KB and the animation is 2.3 MB — 2.9x smaller than the original
+ * either way, but 100x apart from each other. A grid of sixty cards takes the
+ * still; a token page takes the animation.
+ *
+ * Returns the source unchanged for a host the route will not fetch, so the
+ * caller can hand this straight to an `<img>` in every case.
+ *
+ * `size`, not `w`: `next/image` treats `w` as its own and strips it out of a
+ * src it is given.
+ */
+export function stillUrl(src: string, size: number, animate = false): string {
+  if (!canOptimise(src)) return src;
+  const q = `url=${encodeURIComponent(src)}&size=${size}`;
+  return `/api/still?${q}${animate ? "&animate=1" : ""}`;
+}

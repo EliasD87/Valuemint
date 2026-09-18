@@ -17,7 +17,7 @@ import { metadataFetchAllowed } from "@/lib/media";
  * again a minute later. At the traffic this launch expects that is hundreds of
  * gigabytes for one picture.
  *
- * A card is 260px and never animates anything. `sharp` takes one frame, resizes
+ * A card is 260px and never needs to animate. `sharp` takes one frame, resizes
  * it to the slot and re-encodes to WebP. Measured against that same GIF:
  *
  *     6,577,743 bytes  ->  8,976 bytes at w=256     (733x smaller)
@@ -39,6 +39,9 @@ import { metadataFetchAllowed } from "@/lib/media";
  *
  * A failure redirects to the original rather than erroring, so a picture this
  * route cannot process still appears — just heavier.
+ *
+ * `animate=1` keeps every frame instead, for the token page: one image, opened
+ * on purpose, where the animation is the point. See that branch for the sizes.
  */
 
 /**
@@ -89,6 +92,22 @@ export async function GET(request: Request) {
    */
   const width = Number(params.get("size") ?? "256");
 
+  /**
+   * Keep the animation, for the one place it is worth its weight.
+   *
+   * Measured on Cybereator's 6.27 MB, 125-frame GIF:
+   *
+   *     still 512px                 22 KB
+   *     animated webp 256px q60    598 KB
+   *     animated webp 480px q75  2,248 KB   (native size, 2.9x smaller than source)
+   *
+   * So animation costs about 27x a still. On a grid of sixty cards that is
+   * tens of megabytes and the answer is obviously no. On a token page it is one
+   * image, deliberately opened, and the answer is just as obviously yes - and
+   * even there this is 2.9x smaller than the GIF it replaces.
+   */
+  const animate = params.get("animate") === "1";
+
   if (!metadataFetchAllowed(src)) {
     return NextResponse.json({ error: "That host is not allowed." }, { status: 400 });
   }
@@ -128,6 +147,22 @@ export async function GET(request: Request) {
     const meta = await sharp(source, { animated: true }).metadata();
     const pages = meta.pages ?? 1;
     const page = pages > 1 ? Math.floor(pages / 2) : 0;
+
+    if (animate) {
+      /**
+       * `animated: true` keeps every frame, and `resize` then applies to all of
+       * them. Quality 75 rather than 80: across 125 frames the few extra points
+       * cost far more than they show.
+       */
+      const moving = await sharp(source, { animated: true })
+        .resize({ width, withoutEnlargement: true })
+        .webp({ quality: 75, effort: 4 })
+        .toBuffer();
+
+      return new NextResponse(new Uint8Array(moving), {
+        headers: { ...CACHE, "Content-Type": "image/webp" },
+      });
+    }
 
     /**
      * `pages: 1` is what makes this a still — without it sharp keeps the whole

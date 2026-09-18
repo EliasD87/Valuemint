@@ -19,6 +19,7 @@ import { Offers } from "@/components/Offers";
 import { TxResult } from "@/components/TxResult";
 import { ShareLink } from "@/components/ShareLink";
 import { formatSoso, resolveMediaUrl, shortAddress } from "@/lib/format";
+import { stillUrl } from "@/lib/media";
 import "@/styles/token.css";
 import { Activity, LastSale } from "@/components/Activity";
 
@@ -323,7 +324,17 @@ export function TokenView({
       <div className="token-grid">
         <figure className="token-figure">
           {image !== undefined ? (
-            <img src={image} alt={metadata?.name ?? `Token ${id}`} />
+            /*
+              Animated, and far lighter than the original.
+              
+              This rendered the source directly, which for Cybereator is a
+              6.58 MB GIF served with `max-age=60`. Through the route it is a
+              2.3 MB animated WebP, immutable for a year — the animation kept,
+              because this is the one place a visitor is looking at a single
+              piece on purpose. The cards take the 22 KB still instead.
+            */
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={stillUrl(image, 512, true)} alt={metadata?.name ?? `Token ${id}`} />
           ) : noMetadata ? (
             /* Nothing is loading here and nothing ever will. See `noMetadata`. */
             <div className="token-placeholder token-bare">
