@@ -4,9 +4,9 @@ import { useQueries } from "@tanstack/react-query";
 import { useReadContracts } from "wagmi";
 import { erc721Abi } from "viem";
 import { resolveMediaUrl } from "@/lib/format";
-import { gated } from "@/lib/fetchGate";
+import { loadTokenDocument } from "@/lib/metadataBatch";
 import type { LoadedToken } from "@/hooks/useTokens";
-import { fetchTokenMetadata, tierOf, traitOf } from "@/lib/tokenMetadata";
+import { tierOf, traitOf } from "@/lib/tokenMetadata";
 
 /**
  * Loads tokens from an arbitrary ERC-721, using only the standard interface.
@@ -79,8 +79,16 @@ export function useGenericTokens(collection: `0x${string}` | undefined, ids: big
         enabled: url !== "",
         staleTime: Infinity,
         gcTime: Infinity,
-        /** Metadata that cannot be read is a card without a picture, never a thrown page. */
-        queryFn: () => gated(url, () => fetchTokenMetadata(url, 20_000)).catch(() => undefined),
+        /**
+         * Metadata that cannot be read is a card without a picture, never a
+         * thrown page.
+         *
+         * `loadTokenDocument` asks for this one token and resolves with this
+         * one token, but collects the asks that land beside it into a single
+         * `?ids=` request where the endpoint is ours. Sixty cards therefore
+         * cost one request while each still paints as its own answer arrives.
+         */
+        queryFn: () => loadTokenDocument(url, 20_000).catch(() => undefined),
       };
     }),
   });

@@ -323,7 +323,7 @@ export function CollectionView({ params }: { params: Promise<{ address: string }
         </div>
       ) : (
         <div className="grid-tokens">
-          {shown.map((t) => (
+          {shown.map((t, i) => (
             <TokenCard
               key={t.id.toString()}
               token={t}
@@ -331,6 +331,16 @@ export function CollectionView({ params }: { params: Promise<{ address: string }
               collectionName={name}
               listing={listings.get(t.id.toString())}
               viewerAddress={viewer}
+              /*
+                The first row loads eagerly.
+                
+                `next/image` is lazy by default, and measured on this page that
+                meant 0 of 60 images began fetching when their src was set —
+                every one waited on an intersection callback, on the row already
+                filling the screen. The home page marks its first four; this
+                page never did.
+              */
+              priority={i < 4}
             />
           ))}
         </div>

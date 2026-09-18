@@ -1,16 +1,16 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
 import { useReadContracts } from "wagmi";
 import { erc721Abi } from "viem";
 import { useBestListings } from "@/hooks/useSeaportOrders";
 import { toListing } from "@/lib/seaport";
+import { useTokenDocuments } from "@/hooks/useTokenDocuments";
 import { resolveMediaUrl } from "@/lib/format";
 import { useAllCollections } from "@/hooks/useAllCollections";
 import { useOwnedTokens } from "@/hooks/useOwnedTokens";
 import type { TokenMetadata } from "@/hooks/useCollection";
 import type { ChainToken } from "@/hooks/useEverything";
-import { fetchManyTokenMetadata, tierOf, traitOf } from "@/lib/tokenMetadata";
+import { tierOf, traitOf } from "@/lib/tokenMetadata";
 
 /**
  * Exactly what one address holds, across every collection.
@@ -134,26 +134,7 @@ export function useHoldings(address: `0x${string}` | undefined) {
     return entry?.status === "success" ? (entry.result as string) : undefined;
   });
 
-  const { data: metadata, isLoading: loadingMeta } = useQuery({
-    /**
-     * Positions matter in this key.
-     *
-     * It was `uris.filter(Boolean).join("|")`, which drops the gaps — so two
-     * different arrangements of the same URIs produced the SAME cache key while
-     * the results are read back positionally (`metadata?.[i]` against the full
-     * slot list). `[undefined, "A", "B"]` and `["A", "B", undefined]` both keyed
-     * as "A|B", and whichever landed first was served for the other: the wrong
-     * picture and the wrong name against a token somebody might be about to buy.
-     *
-     * Keeping the gaps as empty strings makes the key describe the array actually
-     * being fetched.
-     */
-queryKey: ["holdings", address, uris.filter(Boolean).join("|")],
-    enabled: uris.some((u) => u !== undefined),
-    staleTime: Infinity,
-    gcTime: Infinity,
-    queryFn: () => fetchManyTokenMetadata(uris.map((u) => resolveMediaUrl(u)), 10),
-  });
+  const { documents: metadata, isLoading: loadingMeta } = useTokenDocuments(uris);
 
   const tokens: ChainToken[] = held.map((h, i) => {
     const order = bestListings.get(`${h.collection.address.toLowerCase()}-${h.id}`);
