@@ -441,7 +441,16 @@
  * with `overflow: hidden`, so the cards looked empty. The rule was never in
  * this file because nothing had ever needed it.
  */
-.hx-card-art img {
+/**
+ * The direct child only, which is the artwork.
+ *
+ * This was `.hx-card-art img` and it matched every image inside the card -
+ * including the SoDEX mark in the caption, which is nested two levels deeper.
+ * That mark was duly absolutely positioned and stretched to 100% x 100% over
+ * the box it was meant to label, so the artwork vanished behind a card-sized
+ * white wordmark and every box card looked blank.
+ */
+.hx-card-art > img {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -450,13 +459,92 @@
   display: block;
 }
 
+/**
+ * The name, over the artwork and only while you are looking at that card.
+ *
+ * Two problems it solves at once. The strip this used to be - below the square
+ * art, on `--surface-2` with a top rule - sat entirely inside the 18% that
+ * `.hx-deck` crops away to make the fan stand in front of the section edge, so
+ * the names had never been visible on any card, in any theme, at any width. And
+ * a label above the deck naming the set made the hero taller and, on a phone,
+ * detached from the cards entirely and read as a footer to the section.
+ *
+ * On the artwork it costs no layout at all, and revealing it on hover keeps the
+ * default state what it should be: five pieces of art, undecorated.
+ *
+ * No theme tokens here, which is the one place in this file that is correct:
+ * this type sits on the artwork, not on the page. All five pieces carry a dark
+ * ground - the two that shipped with alpha had one composited in - so a scrim
+ * and white type read identically whichever theme the site is in. Tokens would
+ * make it correct against a surface it never touches.
+ */
 .hx-card-body {
+  position: absolute;
+  left: 0;
+  right: 0;
+  /**
+   * Lifted by exactly what the fan pushed this card down.
+   *
+   * A card at slot |n| is moved down `n * 7%` of its own height, so on five
+   * cards the outer pair ends up 14% lower than the centre - past the edge that
+   * crops the deck, taking its name with it. Both percentages resolve against
+   * the same box, so cancelling one with the other puts every name inside the
+   * crop and lands them on one line across the fan.
+   */
+  bottom: calc(var(--abs) * 7%);
   display: flex;
   flex-direction: column;
-  gap: 0.1rem;
-  padding: 0.6rem 0.75rem 0.75rem;
-  border-top: 1px solid var(--line);
-  background: var(--surface-2);
+  gap: 0.15rem;
+  padding: 2rem 0.7rem 0.6rem;
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.86) 0%,
+    rgba(0, 0, 0, 0.66) 40%,
+    rgba(0, 0, 0, 0) 100%
+  );
+  pointer-events: none;
+
+  /**
+   * Hidden until the card is hovered - and reachable without hovering.
+   *
+   * This file already carries the scar from content that depended on an
+   * animation: the deck's entrance began at `opacity: 0` with
+   * `animation-fill-mode: backwards`, so the visible state existed only if the
+   * animation ran, and when it did not the hero rendered empty. The same shape
+   * of mistake here would be a name no touch device can ever reach, since a
+   * phone has no hover to give.
+   *
+   * So `@media (hover: hover)` is what opts *into* hiding. A coarse pointer
+   * never matches it and simply gets the names, always. The rule below is the
+   * exception, not the default.
+   */
+  opacity: 1;
+  transform: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .hx-card-body {
+    opacity: 0;
+    transform: translateY(8px);
+    transition: opacity 260ms var(--ease), transform 260ms var(--ease);
+  }
+
+  /* `:focus-within` as well as `:hover`: a card that links is reachable by
+     keyboard, and its name should arrive with the focus ring rather than only
+     under a mouse. */
+  .hx-card:hover .hx-card-body,
+  .hx-card:focus-visible .hx-card-body,
+  .hx-card:focus-within .hx-card-body {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hx-card-body {
+    transition: none;
+    transform: none;
+  }
 }
 
 .hx-card-body b {
@@ -464,8 +552,8 @@
   font-size: var(--step--1);
   font-weight: 700;
   letter-spacing: -0.02em;
-  line-height: 1.25;
-  color: var(--ink);
+  line-height: 1.2;
+  color: #fff;
   /* A fanned card is not much room for a long collection name. */
   display: -webkit-box;
   -webkit-line-clamp: 1;
@@ -473,9 +561,39 @@
   overflow: hidden;
 }
 
-.hx-card-body span {
+/* The caption is a lockup when a card carries a mark, so it lays out as one. */
+.hx-card-cap {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
   font-size: var(--step--3);
-  color: var(--ink-3);
+  line-height: 1;
+  color: rgba(255, 255, 255, 0.78);
+}
+
+/**
+ * Cards right of centre read from their right edge.
+ *
+ * The one in front of them covers their left, so a name that started there
+ * started underneath it. Only the text moves; the card, the art and the scrim
+ * are untouched, so the fan is unchanged.
+ */
+.hx-card.is-right .hx-card-body {
+  align-items: flex-end;
+  text-align: right;
+}
+
+.hx-card.is-right .hx-card-cap {
+  justify-content: flex-end;
+}
+
+/* Sized off the type, not the file, so the mark and the words beside it stay in
+   proportion at every card width. The SVG is 89x24. */
+.hx-card-mark {
+  display: block;
+  width: auto;
+  height: 0.95em;
+  flex: none;
 }
 
 /**

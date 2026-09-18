@@ -407,6 +407,8 @@ interface DeckCard {
   name: string;
   image: string;
   caption?: string;
+  /** Show SoDEX's wordmark in front of the caption. See config/heroDeck.ts. */
+  brand?: "sodex";
 }
 
 /**
@@ -529,7 +531,23 @@ function DeckTile({
   centre: boolean;
   far: boolean;
 }) {
-  const className = `hx-card${centre ? " is-centre" : ""}${far ? " is-far" : ""}`;
+  /**
+   * Which edge of this card is actually on show.
+   *
+   * The fan stacks toward the middle - `z-index: calc(10 - var(--abs))` - so
+   * the centre card covers the inner edge of both its neighbours. For a card
+   * left of centre that hidden edge is its right, and the visible strip is its
+   * left, which is where text already starts. For a card right of centre it is
+   * the other way round, and a name starting at the left edge started
+   * underneath the card in front of it: on the two right-hand boxes only the
+   * tail of "...easure Box" ever showed.
+   *
+   * So the two on the right align to their own right edge. Nothing about the
+   * geometry is mirrored - only the text is.
+   */
+  const className =
+    `hx-card${centre ? " is-centre" : ""}${far ? " is-far" : ""}` +
+    (slot > 0 ? " is-right" : "");
   const style = { ["--slot" as string]: slot, ["--abs" as string]: Math.abs(slot) };
 
   const inner = (
@@ -545,15 +563,43 @@ function DeckTile({
         */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={card.image} alt="" width={600} height={600} fetchPriority="high" decoding="async" />
-      </span>
-      <span className="hx-card-body">
-        <b>{card.name}</b>
-        {/* The live "N shown" count went with the query. A number that cannot
-            refresh is worse than no number.
+        {/*
+          The name sits ON the artwork, not under it.
 
-            "View collection" is the default and a promise a card cannot keep
-            before its collection exists, so a card may override it. */}
-        <span>{card.caption ?? "View collection"}</span>
+          `.hx-deck` is deliberately `card-h * 0.82` tall so the fan is cut by
+          the section edge and reads as standing in front of it - which meant
+          the strip below the art, where the name used to live, was clipped away
+          on every card. The names had never been visible.
+
+          Over the art they always are, and the effect is kept. It also works
+          without a theme: all five pieces of artwork now carry a dark ground,
+          so a scrim and white type read the same in light and dark.
+        */}
+        <span className="hx-card-body">
+          <b>{card.name}</b>
+          <span className="hx-card-cap">
+            {/*
+              SoDEX's own wordmark standing in for the word, in the theme it
+              ships two drawings for - the mark keeps its orange in both while
+              the type flips, so this is a swap and not a tint. It sits on the
+              artwork rather than on the page, and every piece of artwork here
+              has a dark ground, so the white one is always the right one.
+            */}
+            {card.brand === "sodex" ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                className="hx-card-mark"
+                src="/brand/sodex-dark.svg"
+                alt="SoDEX"
+                width={89}
+                height={24}
+              />
+            ) : null}
+            {/* "View collection" is the default and a promise a card cannot
+                keep before its collection exists, so a card may override it. */}
+            {card.caption ?? "View collection"}
+          </span>
+        </span>
       </span>
     </>
   );

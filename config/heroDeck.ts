@@ -69,18 +69,31 @@ export interface HeroCard {
    * which is the useful thing to say about four pictures of the same object.
    */
   caption?: string;
+  /**
+   * Show SoDEX's own wordmark in front of the caption.
+   *
+   * Four pictures of a box do not say "SoDEX Treasure Box" to anyone who has
+   * not seen one, and that is the thing worth saying - it is the reason
+   * somebody would come here. The mark carries it better than the word would,
+   * and it belongs on the cards rather than on a line of its own above them:
+   * a separate lockup made the hero taller, and on a phone it detached from the
+   * deck entirely and read as a footer.
+   */
+  brand?: "sodex";
 }
 
 export const HERO_DECK: HeroCard[] = [
   {
     name: "Common box",
     image: "/boxes/common.webp",
-    caption: "SoDEX reward",
+    caption: "Treasure Box",
+    brand: "sodex",
   },
   {
     name: "Uncommon box",
     image: "/boxes/uncommon.webp",
-    caption: "SoDEX reward",
+    caption: "Treasure Box",
+    brand: "sodex",
   },
   {
     /**
@@ -105,11 +118,13 @@ export const HERO_DECK: HeroCard[] = [
   {
     name: "Rare box",
     image: "/boxes/rare.webp",
-    caption: "SoDEX reward",
+    caption: "Treasure Box",
+    brand: "sodex",
   },
   {
     name: "Super rare box",
     image: "/boxes/superrare.webp",
-    caption: "SoDEX reward",
+    caption: "Treasure Box",
+    brand: "sodex",
   },
 ];
