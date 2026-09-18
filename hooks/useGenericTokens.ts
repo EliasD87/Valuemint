@@ -6,7 +6,7 @@ import { erc721Abi } from "viem";
 import { resolveMediaUrl } from "@/lib/format";
 import type { LoadedToken } from "@/hooks/useTokens";
 import type { TokenMetadata } from "@/hooks/useCollection";
-import { fetchTokenMetadata, traitOf } from "@/lib/tokenMetadata";
+import { fetchTokenMetadata, tierOf, traitOf } from "@/lib/tokenMetadata";
 
 /**
  * Loads tokens from an arbitrary ERC-721, using only the standard interface.
@@ -92,7 +92,7 @@ const key = `${collection ?? ""}:${uris.filter(Boolean).join("|")}`;
       metadata: m,
       // Fall back to the token's own name; not every collection uses a Design trait.
       design: traitOf(m, "Design") ?? m?.name ?? `#${id.toString()}`,
-      tier: traitOf(m, "Tier"),
+      tier: tierOf(m),
       edition: traitOf(m, "Edition"),
       image: resolveMediaUrl(m?.image),
     };

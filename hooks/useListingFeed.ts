@@ -11,7 +11,7 @@ import { useAllCollections } from "@/hooks/useAllCollections";
 import { useSeaportListings } from "@/hooks/useSeaportOrders";
 import type { TokenMetadata } from "@/hooks/useCollection";
 import type { ChainToken } from "@/hooks/useEverything";
-import { fetchManyTokenMetadata, traitOf } from "@/lib/tokenMetadata";
+import { fetchManyTokenMetadata, tierOf, traitOf } from "@/lib/tokenMetadata";
 
 
 
@@ -116,7 +116,7 @@ queryKey: ["listing-meta", uris.filter(Boolean).join("|")],
         owner !== undefined && approved && owner.toLowerCase() === order.maker.toLowerCase(),
       metadata: m,
       design: traitOf(m, "Design") ?? m?.name,
-      tier: traitOf(m, "Tier"),
+      tier: tierOf(m),
       edition: traitOf(m, "Edition"),
       image: resolveMediaUrl(m?.image),
       uri: uris[i],

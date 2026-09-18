@@ -133,6 +133,39 @@ export function traitOf(
 }
 
 /**
+ * The words collections use for "how rare is this one".
+ *
+ * There is no standard. The ERC-721 metadata schema says `attributes` is a list
+ * of `trait_type`/`value` pairs and stops there, so the name of the rarity trait
+ * is whatever the collection's author typed.
+ *
+ * This app read `"Tier"` and nothing else, which is what its own factory emits.
+ * The SoDEX treasure boxes publish `{"trait_type":"Level","value":"Common"}` —
+ * so every box rendered as an identical "SoDEXTreasureBox" card with an empty
+ * chip, and Common was indistinguishable from SuperRare on the one collection
+ * where the tier is the entire point.
+ *
+ * Ordered by preference, so a collection that publishes both keeps the meaning
+ * it chose first. The lookup underneath stays exact and case-sensitive: this
+ * widens which *names* are recognised, never how loosely a name is matched.
+ */
+const TIER_TRAITS = ["Tier", "Level", "Rarity", "Rank", "Grade"] as const;
+
+/**
+ * The rarity of a token, whatever its collection decided to call it.
+ *
+ * Returns `undefined` when the collection publishes no such trait, which is
+ * most of them - a card with no tier simply shows no chip.
+ */
+export function tierOf(metadata: TokenMetadata | undefined): string | undefined {
+  for (const name of TIER_TRAITS) {
+    const value = traitOf(metadata, name);
+    if (value !== undefined && value !== "") return value;
+  }
+  return undefined;
+}
+
+/**
  * Fetch a token document, and do not let a status code throw away a good one.
  *
  * Every fetch site used to be `if (!res.ok) throw` / `if (res.ok) use it`, which

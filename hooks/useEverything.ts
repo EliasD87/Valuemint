@@ -9,7 +9,7 @@ import { useAllCollections, type CollectionSummary } from "@/hooks/useAllCollect
 import { useBestListings } from "@/hooks/useSeaportOrders";
 import { toListing, type Listing } from "@/lib/seaport";
 import type { TokenMetadata } from "@/hooks/useCollection";
-import { fetchManyTokenMetadata, traitOf } from "@/lib/tokenMetadata";
+import { fetchManyTokenMetadata, tierOf, traitOf } from "@/lib/tokenMetadata";
 
 /**
  * Tokens across every collection on the chain, rather than one hardcoded address.
@@ -188,7 +188,7 @@ queryKey: ["everything", uris.filter(Boolean).join("|")],
       listing: order === undefined ? undefined : toListing(order),
       metadata: m,
       design: traitOf(m, "Design") ?? m?.name,
-      tier: traitOf(m, "Tier"),
+      tier: tierOf(m),
       edition: traitOf(m, "Edition"),
       image: resolveMediaUrl(m?.image),
       uri: uris[i],

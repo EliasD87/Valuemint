@@ -5,7 +5,7 @@ import { useReadContracts } from "wagmi";
 import { ValueChainCollectionAbi, deployment } from "@/config/contracts";
 import { resolveMediaUrl } from "@/lib/format";
 import type { TokenMetadata } from "./useCollection";
-import { fetchTokenMetadata, traitOf } from "@/lib/tokenMetadata";
+import { fetchTokenMetadata, tierOf, traitOf } from "@/lib/tokenMetadata";
 
 const collection = { address: deployment.collection, abi: ValueChainCollectionAbi } as const;
 
@@ -94,7 +94,7 @@ export function useTokens(ids: bigint[]) {
       uri: uris[i],
       metadata: meta,
       design: traitOf(meta, "Design"),
-      tier: traitOf(meta, "Tier"),
+      tier: tierOf(meta),
       edition: traitOf(meta, "Edition"),
       image: resolveMediaUrl(meta?.image),
     };

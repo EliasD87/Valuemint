@@ -9,6 +9,7 @@ import { useAccount, useReadContract } from "wagmi";
 import { ValueChainCollectionAbi, deployment } from "@/config/contracts";
 import { SEAPORT } from "@/config/seaport";
 import { useTokenMetadata, trait } from "@/hooks/useCollection";
+import { tierOf } from "@/lib/tokenMetadata";
 import { useTokenStandard } from "@/hooks/useTokenStandard";
 import { MultiTokenView } from "./MultiTokenView";
 import { useSeaportFill, useSeaportTrade } from "@/hooks/useSeaportTrade";
@@ -352,9 +353,9 @@ export function TokenView({
                   : `${typeof collectionName === "string" && collectionName !== "" ? collectionName : "Token"} #${id}`)}
             </h1>
             <div className="token-chips">
-              {trait(metadata, "Tier") !== undefined ? (
-                <span className={`chip chip-${trait(metadata, "Tier")?.toLowerCase()}`}>
-                  {trait(metadata, "Tier")}
+              {tierOf(metadata) !== undefined ? (
+                <span className={`chip chip-${tierOf(metadata)?.toLowerCase()}`}>
+                  {tierOf(metadata)}
                 </span>
               ) : null}
               {trait(metadata, "Edition") !== undefined ? (

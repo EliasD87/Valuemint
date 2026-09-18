@@ -3,6 +3,7 @@ import {
   fetchManyTokenMetadata,
   fetchTokenMetadata,
   readTokenMetadata,
+  tierOf,
   traitOf,
   type TokenMetadata,
 } from "./tokenMetadata";
@@ -308,5 +309,48 @@ describe("fetchManyTokenMetadata — one request per distinct document", () => {
     );
     expect(out[0]).toBeUndefined();
     expect(traitOf(out[1], "Level")).toBe("Rare");
+  });
+});
+
+describe("tierOf — collections do not agree on what to call rarity", () => {
+  const withTrait = (trait_type: string, value: string) =>
+    readTokenMetadata({ name: "X", attributes: [{ trait_type, value }] });
+
+  /** The one that sent thousands of boxes out with a blank chip. */
+  it("finds the SoDEX boxes' 'Level'", () => {
+    expect(tierOf(withTrait("Level", "SuperRare"))).toBe("SuperRare");
+  });
+
+  it("still finds this app's own 'Tier'", () => {
+    expect(tierOf(withTrait("Tier", "Epic"))).toBe("Epic");
+  });
+
+  it.each([
+    ["Rarity", "Legendary"],
+    ["Rank", "S"],
+    ["Grade", "A+"],
+  ])("finds %s", (name, value) => {
+    expect(tierOf(withTrait(name, value))).toBe(value);
+  });
+
+  it("prefers Tier when a collection publishes both", () => {
+    const doc = readTokenMetadata({
+      name: "X",
+      attributes: [
+        { trait_type: "Level", value: "99" },
+        { trait_type: "Tier", value: "Epic" },
+      ],
+    });
+    expect(tierOf(doc)).toBe("Epic");
+  });
+
+  it("is undefined when the collection publishes no rarity at all", () => {
+    expect(tierOf(withTrait("Design", "LUMINATE"))).toBeUndefined();
+    expect(tierOf(undefined)).toBeUndefined();
+  });
+
+  /** Widening which names count must not loosen how a name is matched. */
+  it("stays case-sensitive", () => {
+    expect(tierOf(withTrait("level", "Common"))).toBeUndefined();
   });
 });

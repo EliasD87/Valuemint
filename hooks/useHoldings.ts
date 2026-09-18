@@ -10,7 +10,7 @@ import { useAllCollections } from "@/hooks/useAllCollections";
 import { useOwnedTokens } from "@/hooks/useOwnedTokens";
 import type { TokenMetadata } from "@/hooks/useCollection";
 import type { ChainToken } from "@/hooks/useEverything";
-import { fetchManyTokenMetadata, traitOf } from "@/lib/tokenMetadata";
+import { fetchManyTokenMetadata, tierOf, traitOf } from "@/lib/tokenMetadata";
 
 /**
  * Exactly what one address holds, across every collection.
@@ -167,7 +167,7 @@ queryKey: ["holdings", address, uris.filter(Boolean).join("|")],
       listing: order === undefined ? undefined : toListing(order),
       metadata: m,
       design: traitOf(m, "Design") ?? m?.name,
-      tier: traitOf(m, "Tier"),
+      tier: tierOf(m),
       edition: traitOf(m, "Edition"),
       image: resolveMediaUrl(m?.image),
     };
