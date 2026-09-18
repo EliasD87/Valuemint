@@ -222,18 +222,60 @@
   min-width: 0;
 }
 
-.coll-layout .mint-panel {
+/* Mint and history, stacked in the second column and following the reader down. */
+.coll-side {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  min-width: 0;
   position: sticky;
   top: calc(var(--header-h) + 1.25rem);
+}
+
+/* The history is in a 21rem column here, not the full width it was designed
+   for, so it takes the same treatment as a phone: the counterparty goes, and
+   the time drops to its own line rather than colliding with the price. */
+.coll-side .act-row {
+  grid-template-columns: 4.5rem auto minmax(0, 1fr);
+  gap: 0.15rem 0.4rem;
+}
+
+.coll-side .act-who {
+  display: none;
+}
+
+.coll-side .act-when {
+  grid-column: 1 / -1;
+  text-align: left;
+  min-width: 0;
+  font-size: var(--step--3);
 }
 
 @media (max-width: 900px) {
   .coll-layout {
     grid-template-columns: 1fr;
   }
+
+  /*
+    Dissolve the wrapper so its two panels are grid children again.
+
+    That is the whole reason for `display: contents` here: the mint panel wants
+    to be ABOVE the pieces on a phone and the history below them, which is not
+    something one wrapper can express — but two grid items can, with `order`.
+  */
+  .coll-side {
+    display: contents;
+  }
+
   .coll-layout .mint-panel {
     position: static;
     order: -1;
+  }
+
+  /* Back to the full-width phone layout, which the media query below already
+     describes — these overrides only exist for the narrow sidebar. */
+  .coll-side .act-row {
+    grid-template-columns: 4.75rem minmax(2.5rem, auto) minmax(0, 1fr);
   }
 }
 

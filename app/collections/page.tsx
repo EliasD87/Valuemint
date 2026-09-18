@@ -2,11 +2,10 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useReadContracts } from "wagmi";
 import { ValueChainCollectionAbi, deployment } from "@/config/contracts";
 import { useRegistry } from "@/hooks/useRegistry";
-import { useCollectionProbe, useDiscoveredCollections } from "@/hooks/useDiscovery";
+import { useDiscoveredCollections } from "@/hooks/useDiscovery";
 import { formatCount, formatSoso, shortAddress } from "@/lib/format";
 import { CollectionCard, CollectionCardSkeleton } from "@/components/CollectionCard";
 import { useCollectionArt } from "@/hooks/useCollectionArt";
@@ -14,10 +13,8 @@ import "@/styles/collections.css";
 import { useFloors } from "@/hooks/useFloors";
 
 export default function Collections() {
-  const router = useRouter();
   const { collections: fromFactory } = useRegistry(48);
   const { data: discovered, isLoading, error } = useDiscoveredCollections();
-  const [paste, setPaste] = useState("");
 
   /**
    * How many collections to draw before asking.
@@ -33,7 +30,6 @@ export default function Collections() {
    */
   const FIRST_PAGE = 6;
   const [showAll, setShowAll] = useState(false);
-  const probe = useCollectionProbe(paste);
   const { artFor } = useCollectionArt();
   const { floorFor } = useFloors();
 
@@ -112,41 +108,6 @@ export default function Collections() {
         never deployed through here.
       </p>
 
-      {/* --- trade anything, indexed or not ------------------------------ */}
-      <div className="coll-import card">
-        <div className="field">
-          <label htmlFor="paste">Have a collection the list is missing?</label>
-          <div className="coll-import-row">
-            <input
-              id="paste"
-              className="input"
-              placeholder="0x… contract address"
-              value={paste}
-              onChange={(e) => setPaste(e.target.value)}
-              spellCheck={false}
-            />
-            <button
-              className="btn btn-primary"
-              disabled={!probe.isErc721 || probe.address === undefined}
-              onClick={() => router.push(`/collection/${probe.address}`)}
-            >
-              Open
-            </button>
-          </div>
-          <span className="field-hint">
-            {paste.trim() === ""
-              ? "The explorer indexes new contracts slowly. Paste an address to go straight there."
-              : !probe.looksLikeAddress
-                ? "That isn't a contract address — it should be 0x followed by 40 characters."
-                : probe.checking
-                  ? "Checking the contract…"
-                  : probe.isErc721
-                    ? `${probe.name ?? "Collection"} (${probe.symbol ?? "?"}) — tradeable ERC-721.`
-                    : "That address doesn't answer as an ERC-721. Editions are found through the list above rather than pasted here."}
-          </span>
-        </div>
-      </div>
-
       {error !== null ? (
         <p className="coll-warn">
           The block explorer&rsquo;s token list is unavailable right now, so only collections from
@@ -210,18 +171,6 @@ export default function Collections() {
         </div>
       )}
 
-      <div className="coll-cta card">
-        <div>
-          <h3>Yours could be here.</h3>
-          <p className="muted">
-            Deploying a collection costs gas and nothing else. You own the contract outright — the
-            factory keeps a record and no control over it.
-          </p>
-        </div>
-        <Link className="btn btn-primary btn-lg" href="/create">
-          Create a collection
-        </Link>
-      </div>
     </section>
   );
 }

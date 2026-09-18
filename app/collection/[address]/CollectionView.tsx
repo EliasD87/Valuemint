@@ -300,12 +300,27 @@ export function CollectionView({ params }: { params: Promise<{ address: string }
       )}
         </div>
 
-        {collection !== undefined ? <MintPanel address={collection} /> : null}
+        {/*
+          The sidebar, and it has to be ONE element.
 
-        {/* Everything that has happened in this collection, not just this page of
-            it - the grid is capped at 60 tokens, the history is not. */}
+          This was two children of `.coll-layout` — the mint panel and the
+          activity panel — and a two-column grid auto-places a third child in
+          row two, column one. So the history landed underneath the entire
+          sixty-card grid, and the only way to read it was to scroll past every
+          piece in the collection. Wrapped, they share the second column and the
+          history sits beside the pieces where it can be found.
+
+          On a phone the wrapper becomes `display: contents`, which dissolves it
+          so both are grid children again and can be ordered separately — mint
+          above the grid, history below it.
+        */}
         {collection !== undefined ? (
-          <Activity collection={collection} title="Collection activity" standalone />
+          <aside className="coll-side">
+            <MintPanel address={collection} />
+            {/* Everything that has happened here, not just this page of it —
+                the grid is capped at 60 tokens, the history is not. */}
+            <Activity collection={collection} title="Collection activity" />
+          </aside>
         ) : null}
       </div>
     </section>

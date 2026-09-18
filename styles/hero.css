@@ -264,12 +264,24 @@
   background-clip: text;
 }
 
+/*
+ * Two lines on a desktop, and none at all on a phone.
+ *
+ * 54ch set it three lines wide, which is a paragraph rather than a standfirst —
+ * and under a two-line headline it reads as the page's main text instead of its
+ * subtitle. 78ch puts it on two.
+ *
+ * On a phone it is cut entirely. There it wrapped to five or six lines and
+ * pushed the two buttons — the only things on this screen anyone can act on —
+ * below the fold. The headline already says what the site is.
+ */
 .hx-lede {
   margin: 0;
-  max-width: 54ch;
+  max-width: 78ch;
   font-size: var(--step-0);
   line-height: 1.62;
   color: var(--ink-2);
+  text-wrap: balance;
 }
 
 .hx-actions {
@@ -610,6 +622,12 @@
  * sit at |slot| 2, is dropped.
  */
 @media (max-width: 700px) {
+  /* See `.hx-lede` above: removed on a phone so the buttons are reachable
+     without scrolling. */
+  .hx-lede {
+    display: none;
+  }
+
   .hx-deck {
     --card-w: min(44vw, 190px);
     --step: min(24vw, 110px);
@@ -696,19 +714,30 @@
   }
 
   /**
-   * One column, equal width. Side by side they do not fit, and centred at their
-   * own widths they read as two unrelated objects - 240px against 296px, with
-   * neither edge lining up with anything.
+   * One row, equal halves.
+   *
+   * This was a column, on the reasoning that side by side they did not fit —
+   * true while they were `btn-lg` at their natural widths, 240px against 296px
+   * on a 375px screen. They are not that any more: an equal share each, smaller
+   * type and tighter padding, and both fit with the 44px touch target intact.
+   *
+   * Worth the change because they are the only two things on this screen anyone
+   * can act on, and stacked they took a third of it.
    */
   .hx-actions {
     width: 100%;
-    flex-direction: column;
+    flex-wrap: nowrap;
     align-items: stretch;
-    gap: 0.55rem;
+    gap: 0.5rem;
   }
 
   .hx-actions .btn {
-    width: 100%;
+    flex: 1 1 0;
+    min-width: 0;
+    width: auto;
+    padding: 0.7rem 0.6rem;
+    font-size: var(--step--1);
+    min-height: 44px;
     justify-content: center;
   }
 
