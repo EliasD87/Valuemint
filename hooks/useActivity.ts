@@ -2,6 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { usePublicClient } from "wagmi";
+import { useDeferred } from "@/hooks/useDeferred";
 import { parseAbiItem } from "viem";
 import { SEAPORT, SEAPORT_FROM_BLOCK } from "@/config/seaport";
 import { scanLogs } from "@/lib/logScan";
@@ -128,9 +129,20 @@ export function useActivity(
    * the scan, so a page showing twelve collections' cards runs one scan rather
    * than twelve.
    */
+  /**
+   * Held back until the page has issued the reads it actually paints with.
+   *
+   * This hook runs three log scans, and on a collection page it is mounted
+   * below the fold for a panel showing ten rows. Measured, those scans took the
+   * RPC connection for 1.4 s in the gap between `totalSupply` and
+   * `tokenByIndex` — the two reads every piece of artwork on the page waits
+   * for. Nothing here is urgent enough to cost that.
+   */
+  const ready = useDeferred(900);
+
   const query = useQuery({
     queryKey: ["seaport-activity"],
-    enabled: client !== undefined,
+    enabled: client !== undefined && ready,
     staleTime: 60_000,
     queryFn: async (): Promise<ActivityResult> => {
       /**
@@ -300,7 +312,15 @@ export function useActivity(
      */
     volume: sales.reduce((sum, r) => sum + (r.price ?? 0n) * r.amount, 0n),
     salesCount: sales.length,
-    isLoading: query.isLoading,
+    /**
+     * Deferred counts as loading, or the panel lies for 900 ms.
+     *
+     * A disabled query reports `isLoading: false` with no data, and the callers
+     * read "not loading, no rows" as "nothing has ever traded here" — which is
+     * a claim about the chain made before the chain was asked. That is the same
+     * failure `logsUnavailable` exists to prevent, arriving by a different door.
+     */
+    isLoading: query.isLoading || !ready,
     /**
      * The node would not serve some or all of the logs this feed is built from.
      *
