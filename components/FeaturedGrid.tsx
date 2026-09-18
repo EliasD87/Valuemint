@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { Art } from "@/components/Art";
 import { FEATURED } from "@/config/featured";
 import { tierClass } from "@/lib/tokenMetadata";
+import { WarmCollection } from "@/components/WarmChain";
 /**
  * The card styles, imported HERE and not only by `TokenCard`.
  *
@@ -36,13 +38,38 @@ import "@/components/TokenCard.css";
  * what else is there", and a collection answers both.
  */
 export function FeaturedGrid() {
+  /**
+   * The collection somebody looks like opening, read ahead of them.
+   *
+   * A pointer resting on a card, or a finger touching one, is the best signal
+   * available that it is about to be clicked — and at that moment reading that
+   * ONE collection is cheap and nearly always useful.
+   *
+   * This replaced warming a fixed list on arrival, which measured twenty RPC
+   * requests over 11.6 seconds on the live home page, peaking at seven at once,
+   * paid by everybody including the people who only scrolled. Now nobody pays
+   * for a collection they never looked at.
+   *
+   * It holds ONE at a time on purpose. Moving across the grid should not leave
+   * a trail of twelve collections being read at once, which would be the old
+   * problem with extra steps — and the caches are permanent, so a collection
+   * already read stays read after the pointer moves on.
+   */
+  const [warming, setWarming] = useState<`0x${string}` | undefined>(undefined);
+
   return (
     <div className="grid-tokens">
+      {/* Renders nothing; it only issues the reads the next page will want. */}
+      {warming === undefined ? null : <WarmCollection address={warming} />}
+
       {FEATURED.map((piece, i) => {
         const href =
           piece.tokenId === undefined
             ? `/collection/${piece.collection}`
             : `/token/${piece.collection}/${piece.tokenId}`;
+
+        const warmThis =
+          piece.tokenId === undefined ? () => setWarming(piece.collection) : undefined;
 
         return (
           <article className="tcard" key={`${piece.collection}-${piece.name}-${i}`}>
@@ -50,6 +77,19 @@ export function FeaturedGrid() {
               href={href}
               className="tcard-hit"
               aria-label={`${piece.name} — ${piece.collectionName}`}
+              /*
+                Three ways in, because a phone has no pointer and a keyboard has
+                no touch: hover, first touch, and focus. All three mean the same
+                thing here — this one, next.
+
+                Only for a card that opens a COLLECTION. A card naming a token
+                goes to that token's page, which wants that one piece and the
+                order book (already warm) — not this collection's sixty ids and
+                sixty URIs, which would be spent on nothing.
+              */
+              onPointerEnter={warmThis}
+              onTouchStart={warmThis}
+              onFocus={warmThis}
               /**
                * Next fetches the destination's code as this scrolls into view,
                * so the click itself has nothing to download. The destination's

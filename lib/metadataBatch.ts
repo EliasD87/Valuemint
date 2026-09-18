@@ -1,6 +1,11 @@
 "use client";
 
-import { fetchTokenMetadata, readTokenMetadata, type TokenMetadata } from "@/lib/tokenMetadata";
+import {
+  fetchTokenMetadata,
+  MetadataHttpError,
+  readTokenMetadata,
+  type TokenMetadata,
+} from "@/lib/tokenMetadata";
 import { gated } from "@/lib/fetchGate";
 
 /**
@@ -26,6 +31,49 @@ import { gated } from "@/lib/fetchGate";
  * Anything else — a gateway, a third party's API, an `ipfs://` document — takes
  * the ordinary path, at the ordinary politeness limit.
  */
+
+
+/**
+ * Hosts that just failed, and when to bother them again.
+ *
+ * A collection page asks for sixty documents. If the host serving them is down,
+ * that is sixty requests to be told sixty times — measured for real: after the
+ * ValueChain upgrade, SoDEX's metadata gateway returned 503 for every token of
+ * all three of its collections, and every card asked it separately.
+ *
+ * So the first 5xx or unreachable host closes the door for half a minute and
+ * the rest of the page's asks resolve instantly as "no metadata", which is what
+ * they were going to be anyway. The cards render with their ids and no picture,
+ * exactly as they do for a collection that publishes nothing.
+ *
+ * Only 5xx and network failures count. A 404 is one token's business — plenty
+ * of collections have gaps — and must never take a whole host down with it.
+ */
+const failingUntil = new Map<string, number>();
+
+/** Long enough to skip a page's worth of asks, short enough to notice a fix. */
+const COOLDOWN_MS = 30_000;
+
+function hostOf(url: string): string {
+  try {
+    return new URL(url, typeof window === "undefined" ? undefined : window.location.href).host;
+  } catch {
+    return url;
+  }
+}
+
+/** True when this host refused us moments ago and is still in its cooldown. */
+function refusing(url: string): boolean {
+  const until = failingUntil.get(hostOf(url));
+  return until !== undefined && Date.now() < until;
+}
+
+/** Record a failure worth backing off from. Anything else is left alone. */
+function noteFailure(url: string, error: unknown): void {
+  const status = error instanceof MetadataHttpError ? error.status : undefined;
+  const worthBackingOff = status === undefined || status >= 500;
+  if (worthBackingOff) failingUntil.set(hostOf(url), Date.now() + COOLDOWN_MS);
+}
 
 /** Our own document URL, split into the parts the batch form needs. */
 interface Ours {
@@ -97,7 +145,7 @@ async function flush(endpoint: string): Promise<void> {
     try {
       const url = `${endpoint}?ids=${ids.join(",")}`;
       const res = await gated(url, () => fetch(url, { signal: AbortSignal.timeout(20_000) }));
-      if (!res.ok) throw new Error(`Batch metadata unavailable (HTTP ${res.status})`);
+      if (!res.ok) throw new MetadataHttpError(res.status);
 
       const body = (await res.json()) as { documents?: Record<string, unknown> };
       const documents = body.documents ?? {};
@@ -118,7 +166,18 @@ async function flush(endpoint: string): Promise<void> {
        * also the path that still works if this endpoint is ever unavailable
        * while the old one is not.
        */
+      noteFailure(endpoint, error);
+
       for (const p of chunk) {
+        /**
+         * The per-token route is the fallback, but not against a host that has
+         * just failed wholesale — that would turn one bad batch into sixty bad
+         * requests, which is the shape this whole file exists to avoid.
+         */
+        if (refusing(endpoint)) {
+          p.resolve(undefined);
+          continue;
+        }
         fetchTokenMetadata(`${endpoint}/${p.id}`, 20_000).then(p.resolve, () => p.reject(error));
       }
     }
@@ -137,7 +196,13 @@ export function loadTokenDocument(
 ): Promise<TokenMetadata | undefined> {
   const mine = ours(url);
   if (mine === undefined) {
-    return gated(url, () => fetchTokenMetadata(url, timeoutMs));
+    /** This host just refused everything; do not ask it once per card. */
+    if (refusing(url)) return Promise.resolve(undefined);
+
+    return gated(url, () => fetchTokenMetadata(url, timeoutMs)).catch((error: unknown) => {
+      noteFailure(url, error);
+      throw error;
+    });
   }
 
   return new Promise<TokenMetadata | undefined>((resolve, reject) => {

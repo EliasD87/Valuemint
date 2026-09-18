@@ -210,6 +210,26 @@ export function tierClass(tier: string | undefined): string | undefined {
  * A network failure is still a failure - this throws, so React Query retries
  * rather than caching nothing as though it were an answer.
  */
+/**
+ * A refused fetch, carrying the status that refused it.
+ *
+ * The status is the difference between "this one token is missing" and "this
+ * host is down", and callers cannot tell those apart from a message. A 404 is
+ * one token's business; a 503 is every token's, and the second is worth
+ * stopping for — SoDEX's metadata gateway returned 503 for all three of its
+ * collections after the ValueChain upgrade, and sixty cards each asked it
+ * separately.
+ */
+export class MetadataHttpError extends Error {
+  readonly status: number;
+
+  constructor(status: number) {
+    super(`Metadata unavailable (HTTP ${status})`);
+    this.name = "MetadataHttpError";
+    this.status = status;
+  }
+}
+
 export async function fetchTokenMetadata(
   url: string,
   timeoutMs = 20_000,
@@ -222,7 +242,7 @@ export async function fetchTokenMetadata(
   } catch {
     // Not JSON at all. If the status also said no, report it as a failure so
     // the caller can retry; otherwise there is simply nothing here.
-    if (!res.ok) throw new Error(`Metadata unavailable (HTTP ${res.status})`);
+    if (!res.ok) throw new MetadataHttpError(res.status);
     return undefined;
   }
 
