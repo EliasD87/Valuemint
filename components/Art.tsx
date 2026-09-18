@@ -2,16 +2,17 @@
 
 import Image from "next/image";
 import { useState } from "react";
-import { canOptimise, stillUrl } from "@/lib/media";
+import { useMoving } from "@/hooks/useMoving";
+import { canOptimise } from "@/lib/media";
 
 /**
  * A piece of collection artwork.
  *
  * IPFS serves exactly what was pinned and offers no smaller variant, so a
  * thumbnail slot can end up downloading a multi-megabyte original. Where the
- * host is one we allow, the art is reduced to a still and resized for the slot;
- * anywhere else it renders as a plain <img> rather than failing, because
- * collection metadata may legitimately point at a host we have never seen.
+ * host is one we allow, the art is reduced and resized for the slot; anywhere
+ * else it renders as a plain <img> rather than failing, because collection
+ * metadata may legitimately point at a host we have never seen.
  *
  * `sizes` is not optional in practice - without it Next assumes the image
  * spans the viewport and picks a needlessly large source.
@@ -29,16 +30,42 @@ import { canOptimise, stillUrl } from "@/lib/media";
  */
 const STILL_WIDTH = 512;
 
+/**
+ * And the width the *animation* is asked for, which is not the same number.
+ *
+ * Measured through the route on Cybereator's 125 frames: 500,500 B at 192px,
+ * 799,648 B at 256, 1,592,266 B at 384, 2,302,150 B at 512. A still is cheap
+ * enough to serve at 2x everywhere; an animation is not.
+ *
+ * Two widths rather than one, because a desktop card renders about 325px and a
+ * phone card about 180. At 256 the desktop grid would visibly soften the
+ * instant it started moving, which is its own bug report; at 384 a phone would
+ * pay 1.59 MB for a picture it is showing at 180px. Whichever is chosen, it is
+ * one file for the whole grid — these collections point every token at the
+ * same artwork.
+ */
+const MOVING_WIDTH = { wide: 384, narrow: 256 };
+
 export function Art({
   src,
   alt = "",
   sizes,
   priority = false,
+  /**
+   * Let this one move.
+   *
+   * Off by default, and deliberately so: it is on for the two grids where the
+   * artwork is the point (`TokenCard`, `CollectionCard`) and off for the 56px
+   * thumbnails in the offer inbox and the manage list, where an animation would
+   * be unreadable and still cost its full weight.
+   */
+  motion = false,
 }: {
   src: string;
   alt?: string;
   sizes: string;
   priority?: boolean;
+  motion?: boolean;
 }) {
   /**
    * Still `next/image`, and deliberately so.
@@ -52,9 +79,20 @@ export function Art({
    *
    * So the component is unchanged and only the *source* moves. Next still does
    * the layout and the srcset; it just fetches an 8 KB still instead of a
-   * 6.58 MB animation.
+   * 6.58 MB animation - and then, for a card that is on screen and a visitor
+   * who wants motion, the animation instead.
    */
   const [failed, setFailed] = useState<string | undefined>(undefined);
+
+  /**
+   * Above the early return, because it is a hook. It costs nothing when
+   * `motion` is false: no observer is honoured, no request is made.
+   */
+  const moving = useMoving(src, {
+    still: STILL_WIDTH,
+    moving: MOVING_WIDTH,
+    enabled: motion,
+  });
 
   if (!canOptimise(src) || failed === src) {
     /**
@@ -62,7 +100,8 @@ export function Art({
      *
      * The original always works, and that is the whole point of the fallback:
      * artwork that is reachable must never render as a broken icon because
-     * something in front of it gave up.
+     * something in front of it gave up. It is also already whatever it is —
+     * an animated original animates here without our help.
      */
     // eslint-disable-next-line @next/next/no-img-element
     return <img src={src} alt={alt} loading="lazy" decoding="async" />;
@@ -81,12 +120,16 @@ export function Art({
    * Every visitor who saw one of those cards paid 6.58 MB, and paid it again
    * sixty seconds later. `/api/still` answers 8,976 B, immutable for a year.
    *
-   * A thumbnail has never animated anything, so nothing is lost. The token page
-   * renders the original directly and keeps the animation.
+   * That both cards *and* the token page then sat on a still was a step too
+   * far, and it is what the owner kept reporting: the pictures did not move.
+   * They move here now, on the terms in `useMoving` - on screen only, one
+   * download per distinct file however many cards share it, and not at all for
+   * a visitor who has asked for less motion or less data.
    */
   return (
     <Image
-      src={stillUrl(src, STILL_WIDTH)}
+      ref={moving.ref}
+      src={moving.src}
       alt={alt}
       fill
       sizes={sizes}

@@ -69,6 +69,14 @@ export function CollectionCard({ href, name, symbol, address, images, badge, sta
               <Art
                 src={src}
                 sizes="(max-width: 700px) 32vw, 160px"
+                /*
+                  The cover moves too. This mosaic is the first Cybereator
+                  anybody meets — it is what the owner photographed and sent
+                  back saying the GIF was not playing — and the three cells of
+                  a collection like that are the same file, so all three
+                  animate off one download.
+                */
+                motion
               />
             </span>
           ))

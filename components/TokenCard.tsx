@@ -134,6 +134,16 @@ export function TokenCard({
             alt={token.design ?? `${collectionName ?? "Token"} ${token.id}`}
             sizes="(max-width: 560px) 50vw, (max-width: 1100px) 33vw, 260px"
             priority={priority}
+            /*
+              Cards move. This is the grid the owner was looking at when they
+              said, twice, that the GIF was not playing — the token page had
+              been fixed and this had not, because a 2.3 MB animation times
+              sixty cards was the wrong sum. It is the wrong sum: `useMoving`
+              fetches one file per distinct artwork URL, and these collections
+              point every token at the same one, so a full grid of Cybereators
+              costs a single 598 KB download.
+            */
+            motion
           />
         ) : noMetadata ? (
           <div className="tcard-placeholder tcard-bare">
