@@ -2,50 +2,148 @@
  *
  * The record of what actually happened: sales, listings, delistings, offers.
  *
- * A grid rather than a flex row, so the columns line up down the list. Prices
- * and block numbers are the two things a reader compares vertically, and
- * ragged columns make that impossible.
+ * One ledger, used in four places — a token page, a collection page, the
+ * portfolio (as `MyTrades`) and `/activity`. They used to be two stylesheets
+ * that had drifted: the collection's history was a bare list of rows, the
+ * portfolio's was a bordered table with pill badges, and nothing lined up
+ * between them. `MyTrades` now imports this file for the panel, the list and
+ * the row, and keeps only its totals of its own.
+ *
+ * Worse than the drift, the panel had no styles at all on the collection page.
+ * It was built out of `.token-panel` and `.token-note`, which live in
+ * `token.css` — imported by the token routes and by nothing else. So the
+ * collection's activity rendered with no card, no padding and an unstyled
+ * empty-state. That is why this file now carries its own container.
+ *
+ * A grid rather than a flex row, so the columns line up down the list. Price
+ * and time are the two things a reader compares vertically, and ragged columns
+ * make that impossible.
  * ========================================================================== */
 
+.act-panel {
+  margin: 0;
+  padding: 1.15rem 1.25rem 1rem;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+/* On the collection page it follows a full-bleed grid of cards, so it needs
+   air above it that it does not need in a sidebar stack. */
+.act-panel-standalone {
+  margin-top: clamp(2rem, 4vw, 3rem);
+}
+
+.act-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.act-title {
+  font-weight: 700;
+  font-size: var(--step-1);
+  letter-spacing: -0.02em;
+}
+
+/* The total, not the number shown. Ten rows below a "128" is the whole point:
+   it says there is more without making the reader scroll to find out. */
+.act-count {
+  font-size: var(--step--2);
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* --------------------------------------------------------------- the list */
+
+/* Hairlines drawn by the gap rather than per-row borders: one rule, no
+   last-child exception, and the ends stay inside the rounded corner. */
 .act-list {
   list-style: none;
   margin: 0;
   padding: 0;
   display: flex;
   flex-direction: column;
+  gap: 1px;
+  background: var(--line);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  overflow: hidden;
 }
 
 .act-row {
   display: grid;
-  grid-template-columns: 5.5rem minmax(0, 1fr) auto;
+  grid-template-columns: 5.25rem minmax(2.5rem, auto) minmax(0, 1fr) auto auto;
   align-items: center;
-  gap: 0.5rem 0.75rem;
-  padding: 0.6rem 0;
-  border-bottom: 1px solid var(--line);
+  gap: 0.65rem;
+  padding: 0.55rem 0.8rem;
+  background: var(--surface);
   font-size: var(--step--1);
 }
 
-.act-row:last-child {
-  border-bottom: none;
+/* A token's own history says "#7" on every row, so the column is dropped
+   rather than left empty — an empty cell still takes its width and its gap. */
+.act-list-one .act-row {
+  grid-template-columns: 5.25rem minmax(0, 1fr) auto auto;
 }
 
-/* The verb, colour-coded. Sales are the row type people scan for, so they get
-   the only saturated treatment; the rest stay quiet. */
+/* The verb, as a badge. Sales are what people scan for, so they get the only
+   saturated treatment; intentions and withdrawals stay quiet. */
 .act-kind {
   font-size: var(--step--3);
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
+  text-align: center;
+  padding: 0.14rem 0.4rem;
+  border-radius: var(--r-sm);
   color: var(--ink-3);
+  background: var(--surface-2);
 }
 
 .act-kind-sale {
   color: var(--up);
+  background: var(--up-wash);
+}
+
+.act-kind-listed {
+  color: var(--accent);
+  background: var(--accent-wash);
+}
+
+.act-kind-offer {
+  color: var(--ink-2);
+  background: var(--paper-3);
+}
+
+/* A withdrawn listing is the one row that says nothing happened, so it is the
+   one row that recedes. */
+.act-kind-cancelled {
+  color: var(--ink-3);
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+/* Money in and money out, not good and bad — a purchase is not a loss. */
+.act-kind-in {
+  color: var(--up);
+  background: var(--up-wash);
+}
+
+.act-kind-out {
+  color: var(--down);
+  background: color-mix(in srgb, var(--down) 12%, transparent);
 }
 
 .act-token {
   font-weight: 600;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .act-token:hover {
@@ -57,6 +155,7 @@
   align-items: center;
   gap: 0.35rem;
   font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 
 .act-amount {
@@ -72,29 +171,65 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  text-align: right;
 }
 
-.act-block {
-  font-size: var(--step--3);
+/* When, not which block. The block number is still there, one hover away. */
+.act-when {
+  font-size: var(--step--2);
   color: var(--ink-3);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+  text-align: right;
+  min-width: 5.5rem;
 }
 
-.act-block:hover {
+.act-when:hover {
   color: var(--ink);
   text-decoration: underline;
 }
 
+/* ------------------------------------------------------------ the footers */
+
 .act-skeleton {
-  height: 2.2rem;
-  margin: 0.35rem 0;
+  height: 2.6rem;
+  border-radius: 0;
+}
+
+.act-note {
+  font-size: var(--step--2);
+  line-height: 1.55;
+  color: var(--ink-2);
+  background: var(--surface-2);
   border-radius: var(--r-sm);
+  padding: 0.7rem 0.8rem;
+  margin: 0;
 }
 
 .act-more {
-  margin: 0.75rem 0 0;
+  margin: 0;
   font-size: var(--step--2);
+}
+
+/* The way out of a ten-row panel. Sized and spaced like `.head-link`, because
+   it does the same job — this is a link onward, not a control. */
+.act-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  align-self: flex-start;
+  min-height: 24px;
+  font-size: var(--step--1);
+  font-weight: 600;
+  color: var(--ink-2);
+  transition:
+    color var(--fast),
+    gap var(--fast);
+}
+
+.act-all:hover {
+  color: var(--ink);
+  gap: 0.6rem;
 }
 
 .last-sale {
@@ -104,14 +239,45 @@
   font-size: var(--step--1);
 }
 
-/* Phones: the addresses are the first thing worth dropping — the verb, the
-   price and the block still tell the whole story. */
-@media (max-width: 560px) {
+/* Phones.
+ *
+ * The counterparty is the first thing worth dropping — the verb, the price and
+ * the time still tell the whole story. The time then goes to a line of its
+ * own, because five columns do not fit in 375px and the one that gave way was
+ * the price: measured at that width, `0.0002 SOSO` is 99px of content in a
+ * 53px cell, and it ran straight across "33 minutes ago". A number that
+ * overlaps another number is worse than a taller row. */
+@media (max-width: 620px) {
+  .act-panel {
+    padding: 1rem;
+  }
+
   .act-row {
-    grid-template-columns: 4.75rem minmax(0, 1fr) auto;
+    grid-template-columns: 4.75rem minmax(2.5rem, auto) minmax(0, 1fr);
+    gap: 0.15rem 0.5rem;
+    padding: 0.55rem 0.6rem;
+  }
+
+  .act-list-one .act-row {
+    grid-template-columns: 4.75rem minmax(0, 1fr);
   }
 
   .act-who {
     display: none;
+  }
+
+  .act-when {
+    grid-column: 1 / -1;
+    min-width: 0;
+    text-align: left;
+    font-size: var(--step--3);
+  }
+}
+
+@media (pointer: coarse), (max-width: 760px) {
+  .act-all.act-all {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
   }
 }

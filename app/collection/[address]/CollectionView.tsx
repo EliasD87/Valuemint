@@ -324,7 +324,7 @@ export function CollectionView({ params }: { params: Promise<{ address: string }
         {/* Everything that has happened in this collection, not just this page of
             it - the grid is capped at 60 tokens, the history is not. */}
         {collection !== undefined ? (
-          <Activity collection={collection} title="Collection activity" limit={20} />
+          <Activity collection={collection} title="Collection activity" standalone />
         ) : null}
       </div>
     </section>

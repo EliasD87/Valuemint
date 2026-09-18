@@ -321,6 +321,55 @@
   margin-bottom: 1.5rem;
 }
 
+/* "There is more coming."
+ *
+ * Sits between the last holding and the trades table, which is exactly where
+ * the page used to imply the opposite: the grid simply stopped, and a wallet
+ * whose boxes were still being recovered from Transfer logs read that as its
+ * whole portfolio. */
+.portfolio-more {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  margin-top: clamp(1.5rem, 3vw, 2.25rem);
+}
+
+.portfolio-more-note {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-size: var(--step--1);
+  color: var(--ink-2);
+}
+
+.portfolio-more-note b {
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
+/* A live indicator, not a spinner: the page is not blocked and nothing here
+   needs the reader to wait for it. */
+.portfolio-more-dot {
+  width: 0.55rem;
+  height: 0.55rem;
+  flex: none;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: portfolio-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes portfolio-pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.85);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 /* The art plate sits on its own dark ground in both themes, so its caption
    follows the --dark-* family rather than the page ink. */
 .plate-caption .dim,

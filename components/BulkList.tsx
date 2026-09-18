@@ -116,9 +116,41 @@ export function BulkList({
   if (items.length < 2 || chosen === undefined) return null;
 
   if (!open) {
+    /*
+      The whole bar is the control.
+
+      It was a small outline button with `margin-left: auto` in a container
+      that is not a flex row — so the auto did nothing and it sat under the
+      collection's heading, alone and unexplained, looking like something left
+      behind. A seller holding 626 boxes has no reason to guess that the way to
+      price them is a button marked "List several…".
+
+      So the bar says what there is to list before it offers to list it, and it
+      is one target rather than a small one next to some text.
+    */
     return (
-      <button className="btn btn-sm bulk-open" onClick={() => setOpen(true)}>
-        List several&hellip;
+      <button className="bulk-open" onClick={() => setOpen(true)}>
+        <span className="bulk-open-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.7">
+            <rect x="3.25" y="3.25" width="8" height="8" rx="2" />
+            <rect x="12.75" y="3.25" width="8" height="8" rx="2" />
+            <rect x="3.25" y="12.75" width="8" height="8" rx="2" />
+            <rect x="12.75" y="12.75" width="8" height="8" rx="2" />
+          </svg>
+        </span>
+
+        <span className="bulk-open-text">
+          <b>List several at once</b>
+          <small>
+            {formatCount(BigInt(items.length))} unlisted
+            {groups.length > 1 ? ` across ${groups.length} levels` : null} &mdash; one price
+            per level
+          </small>
+        </span>
+
+        <span className="bulk-open-go" aria-hidden="true">
+          &rarr;
+        </span>
       </button>
     );
   }

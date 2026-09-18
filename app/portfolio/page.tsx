@@ -16,7 +16,15 @@ import { Soso } from "@/components/Soso";
 export default function Portfolio() {
   const { address, isConnected } = useAccount();
   const { connect, connectors, isPending } = useConnect();
-  const { tokens: mine, collections, unlistable, isLoading } = useHoldings(address);
+  const {
+    tokens: mine,
+    collections,
+    unlistable,
+    pending,
+    expected,
+    isDiscovering,
+    isLoading,
+  } = useHoldings(address);
   const { data: balance } = useBalance({ address, query: { enabled: address !== undefined } });
 
   /**
@@ -197,6 +205,39 @@ export default function Portfolio() {
           ))}
         </div>
       )}
+
+      {/*
+        Say that more is coming, rather than ending the grid and hoping.
+
+        Collections without an Enumerable index are found by scanning Transfer
+        logs, which takes seconds — so a wallet holding pieces in one of them
+        sees a complete-looking portfolio, and then the activity table under it
+        as if that were the end. It is not: the cards arrive afterwards. The
+        balances are known long before the ids are, so the count is real and
+        not a guess.
+      */}
+      {isDiscovering && mine.length > 0 ? (
+        <div className="portfolio-more">
+          <p className="portfolio-more-note">
+            <span className="portfolio-more-dot" aria-hidden="true" />
+            Still finding your pieces &mdash;{" "}
+            <b>
+              {mine.length} of {expected}
+            </b>{" "}
+            so far
+            {pending.length > 0 ? <>, reading {pending.map((c) => c.name).join(", ")}</> : null}.
+          </p>
+
+          <div className="grid-tokens" aria-hidden="true">
+            {Array.from(
+              { length: Math.min(4, Math.max(1, expected - mine.length)) },
+              (_, i) => (
+                <TokenCardSkeleton key={i} />
+              ),
+            )}
+          </div>
+        </div>
+      ) : null}
 
       {/* Below the holdings, because what you own is the question people come
           to this page with and what you traded is the follow-up. Costs no

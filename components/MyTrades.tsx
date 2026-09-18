@@ -2,10 +2,12 @@
 
 import { useMemo } from "react";
 import Link from "next/link";
+import { useBlockNumber } from "wagmi";
 import { useActivity, type ActivityRow } from "@/hooks/useActivity";
 import { Soso } from "@/components/Soso";
 import { deployment } from "@/config/contracts";
-import { formatSoso, shortAddress } from "@/lib/format";
+import { formatSoso, shortAddress, timeAgo } from "@/lib/format";
+import "@/styles/activity.css";
 import "@/styles/trades.css";
 
 /**
@@ -17,10 +19,20 @@ import "@/styles/trades.css";
  * wrong here — on your own portfolio the useful word is "Bought" or "Sold",
  * not "0x3680… → 0xF4cc…".
  *
+ * Only the *voice* differs, and that is why this now borrows `activity.css`
+ * for the panel, the list and the row. The two had drifted into different
+ * tables — different badges, different columns, different rules for the
+ * hairlines — and on the portfolio they sit a scroll apart from the collection
+ * panels they are meant to match. The totals below are the only thing here
+ * that `Activity` has no equivalent of.
+ *
  * It costs nothing extra to render. `useActivity` runs one global scan shared
  * by every caller on the page, so this is the same rows the market already
  * fetched, filtered to one address.
  */
+
+/** ValueChain's block time, measured. Only used to date a row, never to price one. */
+const SECONDS_PER_BLOCK = 2.065;
 
 /** Same event, different word depending on which side you were. */
 function describe(row: ActivityRow, me: string): { label: string; tone: "in" | "out" | "flat" } {
@@ -36,14 +48,22 @@ function describe(row: ActivityRow, me: string): { label: string; tone: "in" | "
 
 export function MyTrades({
   address,
-  limit = 20,
+  /** Ten here too, for the same reason. The rest live at `/activity?wallet=me`. */
+  limit = 10,
+  /** True on `/activity` itself: every row, and no link back to itself. */
+  full = false,
+  title = "Your trades",
 }: {
   address: `0x${string}` | undefined;
   limit?: number;
+  full?: boolean;
+  title?: string;
 }) {
   const { rows, isLoading, logsUnavailable } = useActivity(undefined, undefined, {
     wallet: address,
   });
+
+  const { data: head } = useBlockNumber({ query: { staleTime: 12_000 } });
 
   const me = address?.toLowerCase() ?? "";
 
@@ -76,15 +96,15 @@ export function MyTrades({
 
   if (address === undefined) return null;
 
-  const shown = rows.slice(0, limit);
+  const shown = full ? rows : rows.slice(0, limit);
   const settled = totals.bought + totals.sold;
 
   return (
-    <div className="trades">
-      <div className="trades-head">
-        <p className="eyebrow">Your trades</p>
+    <div className="act-panel act-panel-standalone">
+      <div className="act-head">
+        <p className="act-title">{title}</p>
         {settled > 0 ? (
-          <span className="trades-count">
+          <span className="act-count">
             {totals.bought} bought &middot; {totals.sold} sold
           </span>
         ) : null}
@@ -123,50 +143,53 @@ export function MyTrades({
       ) : null}
 
       {isLoading && rows.length === 0 ? (
-        <div className="trades-list">
+        <div className="act-list">
           {Array.from({ length: 3 }, (_, i) => (
-            <div key={i} className="skeleton trades-skeleton" />
+            <div key={i} className="skeleton act-skeleton" />
           ))}
         </div>
       ) : logsUnavailable ? (
         /* Absence of a read is not an absence of trades. */
-        <p className="trades-note">
-          Your history could not be read &mdash; the node would not serve event logs. It is not
-          empty; try again in a moment.
+        <p className="act-note">
+          Your history could not be read &mdash; the node would not serve event logs. It is
+          not empty; try again in a moment.
         </p>
       ) : rows.length === 0 ? (
-        <p className="trades-note">
+        <p className="act-note">
           Nothing yet. Every piece you buy, sell, list or bid on through ValueMint shows up
           here, read straight from the chain.
         </p>
       ) : (
-        <ul className="trades-list">
+        <ul className="act-list">
           {shown.map((r) => {
             const { label, tone } = describe(r, me);
             const other = r.from?.toLowerCase() === me ? r.to : r.from;
 
             return (
-              <li key={`${r.blockNumber}-${r.logIndex}-${r.kind}-${r.tokenId}`} className="trades-row">
-                <span className={`trades-kind trades-${tone}`}>{label}</span>
+              <li
+                key={`${r.blockNumber}-${r.logIndex}-${r.kind}-${r.tokenId}`}
+                className="act-row"
+              >
+                <span className={`act-kind act-kind-${tone}`}>{label}</span>
 
-                <Link className="trades-token" href={`/token/${r.collection}/${r.tokenId}`}>
+                <Link className="act-token" href={`/token/${r.collection}/${r.tokenId}`}>
                   #{r.tokenId.toString()}
                 </Link>
 
-                <span className="trades-price">
+                <span className="act-price">
                   {r.price === undefined ? (
                     <span className="dim">&mdash;</span>
                   ) : (
                     <>
                       <Soso size={15}>{formatSoso(r.price)}</Soso>
                       {r.amount > 1n ? (
-                        <span className="trades-amount">&times;{r.amount.toString()}</span>
+                        <span className="act-amount">&times;{r.amount.toString()}</span>
                       ) : null}
                     </>
                   )}
                 </span>
 
-                <span className="trades-who">
+                <span className="act-who">
                   {/* Only a counterparty when there was one. A listing you made
                       and later cancelled has nobody on the other side. */}
                   {r.kind === "sale" && other !== undefined ? (
@@ -178,12 +201,18 @@ export function MyTrades({
                 </span>
 
                 <a
-                  className="trades-block"
+                  className="act-when"
                   href={`${deployment.explorer}/block/${r.blockNumber.toString()}`}
                   target="_blank"
                   rel="noreferrer noopener"
+                  title={`Block #${r.blockNumber.toString()}`}
                 >
-                  #{r.blockNumber.toString()}
+                  {head === undefined
+                    ? `#${r.blockNumber.toString()}`
+                    : timeAgo(
+                        Math.floor(Date.now() / 1000) -
+                          Number(head - r.blockNumber) * SECONDS_PER_BLOCK,
+                      )}
                 </a>
               </li>
             );
@@ -191,10 +220,10 @@ export function MyTrades({
         </ul>
       )}
 
-      {rows.length > limit ? (
-        <p className="trades-note dim">
-          Showing the most recent {limit} of {rows.length}.
-        </p>
+      {!full && rows.length > shown.length ? (
+        <Link className="act-all" href="/activity?wallet=me">
+          See all {rows.length} events &rarr;
+        </Link>
       ) : null}
     </div>
   );

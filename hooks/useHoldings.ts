@@ -194,18 +194,43 @@ queryKey: ["holdings", address, uris.filter(Boolean).join("|")],
    */
   const stillLooking = loadingCollections || loadingBalances || loadingIds || loadingTransfers;
 
-  const unlistable = stillLooking
-    ? []
-    : collections.filter((c, i) => {
-        const balance = balances?.[i];
-        if (balance?.status !== "success" || Number(balance.result as bigint) === 0) return false;
-        return !held.some((h) => h.collection.address === c.address);
-      });
+  /**
+   * Collections this wallet has a balance in that have produced no ids yet.
+   *
+   * Mid-scan they are simply not found yet; once the scan is done they are
+   * found *and unreachable*. Same set, opposite meanings, so it is computed
+   * once and handed out under two names — which also stops the two answers
+   * from ever disagreeing.
+   */
+  const unresolved = collections.filter((c, i) => {
+    const balance = balances?.[i];
+    if (balance?.status !== "success" || Number(balance.result as bigint) === 0) return false;
+    return !held.some((h) => h.collection.address === c.address);
+  });
+
+  /**
+   * How many pieces the chain says this wallet has, whether or not they have
+   * been identified yet.
+   *
+   * `balanceOf` answers in one multicall; resolving ids for a collection with
+   * no Enumerable index takes a Transfer-log scan and seconds. Without this
+   * number the portfolio has no way to say "14 more coming" rather than
+   * quietly ending the grid — which reads as "that is everything you own".
+   */
+  const expected = (balances ?? []).reduce(
+    (sum, entry) => sum + (entry?.status === "success" ? Number(entry.result as bigint) : 0),
+    0,
+  );
 
   return {
     tokens,
     collections,
-    unlistable,
+    unlistable: stillLooking ? [] : unresolved,
+    /** Collections still being resolved, by name, for a "still looking" line. */
+    pending: stillLooking ? unresolved : [],
+    expected,
+    /** Ids are still being discovered — more cards are coming. */
+    isDiscovering: stillLooking,
     isLoading:
       loadingCollections || loadingBalances || loadingIds || loadingTransfers || loadingDetails || loadingMeta,
   };

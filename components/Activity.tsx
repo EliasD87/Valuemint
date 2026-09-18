@@ -1,20 +1,28 @@
 "use client";
 
 import Link from "next/link";
+import { useBlockNumber } from "wagmi";
 import { useActivity, type ActivityRow } from "@/hooks/useActivity";
 import { deployment } from "@/config/contracts";
 import { Soso } from "@/components/Soso";
-import { formatSoso, shortAddress } from "@/lib/format";
+import { formatSoso, shortAddress, timeAgo } from "@/lib/format";
 import "@/styles/activity.css";
 
 /**
  * What has happened here, newest first.
  *
- * Deliberately shows block numbers rather than dates. Turning a block into a
- * timestamp means a `getBlock` call per row, and on a 2-second chain a feed of
- * forty rows is forty extra requests to render something nobody reads
- * precisely. The block is exact, it links to the explorer, and it orders
- * correctly - which is what the column is for.
+ * Ten rows and a way out. This panel used to grow to whatever the scan
+ * returned — twenty-five on a token page, twenty on a collection — which is
+ * neither a summary nor a table worth reading: by row forty nobody is scanning
+ * it, and on the token page it pushed the offers below the fold. So the panel
+ * is a glance and `/activity` is the record.
+ *
+ * Times, not block numbers. The column was the raw block, which is exact and
+ * means nothing to anyone — "#14458676" tells a buyer no more than a serial
+ * number would. Nothing extra is fetched to fix that: turning a block into a
+ * timestamp properly costs a `getBlock` per row, so the distance from the chain
+ * head is converted at ValueChain's ~2.065s spacing instead, and the block
+ * itself stays in the tooltip and behind the link.
  */
 
 const LABEL: Record<ActivityRow["kind"], string> = {
@@ -24,7 +32,19 @@ const LABEL: Record<ActivityRow["kind"], string> = {
   offer: "Offer",
 };
 
-function Row({ row, showToken }: { row: ActivityRow; showToken: boolean }) {
+/** ValueChain's block time, measured. Only used to date a row, never to price one. */
+const SECONDS_PER_BLOCK = 2.065;
+
+function Row({
+  row,
+  showToken,
+  head,
+}: {
+  row: ActivityRow;
+  showToken: boolean;
+  /** The chain head, so a block number can be read as a time. */
+  head?: bigint;
+}) {
   return (
     <li className={`act-row act-${row.kind}`}>
       <span className={`act-kind act-kind-${row.kind}`}>{LABEL[row.kind]}</span>
@@ -42,7 +62,9 @@ function Row({ row, showToken }: { row: ActivityRow; showToken: boolean }) {
           <>
             <Soso size={15}>{formatSoso(row.price)}</Soso>
             {/* Only worth saying for an edition; every ERC-721 sale is one. */}
-            {row.amount > 1n ? <span className="act-amount">&times;{row.amount.toString()}</span> : null}
+            {row.amount > 1n ? (
+              <span className="act-amount">&times;{row.amount.toString()}</span>
+            ) : null}
           </>
         )}
       </span>
@@ -58,12 +80,17 @@ function Row({ row, showToken }: { row: ActivityRow; showToken: boolean }) {
       </span>
 
       <a
-        className="act-block"
+        className="act-when"
         href={`${deployment.explorer}/block/${row.blockNumber.toString()}`}
         target="_blank"
         rel="noreferrer noopener"
+        title={`Block #${row.blockNumber.toString()}`}
       >
-        #{row.blockNumber.toString()}
+        {head === undefined
+          ? `#${row.blockNumber.toString()}`
+          : timeAgo(
+              Math.floor(Date.now() / 1000) - Number(head - row.blockNumber) * SECONDS_PER_BLOCK,
+            )}
       </a>
     </li>
   );
@@ -72,21 +99,60 @@ function Row({ row, showToken }: { row: ActivityRow; showToken: boolean }) {
 export function Activity({
   collection,
   tokenId,
-  limit = 25,
+  /**
+   * Ten, and a link to the rest.
+   *
+   * Changing this is nearly always the wrong fix — if a page wants more
+   * history it wants `/activity`, which is the page that has all of it.
+   */
+  limit = 10,
   title = "Activity",
+  /** True on `/activity` itself: every row, and no link back to itself. */
+  full = false,
+  /** Not inside a stack that already spaces it — give it room of its own. */
+  standalone = false,
 }: {
   collection: `0x${string}` | undefined;
   /** Omit for a whole collection's history. */
   tokenId?: bigint;
   limit?: number;
   title?: string;
+  full?: boolean;
+  standalone?: boolean;
 }) {
   const { rows, isLoading, logsUnavailable, logsPartial } = useActivity(collection, tokenId);
-  const shown = rows.slice(0, limit);
+
+  /**
+   * One read, shared by every row and by every other panel on the page.
+   *
+   * Twelve seconds of staleness against a two-second chain moves a row's age by
+   * at most six blocks, which cannot change what it says — "3 minutes ago"
+   * stays "3 minutes ago". Polling harder would cost a request to change
+   * nothing.
+   */
+  const { data: head } = useBlockNumber({ query: { staleTime: 12_000 } });
+
+  const shown = full ? rows : rows.slice(0, limit);
+
+  /** `?collection=` alone is the whole collection; adding a token narrows it. */
+  const allHref = `/activity${collection === undefined ? "" : `?collection=${collection}`}${
+    collection !== undefined && tokenId !== undefined ? `&token=${tokenId.toString()}` : ""
+  }`;
 
   return (
-    <div className="token-panel card">
-      <p className="token-panel-title">{title}</p>
+    <div className={`act-panel${standalone ? " act-panel-standalone" : ""}`}>
+      <div className="act-head">
+        <p className="act-title">{title}</p>
+        {rows.length > shown.length ? (
+          <span className="act-count">
+            {shown.length} of {rows.length}
+          </span>
+        ) : rows.length > 0 ? (
+          <span className="act-count">
+            {rows.length} {rows.length === 1 ? "event" : "events"}
+          </span>
+        ) : null}
+      </div>
 
       {isLoading && rows.length === 0 ? (
         <div className="act-list">
@@ -98,22 +164,25 @@ export function Activity({
         /* Not "nothing traded" - we could not read what traded. Saying the
            first when only the second is known is how a buyer concludes a piece
            has no history and prices it accordingly. */
-        <p className="token-note">
-          The node would not serve event logs just now, so this history could not be
-          read. It is not empty - try again in a moment.
+        <p className="act-note">
+          The node would not serve event logs just now, so this history could not be read.
+          It is not empty &mdash; try again in a moment.
         </p>
       ) : shown.length === 0 ? (
-        <p className="token-note">
+        <p className="act-note">
           Nothing has traded here yet. Every sale, listing and offer made through this
           marketplace shows up here permanently.
         </p>
       ) : (
-        <ul className="act-list">
+        /* One token page needs one column fewer, and an empty cell is not the
+           same as no cell — the columns have to be declared without it. */
+        <ul className={`act-list${tokenId === undefined ? "" : " act-list-one"}`}>
           {shown.map((r) => (
             <Row
               key={`${r.blockNumber}-${r.logIndex}-${r.kind}-${r.tokenId}`}
               row={r}
               showToken={tokenId === undefined}
+              head={head}
             />
           ))}
         </ul>
@@ -125,10 +194,10 @@ export function Activity({
         </p>
       ) : null}
 
-      {rows.length > limit ? (
-        <p className="act-more dim">
-          Showing the most recent {limit} of {rows.length}.
-        </p>
+      {!full && rows.length > shown.length ? (
+        <Link className="act-all" href={allHref}>
+          See all {rows.length} events &rarr;
+        </Link>
       ) : null}
     </div>
   );

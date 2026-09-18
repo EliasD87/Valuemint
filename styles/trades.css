@@ -1,35 +1,23 @@
 /* ================================================================== trades */
-/* A wallet's own history, written from its side. Shares the shape of the
-   activity list but not its voice: here the useful word is "Bought", not an
-   arrow between two addresses. */
-
-.trades {
-  margin-top: 2rem;
-  padding: 1.25rem;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--r-md);
-}
-
-.trades-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 1rem;
-  margin-bottom: 0.9rem;
-}
-
-.trades-count {
-  font-size: var(--step--2);
-  color: var(--ink-3);
-  font-variant-numeric: tabular-nums;
-}
+/*
+ * A wallet's own ledger, written from its side.
+ *
+ * Almost everything that used to be here is gone, and deliberately: the panel,
+ * the list, the row, the badges and the block link were a second copy of the
+ * activity table that had drifted away from the first — different columns,
+ * different badge shapes, different hairlines — while sitting on the same page
+ * as it. `MyTrades` now renders the `activity.css` ledger and keeps only what
+ * has no equivalent there.
+ *
+ * Which is this: what the wallet spent, earned and netted. `Activity` has
+ * nothing to say about that, because it does not know whose side you are on.
+ */
 
 .trades-totals {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
   gap: 1px;
-  margin: 0 0 1rem;
+  margin: 0;
   background: var(--line);
   border: 1px solid var(--line);
   border-radius: var(--r-sm);
@@ -59,94 +47,10 @@
   font-variant-numeric: tabular-nums;
 }
 
-.trades-totals .is-up { color: var(--up); }
-.trades-totals .is-down { color: var(--down); }
-
-.trades-list {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  background: var(--line);
-  border: 1px solid var(--line);
-  border-radius: var(--r-sm);
-  overflow: hidden;
+.trades-totals .is-up {
+  color: var(--up);
 }
 
-.trades-skeleton {
-  height: 2.6rem;
-}
-
-.trades-row {
-  display: grid;
-  grid-template-columns: 5.5rem 4rem 1fr auto auto;
-  align-items: center;
-  gap: 0.7rem;
-  padding: 0.6rem 0.85rem;
-  background: var(--surface);
-  font-size: var(--step--1);
-}
-
-.trades-kind {
-  font-size: var(--step--3);
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  padding: 0.12rem 0.4rem;
-  border-radius: var(--r-sm);
-  text-align: center;
-}
-
-/* Money in and money out, not good and bad — a purchase is not a loss. */
-.trades-in { color: var(--up); background: color-mix(in srgb, var(--up) 12%, transparent); }
-.trades-out { color: var(--down); background: color-mix(in srgb, var(--down) 12%, transparent); }
-.trades-flat { color: var(--ink-3); background: var(--surface-2); }
-
-.trades-token {
-  font-weight: 600;
-  color: inherit;
-  text-decoration: none;
-  font-variant-numeric: tabular-nums;
-}
-
-.trades-token:hover { text-decoration: underline; }
-
-.trades-price {
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-}
-
-.trades-amount {
-  font-size: var(--step--3);
-  color: var(--ink-3);
-}
-
-.trades-who,
-.trades-block {
-  font-size: var(--step--2);
-  color: var(--ink-3);
-}
-
-.trades-block {
-  text-decoration: none;
-  font-variant-numeric: tabular-nums;
-}
-
-.trades-block:hover { text-decoration: underline; }
-
-.trades-note {
-  font-size: var(--step--1);
-  color: var(--ink-2);
-  line-height: 1.55;
-  margin: 0.6rem 0 0;
-}
-
-@media (max-width: 560px) {
-  .trades-row {
-    grid-template-columns: 5.5rem 1fr auto;
-    row-gap: 0.3rem;
-  }
-  .trades-who { grid-column: 2 / -1; }
+.trades-totals .is-down {
+  color: var(--down);
 }
