@@ -1081,6 +1081,79 @@ export function resolveFillable(
   return offerIsFillable(order, first.result as bigint, second.result as bigint);
 }
 
+/**
+ * How many listings ride in one `validate()` call.
+ *
+ * `validate` takes `Order[]`, and this app had always passed an array of one -
+ * so listing 626 treasure boxes was 626 wallet confirmations. The boxes are
+ * handed out in the thousands and unevenly, so a holder with hundreds is the
+ * normal case rather than the exception.
+ *
+ * **Gas is not what binds.** Measured with `eth_estimateGas` against the live
+ * chain, against a 30,000,000 block limit:
+ *
+ *       1 order       63,839 gas        964 B calldata
+ *      50 orders   1,978,570 gas     44,868 B
+ *     100 orders   3,940,625 gas     89,668 B
+ *     200 orders   7,891,878 gas    179,268 B
+ *
+ * 200 fits the block with room to spare. What it does not fit is the
+ * *transaction* size limit - geth's default `txMaxSize` is 128 KB, and 200
+ * orders is 179 KB, so the node would drop it before it ever reached a block.
+ * 100 is 89 KB, under the cap with no margin worth having.
+ *
+ * 50 is 45 KB - a 2.9x margin - and 2.0M gas, under 7% of a block. It turns 626
+ * listings into 13 transactions, which is the difference between a feature and
+ * a dare.
+ */
+export const LISTINGS_PER_TX = 50;
+
+/**
+ * Every order for a bulk listing, split into transaction-sized batches.
+ *
+ * Pure, and here rather than in the hook for the reason the top of this file
+ * gives: a wrong order does not throw, it settles and pays the wrong person.
+ * Building hundreds at once makes that worse, not better - one mistake is
+ * repeated hundreds of times and signed in a single click - so the part that
+ * decides what each order *says* is testable on its own.
+ *
+ * Every order gets its own random salt from `buildListing`, so no two collide
+ * even at the same price, in the same second, for the same seller.
+ */
+export function planBulkListing(input: {
+  seller: Address;
+  collection: Address;
+  tokenIds: readonly bigint[];
+  priceWei: bigint;
+  days?: number;
+  perTx?: number;
+}): OrderParameters[][] {
+  const perTx = input.perTx ?? LISTINGS_PER_TX;
+  if (perTx < 1) throw new Error("A batch must carry at least one order.");
+  if (input.priceWei <= 0n) throw new Error("A listing needs a price above zero.");
+
+  /**
+   * The same token twice would be two live orders for one item: whoever fills
+   * the second gets nothing and pays anyway. Cheap to prevent here, and
+   * impossible to notice once signed.
+   */
+  const unique = [...new Set(input.tokenIds.map((id) => id.toString()))].map((id) => BigInt(id));
+
+  const orders = unique.map((tokenId) =>
+    buildListing({
+      seller: input.seller,
+      collection: input.collection,
+      tokenId,
+      priceWei: input.priceWei,
+      days: input.days,
+    }),
+  );
+
+  const batches: OrderParameters[][] = [];
+  for (let i = 0; i < orders.length; i += perTx) batches.push(orders.slice(i, i + perTx));
+  return batches;
+}
+
 /** Turn order parameters back into the shape `cancel` and `getOrderHash` want. */
 export function toComponents(p: OrderParameters, counter: bigint): OrderComponents {
   const { totalOriginalConsiderationItems: _total, ...rest } = p;
@@ -1092,6 +1165,22 @@ export function toComponents(p: OrderParameters, counter: bigint): OrderComponen
  * The wire form. viem wants mutable arrays, and the `readonly` arrays that come
  * back off a decoded log do not satisfy the ABI's tuple types.
  */
+/**
+ * An order in the shape `validate` and `fulfillOrder` want.
+ *
+ * The signature is always empty. Orders here are authorised by being the
+ * `msg.sender` of `validate` rather than by an EIP-712 signature - there is no
+ * server to keep signed orders in, so the chain is the order book.
+ *
+ * Here rather than in a hook because two hooks now build orders: one at a time,
+ * and `useBulkList` fifty at a time. Two copies of the wire shape is exactly the
+ * kind of divergence this file exists to prevent.
+ */
+export const asOrder = (params: OrderParameters) => ({
+  parameters: toWire(params),
+  signature: "0x" as const,
+});
+
 export function toWire(p: OrderParameters) {
   return {
     ...p,

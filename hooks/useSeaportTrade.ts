@@ -16,6 +16,7 @@ import {
   buildOffer,
   lotPrice,
   toComponents,
+  asOrder,
   toWire,
   type OrderParameters,
 } from "@/lib/seaport";
@@ -39,12 +40,6 @@ import type { SeaportOrder } from "@/hooks/useSeaportOrders";
  */
 
 const ZERO_SIGNATURE = "0x" as const;
-
-/** Orders are unrestricted and carry no signature, so this is the only form needed. */
-const asOrder = (params: OrderParameters) => ({
-  parameters: toWire(params),
-  signature: ZERO_SIGNATURE,
-});
 
 const asAdvanced = (params: OrderParameters, numerator = 1n, denominator = 1n) => ({
   parameters: toWire(params),

@@ -7,6 +7,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useHoldings } from "@/hooks/useHoldings";
 import { OfferInbox } from "@/components/OfferInbox";
 import { MyTrades } from "@/components/MyTrades";
+import { BulkList } from "@/components/BulkList";
 import { TokenCard, TokenCardSkeleton } from "@/components/TokenCard";
 import { formatSoso } from "@/lib/format";
 import "@/styles/home.css";
@@ -165,6 +166,18 @@ export default function Portfolio() {
                   View collection &rarr;
                 </Link>
               </div>
+
+              {/*
+                Only the unlisted ones, and only where there is more than one.
+                Re-listing something already up would put two live orders on one
+                token at two prices, and a buyer takes the cheaper — so the
+                pieces already for sale are deliberately not offered here.
+              */}
+              <BulkList
+                collection={group.address as `0x${string}`}
+                collectionName={group.name}
+                tokenIds={group.items.filter((t) => t.listing === undefined).map((t) => t.id)}
+              />
 
               <div className="grid-tokens">
                 {group.items.map((t) => (

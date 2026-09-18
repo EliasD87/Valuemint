@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { zeroAddress } from "viem";
-import { ACCEPTED_BID_CURRENCY, FEE_BPS, FEE_RECIPIENT, ItemType, ORDER_BOOK_WINDOW_BLOCKS, OrderType, buildListing, buildOffer, fulfillerOutlay, isExpired, listingIsFillable, lotPrice, resolveFillable, offerIsFillable, orderBookFloor, readFulfilment, readOrder, splitFee, toComponents, type OrderParameters, unitPrice, unsafeReason } from "./seaport";
+import { zeroAddress, parseEther } from "viem";
+import { ACCEPTED_BID_CURRENCY, FEE_BPS, FEE_RECIPIENT, ItemType, ORDER_BOOK_WINDOW_BLOCKS, OrderType, buildListing, buildOffer, fulfillerOutlay, isExpired, LISTINGS_PER_TX, listingIsFillable, lotPrice, planBulkListing, resolveFillable, offerIsFillable, orderBookFloor, readFulfilment, readOrder, splitFee, toComponents, type OrderParameters, unitPrice, unsafeReason } from "./seaport";
 import { deployment } from "@/config/contracts";
 
 /**
@@ -1113,5 +1113,96 @@ describe("resolveFillable", () => {
     it("is NOT fillable while the checks are still in flight", () => {
       expect(resolveFillable(bid, undefined)).toBe(false);
     });
+  });
+});
+
+/**
+ * Bulk listing is the one place a mistake is made hundreds of times and signed
+ * once, so the part that decides what each order says is pinned here.
+ */
+describe("planBulkListing", () => {
+  const ids = (n: number, from = 4408) =>
+    Array.from({ length: n }, (_, i) => BigInt(from + i));
+  const plan = (n: number, perTx?: number) =>
+    planBulkListing({
+      seller: SELLER,
+      collection: COLLECTION,
+      tokenIds: ids(n),
+      priceWei: parseEther("0.5"),
+      perTx,
+    });
+
+  it("turns 626 listings into 13 transactions, not 626", () => {
+    const batches = plan(626);
+    expect(batches).toHaveLength(13);
+    expect(batches.flat()).toHaveLength(626);
+    expect(batches[0]).toHaveLength(LISTINGS_PER_TX);
+  });
+
+  it("puts the remainder in a final short batch rather than dropping it", () => {
+    const batches = plan(51);
+    expect(batches).toHaveLength(2);
+    expect(batches[1]).toHaveLength(1);
+  });
+
+  it("carries one order per token, in order", () => {
+    const orders = plan(3).flat();
+    expect(orders.map((o) => o.offer[0]!.identifierOrCriteria)).toEqual([4408n, 4409n, 4410n]);
+  });
+
+  /**
+   * Two live orders for one token means whoever fills the second pays and
+   * receives nothing — the seller no longer holds it.
+   */
+  it("refuses to list the same token twice", () => {
+    const batches = planBulkListing({
+      seller: SELLER,
+      collection: COLLECTION,
+      tokenIds: [1n, 2n, 1n, 2n, 3n],
+      priceWei: parseEther("1"),
+    });
+    expect(batches.flat()).toHaveLength(3);
+  });
+
+  /** A shared salt would make two orders collide into one order hash. */
+  it("gives every order its own salt", () => {
+    const salts = plan(120).flat().map((o) => o.salt);
+    expect(new Set(salts.map(String)).size).toBe(120);
+  });
+
+  it("builds each order exactly as the single-listing path does", () => {
+    const [batch] = plan(1);
+    const one = batch![0]!;
+    expect(one.offerer).toBe(SELLER);
+    expect(one.offer[0]!.token).toBe(COLLECTION);
+    expect(one.offer[0]!.itemType).toBe(ItemType.ERC721);
+    expect(one.orderType).toBe(OrderType.FULL_OPEN);
+    // The seller's cut and the fee, same split as a single listing.
+    const { fee, net } = splitFee(parseEther("0.5"));
+    expect(one.consideration[0]!.startAmount).toBe(net);
+    if (fee > 0n) expect(one.consideration[1]!.recipient).toBe(FEE_RECIPIENT);
+    expect(unsafeReason(one)).toBeUndefined();
+  });
+
+  it("refuses a price of zero", () => {
+    expect(() =>
+      planBulkListing({
+        seller: SELLER,
+        collection: COLLECTION,
+        tokenIds: [1n],
+        priceWei: 0n,
+      }),
+    ).toThrow(/price/i);
+  });
+
+  it("returns nothing for nothing", () => {
+    expect(
+      planBulkListing({
+        seller: SELLER,
+        collection: COLLECTION,
+        tokenIds: [],
+        priceWei: parseEther("1"),
+      }),
+    ).toEqual([]);
   });
 });

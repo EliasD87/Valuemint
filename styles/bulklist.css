@@ -1,0 +1,95 @@
+/* ============================================================== bulk list ===
+ *
+ * Listing many pieces of one collection at one price.
+ *
+ * Deliberately plain: this is a form that spends money, so it reads as a form
+ * rather than as a feature. It sits inside a collection group on the portfolio
+ * and borrows that page's rhythm instead of introducing its own.
+ * ========================================================================== */
+
+.bulk-open {
+  margin-left: auto;
+}
+
+.bulk {
+  margin: 0 0 1rem;
+  padding: 1rem 1.1rem 1.1rem;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+}
+
+.bulk-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.9rem;
+}
+
+.bulk-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 9rem;
+  flex: 1 1 9rem;
+}
+
+.bulk-field > span {
+  font-size: var(--step--2);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.bulk-field input {
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: var(--step-0);
+  font-variant-numeric: tabular-nums;
+}
+
+.bulk-field input:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 1px;
+}
+
+.bulk-field small {
+  font-size: var(--step--2);
+  color: var(--ink-3);
+}
+
+.bulk-note,
+.bulk-progress,
+.bulk-error,
+.bulk-fine {
+  margin: 0.85rem 0 0;
+  font-size: var(--step--1);
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+
+.bulk-progress {
+  color: var(--good);
+}
+
+/* Stopped part-way is not a failure of everything, and must not read as one:
+   what confirmed is listed and stays listed. */
+.bulk-progress.is-stopped {
+  color: var(--warn);
+}
+
+.bulk-error {
+  color: var(--danger);
+}
+
+.bulk-fine {
+  font-size: var(--step--2);
+  color: var(--ink-3);
+}
+
+.bulk .wrap-row {
+  margin-top: 0.9rem;
+}
