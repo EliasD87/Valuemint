@@ -7,6 +7,7 @@ import { ValueChainCollectionAbi } from "@/config/contracts";
 import { useEverything } from "@/hooks/useEverything";
 import { resolveMediaUrl } from "@/lib/format";
 import { fetchTokenMetadata } from "@/lib/tokenMetadata";
+import { coverFor } from "@/config/covers";
 
 /** How many thumbnails a cover strip shows. */
 const COVER = 4;
@@ -182,6 +183,22 @@ export function useCollectionArt(perCollection = COVER) {
 
   /** Artwork for one collection; empty when nothing is minted or reachable. */
   const artFor = (address: string): string[] => {
+    /**
+     * A named cover first, and it costs nothing.
+     *
+     * Everything below this line is derived from chain reads — four tokens per
+     * collection, their ids, their tokenURIs and a metadata document each — and
+     * until those land there is no picture, so the rail drew grey circles with
+     * initials in them on the first thing a visitor sees. A collection's cover
+     * does not change from minute to minute; `config/covers.ts` names them and
+     * the rail paints immediately.
+     *
+     * A collection with no entry falls through to exactly the old behaviour, so
+     * this is a fast path rather than a gate.
+     */
+    const named = coverFor(address);
+    if (named !== undefined) return named;
+
     const key = address.toLowerCase();
     const minted = fromMinted.get(key);
     if (minted !== undefined && minted.length > 0) return minted;
