@@ -104,7 +104,28 @@ export function Select({
     const away = (e: PointerEvent) => {
       if (root.current !== null && !root.current.contains(e.target as Node)) setOpen(false);
     };
-    const moved = () => setOpen(false);
+
+    /**
+     * A scroll somewhere ELSE closes the menu. A scroll inside it does not.
+     *
+     * The menu is positioned against its trigger, so it has to go when the page
+     * moves under it — but this listener is on `window` in the capture phase,
+     * which is the only way to hear a scroll from a container that is not the
+     * window, and that means it also hears the menu scrolling itself. A list
+     * long enough to need a scrollbar therefore closed the instant it was
+     * dragged, which is the one thing a scrollbar must not do.
+     */
+    const moved = (e: Event) => {
+      const target = e.target;
+      if (
+        root.current !== null &&
+        target instanceof Node &&
+        root.current.contains(target)
+      ) {
+        return;
+      }
+      setOpen(false);
+    };
 
     document.addEventListener("pointerdown", away);
     window.addEventListener("scroll", moved, { passive: true, capture: true });

@@ -101,7 +101,15 @@
   /* About eight rows, then it scrolls. A trait list can be long. */
   max-height: 17.5rem;
   overflow-y: auto;
+  /* The wheel stops here rather than carrying on into the page behind it. */
   overscroll-behavior: contain;
+  /*
+   * And the scrollbar is ours too, or the last OS-drawn part of this control
+   * would be the one thing still showing through — a fat grey trough on a
+   * panel built to replace exactly that.
+   */
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) transparent;
   margin: 0;
   padding: 0.3rem;
   list-style: none;
@@ -180,4 +188,30 @@
   .sel-caret {
     transition: none;
   }
+}
+
+/*
+ * WebKit still wants its own properties; `scrollbar-width` above covers
+ * Firefox and current Chrome, and these cover the rest.
+ */
+.sel-menu::-webkit-scrollbar {
+  width: 10px;
+}
+
+.sel-menu::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sel-menu::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: var(--line-strong);
+  /* Inset by a transparent border, so the thumb reads as a slim pill rather
+     than filling the gutter edge to edge. */
+  border: 3px solid transparent;
+  background-clip: padding-box;
+}
+
+.sel-menu::-webkit-scrollbar-thumb:hover {
+  background: var(--ink-4);
+  background-clip: padding-box;
 }
