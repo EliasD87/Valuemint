@@ -156,10 +156,15 @@ export const FEATURED: FeaturedPiece[] = [
   {
     collection: "0xaAb0dC8f2835Ed903b35d2f52FF17c4bc92Bec19",
     collectionName: "The Trenches",
-    name: "Ripple",
+    name: "Scout",
     tokenId: "1000001",
     note: "Depth 1",
-    image: "https://ipfs.filebase.io/ipfs/QmaRw3gCPDSJ4cErcLf9V8bUUKckC5UP8kTF8jBrmcoyJ8",
+    /* Kept in step with `config/tiers.ts` by hand, because this file is a
+       curated poster list rather than a query. Tier 1's name and artwork both
+       changed when the collection was re-cut; leaving either behind would have
+       put a retired picture on the front page under a name that no longer
+       exists. */
+    image: "https://ipfs.filebase.io/ipfs/Qmduq6Jncodso95dfBu85GySMYrLNt1TVQhjGsawUTupRa",
   },
 
   // ── row two ────────────────────────────────────────────────────────────
@@ -217,10 +222,10 @@ export const FEATURED: FeaturedPiece[] = [
   {
     collection: "0xaAb0dC8f2835Ed903b35d2f52FF17c4bc92Bec19",
     collectionName: "The Trenches",
-    name: "Current",
+    name: "Architect",
     tokenId: "4000001",
     note: "Depth 4",
-    image: "https://ipfs.filebase.io/ipfs/QmZhR1M4Tmnu42Qgz5c5EcjCBJK7JVaTjgXuRNM2LfkiDq",
+    image: "https://ipfs.filebase.io/ipfs/QmP8f2gWdK893BLUgt5G4rAYUMcNNPxPLBcoQT28EYUckx",
   },
 ];
 

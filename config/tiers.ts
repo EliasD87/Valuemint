@@ -17,7 +17,18 @@ export interface Tier {
   name: string;
   /** Minimum all-time volume in USD. Tier 1 is any trade at all. */
   min: number;
-  /** The tier's accent, used for its glow, name and unlocked state. */
+  /**
+   * The tier's accent, used for its glow, name and unlocked state.
+   *
+   * A deliberate ramp, not sampled from the artwork. Sampling was tried and
+   * returned ten muddy sepias within a few percent of each other, because the
+   * art is ink and wash on white — which would have lost the one thing this
+   * field is for. The hues climb instead: 89° green, through blue and violet,
+   * round to 46° gold, so the ladder is legible as colour alone. All ten are
+   * checked against the Trenches page's own dark ground, where they range from
+   * 4.59:1 to 11.28:1; that page is dark in both themes, so they are never
+   * asked to hold up on white.
+   */
   colour: string;
   /** IPFS CID of this tier's artwork, stored on Filebase. */
   image: string;
@@ -25,16 +36,16 @@ export interface Tier {
 }
 
 export const TIERS: Tier[] = [
-  { n: 1, name: "Ripple", min: 0, colour: "#7dd3fc", image: "QmaRw3gCPDSJ4cErcLf9V8bUUKckC5UP8kTF8jBrmcoyJ8", blurb: "You showed up and traded." },
-  { n: 2, name: "Wake", min: 1_000, colour: "#38bdf8", image: "QmQUVQTkCcRB5GndhpEds3pu45FNK4Nfoc9AfX2zZ2qZr8", blurb: "Enough to leave a mark behind you." },
-  { n: 3, name: "Swell", min: 10_000, colour: "#22d3ee", image: "QmcZrXvsX8FhSFD6y2U4JWpxq2pRZn5G475CNh8RzpvQPK", blurb: "Not a visitor any more." },
-  { n: 4, name: "Current", min: 50_000, colour: "#06b6d4", image: "QmZhR1M4Tmnu42Qgz5c5EcjCBJK7JVaTjgXuRNM2LfkiDq", blurb: "Moving with real force." },
-  { n: 5, name: "Tide", min: 250_000, colour: "#0891b2", image: "QmNPx8yXmGVpzw1jyMCYLRZusCuEx88XAgUgLy51Lpb9nJ", blurb: "Big enough to pull others along." },
-  { n: 6, name: "Undertow", min: 1_000_000, colour: "#3b82f6", image: "QmQmgJwkrHrszpAsxr7vPfr3uXQQCz22ncxyrUodxx7t7E", blurb: "Seven figures, under the surface." },
-  { n: 7, name: "Deep", min: 5_000_000, colour: "#6366f1", image: "QmUWWXAtDq1Eg63ha52XVTKCUzbvf7XFmFdQ7fHH9MCfYB", blurb: "Past where the light reaches." },
-  { n: 8, name: "Trench", min: 15_000_000, colour: "#7c3aed", image: "QmRkLiobbJPHp5jy3zgUm4P9KKN8bgZazUNQnfMfeRsWkp", blurb: "Down where the pressure is." },
-  { n: 9, name: "Abyss", min: 50_000_000, colour: "#a21caf", image: "QmUBTUBjyo3taHBuvETmsR1a8joBTY4N1YzVhgbm4CKTf5", blurb: "Almost nobody trades here." },
-  { n: 10, name: "Leviathan", min: 150_000_000, colour: "#f59e0b", image: "QmWtumg47QsVxthRLnHRxhvrXPJo4agm88M2DgWsQ6ZeFU", blurb: "The thing the depth is famous for." },
+  { n: 1,  name: "Scout",     min: 0,           colour: "#86a06b", image: "Qmduq6Jncodso95dfBu85GySMYrLNt1TVQhjGsawUTupRa", blurb: "You showed up and traded." },
+  { n: 2,  name: "Trader",    min: 1_000,       colour: "#5fa88a", image: "QmZ7KknaVYGsDv4X59JEWj8h8ELwvHchCutiog35oqD1xF", blurb: "Enough volume to be doing this on purpose." },
+  { n: 3,  name: "Operator",  min: 10_000,      colour: "#46a2b8", image: "QmYWKeeNfDRnAkRjmc6WXBAegrPqvmDnTpFd4Vrtvc7jQF", blurb: "You know the routes and you run them." },
+  { n: 4,  name: "Architect", min: 50_000,      colour: "#4b86d4", image: "QmP8f2gWdK893BLUgt5G4rAYUMcNNPxPLBcoQT28EYUckx", blurb: "Building a position, not just taking one." },
+  { n: 5,  name: "Oracle",    min: 250_000,     colour: "#6f76e0", image: "Qmd96VjHD7JcGcfP6X6RrZk2eWiUNeYetK3AkpFyQEBmYC", blurb: "You see it before the book does." },
+  { n: 6,  name: "Titan",     min: 1_000_000,   colour: "#9a63dd", image: "QmV4vL48iWiNtcTYVLeAGfTh3XetpWXHD9ANKjcY9MZiAs", blurb: "Seven figures through your hands." },
+  { n: 7,  name: "Magnate",   min: 5_000_000,   colour: "#c25fc0", image: "QmUZXQ4sSjJjGbFHA7McUvCxGnh1FMUqGRQwR93ujY1mCf", blurb: "Size that moves other people's prices." },
+  { n: 8,  name: "Overlord",  min: 15_000_000,  colour: "#d85289", image: "QmZKA6qZZWh1Ak3Kx2DZHUCpeCj3kTsyYfohLThiV5rLi5", blurb: "The market makes room for you." },
+  { n: 9,  name: "Sovereign", min: 50_000_000,  colour: "#e08a45", image: "QmaEcsV4dSA3j3eaY2QEKiaZFqtcDLm3XgtakmrCWGMLs6", blurb: "You do not follow the flow. It follows you." },
+  { n: 10, name: "Leviathan", min: 150_000_000, colour: "#edc64a", image: "QmfTus5xh3ZnNvFjsCv5TFpQofPgf57cc7NGjVCzonQgAg", blurb: "The thing the depth is famous for." },
 ];
 
 /** Where this tier's artwork lives. */
