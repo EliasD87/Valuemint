@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { stillUrl } from "@/lib/media";
 
 /**
@@ -26,6 +26,75 @@ import { stillUrl } from "@/lib/media";
 
 /** In flight or done, keyed by URL. Lives as long as the tab. */
 const fetched = new Map<string, Promise<void>>();
+
+/**
+ * The URLs whose animation is downloaded, and everyone waiting to hear.
+ *
+ * Rule 2 above says one fetch per distinct artwork URL — and that cuts both
+ * ways. Cybereator points all 2,233 of its tokens at one GIF, so once ANY card
+ * has pulled it, showing it on the other fifty-nine costs nothing: no request,
+ * no bytes, no decode that was not going to happen anyway.
+ *
+ * Gating those fifty-nine behind their own visibility check bought nothing and
+ * cost the bug this exists to fix — a grid where the top rows moved and the
+ * rest sat on a still, reported as "some loaded gif and some did not". Measured
+ * on the live collection: 9 of 60.
+ *
+ * So visibility gates the DOWNLOAD, which is the expensive part, and never the
+ * swap. A collection whose tokens genuinely differ is unaffected: nothing is in
+ * hand for those, so every card still waits its turn.
+ */
+const ready = new Set<string>();
+const waitingOnReady = new Set<() => void>();
+
+function announce(url: string): void {
+  ready.add(url);
+  for (const listener of [...waitingOnReady]) listener();
+}
+
+/**
+ * Re-ask where a card is whenever the page moves.
+ *
+ * The position check below used to be a single `setTimeout`, and one shot is
+ * not enough: a card that was off screen at 1.2 s stayed on its still for the
+ * life of the page, because the only other trigger was the observer that had
+ * already proved it might never speak. Together those two are not a fallback
+ * and a primary — they are two things that can both be silent.
+ *
+ * One listener for the whole page, passive, coalesced into a frame, and removed
+ * the moment the last waiting card has upgraded. Where the observer works this
+ * costs a single sweep before it is torn down.
+ */
+const watching = new Set<() => void>();
+let scheduled = false;
+
+function sweep(): void {
+  scheduled = false;
+  for (const check of [...watching]) check();
+}
+
+function schedule(): void {
+  if (scheduled) return;
+  scheduled = true;
+  window.requestAnimationFrame(sweep);
+}
+
+function watch(check: () => void): () => void {
+  if (watching.size === 0) {
+    /** `capture`, so a scrolling container inside the page counts too. */
+    window.addEventListener("scroll", schedule, { passive: true, capture: true });
+    window.addEventListener("resize", schedule, { passive: true });
+  }
+  watching.add(check);
+
+  return () => {
+    watching.delete(check);
+    if (watching.size === 0) {
+      window.removeEventListener("scroll", schedule, { capture: true });
+      window.removeEventListener("resize", schedule);
+    }
+  };
+}
 
 /** How many animations may be downloading at any moment. */
 const AT_ONCE = 2;
@@ -78,6 +147,8 @@ function pull(url: string): Promise<void> {
         const img = new window.Image();
         img.onload = () => {
           release();
+          /** Now free for every other card pointing at the same file. */
+          announce(url);
           resolve();
         };
         img.onerror = () => {
@@ -148,9 +219,19 @@ export function useMoving(
   },
 ): { src: string; ref: (node: Element | null) => void } {
   const stillSrc = stillUrl(src, still);
+  const movingSrc = useMemo(() => stillUrl(src, moving, true), [src, moving]);
+
+  /**
+   * A host `/api/still` will not fetch gets its original untouched, so the two
+   * URLs are the same string and there is nothing to upgrade to.
+   */
+  const upgradeable = enabled && movingSrc !== stillSrc;
 
   const [shown, setShown] = useState(stillSrc);
   const [seen, setSeen] = useState(!whenVisible);
+
+  /** Is this artwork's animation already downloaded, by this card or another? */
+  const [free, setFree] = useState(false);
 
   /** The node to watch, held in a ref so the callback ref stays stable. */
   const node = useRef<Element | null>(null);
@@ -158,6 +239,30 @@ export function useMoving(
   useEffect(() => {
     setShown(stillSrc);
   }, [stillSrc]);
+
+  /**
+   * Listen for someone else finishing the download of this same file.
+   *
+   * On a collection where every token shares one artwork this fires once and
+   * releases the entire grid at the same instant, which is what a grid of one
+   * animation should have done all along.
+   */
+  useEffect(() => {
+    if (!upgradeable) return;
+
+    if (ready.has(movingSrc)) {
+      setFree(true);
+      return;
+    }
+
+    const check = () => {
+      if (ready.has(movingSrc)) setFree(true);
+    };
+    waitingOnReady.add(check);
+    return () => {
+      waitingOnReady.delete(check);
+    };
+  }, [upgradeable, movingSrc]);
 
   useEffect(() => {
     if (!whenVisible || seen) return;
@@ -185,43 +290,48 @@ export function useMoving(
      *
      * `IntersectionObserver` does not deliver while a document is hidden, and
      * "hidden" is broader than a background tab — measured in this project's
-     * own preview pane, `visibilityState` is `hidden`, the callback never fires
-     * once, and every card therefore sat on its still forever. An upgrade whose
-     * single trigger can silently never fire is exactly the failure that has
-     * now been reported twice, so there is a second path: after a moment, ask
-     * the element where it is. `getBoundingClientRect` needs layout, which
-     * always happens, rather than compositing, which does not.
+     * own preview pane, `visibilityState` is `hidden` and the callback never
+     * fires once. `getBoundingClientRect` needs layout, which always happens,
+     * rather than compositing, which does not.
      *
-     * It is a fallback and not a replacement — it runs once, and it still
-     * refuses a card that is genuinely off screen.
+     * It runs on a beat after mount AND on every scroll and resize, because one
+     * shot was not enough: measured on the live collection at 1280x900, exactly
+     * the 9 cards inside `innerHeight + MARGIN` at 1.2 s ever upgraded, and the
+     * remaining 51 stayed on their stills however far the page was scrolled.
+     * A check that only ever runs once is not a fallback for a trigger that
+     * might never fire — it is a second thing that can also be silent.
      */
-    const timer = window.setTimeout(() => {
+    const check = () => {
       const box = el.getBoundingClientRect();
-      const near =
-        box.bottom > -MARGIN && box.top < (window.innerHeight || 0) + MARGIN && box.width > 0;
-      if (near) {
+      /** Zero-width means not laid out yet; ask again on the next sweep. */
+      if (box.width === 0) return;
+      const height = window.innerHeight || document.documentElement.clientHeight || 0;
+      if (box.bottom > -MARGIN && box.top < height + MARGIN) {
         setSeen(true);
         io.disconnect();
       }
-    }, 1_200);
+    };
+
+    const timer = window.setTimeout(check, 1_200);
+    const unwatch = watch(check);
 
     return () => {
       io.disconnect();
       window.clearTimeout(timer);
+      unwatch();
     };
   }, [whenVisible, seen]);
 
   useEffect(() => {
-    if (!enabled || !seen) return;
-    if (!wanted()) return;
-
-    const movingSrc = stillUrl(src, moving, true);
+    if (!upgradeable) return;
 
     /**
-     * A host `/api/still` will not fetch gets its original untouched, so there
-     * is nothing to upgrade to — the two URLs are the same string.
+     * Visibility gates the download, not the swap — so a card whose file is
+     * already in hand (`free`) upgrades without waiting to be looked at, and a
+     * card that would have to fetch one still waits its turn.
      */
-    if (movingSrc === stillSrc) return;
+    if (!seen && !free) return;
+    if (!wanted()) return;
 
     let live = true;
     pull(movingSrc)
@@ -235,7 +345,7 @@ export function useMoving(
     return () => {
       live = false;
     };
-  }, [enabled, seen, src, stillSrc, moving]);
+  }, [upgradeable, seen, free, movingSrc]);
 
   /**
    * A stable callback ref. React attaches refs before effects run, so the
