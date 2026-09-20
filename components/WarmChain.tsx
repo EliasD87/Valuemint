@@ -45,10 +45,30 @@ import { WARM_COLLECTIONS } from "@/config/featured";
  * `useCollectionBasics` is shared with the page for this reason, and the
  * 60-token cap has to match for the same reason.
  */
+/** The rows a collection page shows before anybody scrolls. */
+const FIRST_SCREEN = 12;
+
 export function WarmCollection({ address }: { address: `0x${string}` }) {
   const { supply } = useCollectionBasics(address);
+
+  /** 60 — the collection page's own cap. A different number would miss its cache. */
   const { ids } = useTokenIds(address, supply, 60);
-  useGenericTokens(address, ids);
+
+  /**
+   * All sixty token URIs, but only the first screen's documents.
+   *
+   * The URIs are RPC and batch into one multicall, so warming all of them costs
+   * a single request and the page finds them. The documents do not batch when
+   * they belong to somebody else — Cybereator's are one URL per token on a host
+   * with no cache headers — and warming two Cybereator collections in full was
+   * measured at 132 requests to that host per home-page visit, from people who
+   * had not clicked anything.
+   *
+   * Twelve is what fills the screen on arrival. The rest load as they are
+   * scrolled to, which is what would have happened anyway.
+   */
+  useGenericTokens(address, ids, { documents: FIRST_SCREEN });
+
   return null;
 }
 

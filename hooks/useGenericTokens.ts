@@ -44,7 +44,30 @@ import { tierOf, traitOf } from "@/lib/tokenMetadata";
  * single limit of eight was set for the gateway and applied to both.
  */
 
-export function useGenericTokens(collection: `0x${string}` | undefined, ids: bigint[]) {
+export function useGenericTokens(
+  collection: `0x${string}` | undefined,
+  ids: bigint[],
+  {
+    /**
+     * How many of these tokens to fetch metadata for. All of them, unless a
+     * caller says otherwise.
+     *
+     * The background warmer says otherwise. Reading a collection ahead of
+     * somebody is worth doing, but its metadata is the expensive half and not
+     * all of it is urgent: Cybereator's documents live on a third party's host
+     * with a URL per token, so they cannot be batched, and warming two
+     * Cybereator collections meant 120 separate requests to an endpoint that
+     * sends no cache headers — paid on every home-page visit, by people who
+     * may never click.
+     *
+     * The ids and the token URIs above are RPC, batched into multicalls, and
+     * cheap; those are warmed in full so the page finds them. Only the
+     * documents are trimmed, to the rows somebody actually sees when a
+     * collection opens. The rest arrive when they scroll.
+     */
+    documents = ids.length,
+  }: { documents?: number } = {},
+) {
   const { data: uriResults, isLoading: urisLoading } = useReadContracts({
     contracts: ids.map((id) => ({
       address: collection,
@@ -67,7 +90,9 @@ export function useGenericTokens(collection: `0x${string}` | undefined, ids: big
    * query and retry it, and "no readable metadata" is an ordinary answer here,
    * not a failure. One implementation, in useTokenDocuments.
    */
-  const { documents: metadata, isLoading: loadingMeta } = useTokenDocuments(uris);
+  const { documents: metadata, isLoading: loadingMeta } = useTokenDocuments(
+    documents >= uris.length ? uris : uris.slice(0, documents),
+  );
 
   const tokens: LoadedToken[] = ids.map((id, i) => {
     const m = metadata[i];
