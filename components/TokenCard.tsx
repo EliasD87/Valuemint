@@ -150,7 +150,7 @@ export function TokenCard({
             <span>No artwork published</span>
           </div>
         ) : (
-          <div className="tcard-placeholder skeleton" aria-hidden="true" />
+          <div className="tcard-placeholder tcard-loading" aria-hidden="true" />
         )}
         <div className="tcard-badges">
           {token.tier !== undefined ? <span className={`chip chip-${tier}`}>{token.tier}</span> : <span />}
@@ -239,7 +239,7 @@ export function TokenCardSkeleton() {
   return (
     <div className="tcard" aria-hidden="true" style={{ pointerEvents: "none" }}>
       <div className="tcard-media">
-        <div className="tcard-placeholder skeleton" />
+        <div className="tcard-placeholder tcard-loading" />
       </div>
       <div className="tcard-body">
         <div className="skeleton" style={{ height: "1rem", width: "58%" }} />

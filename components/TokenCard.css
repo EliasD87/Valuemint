@@ -45,10 +45,148 @@
   transform: scale(1.05);
 }
 
+/* ============================================================ the wait ===
+ *
+ * What a card shows before its artwork arrives, which is more of the time than
+ * anyone would like: metadata has to be read before the picture is even named,
+ * and somebody who clicks straight through from the front page outruns the
+ * background warming every time.
+ *
+ * It was `--paper-3` flat with a white bar sweeping across it — the grey box
+ * that reads as "broken" rather than "coming". Three cheap layers instead, and
+ * every one of them animates only `transform` and `opacity`, so sixty of these
+ * on a collection page cost the compositor and not the paint pipeline.
+ *
+ * The resting state is the base gradient and a glow sitting still. That is
+ * deliberate: this project has already shipped a hero that rendered blank
+ * because its content lived only inside an animation that never ran.
+ */
 .tcard-placeholder {
   width: 100%;
   height: 100%;
   border-radius: 0;
+}
+
+.tcard-loading {
+  position: relative;
+  overflow: hidden;
+
+  /*
+   * Depth in BOTH themes, which took a second attempt.
+   *
+   * The first version was a diagonal from `--paper-3` to `--surface-2`, which
+   * is a lit surface in light and a flat rectangle in dark — those two tokens
+   * are the same value there, `#1c1c20`. CLAUDE.md warns about this pairing and
+   * it still got written.
+   *
+   * Mixing the FOREGROUND into the background cannot have that problem: `--ink`
+   * is near-black on a light theme and near-white on a dark one, so the same
+   * rule darkens the corners in one and lightens them in the other. The shape
+   * is identical; only the direction of the contrast flips, which is what a
+   * theme is.
+   */
+  background-color: var(--paper-3);
+  background-image: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--ink) 7%, transparent) 0%,
+    transparent 46%,
+    color-mix(in srgb, var(--ink) 4%, transparent) 100%
+  );
+}
+
+/*
+ * The glow. This is the layer doing the work.
+ *
+ * A wide, very soft wash of the brand accent that drifts and breathes. At 14%
+ * it is barely a colour — enough that the tile looks like it is holding
+ * something, not enough to guess at what.
+ */
+.tcard-loading::before {
+  content: "";
+  position: absolute;
+  inset: -30%;
+  background: radial-gradient(
+    42% 42% at 38% 34%,
+    color-mix(in srgb, var(--accent) 14%, transparent) 0%,
+    transparent 70%
+  );
+  transform: translate3d(0, 0, 0) scale(1);
+  animation: tcard-drift 5.2s ease-in-out infinite alternate;
+}
+
+/*
+ * The sweep, diagonal and slow.
+ *
+ * 105deg rather than straight across, and wider than the tile, so it reads as
+ * light moving over a surface rather than a bar crossing a box.
+ */
+.tcard-loading::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 38%,
+    var(--sheen) 50%,
+    transparent 62%
+  );
+  transform: translate3d(-100%, 0, 0);
+  animation: tcard-sweep 2.1s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@keyframes tcard-drift {
+  from {
+    transform: translate3d(-6%, -4%, 0) scale(1);
+    opacity: 0.75;
+  }
+  to {
+    transform: translate3d(6%, 4%, 0) scale(1.12);
+    opacity: 1;
+  }
+}
+
+@keyframes tcard-sweep {
+  from {
+    transform: translate3d(-100%, 0, 0);
+  }
+  to {
+    transform: translate3d(100%, 0, 0);
+  }
+}
+
+/*
+ * A grid ripples; it does not strobe.
+ *
+ * Sixty tiles pulsing in lockstep is the thing that makes a loading screen feel
+ * like a loading screen. Six offsets is enough to break the unison at any
+ * column count without anyone being able to see the pattern — and it costs
+ * nothing, since the animations were already running.
+ */
+.tcard:nth-child(6n + 2) .tcard-loading::after { animation-delay: 0.18s; }
+.tcard:nth-child(6n + 3) .tcard-loading::after { animation-delay: 0.36s; }
+.tcard:nth-child(6n + 4) .tcard-loading::after { animation-delay: 0.54s; }
+.tcard:nth-child(6n + 5) .tcard-loading::after { animation-delay: 0.72s; }
+.tcard:nth-child(6n + 6) .tcard-loading::after { animation-delay: 0.9s; }
+
+.tcard:nth-child(3n + 2) .tcard-loading::before { animation-delay: 0.9s; }
+.tcard:nth-child(3n + 3) .tcard-loading::before { animation-delay: 1.8s; }
+
+/*
+ * Asked for less motion: the tile keeps its depth and stops moving.
+ *
+ * The global reduced-motion rule already collapses durations to nothing, which
+ * would leave the sweep frozen mid-tile as a visible diagonal band. Removing it
+ * outright is the honest version.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .tcard-loading::after {
+    display: none;
+  }
+
+  .tcard-loading::before {
+    animation: none;
+    opacity: 0.9;
+  }
 }
 
 .tcard-badges {
