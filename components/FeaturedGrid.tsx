@@ -143,7 +143,30 @@ export function FeaturedGrid() {
 
             <div className="tcard-body">
               <div className="tcard-head">
-                <span className="tcard-title">{piece.name}</span>
+                {/*
+                  The collection's own wordmark where it has one, its name set
+                  in our type where it does not.
+
+                  A `role="img"` span with the drawing as a background rather
+                  than an `<img>`, because the two cuts are swapped by theme in
+                  CSS and this site has THREE theme states, not two: an
+                  explicit light choice, an explicit dark one, and a system
+                  default that stamps no attribute at all. `<picture>` with
+                  `prefers-color-scheme` can only see the last of those, so it
+                  would show the wrong cut to anybody who has used the toggle.
+
+                  The `aria-label` carries the name, so the card reads the same
+                  whether or not the drawing arrives.
+                */}
+                {piece.wordmark === undefined ? (
+                  <span className="tcard-title">{piece.name}</span>
+                ) : (
+                  <span
+                    className={`tcard-title tcard-wordmark tcard-wordmark-${piece.wordmark}`}
+                    role="img"
+                    aria-label={piece.name}
+                  />
+                )}
                 {piece.tokenId === undefined ? null : (
                   <span className="tcard-num">#{piece.tokenId}</span>
                 )}
