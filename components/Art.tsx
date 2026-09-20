@@ -117,8 +117,26 @@ export function Art({
      * something in front of it gave up. It is also already whatever it is —
      * an animated original animates here without our help.
      */
+    /**
+     * `priority` is honoured here too, and it did not used to be.
+     *
+     * This branch was rare — an unrecognised host — so every image through it
+     * was lazy and nobody noticed. It is the normal path now for the
+     * collections that use our own bundled artwork (`soleArtworkFor`), which
+     * means the first row of a grid would wait on an intersection callback to
+     * load the very picture the page was opened to show. That is the same
+     * fault the collection grid already has a note about.
+     */
     // eslint-disable-next-line @next/next/no-img-element
-    return <img src={src} alt={alt} loading="lazy" decoding="async" />;
+    return (
+      <img
+        src={src}
+        alt={alt}
+        loading={priority ? "eager" : "lazy"}
+        fetchPriority={priority ? "high" : undefined}
+        decoding="async"
+      />
+    );
   }
 
   /**

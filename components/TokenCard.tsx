@@ -10,6 +10,7 @@ import type { Listing } from "@/lib/seaport";
 import { formatSoso } from "@/lib/format";
 import { tierClass } from "@/lib/tokenMetadata";
 import { Art } from "@/components/Art";
+import { soleArtworkFor } from "@/config/covers";
 import "./TokenCard.css";
 import { Soso } from "@/components/Soso";
 
@@ -89,6 +90,15 @@ export function TokenCard({
   const noMetadata = token.uri !== undefined && token.uri.trim() === "";
 
   /**
+   * Our own copy of the artwork, where this collection has one.
+   *
+   * Preferred over the token's metadata image rather than used as a fallback:
+   * for these collections the two are the same picture, and the local file is
+   * the smaller, lighter, faster-serving one. See `soleArtworkFor`.
+   */
+  const image = soleArtworkFor(collection) ?? token.image;
+
+  /**
    * One scan for the whole marketplace, shared by every card. React Query
    * collapses the identical key, so a grid of twenty cards costs one log scan
    * rather than twenty.
@@ -119,7 +129,7 @@ export function TokenCard({
         aria-label={`${token.design ?? collectionName ?? "Token"} #${token.id.toString()}`}
       />
       <div className="tcard-media">
-        {token.image !== undefined ? (
+        {image !== undefined ? (
           /**
            * Through `Art`, not a bare <img>.
            *
@@ -130,7 +140,7 @@ export function TokenCard({
            * the whole reason `Art` exists — this card simply never used it.
            */
           <Art
-            src={token.image}
+            src={image}
             alt={token.design ?? `${collectionName ?? "Token"} ${token.id}`}
             sizes="(max-width: 560px) 50vw, (max-width: 1100px) 33vw, 260px"
             priority={priority}

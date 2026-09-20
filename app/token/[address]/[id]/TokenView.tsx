@@ -20,6 +20,7 @@ import { TxResult } from "@/components/TxResult";
 import { ShareLink } from "@/components/ShareLink";
 import { formatSoso, resolveMediaUrl, shortAddress } from "@/lib/format";
 import { MovingArt } from "@/components/MovingArt";
+import { soleArtworkFor } from "@/config/covers";
 import "@/styles/token.css";
 import { Activity, LastSale } from "@/components/Activity";
 
@@ -279,7 +280,12 @@ export function TokenView({
     (owner as string).toLowerCase() === listing.maker.toLowerCase();
   /** One flag for both sides of the panel — making an order, and taking one. */
   const busy = trade.busy || fill.busy;
-  const image = resolveMediaUrl(metadata?.image);
+  /**
+   * Our own copy where we ship one, the token's own metadata otherwise.
+   * See `soleArtworkFor` — for these collections they are the same picture and
+   * ours is a third of the frames.
+   */
+  const image = soleArtworkFor(collection) ?? resolveMediaUrl(metadata?.image);
 
   /**
    * The contract answered, and its answer was nothing.

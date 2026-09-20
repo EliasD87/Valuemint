@@ -108,3 +108,46 @@ export function coverFor(address: string): string[] | undefined {
   const named = COLLECTION_COVERS[address.toLowerCase()];
   return named !== undefined && named.length > 0 ? named : undefined;
 }
+
+/**
+ * Collections where every token is the same picture, and we ship that picture.
+ *
+ * ── WHY THIS EXISTS ──────────────────────────────────────────────────────
+ *
+ * Cybereator's artwork is one animated file shared by all of its tokens, and
+ * serving it has been a running fight. The original is a 6.58 MB GIF on a
+ * public IPFS gateway, so `/api/still` re-encodes it — 22 KB for a still,
+ * 799 KB and 124 frames for the animation. That works, and it still asks a
+ * grid to run 124-frame animations fetched through a proxy from a gateway we
+ * do not control.
+ *
+ * The hero deck already solved this for itself: a 331 KB, 33-frame animated
+ * WebP in `public/boxes/`, bundled and served from our own origin, which is
+ * the version that has never once failed to play. Pointing the two Cybereator
+ * collections at that same file makes their cards use it too — 2.4x smaller,
+ * a third of the frames to decode, no gateway, no transform, no swap from a
+ * still because there is nothing to swap from.
+ *
+ * It is only correct for a collection whose tokens genuinely all share one
+ * image. Listing a collection here whose pieces differ would show every holder
+ * the same picture, so the rule is narrow on purpose and the two entries below
+ * are the only ones that qualify.
+ */
+const SOLE_ARTWORK: Record<string, string> = {
+  /** Cybereator — 2,233 tokens, one file. */
+  "0xcd30d4bcaa99e556b70a2c4bdfc4050d26e48d30": "/boxes/cybereator.webp",
+
+  /** TestCybereator — the same artwork, from the same source file. */
+  "0x412d8af16b7ff3fe75e1cd380bd86ef33dd8ad0f": "/boxes/cybereator.webp",
+};
+
+/**
+ * The one picture every token in this collection uses, if we ship it.
+ *
+ * `undefined` for everything else, so a caller falls straight through to the
+ * token's own metadata exactly as before.
+ */
+export function soleArtworkFor(address: string | undefined): string | undefined {
+  if (address === undefined) return undefined;
+  return SOLE_ARTWORK[address.toLowerCase()];
+}
