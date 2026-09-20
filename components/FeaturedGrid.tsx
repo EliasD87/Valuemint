@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useState } from "react";
 import { Art } from "@/components/Art";
 import { SodexLogo } from "@/components/SodexLogo";
+import { Wordmark } from "@/components/Wordmark";
+import { wordmarkFor } from "@/config/wordmarks";
 import { FEATURED, PINNED_COLLECTIONS } from "@/config/featured";
 import { tierClass } from "@/lib/tokenMetadata";
 import { WarmCollection } from "@/components/WarmChain";
@@ -145,26 +147,17 @@ export function FeaturedGrid() {
               <div className="tcard-head">
                 {/*
                   The collection's own wordmark where it has one, its name set
-                  in our type where it does not.
-
-                  A `role="img"` span with the drawing as a background rather
-                  than an `<img>`, because the two cuts are swapped by theme in
-                  CSS and this site has THREE theme states, not two: an
-                  explicit light choice, an explicit dark one, and a system
-                  default that stamps no attribute at all. `<picture>` with
-                  `prefers-color-scheme` can only see the last of those, so it
-                  would show the wrong cut to anybody who has used the toggle.
-
-                  The `aria-label` carries the name, so the card reads the same
-                  whether or not the drawing arrives.
+                  in our type where it does not. Looked up by address, so the
+                  card and the collection page it opens cannot disagree about
+                  how the collection is written. See `config/wordmarks.ts`.
                 */}
-                {piece.wordmark === undefined ? (
+                {wordmarkFor(piece.collection) === undefined ? (
                   <span className="tcard-title">{piece.name}</span>
                 ) : (
-                  <span
-                    className={`tcard-title tcard-wordmark tcard-wordmark-${piece.wordmark}`}
-                    role="img"
-                    aria-label={piece.name}
+                  <Wordmark
+                    mark={wordmarkFor(piece.collection)!}
+                    name={piece.name}
+                    className="tcard-title"
                   />
                 )}
                 {piece.tokenId === undefined ? null : (

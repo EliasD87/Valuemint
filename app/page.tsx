@@ -15,6 +15,8 @@ import "@/styles/home.css";
 import "@/styles/hero.css";
 import { Soso } from "@/components/Soso";
 import { HERO_DECK } from "@/config/heroDeck";
+import { Wordmark } from "@/components/Wordmark";
+import { wordmarkFor } from "@/config/wordmarks";
 import { PINNED_COLLECTIONS } from "@/config/featured";
 import { CREATE_ENABLED } from "@/config/features";
 
@@ -535,7 +537,22 @@ function DeckTile({
           so a scrim and white type read the same in light and dark.
         */}
         <span className="hx-card-body">
-          <b>{card.name}</b>
+          {/*
+            The collection's own wordmark where it has one.
+
+            `on="art"` rather than the theme-following default: every piece in
+            this deck carries a dark ground — that is why the scrim and white
+            type above work without a theme — so the light drawing is always
+            the right one here, and following the page theme would put a black
+            wordmark on a dark picture half the time.
+          */}
+          {wordmarkFor(card.address) === undefined ? (
+            <b>{card.name}</b>
+          ) : (
+            <b>
+              <Wordmark mark={wordmarkFor(card.address)!} name={card.name} on="art" />
+            </b>
+          )}
           <span className="hx-card-cap">
             {/*
               SoDEX's own wordmark standing in for the word, in the theme it

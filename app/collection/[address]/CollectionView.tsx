@@ -17,6 +17,8 @@ import "@/styles/home.css";
 import "@/styles/collections.css";
 import { Sortie } from "@/components/Sortie";
 import { Select } from "@/components/Select";
+import { Wordmark } from "@/components/Wordmark";
+import { wordmarkFor } from "@/config/wordmarks";
 import { Activity } from "@/components/Activity";
 
 /**
@@ -169,7 +171,23 @@ export function CollectionView({ params }: { params: Promise<{ address: string }
       <div className="head">
         <div>
           <p className="eyebrow">Collection</p>
-          <h2>{name ?? "Loading…"}</h2>
+          {/*
+            The collection's own wordmark in the heading where it has one.
+
+            Still inside the `<h2>`, so the document outline is unchanged and
+            the heading keeps an accessible name — the mark carries the
+            collection's name as its `aria-label`. Gated on `name` having
+            arrived as well as the mark existing: swapping a drawing in for
+            "Loading…" would show a finished heading over a page that is still
+            reading, which is a worse lie than the placeholder.
+          */}
+          <h2>
+            {name !== undefined && wordmarkFor(collection) !== undefined ? (
+              <Wordmark mark={wordmarkFor(collection)!} name={name} />
+            ) : (
+              (name ?? "Loading…")
+            )}
+          </h2>
         </div>
         {/* Share and the explorer link belong together: both are ways of
             taking this collection somewhere else. */}

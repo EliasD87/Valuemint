@@ -81,15 +81,6 @@ export interface FeaturedPiece {
    * got promoted next.
    */
   brand?: "sodex";
-  /**
-   * Show the collection's own wordmark instead of typesetting its name.
-   *
-   * Only where one exists as an asset in `public/brand/`, in both a light and
-   * a dark cut — a single drawing would be invisible in one theme. The name is
-   * still required and is what the mark's `aria-label` says, so nothing about
-   * the card's meaning depends on an image loading.
-   */
-  wordmark?: "cybereator";
 }
 
 /** Twelve pieces: three rows of four on a desktop grid. */
@@ -130,7 +121,6 @@ export const FEATURED: FeaturedPiece[] = [
     name: "Cybereator",
     image: "/boxes/cybereator.webp",
     brand: "sodex",
-    wordmark: "cybereator",
   },
   {
     /*
