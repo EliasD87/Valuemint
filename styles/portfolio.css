@@ -1,0 +1,86 @@
+/*
+ * The portfolio's own layout.
+ *
+ * Deliberately the same shape as the collection page's `.coll-layout`: a wide
+ * main column of pieces, and a 21rem column beside it holding the history. The
+ * two pages answer the same pair of questions — what is here, and what has
+ * happened to it — and reading differently on each was a reason people found
+ * the history on one and not the other.
+ */
+
+.pf-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(min(19rem, 100%), 21rem);
+  gap: clamp(1.5rem, 4vw, 3rem);
+  align-items: start;
+}
+
+.pf-main {
+  min-width: 0;
+}
+
+/*
+ * Not sticky, and not a scroll container.
+ *
+ * Both were tried on the collection page and each caused the other: sticky
+ * pins an element at its `top`, so anything taller than the viewport has a
+ * bottom that can never be reached, and capping it to the viewport gives it a
+ * scrollbar of its own — which makes the wheel do something different over
+ * this column than everywhere else on the page. A plain column has neither
+ * problem, and it is affordable for the same reason: ten rows and a link to
+ * the rest, so this has no business being taller than a screen.
+ */
+.pf-side {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  min-width: 0;
+}
+
+/* The history is in a 21rem column here rather than the full width it was
+   drawn for, so it takes the same treatment as a phone: the counterparty goes,
+   and the time drops to its own line rather than colliding with the price. */
+.pf-side .act-row {
+  grid-template-columns: 4.5rem auto minmax(0, 1fr);
+  gap: 0.15rem 0.4rem;
+}
+
+.pf-side .act-who {
+  display: none;
+}
+
+.pf-side .act-when {
+  grid-column: 1 / -1;
+  text-align: left;
+  min-width: 0;
+  font-size: var(--step--3);
+}
+
+/* ============================================================== show more */
+
+.pf-more-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.85rem;
+}
+
+@media (max-width: 900px) {
+  .pf-layout {
+    grid-template-columns: 1fr;
+  }
+
+  /* Back to the full-width phone layout that `activity.css` already describes;
+     these overrides only ever existed for the narrow sidebar. */
+  .pf-side .act-row {
+    grid-template-columns: 4.75rem minmax(2.5rem, auto) minmax(0, 1fr);
+  }
+}
+
+@media (pointer: coarse) {
+  /* The wizard-step floor applies here too: a control tapped as often as this
+     one should not draw under 44px. */
+  .pf-more.pf-more {
+    min-height: 44px;
+  }
+}

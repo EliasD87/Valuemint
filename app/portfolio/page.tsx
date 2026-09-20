@@ -1,16 +1,19 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useAccount, useBalance, useConnect } from "wagmi";
 import { useQueryClient } from "@tanstack/react-query";
 import { useHoldings } from "@/hooks/useHoldings";
+import type { ChainToken } from "@/hooks/useEverything";
 import { OfferInbox } from "@/components/OfferInbox";
 import { MyTrades } from "@/components/MyTrades";
 import { BulkList } from "@/components/BulkList";
 import { TokenCard, TokenCardSkeleton } from "@/components/TokenCard";
+import { useGridColumns } from "@/hooks/useGridColumns";
 import { formatSoso } from "@/lib/format";
 import "@/styles/home.css";
+import "@/styles/portfolio.css";
 import { Soso } from "@/components/Soso";
 
 export default function Portfolio() {
@@ -139,6 +142,17 @@ export default function Portfolio() {
         </p>
       ) : null}
 
+      {/*
+        Two columns from here down.
+
+        What you traded used to sit at the very bottom, under every card in
+        every collection — so a wallet holding fifty pieces had to scroll past
+        all fifty to reach it, and nobody did. It is a panel of ten rows beside
+        the pieces now, visible without scrolling at all, in the same place the
+        collection page keeps its own history.
+      */}
+      <div className="pf-layout">
+        <div className="pf-main">
       {isLoading && mine.length === 0 ? (
         <div className="grid-tokens">
           {Array.from({ length: 6 }, (_, i) => (
@@ -164,44 +178,7 @@ export default function Portfolio() {
       ) : (
         <div className="stack stack-lg">
           {byCollection.map((group) => (
-            <div key={group.address}>
-              <div className="head head-sub">
-                <div>
-                  <p className="eyebrow eyebrow-dim">{group.items.length} held</p>
-                  <h3>{group.name}</h3>
-                </div>
-                <Link className="head-link" href={`/collection/${group.address}`}>
-                  View collection &rarr;
-                </Link>
-              </div>
-
-              {/*
-                Only the unlisted ones, and only where there is more than one.
-                Re-listing something already up would put two live orders on one
-                token at two prices, and a buyer takes the cheaper — so the
-                pieces already for sale are deliberately not offered here.
-              */}
-              <BulkList
-                collection={group.address as `0x${string}`}
-                collectionName={group.name}
-                items={group.items
-                  .filter((t) => t.listing === undefined)
-                  .map((t) => ({ id: t.id, tier: t.tier }))}
-              />
-
-              <div className="grid-tokens">
-                {group.items.map((t) => (
-                  <TokenCard
-                    key={`${t.collection}-${t.id}`}
-                    token={t}
-                    collection={t.collection}
-                    listing={t.listing}
-                    owner={t.owner}
-                    viewerAddress={address}
-                  />
-                ))}
-              </div>
-            </div>
+            <Holdings key={group.address} group={group} viewer={address} />
           ))}
         </div>
       )}
@@ -239,12 +216,117 @@ export default function Portfolio() {
         </div>
       ) : null}
 
-      {/* Below the holdings, because what you own is the question people come
-          to this page with and what you traded is the follow-up. Costs no
-          extra requests: the activity scan is global and already running for
-          the market, so this is the same rows filtered to one address. */}
-      <MyTrades address={address} />
+        </div>
 
+        {/* Beside the holdings, not under them. What you own is the question
+            people come to this page with and what you traded is the follow-up —
+            a follow-up still has to be reachable. Costs no extra requests: the
+            activity scan is global and already running for the market, so this
+            is the same rows filtered to one address. */}
+        <aside className="pf-side">
+          <MyTrades address={address} />
+        </aside>
+      </div>
     </section>
+  );
+}
+
+/** One collection's worth of what this wallet holds. */
+interface Group {
+  name: string;
+  address: `0x${string}`;
+  items: ChainToken[];
+}
+
+/**
+ * A collection's pieces, one row deep until asked for more.
+ *
+ * A wallet holding sixty pieces of one collection turned this page into sixty
+ * cards of scrolling before the next collection was reachable at all, so the
+ * thing most people open it for — what do I hold, across everything — was the
+ * thing the layout made hardest. One row each means the whole portfolio fits in
+ * a screen or two whatever is in it, and the rest is one press away.
+ *
+ * A row is however many cards the grid is drawing at this width, read from the
+ * grid itself rather than guessed from a breakpoint — see `useGridColumns`. A
+ * guess would clip a row short or spill onto a second one, and would be wrong
+ * again the next time the stylesheet moved.
+ */
+function Holdings({ group, viewer }: { group: Group; viewer: `0x${string}` | undefined }) {
+  const grid = useRef<HTMLDivElement>(null);
+  const columns = useGridColumns(grid);
+  const [expanded, setExpanded] = useState(false);
+
+  /**
+   * Four until the grid has been measured.
+   *
+   * The measurement is a layout effect and lands before paint, so this is
+   * normally never seen — but it is the answer if `ResizeObserver` or
+   * `getComputedStyle` gives nothing, and content must never depend on a
+   * mechanism that might not run. Four is one row on a desktop; being wrong
+   * costs a row that is short or long, not an empty page.
+   */
+  const perRow = columns > 0 ? columns : 4;
+  const shown = expanded ? group.items : group.items.slice(0, perRow);
+  const hidden = group.items.length - shown.length;
+
+  return (
+    <div>
+      <div className="head head-sub">
+        <div>
+          <p className="eyebrow eyebrow-dim">{group.items.length} held</p>
+          <h3>{group.name}</h3>
+        </div>
+        <Link className="head-link" href={`/collection/${group.address}`}>
+          View collection &rarr;
+        </Link>
+      </div>
+
+      {/*
+        Only the unlisted ones, and only where there is more than one.
+        Re-listing something already up would put two live orders on one token
+        at two prices, and a buyer takes the cheaper — so the pieces already for
+        sale are deliberately not offered here.
+
+        Deliberately the whole group and not the visible row: bulk listing is
+        about everything held here, and collapsing the grid is a reading
+        convenience that must not quietly change what a button acts on.
+      */}
+      <BulkList
+        collection={group.address}
+        collectionName={group.name}
+        items={group.items
+          .filter((t) => t.listing === undefined)
+          .map((t) => ({ id: t.id, tier: t.tier }))}
+      />
+
+      <div className="grid-tokens" ref={grid}>
+        {shown.map((t) => (
+          <TokenCard
+            key={`${t.collection}-${t.id}`}
+            token={t}
+            collection={t.collection}
+            listing={t.listing}
+            owner={t.owner}
+            viewerAddress={viewer}
+          />
+        ))}
+      </div>
+
+      {hidden > 0 || expanded ? (
+        <div className="pf-more-row">
+          {/* The button names the total rather than the remainder: "Show all
+              1000" is what somebody is deciding about, and a second label
+              saying "997 more" beside it was the same fact twice. */}
+          <button
+            type="button"
+            className="btn btn-sm pf-more"
+            onClick={() => setExpanded((e) => !e)}
+          >
+            {expanded ? "Show fewer" : `Show all ${group.items.length}`}
+          </button>
+        </div>
+      ) : null}
+    </div>
   );
 }
