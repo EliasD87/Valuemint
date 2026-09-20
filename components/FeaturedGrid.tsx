@@ -37,9 +37,10 @@ import "./FeaturedGrid.css";
  * hostage to it — the live hooks elsewhere on the page settle prices in
  * afterwards without moving anything that has already been drawn.
  *
- * Cards open the COLLECTION, not the token, unless the entry names a token.
- * Somebody clicking a picture on the front page is asking "what is this and
- * what else is there", and a collection answers both.
+ * Cards open the COLLECTION, always — including the ones whose entry names a
+ * particular token. Somebody clicking a picture on the front page is asking
+ * "what is this and what else is there", and a collection answers both where a
+ * token page answers only the first.
  */
 export function FeaturedGrid() {
   /**
@@ -67,13 +68,33 @@ export function FeaturedGrid() {
       {warming === undefined ? null : <WarmCollection address={warming} />}
 
       {FEATURED.map((piece, i) => {
-        const href =
-          piece.tokenId === undefined
-            ? `/collection/${piece.collection}`
-            : `/token/${piece.collection}/${piece.tokenId}`;
+        /**
+         * Always the collection, never the single piece.
+         *
+         * A card naming a token used to open that token. The reasoning below
+         * was already that somebody clicking a picture on the front page is
+         * asking "what is this and what else is there" — a collection answers
+         * both, a token page answers only the first and then makes them go
+         * back. The exception for named tokens was the inconsistent half of
+         * that, and it is gone: every card now does the same thing, so nobody
+         * has to learn which pictures behave differently.
+         *
+         * `tokenId` stays on the entry and is still shown beside the name. It
+         * says which piece the picture is, which is a caption rather than a
+         * destination.
+         */
+        const href = `/collection/${piece.collection}`;
 
-        const warmThis =
-          piece.tokenId === undefined ? () => setWarming(piece.collection) : undefined;
+        /**
+         * And every card is worth warming now.
+         *
+         * This was skipped for a card naming a token, because a token page
+         * wants that one piece and the order book rather than the collection's
+         * sixty ids and sixty URIs — reading them would have been spent on
+         * nothing. Now that every card opens a collection, every card's
+         * collection is the thing about to be needed.
+         */
+        const warmThis = () => setWarming(piece.collection);
 
         /**
          * The two collections this marketplace is about, given a moving ring.
@@ -101,10 +122,9 @@ export function FeaturedGrid() {
                 no touch: hover, first touch, and focus. All three mean the same
                 thing here — this one, next.
 
-                Only for a card that opens a COLLECTION. A card naming a token
-                goes to that token's page, which wants that one piece and the
-                order book (already warm) — not this collection's sixty ids and
-                sixty URIs, which would be spent on nothing.
+                Every card qualifies now that every card opens a collection.
+                The exclusion that used to sit here was for cards that went to
+                a token page instead.
               */
               onPointerEnter={warmThis}
               onTouchStart={warmThis}
