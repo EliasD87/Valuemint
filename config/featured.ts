@@ -76,12 +76,39 @@ export interface FeaturedPiece {
 export const FEATURED: FeaturedPiece[] = [
   // ── row one ────────────────────────────────────────────────────────────
   {
+    /*
+      The one card pointed at a local file rather than at the artwork's own
+      address, and the reason is worth keeping.
+
+      Through `/api/still` this animation is generated on demand: 6.58 MB
+      fetched from Pinata and 125 frames re-encoded, about ten seconds. Once
+      made it is cached hard — but a CDN evicts by region and popularity, and a
+      low-traffic edge drops an 800 KB file quickly. Measured on the live site,
+      the very URL this card uses came back MISS with an `age` of 57 seconds,
+      meaning the copy had just been rebuilt.
+
+      Every one of those misses is somebody looking at the front page's most
+      prominent card while it sits on its still frame — which is a static
+      picture, which is what people were reporting.
+
+      A file in `public/` cannot miss. It is 331 KB against 800 KB, it is served
+      from our own origin as an immutable asset, and it animates the instant it
+      arrives. The hero deck above has worked this way from the start for
+      exactly this reason.
+
+      The trade, stated plainly: this is a re-encode we made — 320px and 33
+      frames against the token artwork's 480px and 125 — so it is the same
+      character on a shorter loop, not the canonical file. Acceptable for a
+      poster card on the front page; it would not be acceptable on a token page,
+      where the artwork is the thing being bought.
+
+      `motion` is gone with it: there is no still to upgrade from, the file is
+      simply animated.
+    */
     collection: "0xCD30D4bCaa99E556B70A2C4bDFC4050D26E48D30",
     collectionName: "Cybereator",
     name: "Cybereator",
-    image:
-      "https://gateway.pinata.cloud/ipfs/bafybeiexxwgg46ucafzx4fpesmobil45cwrspb34pefegnpzz5qux762p4",
-    motion: true,
+    image: "/boxes/cybereator.webp",
   },
   {
     /*
