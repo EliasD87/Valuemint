@@ -151,22 +151,48 @@ export default function Create() {
       return l.filter((d) => d.id !== id);
     });
 
-  const problems = validate();
+  /**
+   * What is still wrong, grouped by the step that owns it.
+   *
+   * It used to be one flat list, checked only by the Create button on step 4.
+   * Continue asked nothing, so a creator could walk Basics -> Artwork -> Sale
+   * -> Review without typing a name, and the first thing that told them was a
+   * disabled button at the end, three screens from the empty field. A step that
+   * collects something required has to be the thing that insists on it.
+   *
+   * Grouped rather than flat because two different questions are being asked:
+   * "is THIS step finished" gates Continue, and "is everything before step N
+   * finished" gates jumping ahead on the stepper. A flat list cannot answer
+   * either without knowing which entry came from where.
+   */
+  const stepProblems = useMemo<string[][]>(() => {
+    const basics: string[] = [];
+    if (name.trim() === "") basics.push("Give the collection a name.");
+    if (symbol.trim() === "") basics.push("Give it a short symbol.");
 
-  function validate(): string[] {
-    const out: string[] = [];
-    if (name.trim() === "") out.push("Give the collection a name.");
-    if (symbol.trim() === "") out.push("Give it a short symbol.");
-    if (usingUpload && designs.length === 0) out.push("Add at least one image.");
-    if (usingUpload && supply === 0) out.push("Each design needs at least one edition.");
-    if (Number.isNaN(Number(price)) || Number(price) < 0) out.push("Price must be a number.");
+    const artwork: string[] = [];
+    if (usingUpload && designs.length === 0) artwork.push("Add at least one image.");
+    if (usingUpload && designs.length > 0 && supply === 0)
+      artwork.push("Each design needs at least one edition.");
+    if (!usingUpload && (!Number.isInteger(Number(manualSupply)) || Number(manualSupply) <= 0))
+      artwork.push("Total supply must be a whole number above zero.");
+
+    const sale: string[] = [];
+    if (Number.isNaN(Number(price)) || Number(price) < 0) sale.push("Price must be a number.");
     const r = Number(royalty);
-    if (Number.isNaN(r) || r < 0 || r > 10) out.push("Royalty must be between 0 and 10%.");
+    if (Number.isNaN(r) || r < 0 || r > 10) sale.push("Royalty must be between 0 and 10%.");
     if (!Number.isInteger(Number(perWallet)) || Number(perWallet) < 0)
-      out.push("Per-wallet limit must be a whole number.");
-    if (Number(reserve) > effectiveSupply) out.push("Your reserve cannot exceed the supply.");
-    return out;
-  }
+      sale.push("Per-wallet limit must be a whole number.");
+    if (Number(reserve) > effectiveSupply) sale.push("Your reserve cannot exceed the supply.");
+
+    /** Review collects nothing of its own; it only shows what the others took. */
+    return [basics, artwork, sale, []];
+  }, [name, symbol, usingUpload, designs, supply, manualSupply, price, royalty, perWallet, reserve, effectiveSupply]);
+
+  const problems = useMemo(() => stepProblems.flat(), [stepProblems]);
+
+  /** Everything unfinished before the step being reached for. */
+  const blocking = (target: number) => stepProblems.slice(0, target).flat();
 
   /** Pin the artwork, then deploy with its address already baked in. */
   const create = async () => {
@@ -407,14 +433,24 @@ export default function Create() {
         <p className="eyebrow">Create</p>
         <h1 className="create-title">A collection, start to finish.</h1>
         <ol className="create-steps">
-          {STEPS.map((label, i) => (
-            <li key={label} className={i === step ? "is-current" : i < step ? "is-done" : ""}>
-              <button onClick={() => setStep(i)}>
-                <span className="create-step-n">{i + 1}</span>
-                {label}
-              </button>
-            </li>
-          ))}
+          {STEPS.map((label, i) => {
+            /* Backwards is always allowed — reviewing what you typed is not a
+               thing to be stopped. Forwards asks the same question Continue
+               does, or the stepper would be a way around it. */
+            const shut = i > step ? blocking(i) : [];
+            return (
+              <li key={label} className={i === step ? "is-current" : i < step ? "is-done" : ""}>
+                <button
+                  onClick={() => setStep(i)}
+                  disabled={shut.length > 0}
+                  title={shut.length > 0 ? shut.join(" ") : undefined}
+                >
+                  <span className="create-step-n">{i + 1}</span>
+                  {label}
+                </button>
+              </li>
+            );
+          })}
         </ol>
       </div>
 
@@ -564,7 +600,11 @@ export default function Create() {
             )}
 
             {step < 3 ? (
-              <button className="btn btn-primary btn-lg" onClick={() => setStep(step + 1)}>
+              <button
+                className="btn btn-primary btn-lg"
+                disabled={stepProblems[step]!.length > 0}
+                onClick={() => setStep(step + 1)}
+              >
                 Continue
               </button>
             ) : !isConnected ? (
@@ -596,6 +636,19 @@ export default function Create() {
               </button>
             )}
           </div>
+
+          {/*
+            A disabled control with no stated reason reads as a broken one. This
+            says what the step is still waiting for, in the same words the
+            review panel uses, and it sits directly under the button it explains
+            rather than in the sidebar where the old list lived.
+
+            Phrased and styled as a hint rather than an error: nothing has gone
+            wrong on a form somebody has not filled in yet.
+          */}
+          {step < 3 && stepProblems[step]!.length > 0 ? (
+            <p className="create-nav-why">{stepProblems[step]!.join(" ")}</p>
+          ) : null}
 
           {problem !== undefined ? <p className="create-error">{problem}</p> : null}
           {writeError !== null ? (

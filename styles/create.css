@@ -48,6 +48,23 @@
   border-color: var(--line-strong);
 }
 
+/*
+ * A step you cannot reach yet, because an earlier one is unfinished.
+ *
+ * Dimmed rather than hidden: the point of a stepper is that it shows the whole
+ * road, including the part you have not earned. `not-allowed` and the title on
+ * the button say why on hover; the hint under Continue says it in words.
+ */
+.create-steps li button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.create-steps li button:disabled:hover {
+  color: var(--ink-3);
+  border-color: var(--line);
+}
+
 .create-step-n {
   width: 22px;
   height: 22px;
@@ -383,6 +400,26 @@
   font-size: var(--step--2);
   color: var(--danger);
   line-height: 1.5;
+}
+
+/*
+ * Why Continue is off.
+ *
+ * Muted, not `--danger`: a form nobody has filled in yet has not failed. Red
+ * here would greet every creator with an error on a page they have just opened.
+ */
+.create-nav-why {
+  margin-top: 0.15rem;
+  font-size: var(--step--2);
+  color: var(--ink-3);
+  line-height: 1.5;
+  text-align: right;
+}
+
+@media (max-width: 560px) {
+  .create-nav-why {
+    text-align: left;
+  }
 }
 
 .create-error {
