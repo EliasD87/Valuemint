@@ -5,12 +5,12 @@ import Link from "next/link";
 import { useAccount } from "wagmi";
 import { useAllCollections } from "@/hooks/useAllCollections";
 import { useListingFeed } from "@/hooks/useListingFeed";
-import { useCollectionArt } from "@/hooks/useCollectionArt";
 import { Art } from "@/components/Art";
 import { FeaturedGrid } from "@/components/FeaturedGrid";
 import { WarmChain } from "@/components/WarmChain";
 import { formatCount, formatSoso } from "@/lib/format";
 import { stillUrl } from "@/lib/media";
+import { coverFor } from "@/config/covers";
 import "@/styles/home.css";
 import "@/styles/hero.css";
 import { Soso } from "@/components/Soso";
@@ -65,7 +65,27 @@ export default function Home() {
    * was already correct and simply had nothing to order.
    */
   const { tokens: listedTokens } = useListingFeed();
-  const { artFor } = useCollectionArt();
+
+  /**
+   * Covers come from `config/covers.ts`, and nothing else.
+   *
+   * This was `useCollectionArt()`, whose named-cover lookup is the same one
+   * used here — but reaching it dragged `useEverything` onto the landing page,
+   * and that is a ladder: the Seaport order-book log scan, then `totalSupply`
+   * per collection, then `tokenByIndex` for every slot it reveals, then
+   * `ownerOf` and `tokenURI` for every id, then a metadata document each. All
+   * of it ran so that a collection WITHOUT a named cover could still show one,
+   * on a page where two rails draw a single 40px and 56px thumbnail apiece.
+   *
+   * Every collection on the chain is named in `covers.ts` today, so the
+   * fallback was buying nothing and costing the most expensive thing on the
+   * page. A collection that is not named simply shows its initials, which is
+   * what it showed anyway for the seconds that ladder took to climb.
+   *
+   * If a cover ever needs adding, that file says so at the top: it is one line
+   * and no code.
+   */
+  const artFor = (address: string): string[] => coverFor(address) ?? [];
 
 
   /**

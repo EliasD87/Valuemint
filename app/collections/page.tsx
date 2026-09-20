@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useReadContracts } from "wagmi";
 import { ValueChainCollectionAbi, deployment } from "@/config/contracts";
+import { PINNED_COLLECTIONS } from "@/config/featured";
 import { useRegistry } from "@/hooks/useRegistry";
 import { useDiscoveredCollections } from "@/hooks/useDiscovery";
 import { formatCount, formatSoso, shortAddress } from "@/lib/format";
@@ -64,7 +65,22 @@ export default function Collections() {
       });
     }
 
-    return [...byAddress.values()];
+    /**
+     * Pinned first, everything else in the order it arrived.
+     *
+     * `byAddress` is insertion-ordered, so without this the page opens with
+     * whatever the explorer happened to return first — which was the two test
+     * contracts. See `PINNED_COLLECTIONS` for why this is a named list rather
+     * than a ranking.
+     */
+    const rank = (address: string) => {
+      const i = PINNED_COLLECTIONS.findIndex(
+        (pinned) => pinned.toLowerCase() === address.toLowerCase(),
+      );
+      return i === -1 ? PINNED_COLLECTIONS.length : i;
+    };
+
+    return [...byAddress.values()].sort((a, b) => rank(a.address) - rank(b.address));
   }, [discovered, fromFactory]);
 
   const { data } = useReadContracts({
