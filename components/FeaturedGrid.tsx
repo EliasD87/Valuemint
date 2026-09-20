@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { Art } from "@/components/Art";
+import { SodexLogo } from "@/components/SodexLogo";
 import { FEATURED, PINNED_COLLECTIONS } from "@/config/featured";
 import { tierClass } from "@/lib/tokenMetadata";
 import { WarmCollection } from "@/components/WarmChain";
@@ -155,6 +156,23 @@ export function FeaturedGrid() {
               {piece.collectionName === piece.name ? null : (
                 <p className="tcard-sub dim">{piece.collectionName}</p>
               )}
+
+              {/*
+                Whose collection it is, in their own mark.
+                
+                The inlined `SodexLogo` rather than the hero's `/brand/*.svg`
+                file, because this sits on the card BODY — which is `--surface`
+                and flips with the theme — where the hero's sits on artwork
+                that is always dark. The inline one reproduces both official
+                colour pairs through tokens, so it is correct in either.
+                
+                Decorative: no `title`, so it is `aria-hidden`. The collection
+                is already named in the link's own label a few lines up, and a
+                screen reader announcing "SoDEX" twice helps nobody.
+              */}
+              {piece.brand === "sodex" ? (
+                <SodexLogo className="tcard-brand" />
+              ) : null}
             </div>
           </article>
         );

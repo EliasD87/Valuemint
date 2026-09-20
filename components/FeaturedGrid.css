@@ -168,3 +168,39 @@
     --lit-angle: 300deg;
   }
 }
+
+
+/*
+ * The collection owner's mark, under the name.
+ *
+ * Sized down from the SVG's own 89x24 — at full size a wordmark competes with
+ * the title it sits beneath, and this is an attribution rather than a heading.
+ * `height` with `width: auto` so the drawing keeps its proportions whatever
+ * the viewBox is.
+ */
+.tcard-brand {
+  display: block;
+  /*
+   * Both dimensions, derived from the drawing's own 89x24.
+   *
+   * `width: auto` does NOT keep an inline SVG's ratio the way it would for an
+   * `<img>` — a block-level SVG takes the width available to it, and measured
+   * here that was 269px against a 14px height: the wordmark stretched nearly
+   * four times too wide. The width is computed from the height and the viewBox
+   * so the two can never drift apart.
+   */
+  height: 14px;
+  width: calc(14px * 89 / 24);
+  margin-top: 0.45rem;
+  /* Quieter than the title above it without tinting the brand's own colours,
+     which the component reproduces exactly and must keep. */
+  opacity: 0.75;
+}
+
+.tcard-lit:hover .tcard-brand {
+  opacity: 1;
+}
+
+/* The only thing that moves here is the fade, and it is short enough that
+   reduced-motion has no quarrel with it — no `transition` is declared, so
+   there is nothing for that media query to switch off. */

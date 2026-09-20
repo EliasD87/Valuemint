@@ -70,6 +70,17 @@ export interface FeaturedPiece {
    * per piece rather than a property of the grid.
    */
   motion?: boolean;
+  /**
+   * Whose collection this is, shown as their own mark under the name.
+   *
+   * Deliberately its own field rather than being inferred from whether the
+   * card is highlighted. The two happen to coincide today — SoDEX's two
+   * collections are the two the front page leads with — and they are different
+   * facts: one is whose artwork it is, the other is what this site is choosing
+   * to point at. Tying them together would put SoDEX's trademark on whatever
+   * got promoted next.
+   */
+  brand?: "sodex";
 }
 
 /** Twelve pieces: three rows of four on a desktop grid. */
@@ -109,6 +120,7 @@ export const FEATURED: FeaturedPiece[] = [
     collectionName: "Cybereator",
     name: "Cybereator",
     image: "/boxes/cybereator.webp",
+    brand: "sodex",
   },
   {
     /*
@@ -132,6 +144,7 @@ export const FEATURED: FeaturedPiece[] = [
     name: "SoDEX Treasure Box",
     image:
       "https://gateway.pinata.cloud/ipfs/bafybeihqcahgiep6s2ech2imswhn2azwylilhq2cvuvuzquyhs5xccrvmu",
+    brand: "sodex",
   },
   {
     collection: "0x5Fadc59297e86aceA20Bff519aea0f9651Cdc90B",
