@@ -1,10 +1,11 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 import { useAccount, useReadContract, useWriteContract } from "wagmi";
 import { useTxOutcome } from "@/hooks/useTxOutcome";
 import { parseEther, zeroHash, type Address } from "viem";
 import { ValueChainCollectionAbi } from "@/config/contracts";
+import { rememberValidatedOrders } from "@/lib/pendingOrders";
 import { SEAPORT, SeaportAbi } from "@/config/seaport";
 import { valuechain } from "@/config/chain";
 import { useVerifiedContracts } from "@/hooks/useVerifiedContracts";
@@ -104,7 +105,25 @@ export function useSeaportTrade(collection: Address | undefined) {
   });
 
   const { writeContract, data: hash, isPending: signing, error, reset } = useWriteContract();
-  const { isLoading: confirming, isSuccess } = useTxOutcome({ hash });
+  const { isLoading: confirming, isSuccess, data: receipt } = useTxOutcome({ hash });
+
+  /**
+   * Hold on to whatever this transaction just validated.
+   *
+   * Everything this hook writes — a listing, an offer, fifty listings at once —
+   * reaches the order book the same way: Seaport emits `OrderValidated` and a
+   * log scan finds it later. Later is the problem. That scan stops six
+   * confirmations behind the head and polls every thirty seconds, so an offer
+   * somebody has just paid for is absent from their own screen for the better
+   * part of a minute, and reloading was the only thing that appeared to help.
+   *
+   * The receipt already contains the order. Reading it here means the person
+   * who placed it sees it immediately, from the same bytes the scan will
+   * report, while everyone else waits for the chain as they should.
+   */
+  useEffect(() => {
+    if (isSuccess) rememberValidatedOrders(receipt);
+  }, [isSuccess, receipt]);
 
   /**
    * The identity check gates this one write specifically.

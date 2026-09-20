@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useSyncExternalStore } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useReadContracts } from "wagmi";
 import {
@@ -17,6 +17,12 @@ import {
 import { RPC_HTTP, valuechain } from "@/config/chain";
 import { SEAPORT, SEAPORT_FROM_BLOCK, SeaportAbi } from "@/config/seaport";
 import { scanLogs } from "@/lib/logScan";
+import {
+  forgetSeenOrders,
+  pendingOrdersServerSnapshot,
+  pendingOrdersSnapshot,
+  subscribePendingOrders,
+} from "@/lib/pendingOrders";
 import {
   ItemType,
   isExpired,
@@ -279,7 +285,44 @@ function useValidatedOrders() {
 export function useSeaportOrders() {
   const { data, isLoading: scanning, error } = useValidatedOrders();
 
-  const candidates = useMemo(() => data?.candidates ?? [], [data]);
+  /**
+   * Orders this tab placed moments ago, which the scan cannot have yet.
+   *
+   * It reads six confirmations behind the head and polls every thirty seconds,
+   * so a freshly placed offer is invisible here for the better part of a minute
+   * — mined, paid for, and absent. The browser that placed it does not need to
+   * be told: it has the receipt. See `lib/pendingOrders.ts`.
+   */
+  const pending = useSyncExternalStore(
+    subscribePendingOrders,
+    pendingOrdersSnapshot,
+    pendingOrdersServerSnapshot,
+  );
+
+  const candidates = useMemo(() => {
+    const scanned = data?.candidates ?? [];
+    if (pending.length === 0) return scanned;
+
+    /**
+     * The scan wins wherever the two overlap, and the duplicate is dropped
+     * rather than shown twice. `forgetSeenOrders` then clears it for good, so
+     * this only has to hold until the next poll.
+     */
+    const known = new Set(scanned.map((c) => c.hash.toLowerCase()));
+    const unseen = pending.filter((p) => !known.has(p.hash.toLowerCase()));
+    return unseen.length === 0 ? scanned : [...unseen, ...scanned];
+  }, [data, pending]);
+
+  /**
+   * Once the scan reports an order, stop holding a copy of it — two sources for
+   * one order can only end in the two disagreeing about its status.
+   */
+  useEffect(() => {
+    const scanned = data?.candidates;
+    if (scanned !== undefined && scanned.length > 0) {
+      forgetSeenOrders(scanned.map((c) => c.hash));
+    }
+  }, [data]);
 
   /**
    * An event proves an order existed, never that it still does. Batched through
