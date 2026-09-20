@@ -1,9 +1,19 @@
 /**
  * The Trenches.
  *
- * Dark in both themes, because the subject is depth and the artwork is meant to
- * come out of it. Everything inside the hero therefore uses the --dark-* family,
- * never --paper/--ink, which invert.
+ * The hero was dark in BOTH themes, because the subject is depth and the
+ * artwork was meant to come out of it. That held while the tier art had dark
+ * grounds. It does not any more: the collection was re-cut with ink-and-wash
+ * illustrations on white, which sit as happily on a light ground as a dark one
+ * — and a black slab above a light page was the thing that actually got
+ * noticed.
+ *
+ * So the hero now has both. Its colours are local custom properties, declared
+ * dark below and re-declared for light, and every rule in the band reads them
+ * rather than a literal. Dark stays the default — that is what this component
+ * is — so the override is written the other way round from `tokens.css`: the
+ * base block is dark, and light applies on an explicit `[data-theme="light"]`
+ * or on a system light preference with no explicit dark stamped.
  *
  * Each tier passes its own colour down as `--tier`, so one set of rules covers
  * all ten and a tier can be recoloured in config without touching layout.
@@ -22,10 +32,32 @@
  * thumbnails instead.
  */
 .tr-hero {
+  /* The band's own palette. Every literal that used to be scattered through
+     the rules below now lives here once, so the light block can restate ten
+     values instead of thirty rules. */
+  --tr-ground: #0a0a0c;
+  --tr-deep-1: #141419;
+  --tr-deep-2: #0b0b0e;
+  --tr-deep-3: #08080a;
+  --tr-glow-1: rgba(255, 255, 255, 0.06);
+  --tr-glow-2: rgba(255, 255, 255, 0.028);
+  --tr-heading: #f7f7f9;
+  --tr-body: #a1a1aa;
+  --tr-dim: #8b8b93;
+  --tr-hairline: rgba(255, 255, 255, 0.2);
+  --tr-hairline-hover: rgba(255, 255, 255, 0.45);
+  --tr-fill: rgba(255, 255, 255, 0.04);
+  --tr-fill-hover: rgba(255, 255, 255, 0.1);
+  --tr-btn-ink: #eaeaec;
+  /* SoDEX ship two cuts; the hero picks whichever its own ground calls for. */
+  --tr-sodex-ink: #ffffff;
+  --tr-sodex-accent: #ff4f20;
+  --tr-dot: #fde047;
+
   position: relative;
   overflow: hidden;
-  background: #0a0a0c;
-  color: var(--dark-ink);
+  background: var(--tr-ground);
+  color: var(--tr-heading);
   isolation: isolate;
   padding: clamp(1.75rem, 4vw, 3rem) 0 clamp(2.5rem, 5vw, 4rem);
   display: flex;
@@ -43,7 +75,7 @@
   position: absolute;
   inset: 0;
   z-index: -3;
-  background: radial-gradient(120% 90% at 50% 0%, #141419 0%, #0b0b0e 52%, #08080a 100%);
+  background: radial-gradient(120% 90% at 50% 0%, var(--tr-deep-1) 0%, var(--tr-deep-2) 52%, var(--tr-deep-3) 100%);
 }
 
 /* Thin arcs sweeping up from below, as in the reference's line texture. */
@@ -65,8 +97,8 @@
   z-index: -1;
   pointer-events: none;
   background:
-    radial-gradient(40% 34% at 50% 74%, rgba(255, 255, 255, 0.06), transparent 72%),
-    radial-gradient(30% 26% at 22% 16%, rgba(255, 255, 255, 0.028), transparent 70%);
+    radial-gradient(40% 34% at 50% 74%, var(--tr-glow-1), transparent 72%),
+    radial-gradient(30% 26% at 22% 16%, var(--tr-glow-2), transparent 70%);
   filter: blur(22px);
 }
 
@@ -88,18 +120,18 @@
   font-weight: 700;
   letter-spacing: 0.2em;
   text-transform: uppercase;
-  color: #8b8b93;
+  color: var(--tr-dim);
 }
 
 /**
- * The hero is always dark, whatever the page theme, so the logo is pinned to
- * SoDEX's dark-ground pair here rather than following the tokens. Left to the
- * tokens it would render its black wordmark on this near-black ground in light
- * mode and disappear.
+ * Pinned to whichever of SoDEX's two official pairs this band's own ground
+ * calls for, rather than to the page theme. The two used to be different
+ * questions — the hero was dark on a light page — and they still are wherever
+ * the band's colours are overridden independently.
  */
 .tr-eyebrow-logo {
-  --sodex-ink: #ffffff;
-  --sodex-accent: #ff4f20;
+  --sodex-ink: var(--tr-sodex-ink);
+  --sodex-accent: var(--tr-sodex-accent);
   height: 1.15rem;
   width: auto;
   display: block;
@@ -113,7 +145,7 @@
   letter-spacing: -0.035em;
   line-height: 1.05;
   margin: 0;
-  color: #f7f7f9;
+  color: var(--tr-heading);
   /* Keeps the centred headline clear of the seal at the left edge. */
   max-width: 20ch;
   text-wrap: balance;
@@ -132,7 +164,7 @@
 .tr-lede {
   font-size: var(--step--1);
   line-height: 1.65;
-  color: #a1a1aa;
+  color: var(--tr-body);
   max-width: 34ch;
   text-align: left;
 }
@@ -156,9 +188,9 @@
 }
 
 .tr-btn-ghost {
-  background: rgba(255, 255, 255, 0.04);
-  border-color: rgba(255, 255, 255, 0.2);
-  color: #eaeaec;
+  background: var(--tr-fill);
+  border-color: var(--tr-hairline);
+  color: var(--tr-btn-ink);
   padding-inline: 1.9rem;
   -webkit-backdrop-filter: blur(8px);
   backdrop-filter: blur(8px);
@@ -169,8 +201,8 @@
 }
 
 .tr-btn-ghost:hover:not(:disabled) {
-  border-color: rgba(255, 255, 255, 0.45);
-  background: rgba(255, 255, 255, 0.1);
+  border-color: var(--tr-hairline-hover);
+  background: var(--tr-fill-hover);
   transform: translateY(-1px);
 }
 
@@ -180,6 +212,63 @@
   }
   .tr-lede {
     text-align: center;
+  }
+}
+
+/* ============================================================== hero in light
+ *
+ * The same composition, lit from above instead of out of the dark.
+ *
+ * Written as an override on a dark base rather than in `tokens.css`'s
+ * light-first order, because dark is what this component IS — the ladder below
+ * the hero follows the page, the band does not. The two selectors are the two
+ * ways a viewer can be in light: an explicit choice, and a system preference
+ * with no explicit choice stamped. Missing the second is how a component ends
+ * up correct only for people who have touched the toggle.
+ *
+ * The glows invert too. A white radial over a light ground is invisible, so
+ * they become faint darkening instead — the same shape of light, the other way
+ * up, which is what keeps the fan sitting in something rather than on nothing.
+ */
+:root[data-theme="light"] .tr-hero {
+  --tr-ground: #f1f1f4;
+  --tr-deep-1: #ffffff;
+  --tr-deep-2: #eeeef2;
+  --tr-deep-3: #e2e2e8;
+  --tr-glow-1: rgba(14, 14, 16, 0.05);
+  --tr-glow-2: rgba(14, 14, 16, 0.028);
+  --tr-heading: #0e0e10;
+  --tr-body: #52525b;
+  --tr-dim: #6b6b75;
+  --tr-hairline: rgba(14, 14, 16, 0.18);
+  --tr-hairline-hover: rgba(14, 14, 16, 0.42);
+  --tr-fill: rgba(14, 14, 16, 0.04);
+  --tr-fill-hover: rgba(14, 14, 16, 0.08);
+  --tr-btn-ink: #1c1c20;
+  --tr-sodex-ink: #000000;
+  --tr-sodex-accent: #ff7637;
+  --tr-dot: #b45309;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) .tr-hero {
+    --tr-ground: #f1f1f4;
+    --tr-deep-1: #ffffff;
+    --tr-deep-2: #eeeef2;
+    --tr-deep-3: #e2e2e8;
+    --tr-glow-1: rgba(14, 14, 16, 0.05);
+    --tr-glow-2: rgba(14, 14, 16, 0.028);
+    --tr-heading: #0e0e10;
+    --tr-body: #52525b;
+    --tr-dim: #6b6b75;
+    --tr-hairline: rgba(14, 14, 16, 0.18);
+    --tr-hairline-hover: rgba(14, 14, 16, 0.42);
+    --tr-fill: rgba(14, 14, 16, 0.04);
+    --tr-fill-hover: rgba(14, 14, 16, 0.08);
+    --tr-btn-ink: #1c1c20;
+    --tr-sodex-ink: #000000;
+    --tr-sodex-accent: #ff7637;
+    --tr-dot: #b45309;
   }
 }
 
@@ -203,7 +292,7 @@
   font-size: 8.4px;
   font-weight: 700;
   letter-spacing: 0.22em;
-  fill: #82828c;
+  fill: var(--tr-dim);
   text-transform: uppercase;
 }
 
@@ -843,11 +932,14 @@
   gap: 0.6rem;
   padding: 0.5rem 1rem 0.5rem 0.85rem;
   border-radius: var(--r-pill);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  background: rgba(255, 255, 255, 0.06);
+  /* Reads the band's own palette, like everything else in the hero. Left as a
+     white literal it measured 1.12:1 on the light ground — the text did not
+     look wrong, it was simply not there. */
+  border: 1px solid var(--tr-hairline);
+  background: var(--tr-fill);
   -webkit-backdrop-filter: blur(8px);
   backdrop-filter: blur(8px);
-  color: rgba(255, 255, 255, 0.82);
+  color: var(--tr-btn-ink);
   font-size: var(--step--2);
   font-weight: 600;
   letter-spacing: 0.08em;
@@ -859,8 +951,10 @@
   height: 7px;
   flex: none;
   border-radius: 50%;
-  background: #fde047;
-  box-shadow: 0 0 0 3px rgba(253, 224, 71, 0.16);
+  /* Amber rather than the dark theme's lemon: #fde047 is a 1.3:1 dot on a
+     near-white ground, which is a smudge rather than a status light. */
+  background: var(--tr-dot);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--tr-dot) 18%, transparent);
   animation: tr-soon-pulse 2.4s ease-in-out infinite;
 }
 
