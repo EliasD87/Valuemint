@@ -4,11 +4,10 @@ import { useMemo } from "react";
 import Link from "next/link";
 import { useBlockNumber } from "wagmi";
 import { useActivity, type ActivityRow } from "@/hooks/useActivity";
-import { Soso } from "@/components/Soso";
 import { deployment } from "@/config/contracts";
 import { formatSoso, shortAddress, timeAgo } from "@/lib/format";
+import { Soso } from "@/components/Soso";
 import "@/styles/activity.css";
-import "@/styles/trades.css";
 
 /**
  * What this wallet has actually done, from its own side.
@@ -29,6 +28,15 @@ import "@/styles/trades.css";
  * It costs nothing extra to render. `useActivity` runs one global scan shared
  * by every caller on the page, so this is the same rows the market already
  * fetched, filtered to one address.
+ *
+ * It used to carry Spent / Earned / Net above the list. Those are gone. Three
+ * currency figures never fit the 21rem column this now lives in beside the
+ * holdings — measured there, the values ran straight over each other and over
+ * the cell dividers — and they were the wrong thing to lead with anyway: they
+ * counted only what moved through this marketplace, so they were silent about
+ * every piece bought elsewhere or still held, and "Net" was read as profit
+ * while saying nothing about what anything is worth now. The header keeps the
+ * honest part, which is how many trades settled.
  */
 
 /** ValueChain's block time, measured. Only used to date a row, never to price one. */
@@ -68,30 +76,22 @@ export function MyTrades({
   const me = address?.toLowerCase() ?? "";
 
   /**
-   * Only settled trades count toward the totals.
+   * Only settled trades are counted.
    *
-   * A listing is an intention and an offer is a question; neither has moved
-   * any money. Counting them would make the figures look like activity rather
-   * than results.
+   * A listing is an intention and an offer is a question; neither has moved a
+   * piece. Counting them would make the figure look like activity rather than
+   * results.
    */
   const totals = useMemo(() => {
-    let spent = 0n;
-    let earned = 0n;
     let bought = 0;
     let sold = 0;
 
     for (const r of rows) {
       if (r.kind !== "sale" || r.price === undefined) continue;
-      const value = r.price * r.amount;
-      if (r.from?.toLowerCase() === me) {
-        earned += value;
-        sold += 1;
-      } else if (r.to?.toLowerCase() === me) {
-        spent += value;
-        bought += 1;
-      }
+      if (r.from?.toLowerCase() === me) sold += 1;
+      else if (r.to?.toLowerCase() === me) bought += 1;
     }
-    return { spent, earned, bought, sold };
+    return { bought, sold };
   }, [rows, me]);
 
   if (address === undefined) return null;
@@ -109,38 +109,6 @@ export function MyTrades({
           </span>
         ) : null}
       </div>
-
-      {settled > 0 ? (
-        <dl className="trades-totals">
-          <div>
-            <dt>Spent</dt>
-            <dd>
-              <Soso size={15}>{formatSoso(totals.spent)}</Soso>
-            </dd>
-          </div>
-          <div>
-            <dt>Earned</dt>
-            <dd>
-              <Soso size={15}>{formatSoso(totals.earned)}</Soso>
-            </dd>
-          </div>
-          <div>
-            {/* Not profit. It says nothing about what the pieces are worth now,
-                only about what moved through the wallet on this marketplace. */}
-            <dt>Net</dt>
-            <dd className={totals.earned >= totals.spent ? "is-up" : "is-down"}>
-              {totals.earned >= totals.spent ? "+" : "−"}
-              <Soso size={15}>
-                {formatSoso(
-                  totals.earned >= totals.spent
-                    ? totals.earned - totals.spent
-                    : totals.spent - totals.earned,
-                )}
-              </Soso>
-            </dd>
-          </div>
-        </dl>
-      ) : null}
 
       {isLoading && rows.length === 0 ? (
         <div className="act-list">
