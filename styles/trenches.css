@@ -246,8 +246,32 @@
   width: var(--card-w);
   border-radius: clamp(18px, 2vw, 28px);
   overflow: hidden;
-  background: #17171c;
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  /*
+   * The card carries its own artwork's colour, whether or not it is reached.
+   *
+   * It used to be a flat `#17171c` with a white border, and `--tier` only
+   * appeared on `.is-lit` — the state for a tier the visitor has actually
+   * earned. So to anybody arriving without a wallet, which is everybody at
+   * first, all ten boxes were the same dark rectangle behind ten different
+   * pictures, and the colour in `tiers.ts` was invisible.
+   *
+   * A wash rather than a flat fill: strongest where it meets the art, easing
+   * off toward the bottom so the bar stays readable. `--tier` is sampled from
+   * the picture itself, so this is the artwork bleeding into its own frame.
+   *
+   * 30% at the top, not 16. The first attempt was half this and read as a grey
+   * card with a faint cast — the same "too subtle" as the featured ring
+   * earlier. At this strength the tier's colour is the first thing about the
+   * box rather than a detail of it.
+   */
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--tier) 30%, #17171c) 0%,
+      color-mix(in srgb, var(--tier) 12%, #17171c) 62%,
+      #17171c 100%
+    );
+  border: 1px solid color-mix(in srgb, var(--tier) 45%, rgba(255, 255, 255, 0.16));
   box-shadow: 0 40px 90px -30px rgba(0, 0, 0, 0.95);
   /* Slots spread sideways, drop away, and rotate out from the centre card. */
   transform:
@@ -276,10 +300,23 @@
   box-shadow: 0 50px 110px -34px rgba(0, 0, 0, 1);
 }
 
+/*
+ * Earned. Louder than the resting card, which now also carries the colour —
+ * so this has to go further than it did when it was the only place `--tier`
+ * showed at all, or reaching a tier would look like nothing happening.
+ */
 .tr-card.is-lit {
-  border-color: color-mix(in srgb, var(--tier) 62%, transparent);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--tier) 52%, #17171c) 0%,
+      color-mix(in srgb, var(--tier) 22%, #17171c) 68%,
+      #17171c 100%
+    );
+  border-color: color-mix(in srgb, var(--tier) 75%, transparent);
   box-shadow: 0 50px 110px -34px rgba(0, 0, 0, 1),
-    0 0 0 1px color-mix(in srgb, var(--tier) 30%, transparent);
+    0 0 0 1px color-mix(in srgb, var(--tier) 30%, transparent),
+    0 24px 60px -34px var(--tier);
 }
 
 .tr-card-art {
@@ -297,8 +334,10 @@
   justify-content: space-between;
   gap: 0.8rem;
   padding: 0.75rem 0.95rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.09);
-  background: rgba(255, 255, 255, 0.03);
+  /* The tier's colour again, faintly, so the strip belongs to the picture
+     above it rather than reading as a grey footer stuck on the bottom. */
+  border-top: 1px solid color-mix(in srgb, var(--tier) 30%, rgba(255, 255, 255, 0.09));
+  background: color-mix(in srgb, var(--tier) 18%, rgba(255, 255, 255, 0.03));
 }
 
 .tr-card-bar b {

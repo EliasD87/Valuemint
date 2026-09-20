@@ -20,14 +20,26 @@ export interface Tier {
   /**
    * The tier's accent, used for its glow, name and unlocked state.
    *
-   * A deliberate ramp, not sampled from the artwork. Sampling was tried and
-   * returned ten muddy sepias within a few percent of each other, because the
-   * art is ink and wash on white — which would have lost the one thing this
-   * field is for. The hues climb instead: 89° green, through blue and violet,
-   * round to 46° gold, so the ladder is legible as colour alone. All ten are
-   * checked against the Trenches page's own dark ground, where they range from
-   * 4.59:1 to 11.28:1; that page is dark in both themes, so they are never
-   * asked to hold up on white.
+   * Sampled from each tier's own artwork, so the card is the colour of the
+   * picture on it rather than a colour assigned to its rank.
+   *
+   * Not the most COMMON colour — that is the sepia wash all ten share, and
+   * picking it gave ten browns within a few percent of each other. Each hue is
+   * scored by how far it exceeds the baseline the whole set has in common, so
+   * what surfaces is what makes a piece different: Architect's teal, Oracle's
+   * violet, Leviathan's cosmic blue. Saturation and lightness are then clamped
+   * to a usable band, because a colour lifted straight out of a wash is often
+   * too dark or too weak to carry a border.
+   *
+   * The honest consequence: seven of the ten really are warm, because the art
+   * really is ink and wash. That is faithful to the pictures and it does mean
+   * the ladder reads less as a progression than a designed ramp would. If the
+   * progression matters more than the likeness, this column is the only thing
+   * to change.
+   *
+   * All ten are checked against the card's own ground (#17171c) at 4.42:1 to
+   * 8.46:1. The Trenches page is dark in both themes, so they are never asked
+   * to hold up on white.
    */
   colour: string;
   /** IPFS CID of this tier's artwork, stored on Filebase. */
@@ -36,16 +48,16 @@ export interface Tier {
 }
 
 export const TIERS: Tier[] = [
-  { n: 1,  name: "Scout",     min: 0,           colour: "#86a06b", image: "Qmduq6Jncodso95dfBu85GySMYrLNt1TVQhjGsawUTupRa", blurb: "You showed up and traded." },
-  { n: 2,  name: "Trader",    min: 1_000,       colour: "#5fa88a", image: "QmZ7KknaVYGsDv4X59JEWj8h8ELwvHchCutiog35oqD1xF", blurb: "Enough volume to be doing this on purpose." },
-  { n: 3,  name: "Operator",  min: 10_000,      colour: "#46a2b8", image: "QmYWKeeNfDRnAkRjmc6WXBAegrPqvmDnTpFd4Vrtvc7jQF", blurb: "You know the routes and you run them." },
-  { n: 4,  name: "Architect", min: 50_000,      colour: "#4b86d4", image: "QmP8f2gWdK893BLUgt5G4rAYUMcNNPxPLBcoQT28EYUckx", blurb: "Building a position, not just taking one." },
-  { n: 5,  name: "Oracle",    min: 250_000,     colour: "#6f76e0", image: "Qmd96VjHD7JcGcfP6X6RrZk2eWiUNeYetK3AkpFyQEBmYC", blurb: "You see it before the book does." },
-  { n: 6,  name: "Titan",     min: 1_000_000,   colour: "#9a63dd", image: "QmV4vL48iWiNtcTYVLeAGfTh3XetpWXHD9ANKjcY9MZiAs", blurb: "Seven figures through your hands." },
-  { n: 7,  name: "Magnate",   min: 5_000_000,   colour: "#c25fc0", image: "QmUZXQ4sSjJjGbFHA7McUvCxGnh1FMUqGRQwR93ujY1mCf", blurb: "Size that moves other people's prices." },
-  { n: 8,  name: "Overlord",  min: 15_000_000,  colour: "#d85289", image: "QmZKA6qZZWh1Ak3Kx2DZHUCpeCj3kTsyYfohLThiV5rLi5", blurb: "The market makes room for you." },
-  { n: 9,  name: "Sovereign", min: 50_000_000,  colour: "#e08a45", image: "QmaEcsV4dSA3j3eaY2QEKiaZFqtcDLm3XgtakmrCWGMLs6", blurb: "You do not follow the flow. It follows you." },
-  { n: 10, name: "Leviathan", min: 150_000_000, colour: "#edc64a", image: "QmfTus5xh3ZnNvFjsCv5TFpQofPgf57cc7NGjVCzonQgAg", blurb: "The thing the depth is famous for." },
+  { n: 1,  name: "Scout",     min: 0,           colour: "#c08859", image: "Qmduq6Jncodso95dfBu85GySMYrLNt1TVQhjGsawUTupRa", blurb: "You showed up and traded." },
+  { n: 2,  name: "Trader",    min: 1_000,       colour: "#c89f6e", image: "QmZ7KknaVYGsDv4X59JEWj8h8ELwvHchCutiog35oqD1xF", blurb: "Enough volume to be doing this on purpose." },
+  { n: 3,  name: "Operator",  min: 10_000,      colour: "#cf844a", image: "QmYWKeeNfDRnAkRjmc6WXBAegrPqvmDnTpFd4Vrtvc7jQF", blurb: "You know the routes and you run them." },
+  { n: 4,  name: "Architect", min: 50_000,      colour: "#59b5c0", image: "QmP8f2gWdK893BLUgt5G4rAYUMcNNPxPLBcoQT28EYUckx", blurb: "Building a position, not just taking one." },
+  { n: 5,  name: "Oracle",    min: 250_000,     colour: "#b389d2", image: "Qmd96VjHD7JcGcfP6X6RrZk2eWiUNeYetK3AkpFyQEBmYC", blurb: "You see it before the book does." },
+  { n: 6,  name: "Titan",     min: 1_000_000,   colour: "#c16658", image: "QmV4vL48iWiNtcTYVLeAGfTh3XetpWXHD9ANKjcY9MZiAs", blurb: "Seven figures through your hands." },
+  { n: 7,  name: "Magnate",   min: 5_000_000,   colour: "#c89857", image: "QmUZXQ4sSjJjGbFHA7McUvCxGnh1FMUqGRQwR93ujY1mCf", blurb: "Size that moves other people's prices." },
+  { n: 8,  name: "Overlord",  min: 15_000_000,  colour: "#c36255", image: "QmZKA6qZZWh1Ak3Kx2DZHUCpeCj3kTsyYfohLThiV5rLi5", blurb: "The market makes room for you." },
+  { n: 9,  name: "Sovereign", min: 50_000_000,  colour: "#cfad80", image: "QmaEcsV4dSA3j3eaY2QEKiaZFqtcDLm3XgtakmrCWGMLs6", blurb: "You do not follow the flow. It follows you." },
+  { n: 10, name: "Leviathan", min: 150_000_000, colour: "#5982c0", image: "QmfTus5xh3ZnNvFjsCv5TFpQofPgf57cc7NGjVCzonQgAg", blurb: "The thing the depth is famous for." },
 ];
 
 /** Where this tier's artwork lives. */
