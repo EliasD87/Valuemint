@@ -16,6 +16,7 @@ import "@/styles/hero.css";
 import { Soso } from "@/components/Soso";
 import { HERO_DECK } from "@/config/heroDeck";
 import { PINNED_COLLECTIONS } from "@/config/featured";
+import { CREATE_ENABLED } from "@/config/features";
 
 /** "all", "listed", or a collection address. */
 
@@ -329,20 +330,25 @@ export default function Home() {
         )}
       </section>
 
-      <section className="page section">
-        <div className="cta">
-          <div>
-            <h2>Publish your own collection.</h2>
-            <p>
-              Deploy a real ERC-721 to ValueChain in one transaction. You own it outright — set the
-              supply and the price. It costs a fraction of a cent in gas and no fee.
-            </p>
+      {/* The whole panel, not just its button: a section headed "Publish your
+          own collection." with no way to do it would be an advertisement for
+          something the site does not currently offer. */}
+      {CREATE_ENABLED ? (
+        <section className="page section">
+          <div className="cta">
+            <div>
+              <h2>Publish your own collection.</h2>
+              <p>
+                Deploy a real ERC-721 to ValueChain in one transaction. You own it outright — set
+                the supply and the price. It costs a fraction of a cent in gas and no fee.
+              </p>
+            </div>
+            <Link className="btn btn-primary btn-lg on-dark" href="/create">
+              Start creating
+            </Link>
           </div>
-          <Link className="btn btn-primary btn-lg on-dark" href="/create">
-            Start creating
-          </Link>
-        </div>
-      </section>
+        </section>
+      ) : null}
     </>
   );
 }
@@ -418,9 +424,11 @@ function Hero({ deck }: { deck: DeckCard[] }) {
           <Link className="btn btn-primary btn-lg" href="/mint">
             Explore mints
           </Link>
-          <Link className="btn btn-lg hx-btn-ghost" href="/create">
-            Create a collection
-          </Link>
+          {CREATE_ENABLED ? (
+            <Link className="btn btn-lg hx-btn-ghost" href="/create">
+              Create a collection
+            </Link>
+          ) : null}
         </div>
 
       </div>

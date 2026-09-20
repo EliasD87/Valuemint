@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useReadContracts } from "wagmi";
 import { ValueChainCollectionAbi, deployment } from "@/config/contracts";
 import { PINNED_COLLECTIONS } from "@/config/featured";
+import { CREATE_ENABLED } from "@/config/features";
 import { useRegistry } from "@/hooks/useRegistry";
 import { useDiscoveredCollections } from "@/hooks/useDiscovery";
 import { formatCount, formatSoso, shortAddress } from "@/lib/format";
@@ -113,9 +114,11 @@ export default function Collections() {
           <p className="eyebrow">Collections</p>
           <h2>Every NFT collection on ValueChain</h2>
         </div>
-        <Link className="btn btn-primary" href="/create">
-          Create yours
-        </Link>
+        {CREATE_ENABLED ? (
+          <Link className="btn btn-primary" href="/create">
+            Create yours
+          </Link>
+        ) : null}
       </div>
 
       <p className="coll-intro muted">

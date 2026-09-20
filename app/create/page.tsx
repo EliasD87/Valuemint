@@ -20,6 +20,7 @@ import {
 import { valuechain } from "@/config/chain";
 import { CLAIM_HEADERS, contentDigest, fileHash, uploadMessage } from "@/lib/uploadClaim";
 import { TxResult } from "@/components/TxResult";
+import { CREATE_ENABLED } from "@/config/features";
 import { Select } from "@/components/Select";
 import "@/styles/create.css";
 
@@ -49,7 +50,49 @@ interface Design {
 const TIERS = ["", "Legendary", "Epic", "Rare", "Common"];
 const STEPS = ["Basics", "Artwork", "Sale", "Review"] as const;
 
-export default function Create() {
+/**
+ * The wizard is intact and switched off. See `config/features.ts`.
+ *
+ * A wrapper rather than an early return inside `Create`, because everything
+ * below it is hooks — `useAccount`, `useWriteContract`, the lot — and a
+ * component cannot return before its hooks run. Splitting the gate out keeps
+ * the wizard exactly as it was, so turning creation back on is one boolean and
+ * not a merge.
+ */
+export default function CreatePage() {
+  if (!CREATE_ENABLED) return <CreateClosed />;
+  return <Create />;
+}
+
+/**
+ * What somebody arriving on an old link or a bookmark sees.
+ *
+ * Not a 404. The page has not moved and is not gone, it is paused — saying so
+ * is both true and the difference between "this site is broken" and "come
+ * back". Nothing here promises a date, because none has been set.
+ */
+function CreateClosed() {
+  return (
+    <section className="page section market-empty">
+      <p className="eyebrow">Create</p>
+      <h2>Creating a collection is paused.</h2>
+      <p className="muted">
+        It is coming back. Everything already deployed is unaffected — collections still mint,
+        trade and transfer exactly as before, and anything you own stays yours.
+      </p>
+      <div className="wrap-row mt-md">
+        <Link className="btn btn-primary" href="/collections">
+          Browse collections
+        </Link>
+        <Link className="btn" href="/market">
+          Go to the market
+        </Link>
+      </div>
+    </section>
+  );
+}
+
+function Create() {
   const { address, isConnected } = useAccount();
   const chainId = useChainId();
   const { connect, connectors, isPending: connecting } = useConnect();

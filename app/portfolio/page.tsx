@@ -11,6 +11,7 @@ import { MyTrades } from "@/components/MyTrades";
 import { BulkList } from "@/components/BulkList";
 import { TokenCard, TokenCardSkeleton } from "@/components/TokenCard";
 import { useGridColumns } from "@/hooks/useGridColumns";
+import { CREATE_ENABLED } from "@/config/features";
 import { formatSoso } from "@/lib/format";
 import "@/styles/home.css";
 import "@/styles/portfolio.css";
@@ -170,9 +171,11 @@ export default function Portfolio() {
             <Link className="btn btn-primary" href="/mint">
               Mint something
             </Link>
-            <Link className="btn" href="/create">
-              Create a collection
-            </Link>
+            {CREATE_ENABLED ? (
+              <Link className="btn" href="/create">
+                Create a collection
+              </Link>
+            ) : null}
           </div>
         </div>
       ) : (

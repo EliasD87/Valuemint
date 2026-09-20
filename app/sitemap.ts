@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { CREATE_ENABLED } from "@/config/features";
 import { siteUrl } from "@/lib/site";
 import { KNOWN_COLLECTIONS } from "@/config/known";
 import { isHidden } from "@/config/hidden";
@@ -27,7 +28,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       { url: `${base}/collections`, changeFrequency: "daily", priority: 0.8 },
       { url: `${base}/trenches`, changeFrequency: "daily", priority: 0.7 },
       { url: `${base}/kols`, changeFrequency: "weekly", priority: 0.6 },
-      { url: `${base}/create`, changeFrequency: "monthly", priority: 0.5 },
+      /* Left out while creation is off — see config/features.ts. Listing a
+         page in a sitemap is telling search engines it is worth indexing, and
+         a page that only explains it is unavailable is not. */
+      ...(CREATE_ENABLED
+        ? [{ url: `${base}/create`, changeFrequency: "monthly" as const, priority: 0.5 }]
+        : []),
     ] satisfies MetadataRoute.Sitemap
   ).map((p) => ({ ...p, lastModified: now }));
 

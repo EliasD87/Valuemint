@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { CREATE_ENABLED } from "@/config/features";
 import { useAccount, useConnect } from "wagmi";
 import { useOwnedCollections } from "@/hooks/useAllCollections";
 import { formatCount, formatSoso } from "@/lib/format";
@@ -73,9 +74,11 @@ export default function Manage() {
           <p className="eyebrow">Manage</p>
           <h2>Your collections</h2>
         </div>
-        <Link className="btn btn-primary" href="/create">
-          Create another
-        </Link>
+        {CREATE_ENABLED ? (
+          <Link className="btn btn-primary" href="/create">
+            Create another
+          </Link>
+        ) : null}
       </div>
 
       {isLoading && owned.length === 0 ? (
@@ -108,9 +111,11 @@ export default function Manage() {
           <p className="muted">
             A collection with nothing minted still appears — supply is not what decides this.
           </p>
-          <Link className="btn btn-primary mt-sm" href="/create">
-            Create a collection
-          </Link>
+          {CREATE_ENABLED ? (
+            <Link className="btn btn-primary mt-sm" href="/create">
+              Create a collection
+            </Link>
+          ) : null}
         </div>
       ) : (
         <div className="manage-list">

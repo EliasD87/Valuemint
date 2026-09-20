@@ -40,7 +40,6 @@ const NAV: NavItem[] = [
   { to: "/market", label: "Market" },
   { to: "/trenches", label: "Trenches", mark: true },
   { to: "/kols", label: "KOLs" },
-  { to: "/create", label: "Create" },
   { to: "/portfolio", label: "Portfolio" },
   { to: "/manage", label: "Manage" },
 ];
@@ -271,9 +270,6 @@ export function Layout({ children }: { children: ReactNode }) {
               </li>
               <li>
                 <Link href="/market">Listings</Link>
-              </li>
-              <li>
-                <Link href="/create">Create a collection</Link>
               </li>
             </ul>
           </div>
