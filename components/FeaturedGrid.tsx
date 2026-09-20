@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { Art } from "@/components/Art";
-import { FEATURED } from "@/config/featured";
+import { FEATURED, PINNED_COLLECTIONS } from "@/config/featured";
 import { tierClass } from "@/lib/tokenMetadata";
 import { WarmCollection } from "@/components/WarmChain";
 /**
@@ -17,6 +17,7 @@ import { WarmCollection } from "@/components/WarmChain";
  * entire page. Exactly the failure `Art.tsx` warns about at its top.
  */
 import "@/components/TokenCard.css";
+import "./FeaturedGrid.css";
 
 /**
  * The front page's grid, drawn from a list rather than from the chain.
@@ -71,8 +72,23 @@ export function FeaturedGrid() {
         const warmThis =
           piece.tokenId === undefined ? () => setWarming(piece.collection) : undefined;
 
+        /**
+         * The two collections this marketplace is about, given a moving ring.
+         *
+         * Read from `PINNED_COLLECTIONS` rather than counted by position, so it
+         * is the same named list that already leads /collections and the home
+         * rail. Reordering the featured pieces cannot light the wrong card, and
+         * there is one place to change which two are the headline.
+         */
+        const lit = PINNED_COLLECTIONS.some(
+          (p) => p.toLowerCase() === piece.collection.toLowerCase(),
+        );
+
         return (
-          <article className="tcard" key={`${piece.collection}-${piece.name}-${i}`}>
+          <article
+            className={`tcard${lit ? " tcard-lit" : ""}`}
+            key={`${piece.collection}-${piece.name}-${i}`}
+          >
             <Link
               href={href}
               className="tcard-hit"

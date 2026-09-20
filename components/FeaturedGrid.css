@@ -1,0 +1,170 @@
+/*
+ * The two collections the front page is actually about.
+ *
+ * Asked for as "a moving gradient of white and black". It is a ring rather
+ * than a wash — a 2px comet travelling around the card's own border, glowing,
+ * with a dark arc trailing it — because the artwork is the thing being looked
+ * at and a gradient across the face of the card would compete with it.
+ *
+ * The first attempt was a 1px line at 60% and the verdict was "way too
+ * subtle", which it was. Thickness, a full-strength core, a glow and a
+ * standing outline are what carry it now; the wash was never the missing
+ * part.
+ *
+ * Which two cards get it is not written here and not counted by position. It
+ * comes from `PINNED_COLLECTIONS` — the same named list that already decides
+ * what leads /collections and the home rail — so all three stay in step, and
+ * reordering the featured list cannot silently light the wrong card.
+ */
+
+/*
+ * A registered angle, because a plain custom property cannot be animated.
+ *
+ * `--lit-angle` is declared with a type so the browser can interpolate it;
+ * without the registration an animation between 0deg and 360deg just snaps.
+ * Every use below is written `var(--lit-angle, 0deg)`, so where `@property` is
+ * unsupported the gradient still resolves and paints — it simply holds still
+ * instead of disappearing, which is the failure this project has a rule about.
+ */
+@property --lit-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+.tcard-lit::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  /*
+   * Thickness. 2px rather than 1: at a hairline the sweep was there and read
+   * as an artefact of the border rather than as a deliberate highlight — "way
+   * too subtle" was the verdict, and it was right.
+   */
+  padding: 2px;
+
+  /*
+   * White and black, both of them, and neither of them a literal.
+   *
+   * `--ink` is near-white in dark and near-black in light; `--paper` is the
+   * reverse. So the same declaration gives a white highlight chased by a dark
+   * one on a dark page, and a black highlight chased by a light one on a light
+   * page — the effect the request described, in whichever theme is on, without
+   * a colour in this file that is right in only one of them.
+   *
+   * Shaped like a comet rather than a band: a full-strength core with a short
+   * ramp into it and a long fade out of it, so the eye is given something
+   * travelling in a direction. An even split reads as a spinning pinwheel, and
+   * a low-opacity band reads as nothing at all.
+   */
+  background: conic-gradient(
+    from var(--lit-angle, 0deg),
+    transparent 0deg,
+    color-mix(in srgb, var(--ink) 35%, transparent) 14deg,
+    var(--ink) 34deg,
+    color-mix(in srgb, var(--ink) 40%, transparent) 62deg,
+    transparent 104deg,
+    transparent 168deg,
+    color-mix(in srgb, var(--paper) 85%, transparent) 208deg,
+    transparent 262deg,
+    transparent 360deg
+  );
+
+  /*
+   * The ring glows, rather than only being drawn.
+   *
+   * `drop-shadow` works off the masked shape's alpha, so this haloes the 2px
+   * frame itself — including the bright core as it travels — instead of
+   * boxing the card. It is most of what turns a line into a highlight.
+   */
+  filter: drop-shadow(0 0 7px color-mix(in srgb, var(--ink) 45%, transparent));
+
+  /*
+   * Keep the ring and throw the middle away.
+   *
+   * Two identical layers — one clipped to the content box, one to the whole
+   * border box — composited so that only where they DIFFER survives, which is
+   * the 2px frame set by `padding` above. It is the one way to put a gradient
+   * on a rounded border without a second element inside the card.
+   */
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+
+  /* Decoration only: it must never sit between a finger and the card's link. */
+  pointer-events: none;
+
+  /* Five seconds. Slow enough to be a highlight rather than a demand, quick
+     enough that a visitor who looks at the card at all sees it move. */
+  animation: tcard-lit-sweep 5s linear infinite;
+}
+
+@keyframes tcard-lit-sweep {
+  to {
+    --lit-angle: 360deg;
+  }
+}
+
+/*
+ * Hovering already lifts the card and strengthens its border, so the ring
+ * brightens with it rather than competing.
+ */
+.tcard-lit:hover::after {
+  background: conic-gradient(
+    from var(--lit-angle, 0deg),
+    transparent 0deg,
+    color-mix(in srgb, var(--ink) 50%, transparent) 14deg,
+    var(--ink) 34deg,
+    color-mix(in srgb, var(--ink) 55%, transparent) 70deg,
+    transparent 120deg,
+    transparent 168deg,
+    var(--paper) 208deg,
+    transparent 268deg,
+    transparent 360deg
+  );
+  filter: drop-shadow(0 0 11px color-mix(in srgb, var(--ink) 60%, transparent));
+}
+
+/*
+ * And a standing outline, so the two cards read as chosen even at the moment
+ * the comet is on the far side of the frame. Inset, so it cannot enlarge the
+ * card or disturb the grid, and quiet enough that the sweep is still the thing
+ * that catches the eye.
+ */
+.tcard-lit {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ink) 14%, transparent);
+}
+
+/*
+ * Repeated on hover, and that is not redundant.
+ *
+ * `.tcard:hover` sets its own `box-shadow` for the lift, and a single-class
+ * selector loses to it — so without this the standing outline vanished at the
+ * exact moment the card was being pointed at. Both are listed rather than one
+ * replacing the other.
+ */
+.tcard-lit:hover {
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--ink) 24%, transparent),
+    var(--shadow-lg);
+}
+
+/*
+ * Somebody who has asked for less motion gets the ring without the travel.
+ *
+ * Not `display: none`: the highlight is the point, and only the movement is
+ * the preference. Held at an angle where the bright arc is visible rather than
+ * at 0deg, where it would sit in the corner and read as a rendering fault.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .tcard-lit::after {
+    animation: none;
+    --lit-angle: 300deg;
+  }
+}
