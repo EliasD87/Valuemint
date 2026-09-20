@@ -84,10 +84,18 @@ export const FEATURED: FeaturedPiece[] = [
     motion: true,
   },
   {
+    /*
+      ONE box card, and no tier on it.
+
+      There were three — SuperRare, Rare and Uncommon — each labelled with its
+      tier, and three cards carrying three different names read as three
+      collections. They are one contract: 6,451 pieces, four tiers. The label
+      was what made them look separate, so it is gone with the other two, and
+      this card stands for the collection rather than for a tier of it.
+    */
     collection: "0x761C3DD0f7a9282E9c5D108394EC7f3AB524A213",
     collectionName: "SoDEX Treasure Box",
-    name: "SuperRare Box",
-    note: "SuperRare",
+    name: "SoDEX Treasure Box",
     image:
       "https://gateway.pinata.cloud/ipfs/bafybeihqcahgiep6s2ech2imswhn2azwylilhq2cvuvuzquyhs5xccrvmu",
   },
@@ -109,12 +117,11 @@ export const FEATURED: FeaturedPiece[] = [
 
   // ── row two ────────────────────────────────────────────────────────────
   {
-    collection: "0x761C3DD0f7a9282E9c5D108394EC7f3AB524A213",
-    collectionName: "SoDEX Treasure Box",
-    name: "Rare Box",
-    note: "Rare",
-    image:
-      "https://gateway.pinata.cloud/ipfs/bafybeih7427beihagqyxfnxwugn6p7gyxiekstpaps4qcsjaeumbuosc2u",
+    collection: "0x01c28095bfffc9973Da4c4e8A34E9d5b6649C988",
+    collectionName: "Hypno Plush",
+    name: "VIOLET PULSE",
+    tokenId: "2",
+    image: "https://ipfs.filebase.io/ipfs/QmbKZv4181zFxCF3kk3vNuKeVQxGPNQ61DiDBBuPGti1xv",
   },
   {
     collection: "0x01c28095bfffc9973Da4c4e8A34E9d5b6649C988",
@@ -140,12 +147,11 @@ export const FEATURED: FeaturedPiece[] = [
 
   // ── row three ──────────────────────────────────────────────────────────
   {
-    collection: "0x761C3DD0f7a9282E9c5D108394EC7f3AB524A213",
-    collectionName: "SoDEX Treasure Box",
-    name: "Uncommon Box",
-    note: "Uncommon",
-    image:
-      "https://gateway.pinata.cloud/ipfs/bafybeif3cbqz2l5amcqk7yw4irrw2sjx6pwioxpcgu2cnjsaadadocvefa",
+    collection: "0xfE7b74F5dbAeEA6A0Ef0385F572D60083FEFE0C0",
+    collectionName: "Orange Companions",
+    name: "Bug Hunter",
+    tokenId: "2",
+    image: "https://ipfs.filebase.io/ipfs/QmZAGyVAeh4HxEb9TrXSxciBCdNeiKfxaFu3g7tECgFvAd",
   },
   {
     collection: "0x0273DF41B56E3480886Fe8f0451349bEc0f8edf6",
@@ -169,4 +175,32 @@ export const FEATURED: FeaturedPiece[] = [
     note: "Depth 4",
     image: "https://ipfs.filebase.io/ipfs/QmZhR1M4Tmnu42Qgz5c5EcjCBJK7JVaTjgXuRNM2LfkiDq",
   },
+];
+
+/**
+ * Collections read in the background while somebody is on the front page, so
+ * that opening one is instant.
+ *
+ * ── KEEP THIS SHORT ──────────────────────────────────────────────────────
+ *
+ * Each entry is roughly sixty `tokenByIndex` and sixty `tokenURI` calls plus
+ * one batched metadata request, paid by every home-page visitor whether or not
+ * they click. Two or three is the right size.
+ *
+ * This existed before, warmed all three starting 1.5 s in, and cost twenty RPC
+ * requests over 11.6 seconds peaking at seven at once — which made the whole
+ * page feel slow. It is back because these three are where people actually go,
+ * but spaced out: the first starts well after the artwork has the network to
+ * itself, and they go one at a time. Hovering a card still warms it
+ * immediately, which is the fast path for somebody who is about to click.
+ */
+export const WARM_COLLECTIONS: ReadonlyArray<`0x${string}`> = [
+  /** The boxes — the biggest collection here, and the one most opened. */
+  "0x761C3DD0f7a9282E9c5D108394EC7f3AB524A213",
+
+  /** TestCybereator, which most of the traded pieces are. */
+  "0x412D8af16B7fF3FE75e1CD380BD86Ef33dD8AD0f",
+
+  /** Cybereator, the real one. */
+  "0xCD30D4bCaa99E556B70A2C4bDFC4050D26E48D30",
 ];

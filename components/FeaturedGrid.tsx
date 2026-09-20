@@ -131,7 +131,14 @@ export function FeaturedGrid() {
                   <span className="tcard-num">#{piece.tokenId}</span>
                 )}
               </div>
-              <p className="tcard-sub dim">{piece.collectionName}</p>
+              {/*
+                Not when it would say the same thing twice. A card standing for
+                its whole collection is named after it, and "SoDEX Treasure
+                Box" over "SoDEX Treasure Box" reads as a rendering fault.
+              */}
+              {piece.collectionName === piece.name ? null : (
+                <p className="tcard-sub dim">{piece.collectionName}</p>
+              )}
             </div>
           </article>
         );

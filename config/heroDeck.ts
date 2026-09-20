@@ -82,15 +82,32 @@ export interface HeroCard {
   brand?: "sodex";
 }
 
+/**
+ * Where the cards go, now that both collections exist.
+ *
+ * Every card was unlinked, because when the deck was built the treasure boxes
+ * were announced rather than deployed and `/collection/undefined` is not a
+ * page. The test contract has been live and trading for a while — 6,451 pieces
+ * — and Cybereator is live too, so five pictures of things people can actually
+ * open were the one part of the front page that went nowhere.
+ *
+ * The four boxes all point at the same collection, which is right: they are
+ * four tiers of one contract, not four collections.
+ */
+const TREASURE_BOX = "0x761C3DD0f7a9282E9c5D108394EC7f3AB524A213" as const;
+const CYBEREATOR = "0xCD30D4bCaa99E556B70A2C4bDFC4050D26E48D30" as const;
+
 export const HERO_DECK: HeroCard[] = [
   {
     name: "Common box",
+    address: TREASURE_BOX,
     image: "/boxes/common.webp",
     caption: "Treasure Box",
     brand: "sodex",
   },
   {
     name: "Uncommon box",
+    address: TREASURE_BOX,
     image: "/boxes/uncommon.webp",
     caption: "Treasure Box",
     brand: "sodex",
@@ -112,17 +129,20 @@ export const HERO_DECK: HeroCard[] = [
      * priority. Worth it for the front card; do not add a second.
      */
     name: "Cybereator",
+    address: CYBEREATOR,
     image: "/boxes/cybereator.webp",
     caption: "Unrevealed",
   },
   {
     name: "Rare box",
+    address: TREASURE_BOX,
     image: "/boxes/rare.webp",
     caption: "Treasure Box",
     brand: "sodex",
   },
   {
     name: "Super rare box",
+    address: TREASURE_BOX,
     image: "/boxes/superrare.webp",
     caption: "Treasure Box",
     brand: "sodex",

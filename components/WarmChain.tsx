@@ -6,30 +6,35 @@ import { useCollectionBasics } from "@/hooks/useCollectionBasics";
 import { useTokenIds } from "@/hooks/useTokenIds";
 import { useGenericTokens } from "@/hooks/useGenericTokens";
 import { useDeferred } from "@/hooks/useDeferred";
+import { WARM_COLLECTIONS } from "@/config/featured";
 
 /**
  * Read the chain while somebody is looking at the front page, so the page they
- * open next has already been read — but only what they look like opening.
+ * open next has already been read.
  *
- * The first version of this warmed a list of collections on arrival, and it was
- * too expensive to be worth it. Measured on the live home page: twenty RPC
- * requests spanning 200 ms to 11,656 ms, peaking at seven in flight at once,
- * on a page whose own grid needs none. Everyone paid eleven seconds of
- * background load so that whoever clicked got an instant page, and while it ran
- * it competed for connections with the artwork and with any navigation. During
- * the chain upgrade, when a call took 1.1 s instead of 0.3 s, it was worse
- * again.
+ * Two ways in, because they catch different people.
  *
- * So the cost moved to where the benefit is. A pointer resting on a card, or a
- * finger touching one, is the best signal available that somebody is about to
- * open it — and at that moment reading that ONE collection is cheap and almost
- * always useful. Somebody who scrolls past pays nothing.
+ *   - **A short list, in the background.** `WARM_COLLECTIONS` names where
+ *     people actually go — the treasure boxes and both Cybereators — and they
+ *     are read one at a time, three seconds apart, starting once the artwork
+ *     has had the network to itself. This is for everyone who clicks without
+ *     hovering first, which on a phone is everyone.
+ *   - **On intent.** A pointer resting on a card, a finger touching one, or
+ *     focus landing on it warms that collection immediately. See
+ *     `FeaturedGrid`.
  *
- * What is still warmed on arrival is the order book, and only that. It is one
- * shared scan every page reuses, and it is the single biggest thing a
- * collection page waits on: measured, with it already cached `tokenByIndex`
- * went out 26 ms after supply instead of 1,417 ms, and the first image appeared
- * at 2,177 ms instead of 4,669 ms.
+ * The spacing is the lesson, not the idea. The first version warmed all three
+ * starting 1.5 s in and cost twenty RPC requests spanning 200 ms to 11,656 ms,
+ * peaking at seven in flight — on a page whose own grid needs none. It competed
+ * with the artwork and with navigation, and during the chain upgrade, when a
+ * call took 1.1 s instead of 0.3 s, it was worse again. Sequenced and started
+ * later, the same work is invisible.
+ *
+ * What is warmed on arrival regardless is the order book, and only that. It is
+ * one shared scan every page reuses and the single biggest thing a collection
+ * page waits on: measured, with it already cached `tokenByIndex` went out 26 ms
+ * after supply instead of 1,417 ms, and the first image appeared at 2,177 ms
+ * instead of 4,669 ms.
  */
 
 /**
@@ -57,6 +62,30 @@ function Warm() {
   return null;
 }
 
+/**
+ * One collection at a time, each waiting for the one before it.
+ *
+ * Mounting is the only switch these hooks have, so a queue is a chain of
+ * components that mount in sequence. Spacing matters: the first version of this
+ * started all three 1.5 s in and cost twenty RPC requests over 11.6 seconds,
+ * peaking at seven at once, which is what made the front page feel slow. Three
+ * seconds apart, starting after the artwork has had the network to itself, is
+ * background work rather than competition.
+ */
+function WarmQueue({ addresses, after }: { addresses: readonly `0x${string}`[]; after: number }) {
+  const ready = useDeferred(after);
+  const [first, ...rest] = addresses;
+
+  if (!ready || first === undefined) return null;
+
+  return (
+    <>
+      <WarmCollection address={first} />
+      {rest.length > 0 ? <WarmQueue addresses={rest} after={3_000} /> : null}
+    </>
+  );
+}
+
 export function WarmChain() {
   /**
    * After the pictures.
@@ -66,5 +95,18 @@ export function WarmChain() {
    * landing page before clicking anything.
    */
   const ready = useDeferred(2_000);
-  return ready ? <Warm /> : null;
+  if (!ready) return null;
+
+  return (
+    <>
+      <Warm />
+      {/*
+        And the collections people actually open — the boxes and both
+        Cybereators. Hovering a card still warms it immediately; this is for
+        everyone who clicks without hovering first, which on a phone is
+        everyone.
+      */}
+      <WarmQueue addresses={WARM_COLLECTIONS} after={2_500} />
+    </>
+  );
 }
