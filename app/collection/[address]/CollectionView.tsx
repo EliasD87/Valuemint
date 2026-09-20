@@ -200,8 +200,23 @@ export function CollectionView({ params }: { params: Promise<{ address: string }
         <span className="strip-item mono dim">{shortAddress(raw, 6)}</span>
       </div>
 
-      {/* Only worth drawing once there is something to sort or filter. */}
-      {tokens.length > 1 ? (
+      {/*
+        Drawn as soon as the collection is known to have more than one piece,
+        which is two round trips before the pieces themselves arrive.
+
+        This was gated on `tokens.length > 1`, and `tokens` is the end of the
+        ladder: ids, then tokenURIs, then a metadata document each. So the sort
+        row appeared seconds after the header above it and shoved the whole grid
+        down at the moment somebody had started reading it.
+
+        `supply` comes back in the first multicall, alongside the name and
+        symbol already on screen, and answers the same question — is there more
+        than one thing here to sort. Until it lands the row is drawn anyway, on
+        the assumption that a collection has more than one piece, because nearly
+        every one does and being wrong costs a row disappearing on a page with a
+        single token on it.
+      */}
+      {(supply ?? 2n) > 1n ? (
         <div className="coll-controls">
           <div className="wrap-row">
             <Sortie active={sort === "id-desc"} onClick={() => setSort("id-desc")}>

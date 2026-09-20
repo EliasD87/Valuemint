@@ -375,11 +375,33 @@
  * and useless at ninety.
  * ------------------------------------------------------------------------- */
 
+/*
+ * One row, so the filters arrive INTO it rather than under it.
+ *
+ * This was a column: sort chips on top, trait filters beneath. The filters can
+ * only exist once every token's metadata has been read, so they always arrive
+ * late — and in a column, arriving late means growing. Measured on Orange
+ * Companions, the grid sat at y=330 and dropped to y=393 at 2,050 ms, shoving
+ * sixty cards down under whoever had started reading them.
+ *
+ * Side by side the row's height is the taller of its two children, which the
+ * sort chips already set. The filters appear in space that was always there.
+ *
+ * Reserving the height instead was the obvious alternative and is worse: a
+ * collection with no varying traits — Cybereator, the boxes — would carry an
+ * empty 63px gap forever to spare a shift it never has.
+ *
+ * On a narrow screen they wrap and the row does grow. That is the honest limit
+ * of this approach, and a phone has less room than the shift is worth.
+ */
 .coll-controls {
   display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1.25rem;
   margin-bottom: 1.25rem;
+  min-height: 2.75rem;
 }
 
 .coll-traits {
@@ -389,10 +411,23 @@
   gap: 0.6rem;
 }
 
+/*
+ * Label beside the select, not above it — the last of the shift.
+ *
+ * Stacked, this control is 58px tall against the sort chips' 44, so the row it
+ * shares still grew by 14px when the filters arrived. Side by side it is the
+ * height of the select, the row does not change, and the grid holds its place
+ * from the first paint to the last.
+ *
+ * It also just looks more like the thing next to it: a pill of controls rather
+ * than a form field that wandered in.
+ */
 .coll-trait {
   display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 2.75rem;
 }
 
 .coll-trait-label {
@@ -401,6 +436,7 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--ink-3);
+  white-space: nowrap;
 }
 
 /* Sized to its content rather than stretched: a row of equal-width selects
@@ -416,6 +452,7 @@
 @media (max-width: 560px) {
   .coll-trait {
     flex: 1 1 100%;
+    min-height: 0;
   }
 
   .coll-trait select {
