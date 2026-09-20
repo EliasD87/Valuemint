@@ -53,6 +53,19 @@ interface Props {
    * it.
    */
   priority?: boolean;
+  /**
+   * What the cheapest comparable piece is listed at.
+   *
+   * Only shown when this piece is NOT listed, because that is the one case
+   * where the card otherwise answers "what is this worth" with "Not listed".
+   * When it IS listed, the seller's own price is the more useful number and a
+   * floor beside it would invite reading one as the other.
+   *
+   * The caller decides what "comparable" means — a collection floor, or that
+   * piece's own tier where the collection has several. It is not derived here,
+   * because a card has no business running a scan.
+   */
+  floor?: bigint;
 }
 
 export function TokenCard({
@@ -64,6 +77,7 @@ export function TokenCard({
   viewerAddress,
   vouched,
   priority = false,
+  floor,
 }: Props) {
   const { isConnected } = useAccount();
   const isYours =
@@ -196,11 +210,35 @@ export function TokenCard({
                   Unverified
                 </span>
               ) : null}
-              {listing !== undefined ? "Price" : "Status"}
+              {listing !== undefined ? "Price" : floor !== undefined ? "Floor" : "Status"}
             </dt>
-            <dd className={listing !== undefined ? "tcard-price" : "tcard-none"}>
+            {/*
+              Three states, and the middle one is the new one.
+
+              Listed: the seller's own asking price. Unlisted with a floor: what
+              the cheapest comparable piece is going for, which is the honest
+              answer to "what is this worth" that "Not listed" never gave.
+              Unlisted with nothing to compare against: still "Not listed",
+              because inventing a number would be worse than admitting there
+              isn't one.
+
+              Styled `tcard-floor` rather than `tcard-price` deliberately. A
+              floor is somebody else's price, and making it look like this
+              piece's own would be a quiet lie on a page about what you own.
+            */}
+            <dd
+              className={
+                listing !== undefined
+                  ? "tcard-price"
+                  : floor !== undefined
+                    ? "tcard-floor"
+                    : "tcard-none"
+              }
+            >
               {listing !== undefined ? (
                 <Soso>{formatSoso(listing.price)}</Soso>
+              ) : floor !== undefined ? (
+                <Soso>{formatSoso(floor)}</Soso>
               ) : (
                 "Not listed"
               )}

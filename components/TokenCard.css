@@ -287,6 +287,21 @@
   font-weight: 500;
 }
 
+/*
+ * A floor is somebody ELSE'S price, and must not be mistaken for this piece's.
+ *
+ * Same size, so the column still lines up, but a step back in weight and
+ * colour — enough that a glance down a grid separates "this is for sale at
+ * X" from "the cheapest comparable one is X". The `Floor` label above it does
+ * the rest; this only has to stop the two reading as the same kind of number.
+ */
+.tcard-floor {
+  font-size: var(--step-0);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--ink-2);
+}
+
 
 /* ------------------------------------------------------------ card actions */
 

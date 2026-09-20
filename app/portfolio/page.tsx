@@ -11,6 +11,7 @@ import { MyTrades } from "@/components/MyTrades";
 import { BulkList } from "@/components/BulkList";
 import { TokenCard, TokenCardSkeleton } from "@/components/TokenCard";
 import { useGridColumns } from "@/hooks/useGridColumns";
+import { useFloors } from "@/hooks/useFloors";
 import { CREATE_ENABLED } from "@/config/features";
 import { formatSoso } from "@/lib/format";
 import "@/styles/home.css";
@@ -30,6 +31,15 @@ export default function Portfolio() {
     isLoading,
   } = useHoldings(address);
   const { data: balance } = useBalance({ address, query: { enabled: address !== undefined } });
+
+  /**
+   * Floors, for "what is this worth" on a piece that is not for sale.
+   *
+   * Costs no extra scan: `useFloors` is built on `useListingFeed`, and React
+   * Query collapses the identical key against the order book this page already
+   * reads for its own listings.
+   */
+  const { floorFor, tierFloorsFor } = useFloors();
 
   /**
    * There is no "waiting for you" balance any more, and there is nothing to
@@ -181,7 +191,13 @@ export default function Portfolio() {
       ) : (
         <div className="stack stack-lg">
           {byCollection.map((group) => (
-            <Holdings key={group.address} group={group} viewer={address} />
+            <Holdings
+              key={group.address}
+              group={group}
+              viewer={address}
+              floorFor={floorFor}
+              tierFloorsFor={tierFloorsFor}
+            />
           ))}
         </div>
       )}
@@ -255,7 +271,17 @@ interface Group {
  * guess would clip a row short or spill onto a second one, and would be wrong
  * again the next time the stylesheet moved.
  */
-function Holdings({ group, viewer }: { group: Group; viewer: `0x${string}` | undefined }) {
+function Holdings({
+  group,
+  viewer,
+  floorFor,
+  tierFloorsFor,
+}: {
+  group: Group;
+  viewer: `0x${string}` | undefined;
+  floorFor: (address: string) => bigint | undefined;
+  tierFloorsFor: (address: string) => { tier: string; price: bigint; count: number }[];
+}) {
   const grid = useRef<HTMLDivElement>(null);
   const columns = useGridColumns(grid);
   const [expanded, setExpanded] = useState(false);
@@ -273,11 +299,35 @@ function Holdings({ group, viewer }: { group: Group; viewer: `0x${string}` | und
   const shown = expanded ? group.items : group.items.slice(0, perRow);
   const hidden = group.items.length - shown.length;
 
+  const collectionFloor = floorFor(group.address);
+  const tierFloors = tierFloorsFor(group.address);
+
+  /** The cheapest comparable piece: same tier if the collection has tiers. */
+  const floorForToken = (t: ChainToken): bigint | undefined => {
+    if (t.tier !== undefined) {
+      const mine = tierFloors.find((f) => f.tier === t.tier);
+      if (mine !== undefined) return mine.price;
+    }
+    return collectionFloor;
+  };
+
   return (
     <div>
       <div className="head head-sub">
         <div>
-          <p className="eyebrow eyebrow-dim">{group.items.length} held</p>
+          {/* The collection's floor beside the count, so the group says what it
+              is worth as well as how much of it there is. Omitted rather than
+              zeroed when nothing in the collection is listed — there is no
+              floor then, and 0 would be a different claim entirely. */}
+          <p className="eyebrow eyebrow-dim">
+            {group.items.length} held
+            {collectionFloor === undefined ? null : (
+              <>
+                {" · floor "}
+                <Soso size={12}>{formatSoso(collectionFloor)}</Soso>
+              </>
+            )}
+          </p>
           <h3>{group.name}</h3>
         </div>
         <Link className="head-link" href={`/collection/${group.address}`}>
@@ -312,6 +362,18 @@ function Holdings({ group, viewer }: { group: Group; viewer: `0x${string}` | und
             listing={t.listing}
             owner={t.owner}
             viewerAddress={viewer}
+            /*
+              This piece's own tier floor where the collection has tiers, the
+              collection floor otherwise.
+
+              The distinction is the whole point. A collection holding Epics
+              and Commons has two floors, and quoting the Common one against an
+              Epic tells its owner precisely the wrong thing about what they
+              hold. `tierFloorsFor` returns nothing for a collection with one
+              bucket, which falls through to the collection figure — the same
+              number by then anyway.
+            */
+            floor={floorForToken(t)}
           />
         ))}
       </div>
