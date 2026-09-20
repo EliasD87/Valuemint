@@ -120,7 +120,14 @@ export const FEATURED: FeaturedPiece[] = [
       was what made them look separate, so it is gone with the other two, and
       this card stands for the collection rather than for a tier of it.
     */
-    collection: "0x761C3DD0f7a9282E9c5D108394EC7f3AB524A213",
+    /*
+      Repointed to the real contract along with the hero cards above it.
+
+      Two cards on one page showing the same artwork and opening different
+      contracts is the kind of thing nobody notices until somebody buys on the
+      wrong one, so this moved with them rather than being left behind.
+    */
+    collection: "0x371c4F7F68bE3e558b89cC1f0fB113851C76E750",
     collectionName: "SoDEX Treasure Box",
     name: "SoDEX Treasure Box",
     image:
@@ -221,8 +228,46 @@ export const FEATURED: FeaturedPiece[] = [
  * itself, and they go one at a time. Hovering a card still warms it
  * immediately, which is the fast path for somebody who is about to click.
  */
+/**
+ * Collections pinned to the front of a listing, in this order.
+ *
+ * /collections is otherwise in discovery order, which means the block
+ * explorer's order, which means no order at all from a reader's point of view —
+ * and what it happened to put first was the two TEST contracts. A visitor
+ * landing there met "TestSoDEXTreasureBox" and "TestCybereator" before either
+ * of the real collections, which reads as though the test ones are the
+ * headline act.
+ *
+ * Named rather than ranked. Ranking by supply or by listings would put the
+ * test contracts first again on the numbers — the test boxes hold 6,451 pieces
+ * against the real one's handful — and no arithmetic knows which of two
+ * identical-looking contracts is the one that counts. That is a decision, so
+ * it is written down.
+ *
+ * Anything not named here keeps its existing order, after these.
+ */
+export const PINNED_COLLECTIONS: ReadonlyArray<`0x${string}`> = [
+  /** Cybereator, the real one. */
+  "0xCD30D4bCaa99E556B70A2C4bDFC4050D26E48D30",
+
+  /** SoDEX Treasure Box, the real one. */
+  "0x371c4F7F68bE3e558b89cC1f0fB113851C76E750",
+];
+
 export const WARM_COLLECTIONS: ReadonlyArray<`0x${string}`> = [
-  /** The boxes — the biggest collection here, and the one most opened. */
+  /**
+   * The real boxes, first, because every card in the hero now opens this one.
+   *
+   * It is also the cheapest entry in this list by a wide margin, which is what
+   * makes a fourth affordable at all: it holds a handful of pieces rather than
+   * the test contract's 6,451, so warming it is a couple of reads and a
+   * metadata request rather than sixty of each. That will stop being true as
+   * it fills up — when it does, this list wants to lose an entry, not gain
+   * one.
+   */
+  "0x371c4F7F68bE3e558b89cC1f0fB113851C76E750",
+
+  /** The test boxes, still where nearly every traded box actually is. */
   "0x761C3DD0f7a9282E9c5D108394EC7f3AB524A213",
 
   /** TestCybereator, which most of the traded pieces are. */

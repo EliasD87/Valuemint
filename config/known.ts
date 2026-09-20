@@ -93,7 +93,18 @@ export const KNOWN_COLLECTIONS: KnownCollection[] = [
     name: "TestSoDEXTreasureBox",
     symbol: "TESTSOBOX",
     reason:
-      "SoDEX's treasure boxes. The test contract is the only one deployed so " +
-      "far; add the real one here too when it ships.",
+      "SoDEX's test treasure boxes, and still where nearly every traded box " +
+      "is: 6,451 pieces against the real contract's handful. Kept listed for " +
+      "that reason, not retired.",
+  },
+  {
+    address: "0x371c4F7F68bE3e558b89cC1f0fB113851C76E750",
+    name: "SoDEX Treasure Box",
+    symbol: "SOBOX",
+    reason:
+      "The real treasure boxes, shipped at last — the contract the line above " +
+      "was waiting for. Named here rather than left to the explorer because a " +
+      "collection one day old is exactly what a token index has not noticed " +
+      "yet, and the home page links straight to it.",
   },
 ];

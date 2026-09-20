@@ -36,6 +36,22 @@ export const COLLECTION_COVERS: Record<string, string[]> = {
     "https://gateway.pinata.cloud/ipfs/bafybeiexxwgg46ucafzx4fpesmobil45cwrspb34pefegnpzz5qux762p4",
   ],
 
+  /*
+    SoDEX Treasure Box, the real contract.
+
+    Same four pictures as the test one below, because it is the same artwork —
+    and it needs them for the same reason, which is that its `baseURI` points
+    at a host that answers 501. Checked directly: `tokenURI(1)` resolves to
+    .../api/v1/nft/token/sobox/1 and that URL returns 501, so nothing here can
+    discover a picture from the chain. Without this entry its cards are blank.
+  */
+  "0x371c4f7f68be3e558b89cc1f0fb113851c76e750": [
+    "https://gateway.pinata.cloud/ipfs/bafybeibltyk5zokqdookfnccsfcoebl3qzp4gkx45bhtgrllm2t23kp67u",
+    "https://gateway.pinata.cloud/ipfs/bafybeif3cbqz2l5amcqk7yw4irrw2sjx6pwioxpcgu2cnjsaadadocvefa",
+    "https://gateway.pinata.cloud/ipfs/bafybeih7427beihagqyxfnxwugn6p7gyxiekstpaps4qcsjaeumbuosc2u",
+    "https://gateway.pinata.cloud/ipfs/bafybeihqcahgiep6s2ech2imswhn2azwylilhq2cvuvuzquyhs5xccrvmu",
+  ],
+
   // SoDEX Treasure Box — four tiers, four pictures, 5,000-odd tokens.
   "0x761c3dd0f7a9282e9c5d108394ec7f3ab524a213": [
     "https://gateway.pinata.cloud/ipfs/bafybeibltyk5zokqdookfnccsfcoebl3qzp4gkx45bhtgrllm2t23kp67u",

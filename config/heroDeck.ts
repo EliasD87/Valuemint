@@ -94,7 +94,24 @@ export interface HeroCard {
  * The four boxes all point at the same collection, which is right: they are
  * four tiers of one contract, not four collections.
  */
-const TREASURE_BOX = "0x761C3DD0f7a9282E9c5D108394EC7f3AB524A213" as const;
+/*
+  The real boxes, not the test ones.
+
+  These four cards pointed at the test contract for as long as that was the
+  only one deployed — the note further up this file said to repoint them "on
+  the day the real collection ships", and it has. Verified on chain before
+  changing anything: name "SoDEXTreasureBox", symbol SOBOX, answers
+  `supportsInterface(ERC721)`, and `tokenURI(1)` resolves to SoDEX's own
+  metadata host. It is a proxy, 163 bytes of bytecode, same shape as
+  Cybereator.
+
+  Two things it is worth knowing this sends people to. It is young, so there is
+  very little in it yet — the test contract still holds essentially every box
+  that has traded. And it does not implement Enumerable (`tokenByIndex`
+  reverts), so its page finds pieces by the fallback path rather than by
+  walking an index.
+*/
+const TREASURE_BOX = "0x371c4F7F68bE3e558b89cC1f0fB113851C76E750" as const;
 const CYBEREATOR = "0xCD30D4bCaa99E556B70A2C4bDFC4050D26E48D30" as const;
 
 export const HERO_DECK: HeroCard[] = [
