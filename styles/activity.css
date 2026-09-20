@@ -76,9 +76,26 @@
   overflow: hidden;
 }
 
+/*
+ * kind | token | price | who | when, and WHO is the elastic one.
+ *
+ * The `minmax(0, 1fr)` used to sit on the price. That is the track that gives
+ * up its width when the row runs out, and a `1fr` with a zero floor gives up
+ * all of it: on a sale, where `who` carries two addresses and an arrow, the
+ * price column computed to exactly 0px and its text — which is an inline-flex
+ * box that does not clip — printed straight over the addresses beside it.
+ * Measured on a token page at a 432px panel: `84px 0px 160px 88px`.
+ *
+ * The flexible column has to be the one that can survive being squeezed, and
+ * `.act-who` already could: it is the only cell here with `overflow: hidden`
+ * and `text-overflow: ellipsis`, which was written for exactly this and never
+ * reached because the track never shrank. A price must not be elastic at all —
+ * half a price is worse than no price — so it sizes to its content with a
+ * floor, and a long counterparty now ellipsises instead.
+ */
 .act-row {
   display: grid;
-  grid-template-columns: 5.25rem minmax(2.5rem, auto) minmax(0, 1fr) auto auto;
+  grid-template-columns: 5.25rem minmax(2.5rem, auto) minmax(2.5rem, auto) minmax(0, 1fr) auto;
   align-items: center;
   gap: 0.65rem;
   padding: 0.55rem 0.8rem;
@@ -87,9 +104,13 @@
 }
 
 /* A token's own history says "#7" on every row, so the column is dropped
-   rather than left empty — an empty cell still takes its width and its gap. */
+   rather than left empty — an empty cell still takes its width and its gap.
+
+   Dropping the TOKEN column, which is the second one. The old version dropped
+   a column's worth of width from the wrong place and left `minmax(0, 1fr)` on
+   the price, which is the fault described above. */
 .act-list-one .act-row {
-  grid-template-columns: 5.25rem minmax(0, 1fr) auto auto;
+  grid-template-columns: 5.25rem minmax(2.5rem, auto) minmax(0, 1fr) auto;
 }
 
 /* The verb, as a badge. Sales are what people scan for, so they get the only
@@ -156,6 +177,12 @@
   gap: 0.35rem;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
+  /* If this is ever squeezed again it clips inside its own cell instead of
+     overflowing across the one next to it. Overlapping figures are unreadable
+     in a way a truncated one is not. */
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
 }
 
 .act-amount {
