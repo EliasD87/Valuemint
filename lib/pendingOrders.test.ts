@@ -10,6 +10,7 @@ import { SEAPORT } from "@/config/seaport";
 import { buildOffer, type OrderParameters } from "./seaport";
 import {
   forgetSeenOrders,
+  pendingOrdersServerSnapshot,
   pendingOrdersSnapshot,
   rememberValidatedOrders,
 } from "./pendingOrders";
@@ -111,6 +112,55 @@ describe("rememberValidatedOrders", () => {
     rememberValidatedOrders(receiptFor(params));
 
     expect(pendingOrdersSnapshot()).toHaveLength(1);
+  });
+});
+
+describe("snapshot identity", () => {
+  /**
+   * `useSyncExternalStore` re-reads the snapshot on every render and compares
+   * it by identity, so a function that ends `return []` hands back a new array
+   * every time and React refuses it outright: "The result of getServerSnapshot
+   * should be cached to avoid an infinite loop." That is exactly what the
+   * server snapshot did, and it reached production.
+   */
+  it("returns the same empty array every time on the server", () => {
+    expect(pendingOrdersServerSnapshot()).toBe(pendingOrdersServerSnapshot());
+  });
+
+  it("returns the same empty array every time while nothing is held", () => {
+    expect(pendingOrdersSnapshot()).toBe(pendingOrdersSnapshot());
+  });
+
+  it("is stable again after the last held order is dropped", () => {
+    const params = buildOffer({
+      bidder: BIDDER,
+      collection: COLLECTION,
+      tokenId: 1n,
+      priceWei: 10n ** 18n,
+    });
+    rememberValidatedOrders(receiptFor(params));
+    expect(pendingOrdersSnapshot()).toHaveLength(1);
+
+    forgetSeenOrders([HASH]);
+
+    /** Emptying must not start handing out fresh arrays again. */
+    expect(pendingOrdersSnapshot()).toBe(pendingOrdersSnapshot());
+    expect(pendingOrdersSnapshot()).toBe(pendingOrdersServerSnapshot());
+  });
+
+  it("hands out a real array once something is held", () => {
+    const params = buildOffer({
+      bidder: BIDDER,
+      collection: COLLECTION,
+      tokenId: 2n,
+      priceWei: 10n ** 18n,
+    });
+    rememberValidatedOrders(receiptFor(params));
+
+    const a = pendingOrdersSnapshot();
+    expect(a).toHaveLength(1);
+    /** Stable between reads, so a render that changes nothing re-uses it. */
+    expect(pendingOrdersSnapshot()).toBe(a);
   });
 });
 

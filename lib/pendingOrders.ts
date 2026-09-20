@@ -62,15 +62,25 @@ const listeners = new Set<() => void>();
  * `useSyncExternalStore` compares by identity and re-reads on every render, so
  * handing it a fresh array each time is an infinite loop. This is rebuilt only
  * when the map actually changes.
+ *
+ * `EMPTY` is shared rather than written as `[]` at each use, and that is the
+ * whole point of it existing: a literal is a new array every time it is
+ * evaluated, so a function ending `return []` fails the identity check on every
+ * single call. React says so outright — "The result of getServerSnapshot should
+ * be cached to avoid an infinite loop" — and it was the server snapshot below
+ * that did it.
  */
-let snapshot: PendingOrder[] = [];
+const EMPTY: PendingOrder[] = [];
+
+let snapshot: PendingOrder[] = EMPTY;
 
 function publish(): void {
   const now = Date.now();
   for (const [hash, order] of orders) {
     if (now - order.at > TTL_MS) orders.delete(hash);
   }
-  snapshot = [...orders.values()];
+  /** Back to the shared empty array, so an emptied store is stable too. */
+  snapshot = orders.size === 0 ? EMPTY : [...orders.values()];
   for (const listener of listeners) listener();
 }
 
@@ -83,9 +93,15 @@ export function pendingOrdersSnapshot(): PendingOrder[] {
   return snapshot;
 }
 
-/** The server renders none of these; they only exist in the tab that made them. */
+/**
+ * The server renders none of these; they only exist in the tab that made them.
+ *
+ * Returns the shared `EMPTY` rather than a literal. `return []` here is a new
+ * array on every call, which is exactly the identity churn `useSyncExternalStore`
+ * refuses.
+ */
 export function pendingOrdersServerSnapshot(): PendingOrder[] {
-  return [];
+  return EMPTY;
 }
 
 /**
