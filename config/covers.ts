@@ -34,13 +34,27 @@
 /** Lower-cased address -> up to four image URLs. */
 export const COLLECTION_COVERS: Record<string, string[]> = {
   // Cybereator — one animated GIF shared by every token.
+  /*
+    The SAME animated file the tokens use, not a still of it.
+
+    Localising the covers re-encoded each source through sharp, which reads one
+    frame unless told otherwise — so Cybereator's cover arrived as a single
+    still of the title card, 1 page and 8KB against the source's 33. The card
+    sat frozen on a page where the same artwork moves everywhere else.
+
+    Pointing at `/boxes/cybereator.webp` rather than re-encoding it animated:
+    it is already committed, already 33 frames, and already what
+    `soleArtworkFor` below hands to every token of these two collections. One
+    file means the card and the pieces inside it cannot drift, and on the home
+    page it is a second reference to something already downloaded.
+  */
   "0xcd30d4bcaa99e556b70a2c4bdfc4050d26e48d30": [
-    "/covers/cd30d4bc-1.webp",
+    "/boxes/cybereator.webp",
   ],
 
   // TestCybereator — the same artwork, from the same file.
   "0x412d8af16b7ff3fe75e1cd380bd86ef33dd8ad0f": [
-    "/covers/412d8af1-1.webp",
+    "/boxes/cybereator.webp",
   ],
 
   /*
