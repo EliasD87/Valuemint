@@ -130,9 +130,10 @@ interface Candidate {
  * Cached by `scanLogs`, so the first call walks the chain once and every call
  * after it reads only new blocks.
  */
-function useValidatedOrders() {
+function useValidatedOrders(enabled = true) {
   return useQuery({
     queryKey: ["seaport-validated"],
+    enabled,
     refetchInterval: 30_000,
     queryFn: async (): Promise<{ candidates: Candidate[]; voidedAfter: Map<string, bigint> }> => {
       /**
@@ -282,8 +283,8 @@ function useValidatedOrders() {
  * the expensive part, the log scan, is shared between them by react-query. A
  * hook per slice would mean a scan per slice.
  */
-export function useSeaportOrders() {
-  const { data, isLoading: scanning, error } = useValidatedOrders();
+export function useSeaportOrders(enabled = true) {
+  const { data, isLoading: scanning, error } = useValidatedOrders(enabled);
 
   /**
    * Orders this tab placed moments ago, which the scan cannot have yet.
@@ -488,9 +489,16 @@ export function useSeaportOrders() {
 const sameAddress = (a: Address | undefined, b: Address | undefined) =>
   a !== undefined && b !== undefined && a.toLowerCase() === b.toLowerCase();
 
-/** Live listings, newest first, optionally narrowed to one collection. */
-export function useSeaportListings(collection?: Address) {
-  const { orders, isLoading, logsUnavailable } = useSeaportOrders();
+/**
+ * Live listings, newest first, optionally narrowed to one collection.
+ *
+ * `enabled` exists for callers that want the rest of their page on screen
+ * first. The scan is a log walk of the whole order book — measured at 16
+ * `eth_getLogs` in one batch — and a page that does not show a price has no
+ * reason to pay for it before it has shown anything at all.
+ */
+export function useSeaportListings(collection?: Address, enabled = true) {
+  const { orders, isLoading, logsUnavailable } = useSeaportOrders(enabled);
 
   const listings = useMemo(
     () =>
@@ -511,8 +519,8 @@ export function useSeaportListings(collection?: Address) {
  * validate as many as they like, and each is independently fillable. The buyer
  * should always be shown the cheapest.
  */
-export function useBestListings(collection?: Address) {
-  const { listings, isLoading, logsUnavailable } = useSeaportListings(collection);
+export function useBestListings(collection?: Address, enabled = true) {
+  const { listings, isLoading, logsUnavailable } = useSeaportListings(collection, enabled);
 
   const best = useMemo(() => {
     const map = new Map<string, SeaportOrder>();

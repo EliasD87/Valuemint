@@ -23,9 +23,12 @@ const COVER = 4;
  * `perCollection` is small on purpose. Every extra token is another metadata
  * fetch across every collection on the chain, and four thumbnails is as much as
  * a card can show.
+ *
+ * `enabled` is for a page that would rather be readable first. Covers are the
+ * most expensive thing on a card and the least urgent — see `useEverything`.
  */
-export function useCollectionArt(perCollection = COVER) {
-  const { tokens, collections, isLoading } = useEverything(perCollection);
+export function useCollectionArt(perCollection = COVER, enabled = true) {
+  const { tokens, collections, isLoading } = useEverything(perCollection, enabled);
 
   /**
    * Distinct images only.
@@ -98,7 +101,7 @@ export function useCollectionArt(perCollection = COVER) {
       abi: ValueChainCollectionAbi,
       functionName: "baseURI" as const,
     })),
-    query: { enabled: unminted.length > 0 },
+    query: { enabled: enabled && unminted.length > 0 },
   });
 
   const { data: fromManifest } = useQuery({

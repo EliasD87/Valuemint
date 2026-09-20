@@ -33,7 +33,6 @@ import "@/styles/home.css";
  */
 export default function Mint() {
   const { collections, isLoading, statePending } = useAllCollections();
-  const { artFor } = useCollectionArt();
 
   const minting = collections.filter((c) => c.publicMintEnabled === true);
 
@@ -52,6 +51,24 @@ export default function Mint() {
     known: collections.length,
     open: minting.length,
   });
+
+  /**
+   * The cover thumbnails, and only once the cards are readable.
+   *
+   * Everything on a card except its pictures comes from a single multicall that
+   * lands in about half a second. The pictures come from a ladder — the
+   * order-book log scan, then supply, then ids, then tokenURIs, then a metadata
+   * document each — that cannot overlap itself because every rung needs the one
+   * above, and several of those documents are served by a host that answers 501
+   * after half a second. Measured cold on the live site: cards at 5,357ms with
+   * chain work still going at 7,123ms.
+   *
+   * Starting that ladder only once `state === "list"` means the page shows what
+   * is minting first and fills the pictures in behind it. Nothing is lost — the
+   * covers arrive exactly as before, just after the facts instead of in front
+   * of them.
+   */
+  const { artFor } = useCollectionArt(undefined, state === "list");
 
   return (
     <section className="page section">

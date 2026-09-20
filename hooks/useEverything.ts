@@ -52,7 +52,22 @@ export interface ChainToken {
 
 
 
-export function useEverything(perCollection = 30) {
+/**
+ * `enabled` lets a caller put its own content on screen first.
+ *
+ * Everything below this line is a LADDER: the order-book log scan, then
+ * `totalSupply`, then `tokenByIndex` for each slot it reveals, then `ownerOf`
+ * and `tokenURI` for each id that returns, then a metadata document per token.
+ * Each rung needs the answer from the one above it, so they cannot overlap, and
+ * on ValueChain's public node each round trip is 400-500ms.
+ *
+ * Measured on /mint, which wanted none of it except four cover thumbnails per
+ * card: with the ladder running, 8 RPC calls finishing at 3,020ms; without it,
+ * 2 calls finishing at 586ms. The facts on those cards — what is minting, at
+ * what price — are in the second of those two calls, so the page was holding
+ * readable content behind pictures.
+ */
+export function useEverything(perCollection = 30, enabled = true) {
   const { collections, isLoading: loadingCollections } = useAllCollections();
 
   /**
@@ -64,7 +79,7 @@ export function useEverything(perCollection = 30) {
    * cached scan answers for every token at once and the per-token reads drop
    * from three to two.
    */
-  const { best: bestListings } = useBestListings();
+  const { best: bestListings } = useBestListings(undefined, enabled);
 
   // Supply per collection, so we know which ids exist without guessing.
   const { data: supplies } = useReadContracts({
@@ -73,7 +88,7 @@ export function useEverything(perCollection = 30) {
       abi: enumerableAbi,
       functionName: "totalSupply" as const,
     })),
-    query: { enabled: collections.length > 0, refetchInterval: 30_000 },
+    query: { enabled: enabled && collections.length > 0, refetchInterval: 30_000 },
   });
 
   /**
@@ -104,7 +119,7 @@ export function useEverything(perCollection = 30) {
       functionName: "tokenByIndex" as const,
       args: [BigInt(s.index)],
     })),
-    query: { enabled: indexSlots.length > 0, refetchInterval: 30_000 },
+    query: { enabled: enabled && indexSlots.length > 0, refetchInterval: 30_000 },
   });
 
   /** One flat list of every (collection, tokenId) worth loading. */
@@ -131,7 +146,7 @@ export function useEverything(perCollection = 30) {
       { address: s.collection.address, abi: erc721Abi, functionName: "ownerOf" as const, args: [s.id] },
       { address: s.collection.address, abi: erc721Abi, functionName: "tokenURI" as const, args: [s.id] },
     ]),
-    query: { enabled: slots.length > 0, refetchInterval: 25_000 },
+    query: { enabled: enabled && slots.length > 0, refetchInterval: 25_000 },
   });
 
   const uris = slots.map((_, i) => {
