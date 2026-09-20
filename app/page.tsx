@@ -15,6 +15,7 @@ import "@/styles/home.css";
 import "@/styles/hero.css";
 import { Soso } from "@/components/Soso";
 import { HERO_DECK } from "@/config/heroDeck";
+import { PINNED_COLLECTIONS } from "@/config/featured";
 
 /** "all", "listed", or a collection address. */
 
@@ -110,8 +111,33 @@ export default function Home() {
       listedPer.set(k, (listedPer.get(k) ?? 0) + 1);
     }
 
+    /**
+     * Pinned collections lead, then the ranking below decides the rest.
+     *
+     * The ranking alone never surfaced them. It sorts by listings, then by
+     * supply — and the two collections this marketplace is actually about have
+     * neither going for them: Cybereator has nothing listed, and the real
+     * treasure box contract is days old and holds a handful of pieces against
+     * Genesis's and Larpers' thousands. So a rail meant to say "here is what
+     * this place is" opened with five collections that were merely bigger,
+     * with the boxes and Cybereator nowhere on it.
+     *
+     * Same named list `/collections` uses, for the same reason: no arithmetic
+     * knows which contract is the one that counts, so it is written down.
+     */
+    const pin = (address: string) => {
+      const i = PINNED_COLLECTIONS.findIndex(
+        (pinned) => pinned.toLowerCase() === address.toLowerCase(),
+      );
+      return i === -1 ? PINNED_COLLECTIONS.length : i;
+    };
+
     return [...collections]
       .sort((a, b) => {
+        const pa = pin(a.address);
+        const pb = pin(b.address);
+        if (pa !== pb) return pa - pb;
+
         const la = listedPer.get(a.address.toLowerCase()) ?? 0;
         const lb = listedPer.get(b.address.toLowerCase()) ?? 0;
         if (la !== lb) return lb - la;
