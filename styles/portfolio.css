@@ -37,24 +37,9 @@
   min-width: 0;
 }
 
-/* The history is in a 21rem column here rather than the full width it was
-   drawn for, so it takes the same treatment as a phone: the counterparty goes,
-   and the time drops to its own line rather than colliding with the price. */
-.pf-side .act-row {
-  grid-template-columns: 4.5rem auto minmax(0, 1fr);
-  gap: 0.15rem 0.4rem;
-}
-
-.pf-side .act-who {
-  display: none;
-}
-
-.pf-side .act-when {
-  grid-column: 1 / -1;
-  text-align: left;
-  min-width: 0;
-  font-size: var(--step--3);
-}
+/* The history's own stylesheet handles this column now — `.act-panel` measures
+   itself, so the narrow layout follows the panel rather than the viewport. See
+   the container query in styles/activity.css. */
 
 /* ============================================================== show more */
 
@@ -70,11 +55,6 @@
     grid-template-columns: 1fr;
   }
 
-  /* Back to the full-width phone layout that `activity.css` already describes;
-     these overrides only ever existed for the narrow sidebar. */
-  .pf-side .act-row {
-    grid-template-columns: 4.75rem minmax(2.5rem, auto) minmax(0, 1fr);
-  }
 }
 
 @media (pointer: coarse) {

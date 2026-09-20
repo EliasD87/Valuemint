@@ -20,7 +20,19 @@
  * make that impossible.
  * ========================================================================== */
 
+/*
+ * The panel measures itself, so a row can respond to the space it actually has.
+ *
+ * This list appears at four widths — full page on /activity, a 21rem sidebar on
+ * a collection and a portfolio, and a ~430px column on a token page — and until
+ * now each was patched with a viewport media query. A viewport query cannot see
+ * that the panel beside a 60-card grid is narrow while the window is wide,
+ * which is how a sale with two addresses in it ended up being asked to fit a
+ * space that could not hold it.
+ */
 .act-panel {
+  container-type: inline-size;
+  container-name: act;
   margin: 0;
   padding: 1.15rem 1.25rem 1rem;
   background: var(--surface);
@@ -266,38 +278,92 @@
   font-size: var(--step--1);
 }
 
-/* Phones.
+/*
+ * ====================================================== when the panel is narrow
  *
- * The counterparty is the first thing worth dropping — the verb, the price and
- * the time still tell the whole story. The time then goes to a line of its
- * own, because five columns do not fit in 375px and the one that gave way was
- * the price: measured at that width, `0.0002 SOSO` is 99px of content in a
- * 53px cell, and it ran straight across "33 minutes ago". A number that
- * overlaps another number is worse than a taller row. */
-@media (max-width: 620px) {
-  .act-panel {
-    padding: 1rem;
-  }
-
-  .act-row {
-    grid-template-columns: 4.75rem minmax(2.5rem, auto) minmax(0, 1fr);
-    gap: 0.15rem 0.5rem;
-    padding: 0.55rem 0.6rem;
-  }
-
+ * ONE rule for every narrow placement, replacing four that disagreed.
+ *
+ * This list appears at four widths: full page on /activity, a ~21rem sidebar on
+ * a collection and on a portfolio, and a ~430px column on a token page. Each
+ * had grown its own patch — a 620px viewport query, a `.coll-side` block, a
+ * `.pf-side` block, and a `.act-list-one` template — and they rewrote
+ * `grid-column` on the same cells from different files. Measured on a 375px
+ * phone, the result was six columns in a three-column template with the price
+ * spilling 27px across the time beside it.
+ *
+ * They also could not see the thing that matters. A viewport query cannot tell
+ * that the panel next to a 60-card grid is narrow while the window is wide,
+ * which is how a sale carrying two addresses was asked to fit ~106px and
+ * printed over the price instead — reported twice, and the reason for all of
+ * this.
+ *
+ * The panel measures itself now (`container-type` above), so one query answers
+ * all four. Below the width where a row fits on one line it becomes two:
+ *
+ *     [SOLD]  #67   5 SOSO
+ *     1 hour ago    0x3680…3136 → 0x3F76…da5A
+ *
+ * Nothing is hidden and nothing can collide, because the two things that were
+ * fighting are no longer on the same line. The time sits under the verb it
+ * belongs to, and the counterparty gets the whole remaining width with the
+ * ellipsis it always had and could never reach.
+ *
+ * `28rem` is measured, not chosen: the token page's ~430px panel gave `who`
+ * about 106px for ~190px of addresses.
+ */
+@container act (max-width: 28rem) {
+  .act-row,
   .act-list-one .act-row {
-    grid-template-columns: 4.75rem minmax(0, 1fr);
+    /* Content-sized on the left so the time below can be as wide as it needs,
+       elastic on the right so the price and the counterparty absorb the rest. */
+    grid-template-columns: auto auto minmax(0, 1fr);
+    gap: 0.15rem 0.5rem;
+    padding: 0.5rem 0.7rem;
   }
 
-  .act-who {
-    display: none;
+  /* A token's own page repeats "#67" on every row, so that column still goes. */
+  .act-list-one .act-row {
+    grid-template-columns: auto minmax(0, 1fr);
   }
 
+  /* Line one: what happened, to what, for how much. */
+  .act-kind {
+    grid-row: 1;
+    grid-column: 1;
+  }
+
+  .act-token {
+    grid-row: 1;
+  }
+
+  .act-price {
+    grid-row: 1;
+    grid-column: -2 / -1;
+    justify-self: start;
+  }
+
+  /* Line two: when, and with whom. */
   .act-when {
-    grid-column: 1 / -1;
+    grid-row: 2;
+    grid-column: 1;
     min-width: 0;
     text-align: left;
     font-size: var(--step--3);
+  }
+
+  .act-who {
+    grid-row: 2;
+    grid-column: 2 / -1;
+    text-align: right;
+    font-size: var(--step--3);
+  }
+}
+
+/* Phones get the same two-line row as every other narrow panel — the container
+   query above already covers a 375px screen — so only the padding is left. */
+@media (max-width: 620px) {
+  .act-panel {
+    padding: 1rem;
   }
 }
 
