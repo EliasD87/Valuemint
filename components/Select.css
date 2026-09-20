@@ -1,0 +1,183 @@
+/*
+ * The dropdown, replacing a native <select> whose open list no stylesheet can
+ * reach. See Select.tsx for why it is a listbox rather than a styled select.
+ *
+ * Every colour is a token. A literal here would be right in one theme and
+ * wrong in the other, and a menu is the one component where that shows most:
+ * the fault being fixed is precisely a white OS panel appearing over a dark
+ * page.
+ */
+
+.sel {
+  position: relative;
+  display: inline-flex;
+  min-width: 0;
+}
+
+/* ------------------------------------------------------------- trigger */
+
+.sel-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  width: 100%;
+  /* 44px is the WCAG 2.5.5 target floor, and these are tapped on a phone. */
+  min-height: 44px;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--step--1);
+  font-weight: 550;
+  line-height: 1.2;
+  cursor: pointer;
+  text-align: left;
+  transition:
+    border-color var(--fast),
+    background var(--fast),
+    color var(--fast);
+}
+
+.sel-trigger:hover {
+  border-color: var(--line-strong);
+  background: var(--paper-hover);
+}
+
+/*
+ * A visible focus ring, and `:focus-visible` rather than `:focus`.
+ *
+ * The trigger keeps focus while the menu is open — that is how
+ * `aria-activedescendant` works — so styling plain `:focus` would leave a ring
+ * on it after every mouse click, which is the thing `:focus-visible` exists to
+ * stop. The open state below carries its own accent border regardless.
+ */
+.sel-trigger:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.sel-trigger[aria-expanded="true"] {
+  border-color: var(--accent-line);
+  background: var(--surface);
+}
+
+.sel-value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sel-caret {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  color: var(--ink-3);
+  transition: transform var(--fast) var(--ease), color var(--fast);
+}
+
+.sel-trigger:hover .sel-caret {
+  color: var(--ink-2);
+}
+
+.sel-trigger[aria-expanded="true"] .sel-caret {
+  transform: rotate(180deg);
+  color: var(--ink);
+}
+
+/* ---------------------------------------------------------------- menu */
+
+.sel-menu {
+  position: absolute;
+  z-index: 40;
+  top: calc(100% + 6px);
+  left: 0;
+  /* Never narrower than the trigger, free to be wider for a long label, and
+     never wider than the screen on a phone. */
+  min-width: 100%;
+  max-width: min(22rem, calc(100vw - 2 * var(--gutter)));
+  /* About eight rows, then it scrolls. A trait list can be long. */
+  max-height: 17.5rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  margin: 0;
+  padding: 0.3rem;
+  list-style: none;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-lg);
+}
+
+/* ------------------------------------------------------------- options */
+
+.sel-option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 38px;
+  padding: 0.45rem 0.55rem;
+  border-radius: var(--r-sm);
+  color: var(--ink-2);
+  font-size: var(--step--1);
+  line-height: 1.3;
+  cursor: pointer;
+  /* No transition: the pointer moves between rows faster than one can run, and
+     a fading highlight reads as lag rather than polish. */
+}
+
+/*
+ * One highlight, driven by the keyboard AND the pointer.
+ *
+ * `is-active` is set on hover as well as by the arrow keys, so there is never a
+ * mouse highlight and a keyboard highlight arguing on screen — which is the
+ * usual way a hand-built listbox goes wrong.
+ */
+.sel-option.is-active {
+  background: var(--surface-2);
+  color: var(--ink);
+}
+
+.sel-option.is-chosen {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.sel-option-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The count after a trait name. Aligned as figures, never wrapping. */
+.sel-option-note {
+  flex: none;
+  color: var(--ink-4);
+  font-size: var(--step--2);
+  font-variant-numeric: tabular-nums;
+}
+
+.sel-tick {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  color: var(--accent);
+  /* Present but invisible on every row, so choosing one does not shift the
+     text of the others sideways. */
+  opacity: 0;
+}
+
+.sel-option.is-chosen .sel-tick {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sel-trigger,
+  .sel-caret {
+    transition: none;
+  }
+}

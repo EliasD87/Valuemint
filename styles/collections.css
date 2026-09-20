@@ -412,11 +412,11 @@
 }
 
 /*
- * Label beside the select, not above it — the last of the shift.
+ * Label beside the control, not above it — the last of the shift.
  *
  * Stacked, this control is 58px tall against the sort chips' 44, so the row it
  * shares still grew by 14px when the filters arrived. Side by side it is the
- * height of the select, the row does not change, and the grid holds its place
+ * height of the control, the row does not change, and the grid holds its place
  * from the first paint to the last.
  *
  * It also just looks more like the thing next to it: a pill of controls rather
@@ -439,14 +439,14 @@
   white-space: nowrap;
 }
 
-/* Sized to its content rather than stretched: a row of equal-width selects
-   makes a two-value trait look as significant as a twenty-value one. */
-.coll-trait select {
+/* Sized to its content rather than stretched: a row of equal-width controls
+   makes a two-value trait look as significant as a twenty-value one.
+
+   The border, radius and background used to be set here because the element
+   was a bare `<select>`. It is a `Select` now and brings its own — see
+   components/Select.css — so this is only the width. */
+.coll-trait .sel {
   min-width: 8rem;
-  padding: 0.4rem 0.6rem;
-  border: 1px solid var(--line);
-  border-radius: var(--r-sm);
-  background: var(--surface);
 }
 
 @media (max-width: 560px) {
@@ -455,7 +455,7 @@
     min-height: 0;
   }
 
-  .coll-trait select {
+  .coll-trait .sel {
     width: 100%;
   }
 }

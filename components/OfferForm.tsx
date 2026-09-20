@@ -9,6 +9,7 @@ import { useOwnOfferExposure } from "@/hooks/useSeaportOrders";
 import { useAccount } from "wagmi";
 import { deployment } from "@/config/contracts";
 import { TxResult } from "@/components/TxResult";
+import { Select } from "@/components/Select";
 
 /**
  * Expiry choices. Every one of them is bounded, deliberately.
@@ -129,16 +130,15 @@ export function OfferForm({
           </div>
         </label>
 
-        <label className="offers-expiry">
+        <div className="offers-expiry">
           <span className="offers-label">Expires</span>
-          <select value={days} onChange={(e) => setDays(Number(e.target.value))}>
-            {WINDOWS.map((w) => (
-              <option key={w.label} value={w.days}>
-                {w.label}
-              </option>
-            ))}
-          </select>
-        </label>
+          <Select
+            label="Expires"
+            value={String(days)}
+            onChange={(v) => setDays(Number(v))}
+            options={WINDOWS.map((w) => ({ value: String(w.days), label: w.label }))}
+          />
+        </div>
       </div>
 
       <p className="offers-balance">

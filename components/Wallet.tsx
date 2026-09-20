@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useAccount, useBalance, useChainId, useConnect, useDisconnect, useSwitchChain } from "wagmi";
 import { valuechain } from "@/config/chain";
@@ -173,13 +172,17 @@ export function Wallet() {
             </div>
 
             <div className="wallet-menu-actions">
-              {/* The wallet menu, not the main nav: an approval is a property
-                  of this wallet rather than a place on the site, and it is
-                  where someone goes when they are thinking about the wallet
-                  itself. */}
-              <Link className="btn btn-sm" href="/approvals" onClick={() => setOpen(false)}>
-                Approvals
-              </Link>
+              {/*
+                Approvals is no longer listed here, by request.
+
+                The page itself stays at /approvals and still works — it is
+                reached by typing the address or from a link elsewhere, not from
+                this menu. It was three items competing for a two-item menu, and
+                revoking an approval is a rare, deliberate act rather than
+                something to be offered every time somebody checks their
+                balance. Put the link back here if that judgement changes; the
+                route never went anywhere.
+              */}
               <a
                 className="btn btn-sm"
                 href={`${valuechain.blockExplorers.default.url}/address/${address}`}

@@ -16,6 +16,7 @@ import { formatCount, shortAddress } from "@/lib/format";
 import "@/styles/home.css";
 import "@/styles/collections.css";
 import { Sortie } from "@/components/Sortie";
+import { Select } from "@/components/Select";
 import { Activity } from "@/components/Activity";
 
 /**
@@ -236,24 +237,29 @@ export function CollectionView({ params }: { params: Promise<{ address: string }
           {traitOptions.length > 0 ? (
             <div className="coll-traits">
               {traitOptions.map(([type, values]) => (
-                <label key={type} className="coll-trait">
-                  <span className="coll-trait-label">{type}</span>
-                  <select
+                <div key={type} className="coll-trait">
+                  <span className="coll-trait-label" id={`trait-${type}`}>
+                    {type}
+                  </span>
+                  {/* The count moves out of the label and into `note`, so it
+                      stays dim and column-aligned instead of being glued to the
+                      value as "VELOCITY (9)". */}
+                  <Select
+                    label={type}
                     value={traitFilter[type] ?? ""}
-                    onChange={(e) =>
-                      setTraitFilter((f) => ({ ...f, [type]: e.target.value }))
-                    }
-                  >
-                    <option value="">Any</option>
-                    {[...values.entries()]
-                      .sort((a, b) => b[1] - a[1])
-                      .map(([value, count]) => (
-                        <option key={value} value={value}>
-                          {value} ({count})
-                        </option>
-                      ))}
-                  </select>
-                </label>
+                    onChange={(v) => setTraitFilter((f) => ({ ...f, [type]: v }))}
+                    options={[
+                      { value: "", label: "Any" },
+                      ...[...values.entries()]
+                        .sort((a, b) => b[1] - a[1])
+                        .map(([value, count]) => ({
+                          value,
+                          label: value,
+                          note: String(count),
+                        })),
+                    ]}
+                  />
+                </div>
               ))}
 
               {Object.values(traitFilter).some((v) => v !== "") ? (

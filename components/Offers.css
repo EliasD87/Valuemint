@@ -116,8 +116,19 @@
   color: var(--ink-3);
 }
 
+/*
+ * The two fields match each other, and that is the whole point of this rule.
+ *
+ * The expiry control is a `Select` now rather than a native `<select>` (see
+ * components/Select.tsx), and its own stylesheet gives it the lighter surface
+ * and smaller radius used by the filter rows elsewhere on the site. Here it
+ * sits directly beside the amount input, where matching THAT matters more —
+ * two controls in one row drawn on two different surfaces is worse than either
+ * surface on its own.
+ */
 .offers-fields input,
-.offers-fields select {
+.offers-fields .sel,
+.offers-fields .sel-trigger {
   width: 100%;
   min-height: 44px;
   padding: 0.55rem 0.7rem;
@@ -127,6 +138,21 @@
   color: var(--ink);
   /* 16px floor: anything smaller makes iOS zoom the whole page on focus. */
   font-size: max(16px, var(--step--1));
+}
+
+/* The wrapper is only a positioning context; the trigger inside it carries the
+   frame, so the frame must not be drawn twice. */
+.offers-fields .sel {
+  padding: 0;
+  border: none;
+  background: none;
+  min-height: 0;
+}
+
+/* And the menu keeps its own surface — it floats above the form rather than
+   sitting in the row, so it takes the elevated one, not the inset one. */
+.offers-fields .sel-menu {
+  font-size: var(--step--1);
 }
 
 /* The unit sits inside the field, so the number and what it is read as one

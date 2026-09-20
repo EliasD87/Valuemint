@@ -20,6 +20,7 @@ import {
 import { valuechain } from "@/config/chain";
 import { CLAIM_HEADERS, contentDigest, fileHash, uploadMessage } from "@/lib/uploadClaim";
 import { TxResult } from "@/components/TxResult";
+import { Select } from "@/components/Select";
 import "@/styles/create.css";
 
 /**
@@ -509,13 +510,15 @@ export default function Create() {
                           </div>
                           <div className="field">
                             <label>Tier</label>
-                            <select className="input" value={d.tier} onChange={(e) => update(d.id, { tier: e.target.value })}>
-                              {TIERS.map((t) => (
-                                <option key={t} value={t}>
-                                  {t === "" ? "None" : t}
-                                </option>
-                              ))}
-                            </select>
+                            <Select
+                              label="Tier"
+                              value={d.tier}
+                              onChange={(v) => update(d.id, { tier: v })}
+                              options={TIERS.map((t) => ({
+                                value: t,
+                                label: t === "" ? "None" : t,
+                              }))}
+                            />
                           </div>
                         </div>
                         <button className="btn btn-sm" onClick={() => remove(d.id)}>
