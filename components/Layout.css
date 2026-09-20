@@ -58,6 +58,177 @@
   color: var(--ink);
 }
 
+/* ============================================================== the strike
+ *
+ * It is a mint, so the lockup gets struck.
+ *
+ * One event every ten seconds, in three overlapping parts: the coin takes the
+ * blow, light flashes through the V at the moment of impact, and the shock
+ * travels out through the letters. A sheen sweeping across was the first
+ * attempt and it was the most common logo animation there is — this at least
+ * says what the thing is.
+ *
+ * Everything moves with `transform` and `opacity` only. No layout property is
+ * animated, so a ripple running through nine letters cannot reflow the header
+ * or nudge the nav beside it — which a weight or width wave on a variable font
+ * would have done, letter by letter, on every pass.
+ *
+ * And nothing depends on any of it running. Every part animates FROM the
+ * resting state and returns to it; if none of these keyframes ever fire, the
+ * lockup is exactly the lockup. This project shipped a hero that rendered
+ * blank because its content waited on an animation, and the rule earned from
+ * it holds here.
+ */
+
+/* --- the coin takes the blow ------------------------------------------- */
+
+.header .brand-mark {
+  position: relative;
+  /* Struck downward, so the press reads as force applied from above. */
+  transform-origin: 50% 20%;
+  animation: brand-strike 10.5s linear infinite;
+}
+
+@keyframes brand-strike {
+  /*
+   * Nine and a half seconds of nothing, then the blow.
+   *
+   * The rest comes FIRST so a page load is not greeted by a flash — the
+   * lockup sits still, and then it is struck.
+   */
+  0%,
+  90% {
+    transform: scale(1);
+    animation-timing-function: cubic-bezier(0.5, 0, 0.75, 0);
+  }
+  /* Down hard. */
+  93% {
+    transform: scale(0.9);
+    animation-timing-function: cubic-bezier(0.2, 1.3, 0.4, 1);
+  }
+  /* Past its own size on the rebound, which is what makes it read as struck
+     rather than merely resized. */
+  96.5% {
+    transform: scale(1.045);
+    animation-timing-function: cubic-bezier(0.3, 0, 0.2, 1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* --- light through the V, at the moment of impact ---------------------- */
+
+/*
+ * This half works because of how the mark is drawn: one path with `evenodd`,
+ * so the V is a HOLE punched through the disc rather than a second shape, and
+ * the disc fills its whole viewBox. Anything behind it is completely hidden
+ * except through the letter — so a flash underneath is visible only in the V.
+ */
+.header .brand-mark::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  /* Clipped to the disc, or the flash would show in the square's corners
+     where the SVG is transparent. */
+  border-radius: 50%;
+  pointer-events: none;
+  background: var(--accent);
+  opacity: 0;
+  animation: brand-spark 10.5s linear infinite;
+}
+
+@keyframes brand-spark {
+  0%,
+  90% {
+    opacity: 0;
+  }
+  /* On the downstroke, not after it. */
+  93% {
+    opacity: 0.85;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* The mark paints above the flash. Both are positioned with an automatic
+   z-index, so document order decides and the SVG — which comes after
+   `::before` — wins. Said explicitly because the effect inverts without it. */
+.header .brand-mark svg {
+  position: relative;
+}
+
+/* --- and the shock travels through the word ---------------------------- */
+
+.header .brand-letter {
+  display: inline-block;
+  /*
+   * `--i` is the letter's index, handed down from the markup. Each letter
+   * starts 26ms after the one before, which is what turns nine identical
+   * animations into one wave crossing the word.
+   *
+   * `white-space: pre` keeps any spacing honest if the name ever gains a
+   * space; an inline-block would otherwise collapse it.
+   */
+  white-space: pre;
+  animation: brand-ripple 10.5s linear infinite;
+  /*
+   * A delay shifts the WHOLE timeline, not just the start — so this number is
+   * how far the ripple trails the blow, and it has to be small.
+   *
+   * It was 0.9s, chosen as though it were a wait before the ripple began.
+   * Measured, that put the letters 900ms behind the coin: the disc struck,
+   * rebounded and settled, and only then did the word twitch, so the two read
+   * as unrelated events. At 0.08s the first letter dips just after the coin
+   * bottoms out, and the 26ms stagger carries the shock along the word while
+   * the disc is still springing back.
+   */
+  animation-delay: calc(0.08s + var(--i) * 26ms);
+}
+
+@keyframes brand-ripple {
+  /*
+   * A dip and a settle, not a bounce. The letter is pushed down by the blow
+   * arriving, overshoots slightly on the way back, and stops.
+   *
+   * Percentages are small because the window is small: at 10.5s, 1% is 105ms,
+   * and the whole ripple is over inside half a second.
+   */
+  0%,
+  91% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0.4, 0, 0.6, 1);
+  }
+  93.5% {
+    transform: translateY(2.2px);
+    animation-timing-function: cubic-bezier(0.2, 1.4, 0.4, 1);
+  }
+  96% {
+    transform: translateY(-1.1px);
+    animation-timing-function: cubic-bezier(0.3, 0, 0.2, 1);
+  }
+  98.5%,
+  100% {
+    transform: translateY(0);
+  }
+}
+
+/*
+ * Still, and still correct, for anyone who has asked for less motion.
+ *
+ * The animations are removed rather than the elements hidden: every one of
+ * them rests at the lockup's normal state, so switching them off leaves the
+ * logo exactly as it looks between strikes.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .header .brand-mark,
+  .header .brand-mark::before,
+  .header .brand-letter {
+    animation: none;
+  }
+}
+
 .brand-name {
   font-family: var(--display);
   font-optical-sizing: auto;

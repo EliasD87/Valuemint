@@ -130,7 +130,7 @@ export function Layout({ children }: { children: ReactNode }) {
             <span className="brand-mark" aria-hidden="true">
               <Mark />
             </span>
-            <span className="brand-name">ValueMint</span>
+            <BrandName />
           </Link>
 
           <nav className="nav" aria-label="Primary">
@@ -197,7 +197,7 @@ export function Layout({ children }: { children: ReactNode }) {
             <span className="brand-mark" aria-hidden="true">
               <Mark />
             </span>
-            <span className="brand-name">ValueMint</span>
+            <BrandName />
           </Link>
           <button
             type="button"
@@ -320,6 +320,31 @@ export function Layout({ children }: { children: ReactNode }) {
         </div>
       </footer>
     </>
+  );
+}
+
+/**
+ * The wordmark, one span per letter.
+ *
+ * Split so the strike can travel through it — each letter is given its index
+ * as `--i` and leans on that for its delay, which is the whole of the ripple.
+ * There is no JavaScript in the animation; the only thing this does is hand CSS
+ * an ordinal.
+ *
+ * `aria-hidden` because the link already carries `aria-label="ValueMint, home"`,
+ * so the accessible name is right either way — and without it some screen
+ * readers announce a per-letter split one letter at a time. Selecting and
+ * copying the text still works: the characters are really there.
+ */
+function BrandName() {
+  return (
+    <span className="brand-name" aria-hidden="true">
+      {"ValueMint".split("").map((ch, i) => (
+        <span key={i} className="brand-letter" style={{ ["--i" as string]: i }}>
+          {ch}
+        </span>
+      ))}
+    </span>
   );
 }
 
