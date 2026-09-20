@@ -177,6 +177,21 @@ export function useAllCollections() {
     /** Everything, hidden included. Only ownership views should use this. */
     allIncludingHidden: collections,
     isLoading: !haveSomething && (discovering || loadingState),
+    /**
+     * The live on-chain state has not come back yet, though the list has.
+     *
+     * Separate from `isLoading` because the two answer different questions, and
+     * a page that asks the wrong one gets it wrong in a way that looks like an
+     * answer. `isLoading` is "is there anything to show at all", which goes
+     * false the instant `known.ts` is merged — no network needed. This is "do
+     * we know what these collections are DOING yet", and only the multicall can
+     * settle it.
+     *
+     * /mint is the page that needs the difference: every one of its rows is
+     * decided by `publicMintEnabled`, so until this is false the honest answer
+     * to "what is minting" is "not known", not "nothing".
+     */
+    statePending: haveSomething && loadingState,
     /** True while Blockscout is still answering. The grid is usable regardless. */
     stillDiscovering: discovering,
     explorerUnavailable: error !== null,

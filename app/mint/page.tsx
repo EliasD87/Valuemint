@@ -1,12 +1,9 @@
 "use client";
 
-import { useMemo } from "react";
 import Link from "next/link";
-import { useReadContracts } from "wagmi";
-import { ValueChainCollectionAbi } from "@/config/contracts";
-import { useRegistry } from "@/hooks/useRegistry";
-import { useDiscoveredCollections } from "@/hooks/useDiscovery";
-import { formatCount, formatSoso, shortAddress } from "@/lib/format";
+import { useAllCollections } from "@/hooks/useAllCollections";
+import { mintIndexState } from "@/lib/mintIndex";
+import { formatCount, formatSoso } from "@/lib/format";
 import { CollectionCard, CollectionCardSkeleton } from "@/components/CollectionCard";
 import { useCollectionArt } from "@/hooks/useCollectionArt";
 import "@/styles/collections.css";
@@ -18,52 +15,43 @@ import "@/styles/home.css";
  * This page used to be Genesis's own mint. That was wrong: the marketplace hosts
  * collections rather than being one, so the mint action belongs on each
  * collection's page and this is the index of what is open right now.
+ *
+ * It also used to merge and read the chain itself, in its own private copy of
+ * what `useAllCollections` already does. Four things came of that, and only the
+ * last one was reported:
+ *
+ *   - it never saw `known.ts`, so a collection the explorer has not indexed and
+ *     the factory did not make was missing from the index of what is minting;
+ *   - it did not filter `hidden.ts`, so the two test collections would have
+ *     appeared here the moment either opened minting — the one listing on the
+ *     site that did not honour that list;
+ *   - it issued a SECOND multicall over the same contracts, keyed differently
+ *     (five calls per collection against six), so it shared no cache with the
+ *     home page's warm fetch or with /collections and paid for the whole read
+ *     again on arrival. That is most of "sometimes it loads after a long time";
+ *   - and it had no loading state at all. See below.
  */
 export default function Mint() {
-  const { collections: fromFactory } = useRegistry(48);
-  const { data: discovered } = useDiscoveredCollections();
+  const { collections, isLoading, statePending } = useAllCollections();
   const { artFor } = useCollectionArt();
 
-  const all = useMemo(() => {
-    const byAddress = new Map<string, { address: `0x${string}`; name: string; symbol: string }>();
-    for (const c of discovered ?? [])
-      byAddress.set(c.address.toLowerCase(), { address: c.address, name: c.name, symbol: c.symbol });
-    for (const c of fromFactory)
-      byAddress.set(c.collection.toLowerCase(), {
-        address: c.collection,
-        name: c.name,
-        symbol: c.symbol,
-      });
-    return [...byAddress.values()];
-  }, [discovered, fromFactory]);
+  const minting = collections.filter((c) => c.publicMintEnabled === true);
 
-  const { data } = useReadContracts({
-    contracts: all.flatMap((c) => [
-      { address: c.address, abi: ValueChainCollectionAbi, functionName: "publicMintEnabled" as const },
-      { address: c.address, abi: ValueChainCollectionAbi, functionName: "mintPrice" as const },
-      { address: c.address, abi: ValueChainCollectionAbi, functionName: "publicMintRemaining" as const },
-      { address: c.address, abi: ValueChainCollectionAbi, functionName: "totalSupply" as const },
-      { address: c.address, abi: ValueChainCollectionAbi, functionName: "maxSupply" as const },
-    ]),
-    query: { enabled: all.length > 0, refetchInterval: 15_000 },
+  /**
+   * "Nothing is minting" and "we do not know yet" are different sentences, and
+   * the page said the first one for both. The rule and the reasoning live in
+   * `lib/mintIndex.ts`, with tests, because what was wrong here was a missing
+   * distinction rather than a rendering mistake.
+   *
+   * The skeletons below were already imported before any of this. Nothing ever
+   * rendered them.
+   */
+  const state = mintIndexState({
+    listLoading: isLoading,
+    statePending,
+    known: collections.length,
+    open: minting.length,
   });
-
-  const rows = all.map((c, i) => {
-    const at = <T,>(n: number): T | undefined => {
-      const e = data?.[i * 5 + n];
-      return e?.status === "success" ? (e.result as T) : undefined;
-    };
-    return {
-      ...c,
-      open: at<boolean>(0),
-      price: at<bigint>(1),
-      remaining: at<bigint>(2),
-      supply: at<bigint>(3),
-      max: at<bigint>(4),
-    };
-  });
-
-  const minting = rows.filter((r) => r.open === true);
 
   return (
     <section className="page section">
@@ -74,7 +62,13 @@ export default function Mint() {
         </div>
       </div>
 
-      {minting.length === 0 ? (
+      {state === "settling" ? (
+        <div className="coll-grid" aria-busy="true">
+          {Array.from({ length: 3 }, (_, i) => (
+            <CollectionCardSkeleton key={i} />
+          ))}
+        </div>
+      ) : state === "empty" ? (
         <div className="market-empty">
           <h3>Nothing is minting at the moment.</h3>
           <p className="muted">
@@ -97,20 +91,21 @@ export default function Mint() {
               images={artFor(c.address)}
               badge={<span className="chip chip-up">Minting</span>}
               stats={[
-                { label: "Price", value: `${formatSoso(c.price)} SOSO` },
-                { label: "Available", value: formatCount(c.remaining) },
+                { label: "Price", value: `${formatSoso(c.mintPrice)} SOSO` },
+                { label: "Available", value: formatCount(c.publicMintRemaining) },
                 {
                   label: "Minted",
                   value:
-                    formatCount(c.supply) +
-                    (c.max !== undefined && c.max > 0n ? ` / ${formatCount(c.max)}` : ""),
+                    formatCount(c.totalSupply) +
+                    (c.maxSupply !== undefined && c.maxSupply > 0n
+                      ? ` / ${formatCount(c.maxSupply)}`
+                      : ""),
                 },
               ]}
             />
           ))}
         </div>
       )}
-
     </section>
   );
 }
