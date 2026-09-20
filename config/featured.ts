@@ -47,10 +47,22 @@ export interface FeaturedPiece {
   /** The collection's name, under it. */
   collectionName: string;
   /**
-   * The artwork, at its own address.
+   * The artwork, served from our own origin.
    *
-   * An `https://` gateway URL. Anything on a host `/api/still` is allowed to
-   * fetch is resized and cached; anything else still renders, just heavier.
+   * A path under `public/`, not a gateway URL. These used to point at
+   * `ipfs.filebase.io` and `gateway.pinata.cloud`, which put a third party on
+   * the critical path of the first thing anybody sees: every visitor waited on
+   * a gateway answering and then on `/api/still` resizing what came back,
+   * before the front page had a picture on it.
+   *
+   * This is a curated list that only ever changes by hand, so there is nothing
+   * to discover at runtime. `metadata/scripts/localise-featured.mjs` fetches,
+   * resizes to 640px WebP and writes into `public/featured/` — 5.58MB of
+   * gateway sources became 657KB committed, and the grid now paints from our
+   * own CDN with no gateway and no transform.
+   *
+   * A remote URL still works if one is ever put back: `Art` falls through to a
+   * plain `<img>` for a host it cannot optimise. It is simply slower.
    */
   image: string;
   /**
@@ -143,7 +155,7 @@ export const FEATURED: FeaturedPiece[] = [
     collectionName: "SoDEX Treasure Box",
     name: "SoDEX Treasure Box",
     image:
-      "https://gateway.pinata.cloud/ipfs/bafybeihqcahgiep6s2ech2imswhn2azwylilhq2cvuvuzquyhs5xccrvmu",
+      "/featured/sodex-treasure-box-sodex-treasure-box.webp",
     brand: "sodex",
   },
   {
@@ -151,7 +163,7 @@ export const FEATURED: FeaturedPiece[] = [
     collectionName: "ValueChain Genesis",
     name: "OBSIDIAN",
     tokenId: "2",
-    image: "https://ipfs.filebase.io/ipfs/QmaoM1sKhgYxjEyaF2H9BjZCjTNfwj4GK1AhvyvvrAoomM",
+    image: "/featured/valuechain-genesis-obsidian.webp",
   },
   {
     collection: "0xaAb0dC8f2835Ed903b35d2f52FF17c4bc92Bec19",
@@ -164,7 +176,7 @@ export const FEATURED: FeaturedPiece[] = [
        changed when the collection was re-cut; leaving either behind would have
        put a retired picture on the front page under a name that no longer
        exists. */
-    image: "https://ipfs.filebase.io/ipfs/Qmduq6Jncodso95dfBu85GySMYrLNt1TVQhjGsawUTupRa",
+    image: "/featured/the-trenches-scout.webp",
   },
 
   // ── row two ────────────────────────────────────────────────────────────
@@ -173,28 +185,28 @@ export const FEATURED: FeaturedPiece[] = [
     collectionName: "Hypno Plush",
     name: "VIOLET PULSE",
     tokenId: "2",
-    image: "https://ipfs.filebase.io/ipfs/QmbKZv4181zFxCF3kk3vNuKeVQxGPNQ61DiDBBuPGti1xv",
+    image: "/featured/hypno-plush-violet-pulse.webp",
   },
   {
     collection: "0x01c28095bfffc9973Da4c4e8A34E9d5b6649C988",
     collectionName: "Hypno Plush",
     name: "BUBBLE POP",
     tokenId: "1",
-    image: "https://ipfs.filebase.io/ipfs/QmP62BaaW6qitRgGyzBBakn96MM3KQQL5LHXwy9e3mvm55",
+    image: "/featured/hypno-plush-bubble-pop.webp",
   },
   {
     collection: "0xfE7b74F5dbAeEA6A0Ef0385F572D60083FEFE0C0",
     collectionName: "Orange Companions",
     name: "Master Chef",
     tokenId: "1",
-    image: "https://ipfs.filebase.io/ipfs/QmbkHuFCw2ARHDTDzuqEJEnqUpRwZL9LsUyvYsk7yNehBT",
+    image: "/featured/orange-companions-master-chef.webp",
   },
   {
     collection: "0xc486e7AA1C971a61c2a9c6B8ccf671AcB0FFD064",
     collectionName: "The Oracle",
     name: "The Oracle",
     tokenId: "1",
-    image: "https://ipfs.filebase.io/ipfs/QmR6DJr2KrZqkzQkcHCxHx956K9qaTnkjVvr9LmCu8etMs",
+    image: "/featured/the-oracle-the-oracle.webp",
   },
 
   // ── row three ──────────────────────────────────────────────────────────
@@ -203,21 +215,21 @@ export const FEATURED: FeaturedPiece[] = [
     collectionName: "Orange Companions",
     name: "Bug Hunter",
     tokenId: "2",
-    image: "https://ipfs.filebase.io/ipfs/QmZAGyVAeh4HxEb9TrXSxciBCdNeiKfxaFu3g7tECgFvAd",
+    image: "/featured/orange-companions-bug-hunter.webp",
   },
   {
     collection: "0x0273DF41B56E3480886Fe8f0451349bEc0f8edf6",
     collectionName: "SoDex Larpers",
     name: "SoDex Larper",
     tokenId: "1",
-    image: "https://ipfs.filebase.io/ipfs/QmVDPjHpvRa4HMrGwBnZXEcBauRnCu1VZUPukuidRRdzzy",
+    image: "/featured/sodex-larpers-sodex-larper.webp",
   },
   {
     collection: "0x5Fadc59297e86aceA20Bff519aea0f9651Cdc90B",
     collectionName: "ValueChain Genesis",
     name: "LUMINATE",
     tokenId: "4",
-    image: "https://ipfs.filebase.io/ipfs/QmZUQTa5waSZCEqGiynkiTFyE9v9cgHEynP3BwwzuL4P4L",
+    image: "/featured/valuechain-genesis-luminate.webp",
   },
   {
     collection: "0xaAb0dC8f2835Ed903b35d2f52FF17c4bc92Bec19",
@@ -225,7 +237,7 @@ export const FEATURED: FeaturedPiece[] = [
     name: "Architect",
     tokenId: "4000001",
     note: "Depth 4",
-    image: "https://ipfs.filebase.io/ipfs/QmP8f2gWdK893BLUgt5G4rAYUMcNNPxPLBcoQT28EYUckx",
+    image: "/featured/the-trenches-architect.webp",
   },
 ];
 

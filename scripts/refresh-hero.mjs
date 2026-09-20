@@ -20,7 +20,10 @@ import sharp from "sharp";
  */
 
 const DECK = [
-  ["trenches", "https://ipfs.filebase.io/ipfs/QmaRw3gCPDSJ4cErcLf9V8bUUKckC5UP8kTF8jBrmcoyJ8"],
+  /* Scout, the first depth. Repointed when the collection was re-cut — the
+     old CID is a retired tier and re-running this would have restored a
+     picture that is no longer in the collection. */
+  ["trenches", "https://ipfs.filebase.io/ipfs/Qmduq6Jncodso95dfBu85GySMYrLNt1TVQhjGsawUTupRa"],
   ["larpers", "https://ipfs.filebase.io/ipfs/QmVDPjHpvRa4HMrGwBnZXEcBauRnCu1VZUPukuidRRdzzy"],
   [
     "genesis",
