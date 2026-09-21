@@ -1154,11 +1154,41 @@ textarea {
  * collection's own figure.
  * ------------------------------------------------------------------------- */
 
+/**
+ * The per-tier floors, which appear under the filter row once a collection is
+ * chosen.
+ *
+ * The margin was `0.85rem 0 0` — top only. Nothing sat under it, so the grid
+ * started immediately below and the row read as a caption stuck to the first
+ * card rather than as part of the filter that produced it. `.filters` carries
+ * `margin-bottom: 1.5rem` for exactly this clearance, and that margin collapses
+ * with this one's top, which is why the gap ABOVE looked fine while the one
+ * below was missing entirely.
+ *
+ * So the same 1.5rem below, and the grid's top edge now sits in the same place
+ * whether or not this row is on screen.
+ */
 .tier-floors {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
-  margin: 0.85rem 0 0;
+  margin: 0.85rem 0 1.5rem;
+}
+
+/**
+ * And closer to the chips above it.
+ *
+ * With equal air on both sides the row floats between the filter and the grid,
+ * belonging to neither. It only exists because a collection chip is pressed, so
+ * it should read as that chip's second line — which means the gap above it has
+ * to be smaller than the gap below.
+ *
+ * It has to be done from `.filters`, not here: adjacent margins collapse to the
+ * larger of the two, so this row cannot pull itself up past its neighbour's
+ * 1.5rem. A browser without `:has()` simply keeps the old, even spacing.
+ */
+.filters:has(+ .tier-floors) {
+  margin-bottom: 0;
 }
 
 .tier-floor {
