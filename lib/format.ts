@@ -7,6 +7,24 @@ export function shortAddress(address?: string, size = 4): string {
 }
 
 /**
+ * `0x36…3136` — four characters from each end, counting the `0x`.
+ *
+ * Shorter than `shortAddress`, which keeps the prefix AND four hex digits, so
+ * its head is six characters wide. That is the right trade nearly everywhere;
+ * it is the wrong one in the header, where the pill shares a row with the nav
+ * and every character it drops is a character the layout does not have to find.
+ *
+ * A separate function rather than a parameter on the one above, because that
+ * one's `size` sets both ends at once: asking it for a four-wide head would
+ * silently give a two-character tail, which is not enough to tell two addresses
+ * apart. Here the two ends are stated and independent.
+ */
+export function tinyAddress(address?: string): string {
+  if (address === undefined || address.length < 10) return address ?? "";
+  return `${address.slice(0, 4)}…${address.slice(-4)}`;
+}
+
+/**
  * SOSO amounts, trimmed to something a human reads at a glance.
  *
  * Gas here costs millionths of a token, so fixed decimal places either drown the

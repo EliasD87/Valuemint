@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useAccount, useBalance, useChainId, useConnect, useDisconnect, useSwitchChain } from "wagmi";
 import { valuechain } from "@/config/chain";
-import { formatSoso, shortAddress } from "@/lib/format";
+import { formatSoso, tinyAddress } from "@/lib/format";
 
 /**
  * The account's glyph, with the live dot badged onto it.
@@ -171,7 +171,7 @@ export function Wallet() {
         */}
         <WalletGlyph size={15} />
 
-        <span className="mono wallet-addr">{shortAddress(address)}</span>
+        <span className="mono wallet-addr">{tinyAddress(address)}</span>
 
         <span className="wallet-rule" aria-hidden="true" />
 
@@ -216,7 +216,7 @@ export function Wallet() {
                 }}
               >
                 <WalletGlyph size={17} />
-                <span className="mono wallet-copy-addr">{shortAddress(address)}</span>
+                <span className="mono wallet-copy-addr">{tinyAddress(address)}</span>
                 <span className="wallet-copy-hint">{copied ? "Copied" : "Copy"}</span>
               </button>
             </div>
