@@ -226,7 +226,19 @@ export function Wallet() {
                 the right is what stops it reading as a caption to the address
                 above it. */}
             <div className="wallet-menu-bal">
-              <span className="wallet-menu-bal-label">Balance</span>
+              {/*
+                Which chain's SOSO, said outright.
+
+                SOSO exists on more than one chain and a bare figure in a
+                wallet menu invites the reader to assume it is whichever one
+                they were last looking at. This is `useBalance` on the
+                configured chain and nothing else, so the menu can say so
+                rather than leave it to be inferred.
+              */}
+              <span className="wallet-menu-bal-label">
+                Balance
+                <small>on {valuechain.name}</small>
+              </span>
               <span className="mono wallet-menu-bal-value">
                 <Soso size={13}>{formatSoso(balance?.value)}</Soso>
               </span>

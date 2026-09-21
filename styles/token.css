@@ -372,71 +372,16 @@
  * Every colour here is a token. A literal would be right in one theme and wrong
  * in the other.
  */
-.token-steps {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin: 0 0 0.85rem;
-  padding: 0;
-  list-style: none;
-  font-size: 0.82rem;
-}
-
-.token-steps li {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  flex: 1;
-  min-width: 0;
-  color: var(--ink-3);
-  padding: 0.4rem 0.55rem;
-  border: 1px solid var(--line);
-  border-radius: var(--r-sm);
-  background: var(--surface-2);
-  transition: color var(--fast), border-color var(--fast), background var(--fast);
-}
-
-/* The step being asked for right now. */
-.token-steps li.is-now {
-  color: var(--ink);
-  border-color: var(--accent-line);
-  background: var(--accent-wash);
-}
-
-.token-steps li.is-done {
-  color: var(--ink-3);
-  border-color: var(--line);
-}
-
-.token-step-n {
-  display: grid;
-  place-items: center;
-  width: 18px;
-  height: 18px;
-  flex: 0 0 18px;
-  border-radius: 999px;
-  font-size: 0.7rem;
-  font-weight: 700;
-  line-height: 1;
-  background: var(--line);
-  color: var(--ink-3);
-}
-
-.token-steps li.is-now .token-step-n {
-  background: var(--accent);
-  color: var(--accent-ink);
-}
-
-.token-steps li.is-done .token-step-n {
-  background: var(--good);
-  color: var(--accent-ink);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .token-steps li {
-    transition: none;
-  }
-}
+/*
+ * The stepper used to live here, as `.token-steps` / `.token-step-n`, and that
+ * is exactly how it broke: `OfferForm` used the same classes, but this file is
+ * imported by the token page alone, so in the offer dialog the rules were never
+ * loaded and the markup fell back to a bare `<ol>` drawing its own numbers
+ * beside the ones each row already carried.
+ *
+ * It is `components/Steps.tsx` now, with its stylesheet beside it and imported
+ * by the component, so a caller cannot get the markup without the rules.
+ */
 
 /* A collection that publishes no metadata at all. Not loading, not an error —
    there is simply nothing to fetch, and saying so beats a shimmer that never

@@ -1,0 +1,102 @@
+/* ================================================================= steps ===
+ *
+ * A connected stepper: dots on a line, one label under each.
+ *
+ * These rules used to live in `styles/token.css`, which only the token page
+ * imports, while `OfferForm` used them too — so in the offer dialog the whole
+ * thing fell back to a bare `<ol>`. They sit next to the component now and the
+ * component imports them, which is the only arrangement where a caller cannot
+ * forget them.
+ * ========================================================================= */
+
+.steps {
+  display: flex;
+  align-items: flex-start;
+  margin: 0 0 1rem;
+  padding: 0;
+  /* The line that was missing. Without it the browser numbers the rows itself,
+     beside the numbers the rows already carry. */
+  list-style: none;
+}
+
+.step {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  text-align: center;
+}
+
+/*
+  The joining line, drawn by each rung back towards the one before it — so the
+  first rung has none and the line can never overhang either end of the row.
+  Half the dot down, and behind it.
+*/
+.step + .step::before {
+  content: "";
+  position: absolute;
+  top: 10px;
+  right: 50%;
+  left: -50%;
+  height: 2px;
+  background: var(--line);
+}
+
+.step-dot {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--ink-3);
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1;
+  transition:
+    background var(--fast),
+    border-color var(--fast),
+    color var(--fast);
+}
+
+.step-label {
+  font-size: 0.78rem;
+  line-height: 1.25;
+  color: var(--ink-3);
+  /* A long rung name wraps rather than pushing its neighbours out of line. */
+  overflow-wrap: anywhere;
+}
+
+/* Done: the dot is filled and so is the line leading into the next rung. */
+.step.is-done .step-dot {
+  background: var(--good);
+  border-color: var(--good);
+  color: var(--accent-ink);
+}
+
+.step.is-done + .step::before {
+  background: var(--good);
+}
+
+/* The rung being asked for right now — the only one carrying the accent. */
+.step.is-now .step-dot {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+
+.step.is-now .step-label {
+  color: var(--ink);
+  font-weight: 650;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .step-dot {
+    transition: none;
+  }
+}

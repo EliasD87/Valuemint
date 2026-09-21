@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { formatEther, parseEther } from "viem";
 import { SEAPORT } from "@/config/seaport";
+import { Steps } from "@/components/Steps";
 import { useSeaportTrade } from "@/hooks/useSeaportTrade";
 import { useWsoso } from "@/hooks/useWsoso";
 import { useOwnOfferExposure } from "@/hooks/useSeaportOrders";
@@ -155,26 +156,19 @@ export function OfferForm({
        * something went wrong. So the rungs still needed are listed above it.
        */}
       {wanted > 0n && (wsoso.needsWrap || wsoso.needsAllowance) ? (
-        <ol className="token-steps" aria-label="Steps to place this offer">
-          <li className={wsoso.needsWrap ? "is-now" : "is-done"}>
-            <span className="token-step-n" aria-hidden="true">
-              {wsoso.needsWrap ? "1" : "✓"}
-            </span>
-            Wrap
-          </li>
-          <li className={wsoso.needsWrap ? "" : "is-now"}>
-            <span className="token-step-n" aria-hidden="true">
-              2
-            </span>
-            Allow
-          </li>
-          <li>
-            <span className="token-step-n" aria-hidden="true">
-              3
-            </span>
-            Offer
-          </li>
-        </ol>
+        <Steps
+          label="Steps to place this offer"
+          steps={[
+            { label: "Wrap", state: wsoso.needsWrap ? "now" : "done" },
+            { label: "Allow", state: wsoso.needsWrap ? "next" : "now" },
+            /*
+              Never "now" here. This whole block is hidden once neither the
+              wrap nor the allowance is outstanding, so by the time the offer
+              itself is the live rung there is one button and nothing to track.
+            */
+            { label: "Offer", state: "next" },
+          ]}
+        />
       ) : null}
 
       {wanted > 0n && wsoso.needsWrap ? (

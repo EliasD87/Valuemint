@@ -25,6 +25,7 @@ import { Wordmark } from "@/components/Wordmark";
 import { wordmarkSaying } from "@/config/wordmarks";
 import "@/styles/token.css";
 import { Activity, LastSale } from "@/components/Activity";
+import { Steps } from "@/components/Steps";
 
 
 /**
@@ -526,23 +527,13 @@ export function TokenView({
                  * happens.
                  */}
                 {trade.needsApproval || lastAction === "approve" ? (
-                  <ol
-                    className="token-steps"
-                    aria-label={`Listing: step ${trade.needsApproval ? 1 : 2} of 2`}
-                  >
-                    <li className={trade.needsApproval ? "is-now" : "is-done"}>
-                      <span className="token-step-n" aria-hidden="true">
-                        {trade.needsApproval ? "1" : "✓"}
-                      </span>
-                      Approve once
-                    </li>
-                    <li className={trade.needsApproval ? "" : "is-now"}>
-                      <span className="token-step-n" aria-hidden="true">
-                        2
-                      </span>
-                      List it
-                    </li>
-                  </ol>
+                  <Steps
+                    label={`Listing: step ${trade.needsApproval ? 1 : 2} of 2`}
+                    steps={[
+                      { label: "Approve once", state: trade.needsApproval ? "now" : "done" },
+                      { label: "List it", state: trade.needsApproval ? "next" : "now" },
+                    ]}
+                  />
                 ) : null}
 
                 {trade.needsApproval ? (

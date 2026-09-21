@@ -263,7 +263,7 @@
  */
 .wallet-menu-bal {
   display: flex;
-  align-items: baseline;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 1rem;
   padding: 0.5rem 0.4rem;
@@ -271,11 +271,38 @@
   border-top: 1px solid var(--line);
 }
 
+/*
+ * Two lines: what the number is, and which chain it is on.
+ *
+ * The row is `align-items: baseline`, which would line the figure up with the
+ * *second* line of this label once it had two — so the label becomes its own
+ * column and the row aligns on the top of it instead.
+ */
 .wallet-menu-bal-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
   font-size: var(--step--3);
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+/*
+ * The chain, quieter than the word above it: it qualifies the label, it is not
+ * a second label. Not uppercased — a name is a name.
+ *
+ * Still `--ink-3`, deliberately. `--ink-4` is the obvious way to make it
+ * quieter and tokens.css says outright what it is for — "decoration only:
+ * rules, disabled glyphs, placeholders" — and this is a sentence somebody is
+ * meant to read. The weight and the casing do the stepping down instead.
+ */
+.wallet-menu-bal-label small {
+  font-size: var(--step--3);
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  text-transform: none;
   color: var(--ink-3);
 }
 
