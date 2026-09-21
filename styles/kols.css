@@ -1,404 +1,102 @@
 /* =========================================================== KOL showcase ===
  *
- * A committed dark band, like the Trenches hero, rather than a theme-aware one.
- * The whole effect is cutout characters lit against a deep ground, and the same
- * composition on a white page reads as three floating stickers. Every colour
- * here is therefore stated outright — see the note in tokens.css about literals
- * being right in one theme and wrong in the other; this section is the
- * exception that has to declare itself.
+ * A committed dark page rather than a theme-aware one. See the note in
+ * tokens.css about literals being right in one theme and wrong in the other:
+ * this is the exception that has to declare itself, because the whole
+ * composition is white cards lit against a dark field, and on a white ground
+ * there is nothing left of it.
+ *
+ * The page is a field, a belt of portraits across the middle of it, and two
+ * words. `KolRibbon.css` owns everything inside the belt.
  * ========================================================================== */
 
-.kol-hero {
-  position: relative;
-  isolation: isolate;
-  overflow: hidden;
-  padding: clamp(1.25rem, 2.5vw, 2rem) 0 0;
+.kolp {
+  /*
+     The runway. One screen of it is the belt itself; the second is scrolled
+     through while the belt stays pinned, which is the only reason a page
+     holding two words is taller than one screen — a flick of the wheel
+     otherwise carries the whole thing off screen before it has done anything.
+     Anything longer than this would be a scroll trap rather than a showcase.
+
+     `svh`, not `vh`: on a phone `vh` is the tallest the viewport ever gets, so
+     the pinned screen would be cut off until the address bar retracted.
+  */
+  min-height: calc(200svh - var(--header-h));
+
+  /* The belt runs edge to edge; nothing here takes the page gutter. */
+  background: #08080b;
   color: #f4f4f6;
+
+  /*
+     No `overflow` on this one. Clipping an ancestor is what silently turns a
+     `position: sticky` child back into a static one, and the belt does its own
+     clipping.
+  */
 }
 
-/* Deep violet, pushed magenta at the horizon so the plinths sit in front of a
-   warm glow rather than on flat black. */
-.kol-deep {
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  background:
-    radial-gradient(70% 55% at 50% 88%, rgba(214, 51, 168, 0.32), transparent 70%),
-    radial-gradient(90% 70% at 50% 120%, rgba(126, 34, 206, 0.45), transparent 72%),
-    linear-gradient(180deg, #17081f 0%, #1b0a26 55%, #240d31 100%);
-}
+.kolp-stage {
+  position: sticky;
+  /* The site header is sticky at 0 and 72px tall; this starts under it. */
+  top: var(--header-h);
+  height: calc(100svh - var(--header-h));
 
-.kol-hero-inner {
-  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
-  text-align: center;
-  gap: 0.7rem;
-  width: 100%;
+  justify-content: center;
+  gap: clamp(1.75rem, 4vw, 3rem);
 }
 
-.kol-eyebrow {
+/* The heading exists for the document outline and is never drawn. Clipped
+   rather than `display: none`, which would take it out of the accessibility
+   tree along with everything else. */
+.kolp-name {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.kolp-soon {
   margin: 0;
   display: inline-flex;
   align-items: center;
   gap: 0.6rem;
   font-size: var(--step--2);
   font-weight: 700;
-  letter-spacing: 0.2em;
+  letter-spacing: 0.24em;
   text-transform: uppercase;
-  color: #c4a3d8;
+  color: #b9b9c6;
 }
 
-
-.kol-title {
-  margin: 0;
-  font-family: var(--display);
-  font-optical-sizing: auto;
-  font-size: clamp(1.9rem, 4.2vw, 3.1rem);
-  font-weight: 800;
-  letter-spacing: -0.035em;
-  line-height: 1.05;
-  max-width: 18ch;
-  text-wrap: balance;
-  color: #fdfdfe;
+.kolp-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #6ee7b7;
+  box-shadow: 0 0 0 4px rgba(110, 231, 183, 0.14);
+  animation: kolp-pulse 2.4s ease-in-out infinite;
 }
 
-.kol-lede {
-  margin: 0;
-  max-width: 52ch;
-  font-size: var(--step--1);
-  line-height: 1.6;
-  color: #cbb8d8;
-}
-
-/* ============================================================== the word ====
- *
- * Three characters standing in the letters K, O and L. The overlap is the whole
- * effect, and it needs three things at once: each figure is anchored to its
- * glyph's *baseline* so heads of different heights stand on one floor; the
- * figure is shorter than its letter so the word still reads; and nothing clips —
- * `overflow: hidden` here would behead them, which is precisely backwards.
- *
- * This replaced three plain rounded slabs. They were narrower and shorter than
- * the artwork standing on them, so each character hid its own backdrop and all
- * that showed was a coloured sliver either side.
- * ========================================================================== */
-
-.kol-stage {
-  --plinth-a: linear-gradient(155deg, #34d399 0%, #a3e635 48%, #fde047 100%);
-  --plinth-b: linear-gradient(155deg, #22d3ee 0%, #38bdf8 45%, #a78bfa 100%);
-  --plinth-c: linear-gradient(155deg, #fb7185 0%, #f472b6 45%, #fdba74 100%);
-
-  display: flex;
-  justify-content: center;
-  align-items: flex-end;
-  /**
-   * The one number everything here derives from: the cap height of KOL.
-   * The glyph widths, the figure heights and the gap all follow from it, so
-   * the composition holds at every width instead of only where it was tuned.
-   */
-  --letter: clamp(190px, 26vw, 560px);
-  /**
-   * Tracking, effectively - the figures overhang their glyphs, so the letters
-   * need a little air between them or the busts collide into one mass. Small
-   * enough that KOL still reads as a word rather than three separate glyphs.
-   */
-  gap: calc(var(--letter) * 0.06);
-  margin-top: clamp(0.5rem, 1vw, 1rem);
-  /**
-   * No bottom padding: the slabs sit *on* the edge where the hero ends and the
-   * roster begins, so the figures look planted on that line rather than
-   * floating above it with a strip of ground showing beneath.
-   */
-  padding: 0 var(--gutter);
-  /**
-   * Headroom for the letters, which overshoot the row's own content box.
-   *
-   * Trimmed twice. It was 150px, then 84px, and measured at 1440 the copy still
-   * finished 115px above the letterforms - a band 0.74x the height of the
-   * screen, most of it empty violet. The glyphs also carry their own leading
-   * above the ink, so the visible gap always reads larger than this number.
-   */
-  padding-top: clamp(16px, 2vw, 34px);
-}
-
-/**
- * The letter is the layout, not a decoration inside one.
- *
- * The first attempt kept the old slab box and painted a glyph inside it. That
- * fails for the reason the slabs failed: the box is narrower than the artwork,
- * so whatever sits in it is covered. Letting each glyph size its own column -
- * `flex: 0 0 auto` over the letter's natural advance width - means the row is
- * literally the word KOL typeset large, and the figures stand in front of it.
- */
-.kol-plinth {
-  position: relative;
-  flex: 0 0 auto;
-  display: flex;
-  align-items: flex-end;
-}
-
-.kol-letter {
-  display: block;
-  font-family: var(--display);
-  font-optical-sizing: auto;
-  font-size: var(--letter);
-  font-weight: 800;
-  /* Crops the glyph's own leading so the box is the letterform, near enough,
-     and the figures can be positioned against it rather than against air. */
-  line-height: 0.74;
-  letter-spacing: -0.02em;
-  /* The gradient is painted through the glyph rather than behind it. */
-  background: var(--tint);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  /* Lifts the word off the violet without competing with the art in front of
-     it - the portraits are the subject, the word is the ground. */
-  filter: drop-shadow(0 26px 46px rgba(0, 0, 0, 0.55));
-  user-select: none;
-  /*
-   * Stand the letterforms on the line, not merely their boxes.
-   *
-   * `line-height: 0.74` above crops the glyph's leading, and the row is
-   * `align-items: flex-end` with no bottom padding, so the letter BOX already
-   * ends exactly on the edge where the hero meets the roster. The ink does
-   * not. Rasterised at 200px and scanned for the lowest inked pixel: the
-   * baseline sits 0.70em below the box top, K and L bottom out 0.005em above
-   * it and the O overshoots 0.01em below it, the way round letters do. That
-   * leaves 0.03em of empty violet underneath — 8px at the size this renders
-   * now, and ~17px once `--letter` reaches its 560px ceiling, because the
-   * band scales with the type.
-   *
-   * So it is `em`, not a pixel nudge: the gap is a property of the typeface
-   * at any size, and a fixed number would only be right at one width.
-   *
-   * Transform rather than a margin on purpose. The figures are positioned
-   * against the plinth, whose height is the letter's line box; moving that
-   * box would drag them down with it, and they are already standing where
-   * they should.
-   */
-  transform: translateY(var(--letter-drop, 0.03em));
-}
-
-.kol-figure {
-  position: absolute;
-  left: 50%;
-  bottom: 0;
-  /**
-   * Deliberately shorter than the glyph behind it.
-   *
-   * A bust crop is nearly square, so a figure as tall as its letter is also
-   * about as wide, and covers it end to end - which is exactly what the old
-   * 130% did to the slabs. At 84% the head clears the letter's waist and the
-   * top quarter of every glyph stays open, so KOL still reads while the
-   * characters keep their presence. Above about 90% the O closes up.
-   */
-  height: 84%;
-  width: auto;
-  max-width: none;
-  /* -50% centres the figure on its glyph; `--shift` then moves it to wherever
-     that particular letterform still reads. See the note in page.tsx. */
-  transform: translateX(calc(-50% + var(--shift, 0%)));
-  /* Separates the cutout from the letterform it overlaps. */
-  filter: drop-shadow(0 18px 26px rgba(23, 8, 31, 0.68));
-  pointer-events: none;
-  animation: kol-rise 700ms cubic-bezier(0.22, 0.75, 0.3, 1);
-}
-
-/**
- * The figures rise into their letters.
- *
- * Written so the artwork cannot be hidden by it, which is the trap this file
- * already fell into once: the previous attempt started at `opacity: 0` with
- * `backwards` fill, so the figures were visible *only* if the animation ran.
- * It did not, and the row rendered blank. The same pattern emptied the home
- * page's hero deck - see hero.css.
- *
- * Two rules keep that from happening again:
- *
- *   1. Only a `from` block. The end state is whatever `.kol-figure` already
- *      says, so the resting style is the visible one by construction.
- *   2. No `fill-mode`. Outside the animation's own run the element uses its
- *      normal style, so a browser that never runs this still draws the row.
- */
-@keyframes kol-rise {
-  from {
-    opacity: 0;
-    transform: translateX(calc(-50% + var(--shift, 0%))) translateY(16%);
+@keyframes kolp-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    box-shadow: 0 0 0 4px rgba(110, 231, 183, 0.14);
   }
-}
-
-/**
- * Staggered by duration, not by delay - and that is the whole trick.
- *
- * A delay would need `backwards` fill to hold the figure down while it waits,
- * which is exactly the thing that blanked this row before. Without the fill,
- * the element would sit at its resting position, then jump down when the delay
- * elapsed. Starting all three together and letting them arrive at different
- * times gives the same read with neither problem.
- */
-.kol-plinth:nth-child(1) .kol-figure {
-  animation-duration: 620ms;
-}
-
-.kol-plinth:nth-child(2) .kol-figure {
-  animation-duration: 780ms;
-}
-
-.kol-plinth:nth-child(3) .kol-figure {
-  animation-duration: 940ms;
-}
-
-/**
- * Phones: all three, smaller, no sideways scrolling.
- *
- * Two earlier attempts are worth not repeating. The first kept the figures at
- * full size and let the row scroll, which showed all three but hid two behind a
- * swipe nobody is told about. The second shrank the row but dropped the third
- * member below 700px — acceptable when they were anonymous slabs, and wrong now
- * that the row spells a word: it rendered KO.
- *
- * Shrinking all three is what fits. Every measurement is a fraction of
- * `--letter` rather than of the viewport, so the clearance holds at every width
- * instead of only the one it was tuned at.
- *
- * Two span 344px at 360 and 358 at 375, so they fit with room from the
- * narrowest phone up. Three need 662px, hence the third appearing at 700.
- */
-@media (max-width: 760px) {
-  .kol-title {
-    line-height: 1.14;
+  50% {
+    opacity: 0.55;
+    box-shadow: 0 0 0 7px rgba(110, 231, 183, 0.05);
   }
-
-  .kol-stage {
-    /**
-     * All three, always — the row spells a word now, and a phone showing "KO"
-     * is worse than a phone showing small letters. The previous rule dropped
-     * the third below 700px, which was fine when they were anonymous slabs.
-     *
-     * KOL at this weight spans about 1.83x `--letter` including the figures'
-     * overhang, so 44vw leaves a comfortable margin either side from 360px up
-     * and still fills the band. Measured at 360, 390 and 430, not derived.
-     */
-    --letter: min(44vw, 200px);
-
-    flex-wrap: nowrap;
-    justify-content: center;
-    /**
-     * No side gutter here, unlike every other row on the page. The figures
-     * overhang their letters by design and are meant to reach the edges; a
-     * gutter takes that out of the budget and pushes the outer one past the
-     * edge, which is what happened at 375.
-     */
-    padding-inline: 0;
-    padding-top: clamp(38px, 11vw, 74px);
-  }
-
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .kol-figure {
+  .kolp-dot {
     animation: none;
-  }
-}
-
-.kol-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(clamp(140px, 20vw, 210px), 1fr));
-  gap: clamp(0.75rem, 1.8vw, 1.25rem);
-}
-
-.kol-card {
-  border: 1px solid var(--line);
-  border-radius: var(--r-lg);
-  overflow: hidden;
-  background: var(--surface);
-  transition: border-color var(--fast), transform var(--fast);
-}
-
-.kol-card:hover {
-  border-color: var(--line-strong);
-  transform: translateY(-2px);
-}
-
-.kol-card-art {
-  position: relative;
-  aspect-ratio: 1;
-  background: var(--surface-2);
-}
-
-.kol-card-foot {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 0.5rem;
-  padding: 0.6rem 0.75rem;
-  border-top: 1px solid var(--line);
-}
-
-.kol-card-foot b {
-  font-family: var(--display);
-  font-size: var(--step--1);
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  color: var(--ink);
-}
-
-.kol-card-foot span {
-  font-size: var(--step--3);
-  font-variant-numeric: tabular-nums;
-  color: var(--ink-3);
-}
-
-/*
- * "Coming soon", as the second half of the eyebrow.
- *
- * It was a glass pill on its own line, and it read as a banner on a page that
- * is a gallery — two uppercase tracked labels stacked, the lower one hanging
- * off the left margin because `align-self: flex-start` fought the centred
- * column around it.
- *
- * Nothing sizes or tracks itself here now: sitting inside `.kol-eyebrow` it
- * takes that line's type, so the two halves cannot drift apart. All it sets is
- * a slightly brighter ink than the purple beside it — the category is context,
- * the status is the news — and the dot, which carries the only colour.
- */
-.kol-soon {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.55rem;
-  color: rgba(255, 255, 255, 0.86);
-}
-
-/* A hairline rather than a middot: a character would join the accessible name
-   and be read out between the two halves. */
-.kol-eyebrow-rule {
-  width: 1px;
-  height: 0.95em;
-  flex: none;
-  background: currentColor;
-  opacity: 0.32;
-}
-
-.kol-soon-dot {
-  width: 7px;
-  height: 7px;
-  flex: none;
-  border-radius: 50%;
-  background: var(--accent);
-  box-shadow: 0 0 0 3px rgba(255, 92, 0, 0.16);
-  animation: kol-soon-pulse 2.4s ease-in-out infinite;
-}
-
-/* Only a `from`, and no fill mode: the dot is fully opaque at rest, so a
-   browser that never runs this still draws it. */
-@keyframes kol-soon-pulse {
-  from {
-    opacity: 0.4;
-  }
-  50% {
-    opacity: 1;
   }
 }

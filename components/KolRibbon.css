@@ -1,0 +1,72 @@
+/* ============================================================ KOL ribbon ===
+ *
+ * The card size comes from `KolRibbon.tsx` as a custom property at measure
+ * time — the geometry has to be one set of numbers, and it is the script that
+ * has to do the arithmetic. Every card carries its own `perspective()` inside
+ * its own transform rather than sharing one on the frame; the long note at the
+ * top of the component says why.
+ *
+ * Committed black, like the rest of this page. See the note in tokens.css about
+ * literals being right in one theme and wrong in the other: a row of white
+ * cards turning in the dark is the whole composition, and on a white ground
+ * there is nothing left of it.
+ * ========================================================================= */
+
+.kr {
+  position: relative;
+  width: 100%;
+  height: clamp(300px, 54vh, 600px);
+  overflow: hidden;
+
+  /* Sideways is ours, up and down stays the page's. */
+  touch-action: pan-y;
+  cursor: grab;
+  /* A drag across pictures would otherwise start a native image drag. */
+  user-select: none;
+}
+
+.kr.is-held {
+  cursor: grabbing;
+}
+
+.kr-belt {
+  position: absolute;
+  inset: 0;
+}
+
+.kr-card {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: var(--kr-card, 140px);
+  height: var(--kr-card, 140px);
+  margin-left: calc(var(--kr-card, 140px) / -2);
+  margin-top: calc(var(--kr-card, 140px) / -2);
+
+  /*
+    No `will-change`. Forty-eight promoted layers at a crest card's size is
+    tens of megabytes of texture on a 2x screen, and the transform on each is
+    rewritten every frame anyway — there is no stable layer to keep.
+  */
+}
+
+.kr-card img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  /* The portraits are square and framed. `cover` on a square in a square is a
+     no-op; it is here so a replacement of another ratio cannot stretch. */
+  object-fit: cover;
+  border-radius: calc(var(--kr-card, 140px) * 0.03);
+  /* The artwork's ground is white, and a white edge on black needs no help —
+     but the frame printed inside it stops a few pixels short, so a hairline
+     keeps the corners from looking chipped where the radius cuts. */
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06);
+  -webkit-user-drag: none;
+}
+
+/*
+  A visitor who has asked for less motion gets the sheet standing still — the
+  script drops the drift to zero — but the belt is still theirs to push, so the
+  grab cursor and the pointer handlers stay exactly as they are.
+*/

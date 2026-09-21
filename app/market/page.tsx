@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useAccount } from "wagmi";
 import { useListingFeed } from "@/hooks/useListingFeed";
+import { PINNED_COLLECTIONS } from "@/config/featured";
 import { useActivity } from "@/hooks/useActivity";
 import { TokenCard, TokenCardSkeleton } from "@/components/TokenCard";
 import { formatSoso } from "@/lib/format";
@@ -13,6 +14,21 @@ import { useFloors } from "@/hooks/useFloors";
 import { Sortie } from "@/components/Sortie";
 
 type Sort = "traded" | "price-asc" | "price-desc" | "recent";
+
+/**
+ * Where each pinned collection sits, by lower-cased address.
+ *
+ * Built once at module scope: it is two entries derived from a constant, and
+ * rebuilding it inside the sort would hash an address per comparison.
+ */
+const PIN_RANK = new Map(PINNED_COLLECTIONS.map((a, i) => [a.toLowerCase(), i]));
+
+/**
+ * A finite rank for everything, so the comparator never does `Infinity -
+ * Infinity` and hands `sort` a NaN — which is not a "leave these alone", it is
+ * an undefined ordering.
+ */
+const pinRank = (address: string) => PIN_RANK.get(address.toLowerCase()) ?? PIN_RANK.size;
 
 export default function Market() {
   const { address } = useAccount();
@@ -64,18 +80,37 @@ export default function Market() {
 
     return [...rows].sort((a, b) => {
       /**
-       * Busiest collections first, cheapest piece first within each.
+       * The pinned collections first, then the busiest, then the cheapest
+       * piece within each.
        *
-       * The default, because the alternative was an order nobody chose: the
-       * feed's own, which is whatever the log scan happened to return. Where a
-       * collection's pieces change hands often, those pieces are what somebody
-       * arriving at a marketplace most likely came to see.
+       * ## Why anything jumps the queue at all
+       *
+       * Ranking by trades alone buries a collection on the day it ships, which
+       * is the one day it most needs to be seen: the real SoDEX Treasure Box
+       * went live with two listings and no sale history, and sat below every
+       * collection that had been trading for weeks. No arithmetic fixes that —
+       * a new collection has no history by definition — so it is a decision,
+       * and it is written down in `PINNED_COLLECTIONS` alongside the same
+       * decision for /collections rather than spelled out again here.
+       *
+       * Only in this sort. Picking "Price low" or "Newest" is somebody asking
+       * a question, and quietly holding two collections above the answer would
+       * make those controls lie. This one is the house's own order, which is
+       * why it is labelled "Featured" and not "Most traded" — it was called
+       * that, and with pinning in it the name would have been describing
+       * something the list no longer is.
+       *
+       * ## Why the rest is still sales
        *
        * Counting SALES rather than listings on purpose — anyone can list
        * anything at any price, so listings measure intent and are free to
        * manufacture. A sale had a buyer.
        */
       if (sort === "traded") {
+        const pa = pinRank(a.collection);
+        const pb = pinRank(b.collection);
+        if (pa !== pb) return pa - pb;
+
         const ta = tradesPerCollection.get(a.collection.toLowerCase()) ?? 0;
         const tb = tradesPerCollection.get(b.collection.toLowerCase()) ?? 0;
         if (ta !== tb) return tb - ta;
@@ -121,7 +156,7 @@ export default function Market() {
         </div>
         <div className="wrap-row">
           <Sortie active={sort === "traded"} onClick={() => setSort("traded")}>
-            Most traded
+            Featured
           </Sortie>
           <Sortie active={sort === "price-asc"} onClick={() => setSort("price-asc")}>
             Price low
