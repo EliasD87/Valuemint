@@ -110,8 +110,21 @@
   --epic-wash: #f4eeff;
   --rare: #0a63a8; /* 4.3:1 on its wash before; now 5.3:1 */
   --rare-wash: #e8f3fc;
-  --common: #6b6b75;
-  --common-wash: #f2f2f4;
+  /**
+   * Brown, not grey.
+   *
+   * Grey is the rarity convention for a common, and it cost this one its place
+   * on a row: beside a green, a blue and a purple it read as an uncoloured
+   * button rather than the first rung of a ladder. Brown keeps it the quietest
+   * of the four — which is the job — while still being a colour.
+   *
+   * The ribbon on every Common card moves with it, which is the point: the
+   * chip and the card sit ten pixels apart on /market and disagreeing there
+   * would be worse than the grey was. Measured: 5.99:1 ink on wash, 6.82:1
+   * paper on ink for the ribbon and the pressed pill.
+   */
+  --common: #7a5230;
+  --common-wash: #f6efe8;
 
   /**
    * The SoDEX treasure box ladder, taken from the four renders themselves.
@@ -186,6 +199,30 @@
      and a white-wordmark file for dark; these are those two files' exact values,
      so the inlined logo reproduces the official artwork rather than tinting it. */
   --sodex-ink: #000000;
+  /**
+   * A rainbow, for an identity rather than a state.
+   *
+   * Stated once and NOT redefined in the dark block, which is the exception
+   * this file otherwise forbids — see the note at the top. The reasoning is
+   * the same as the SOSO mark's fixed disc: this is a brand device, not a
+   * colour in our palette, and a rainbow that changed with the theme would be
+   * a different rainbow rather than the same one lit differently.
+   *
+   * It repeats its first hue at the end so it can be scrolled without a seam.
+   * Nothing reads text off it — see `.filt-rainbow`, which keeps it to the
+   * ring and leaves the fill to the ordinary tokens.
+   */
+  --rainbow: linear-gradient(
+    90deg,
+    #ff2d55,
+    #ff9500,
+    #ffcc00,
+    #34c759,
+    #32ade6,
+    #af52de,
+    #ff2d55
+  );
+
   --sodex-accent: #FF7637;
 
 }
@@ -247,8 +284,9 @@
   --epic-wash: #1e1730;
   --rare: #58b6f5;
   --rare-wash: #0e1f2e;
-  --common: #a1a1ab;
-  --common-wash: #1e1e22;
+  /* 6.71:1 ink on wash, 8.16:1 paper on ink. See the light block. */
+  --common: #c8a07a;
+  --common-wash: #2a1f16;
   --uncommon: #54c98d;
   --uncommon-wash: #10241a;
   --superrare: #c89af0;

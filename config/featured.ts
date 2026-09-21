@@ -331,10 +331,24 @@ export const MARKET_TIERED: {
   tiers: ["Common", "Uncommon", "Rare", "SuperRare"],
 };
 
-/** Collections that get one button of their own, undivided. */
-export const MARKET_CHIPPED: ReadonlyArray<`0x${string}`> = [
-  /** Cybereator, the real one. */
-  "0xCD30D4bCaa99E556B70A2C4bDFC4050D26E48D30",
+/**
+ * Collections that get one button of their own, undivided.
+ *
+ * `tone` names a colour the button wears, matching a `.filt-<tone>` rule in
+ * styles/home.css. It is here rather than in the page so a collection's colour
+ * is a decision written down next to the collection, and changing one is a
+ * word — the same reason the tiers are listed above rather than inlined.
+ *
+ * Leave it out for a neutral button. "Others" has no tone and should not get
+ * one: it is not a collection, it is the absence of these.
+ */
+export const MARKET_CHIPPED: ReadonlyArray<{ address: `0x${string}`; tone?: string }> = [
+  {
+    /** Cybereator, the real one. */
+    address: "0xCD30D4bCaa99E556B70A2C4bDFC4050D26E48D30",
+    /** A rainbow ring, so it reads as itself rather than as a rung. */
+    tone: "rainbow",
+  },
 ];
 
 export const WARM_COLLECTIONS: ReadonlyArray<`0x${string}`> = [

@@ -85,7 +85,7 @@ export default function Market() {
    */
   const chips = useMemo(() => {
     const boxAt = MARKET_TIERED.address.toLowerCase();
-    const named = new Set<string>([boxAt, ...MARKET_CHIPPED.map((a) => a.toLowerCase())]);
+    const named = new Set<string>([boxAt, ...MARKET_CHIPPED.map((c) => c.address.toLowerCase())]);
     const nameOf = (address: string) =>
       collections.find((c) => c.address.toLowerCase() === address.toLowerCase())?.name ??
       "Collection";
@@ -97,9 +97,10 @@ export default function Market() {
       match: (t: (typeof listed)[number]) => boolean;
     }> =
       [
-        ...MARKET_CHIPPED.map((address) => ({
+        ...MARKET_CHIPPED.map(({ address, tone }) => ({
           key: `c:${address.toLowerCase()}`,
           label: nameOf(address),
+          tone,
           match: (t: (typeof listed)[number]) =>
             t.collection.toLowerCase() === address.toLowerCase(),
         })),

@@ -310,6 +310,71 @@
   border-color: color-mix(in srgb, currentColor 60%, transparent);
 }
 
+/*
+ * A named collection wearing a rainbow — see `MARKET_CHIPPED`.
+ *
+ * On the ring, never behind the text. A rainbow cannot promise contrast: its
+ * stops run from #ffcc00 to #af52de, and white ink is 1.6:1 on the first and
+ * 5.3:1 on the last, so any label laid over the whole thing is unreadable
+ * somewhere along its length. Keeping it to the border means the fill stays an
+ * ordinary token and the label keeps the same 19:1 every other chip has.
+ *
+ * Two backgrounds do it: a flat one clipped to the padding box for the fill,
+ * the gradient clipped to the border box behind it. The border has to be
+ * transparent for the second to show through, which is why the shared
+ * `border-color` rule above does not apply here.
+ *
+ * `background-size` doubles the gradient's width so there is somewhere to
+ * scroll to; the first hue repeats at the end of the token so the loop has no
+ * seam.
+ */
+.filt-rainbow {
+  /*
+    Two pixels, not the one every other chip carries. A rainbow needs width to
+    be a rainbow — at 1px the hues average into a muddy line and the whole
+    device is lost. `box-sizing: border-box` is global, so the pill stays the
+    same size as its neighbours and only its inner padding gives up a pixel.
+  */
+  border-width: 2px;
+  border-color: transparent;
+  color: var(--ink);
+  background:
+    linear-gradient(var(--surface), var(--surface)) padding-box,
+    var(--rainbow) border-box;
+  background-size:
+    100% 100%,
+    200% 100%;
+  animation: filt-rainbow 7s linear infinite;
+}
+
+.filt-rainbow:hover {
+  border-color: transparent;
+}
+
+.filt-rainbow[aria-pressed="true"] {
+  color: var(--paper);
+  background:
+    linear-gradient(var(--ink), var(--ink)) padding-box,
+    var(--rainbow) border-box;
+  background-size:
+    100% 100%,
+    200% 100%;
+}
+
+@keyframes filt-rainbow {
+  to {
+    background-position:
+      0 0,
+      200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .filt-rainbow {
+    animation: none;
+  }
+}
+
 .filt-common[aria-pressed="true"] {
   background: var(--common);
   border-color: var(--common);
