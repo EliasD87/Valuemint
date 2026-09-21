@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { indexConfigured, select, upsert } from "@/lib/supabase";
 import { metadataFetchAllowed } from "@/lib/media";
 import { readTokenMetadata } from "@/lib/tokenMetadata";
+import { decideDocument, documentAnswer, type DocStatus } from "@/lib/documentCache";
 
 /**
  * Token documents, many at a time, cached.
@@ -82,17 +83,21 @@ interface Row {
   fetched_at: string;
 }
 
-/** Fetch one document. Never throws: every outcome is a row worth keeping. */
+/**
+ * Fetch one document. Never throws: every outcome is a row worth keeping.
+ *
+ * The I/O is here and the *judgement* is in `lib/documentCache.ts`, which is
+ * the only reason that judgement can be tested. Both of its rules were got
+ * wrong inside this function once, and neither failure threw anything.
+ *
+ * The allowlist is checked before anything else: these URLs come from
+ * `tokenURI` on a caller-named contract, so anyone can deploy an ERC-721 that
+ * returns `http://169.254.169.254/…` and then ask this route to read it. See
+ * `lib/media.ts` for why it is an allowlist rather than a denylist.
+ */
 async function fetchOne(url: string): Promise<Omit<Row, "fetched_at">> {
-  /**
-   * The allowlist, and the reason it is not optional.
-   *
-   * These URLs come from `tokenURI` on a caller-named contract. Anyone can
-   * deploy an ERC-721 that returns `http://169.254.169.254/…` and then ask this
-   * route to read it. See `lib/media.ts` for why it is an allowlist rather than
-   * a denylist of internal addresses.
-   */
-  if (!metadataFetchAllowed(url)) return { url, raw: null, status: "refused" };
+  const allowed = metadataFetchAllowed(url);
+  if (!allowed) return { url, ...decideDocument({ allowed: false, readable: false }) };
 
   try {
     const response = await fetch(url, {
@@ -101,36 +106,35 @@ async function fetchOne(url: string): Promise<Omit<Row, "fetched_at">> {
       cache: "no-store",
     });
 
-    /**
-     * The body decides, not the status. This is not laxness.
-     *
-     * SoDEX's gateway answers `501 Not Implemented` and then sends a perfectly
-     * good document — for every Treasure Box, every time. `fetchTokenMetadata`
-     * has always read it this way, which is why the browser path worked; this
-     * route checked `response.ok` first and filed every box as unfetchable,
-     * and 626 cards rendered with no name and no picture.
-     *
-     * So: parse first. The status only gets a say when there is no JSON to
-     * read, where it separates "nothing here" from "ask again later".
-     */
-    let raw: unknown;
+    let body: unknown;
+    let hadJson = false;
     try {
-      raw = await response.json();
+      body = await response.json();
+      hadJson = true;
     } catch {
-      return { url, raw: null, status: response.ok ? "missing" : "refused" };
+      hadJson = false;
     }
 
     /**
-     * Parsed here only to decide whether it is worth keeping. What gets stored
+     * Read only to decide whether the body is worth keeping. What gets stored
      * is the original — `readTokenMetadata` runs again on the client, which is
      * where the decision about what a document *means* belongs.
      */
-    const parsed = readTokenMetadata(raw);
-    if (parsed === undefined) return { url, raw: null, status: "missing" };
+    const readable = hadJson && readTokenMetadata(body) !== undefined;
 
-    return { url, raw, status: "ok" };
+    return {
+      url,
+      ...decideDocument({
+        allowed: true,
+        ok: response.ok,
+        status: response.status,
+        ...(hadJson ? { body } : {}),
+        readable,
+      }),
+    };
   } catch {
-    return { url, raw: null, status: "refused" };
+    /** The request never completed. Not an answer about the URL. */
+    return { url, ...decideDocument({ allowed: true, readable: false }) };
   }
 }
 
@@ -243,18 +247,14 @@ export async function GET(request: Request): Promise<NextResponse> {
       if (row === undefined) continue;
 
       /**
-       * `refused` is left out, not sent as null.
-       *
-       * The whole point of the absent/null distinction, and the place it was
-       * got wrong: `refused` means this route could not read the document, and
-       * answering `null` told every caller there was nothing to read. A card
-       * then renders blank forever instead of fetching the document itself.
-       *
-       * Absent puts it back on the path it took before this route existed.
+       * `refused` is left out, not sent as null — see `documentAnswer`, which
+       * is where that rule lives and is tested. Answering `null` for a refusal
+       * is what took the fallback away and blanked the cards.
        */
-      if (row.status === "refused") continue;
+      const answer = documentAnswer({ status: row.status as DocStatus, raw: row.raw });
+      if (answer.omit) continue;
 
-      documents[url] = row.status === "ok" ? row.raw : null;
+      documents[url] = answer.value;
     }
 
     return NextResponse.json(
