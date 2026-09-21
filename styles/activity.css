@@ -374,3 +374,55 @@
     min-height: 44px;
   }
 }
+
+/**
+ * A listed row whose token no longer exists.
+ *
+ * `--danger`, the same pair the site uses for anything gone wrong, rather than
+ * a grey: this sits next to a LISTED badge wearing the accent, and a muted mark
+ * beside a coloured one reads as the quieter of two live states rather than as
+ * the thing that ended the row.
+ *
+ * Measured on its own wash: 7.80:1 in the light theme and 7.67:1 in the dark.
+ * No border — the wash carries it, the way the sale badge does.
+ */
+.act-gone {
+  display: inline-flex;
+  align-items: center;
+  /*
+    The gap and the side padding come down together to pay for the glyph. It
+    adds about 13px, and the whole point of the last pass was that this mark
+    must not out-measure the LISTED badge it annotates.
+  */
+  gap: 0.18rem;
+  padding: 0.08rem 0.26rem;
+  border-radius: var(--r-sm);
+  background: var(--danger-wash);
+  color: var(--danger);
+  /*
+    Below `--step--3`, which is the smallest step the scale has — and that step
+    is already spoken for by `.act-kind`, the badge this one annotates.
+    Measured in the panel at its real width of 336px, BURNED came out 61px
+    against LISTED's 59: the note on the event was wider than the event. Ten
+    pixels with tighter padding and tracking puts it back under the label,
+    which is where it belongs in the reading order.
+  */
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  /* The figure beside it may clip on a narrow row; this must not. A price that
+     loses a digit is still readable as a price — a mark that loses its letters
+     is just a box. */
+  flex: 0 0 auto;
+}
+
+/* Sized in `em` so it tracks the label rather than needing its own number, and
+   filled with `currentColor` so it takes the danger ink in both themes. */
+.act-gone svg {
+  width: 1em;
+  height: 1em;
+  flex: 0 0 auto;
+  fill: currentColor;
+}

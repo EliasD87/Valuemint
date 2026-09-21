@@ -608,7 +608,7 @@ export function TokenView({
             <>
               {/* What this token has actually done — the only thing on the page
                   that is not somebody's asking price. */}
-              <Activity collection={collection} tokenId={tokenId} />
+              <Activity collection={collection} tokenId={tokenId} markBurned />
 
               <Offers
                 collection={collection}

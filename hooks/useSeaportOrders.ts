@@ -30,6 +30,7 @@ import {
   readOrder,
   type OrderParameters,
   type ReadOrder,
+  unfillableReason,
   type SeaportOrder,
   resolveFillable,
 } from "@/lib/seaport";
@@ -450,14 +451,19 @@ export function useSeaportOrders(enabled = true) {
          * here is that "not checked yet" is NOT fillable, and `isLoading` below
          * is what keeps that from reading as an empty market.
          */
+        const checks =
+          fillChecks === undefined
+            ? undefined
+            : { first: fillChecks[i * 2], second: fillChecks[i * 2 + 1] };
+
         return {
           ...o,
-          fillable: resolveFillable(
-            o,
-            fillChecks === undefined
-              ? undefined
-              : { first: fillChecks[i * 2], second: fillChecks[i * 2 + 1] },
-          ),
+          fillable: resolveFillable(o, checks),
+          /**
+           * The same two answers, read for a different question. Nothing extra
+           * is fetched — this was already being computed and discarded.
+           */
+          unfillable: unfillableReason(o, checks),
         };
       }),
     [standing, fillChecks],
@@ -510,6 +516,53 @@ export function useSeaportListings(collection?: Address, enabled = true) {
   );
 
   return { listings, isLoading, logsUnavailable };
+}
+
+/**
+ * Tokens that were listed and no longer exist, keyed `collection-tokenId`.
+ *
+ * Free. Every standing order already has `ownerOf` read for it on each poll to
+ * decide whether it can be filled; this is the orders where that read reverted,
+ * which for a token somebody published a listing for means it has been burned.
+ * No scan of Transfer logs, no tracking of burns — only the tokens the order
+ * book is already asking about.
+ *
+ * `useSeaportOrders` rather than `useSeaportListings`, deliberately: the
+ * listings view keeps only what is *fillable*, which is precisely what these
+ * are not.
+ *
+ * What it cannot cover: a token whose listing has aged out of the scan window,
+ * or was cancelled. Nothing asks about those any more, so nothing knows. That
+ * is the honest edge of a free answer — finding it for an arbitrary old row
+ * would cost a read.
+ */
+export function useBurnedListedTokens(enabled = false) {
+  /**
+   * Defaults to OFF, and that is the whole point of the default.
+   *
+   * React Query's `enabled: false` stops a query fetching; it does not stop it
+   * reading what is already cached. So this reports the order book wherever a
+   * page has mounted one — the collection page and the token page both do,
+   * for their prices — and reports nothing where none exists rather than
+   * starting a log scan of its own.
+   *
+   * That distinction is the difference between free and not. `/activity`
+   * mounts no order book at all, and defaulting this to `true` would have put
+   * a ~34-request scan on a page that had never paid for one, to add a word to
+   * a row. A missing mark is a better trade than that.
+   */
+  const { orders, isLoading } = useSeaportOrders(enabled);
+
+  const burned = useMemo(() => {
+    const out = new Set<string>();
+    for (const o of orders) {
+      if (o.kind !== "listing" || o.unfillable !== "gone" || o.tokenId === undefined) continue;
+      out.add(`${o.collection.toLowerCase()}-${o.tokenId}`);
+    }
+    return out;
+  }, [orders]);
+
+  return { burned, isLoading };
 }
 
 /**

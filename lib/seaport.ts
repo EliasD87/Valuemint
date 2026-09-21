@@ -956,6 +956,13 @@ export interface SeaportOrder extends ReadOrder {
    * behind it.
    */
   fillable: boolean;
+  /**
+   * Why not, when not. Undefined when the order is fillable.
+   *
+   * Free: read off the same two answers `fillable` is decided from, rather
+   * than fetched. See `unfillableReason`.
+   */
+  unfillable?: Unfillable;
 }
 
 /**
@@ -1079,6 +1086,69 @@ export function resolveFillable(
   }
 
   return offerIsFillable(order, first.result as bigint, second.result as bigint);
+}
+
+/**
+ * Why a listing cannot be filled, when it cannot.
+ *
+ * A companion to `resolveFillable`, not a replacement: that one is a security
+ * rule with its own tests and it stays exactly as it is, answering yes or no.
+ * This reads the same two answers for a different purpose — telling somebody
+ * what happened.
+ *
+ * Nothing extra is fetched. The reads that decide fillability are already made
+ * for every standing order on every poll, and all three facts are in them; they
+ * were simply collapsed into one `false` and thrown away:
+ *
+ *   ownerOf reverted        the token does not exist any more
+ *   ownerOf is someone else the maker handed it on
+ *   not approved            the maker withdrew Seaport's permission
+ *
+ * ## Why a revert means burned here, and not "never existed"
+ *
+ * `ownerOf` reverts for an id that was burned and for one that was never
+ * minted, and in general those are not distinguishable. They are here, because
+ * this is only ever asked about a token somebody published a listing for: to
+ * have been listed it had to exist. That is what turns the revert into an
+ * answer.
+ *
+ * ## ERC-1155
+ *
+ * `balanceOf` cannot tell a burn from a transfer — both leave zero — so a
+ * multi-token order never reports `gone`, only `moved`. Saying "burned" on
+ * evidence that cannot distinguish the two would be a guess dressed as a fact.
+ *
+ * Bids are out of scope and return undefined: a bid failing is about the
+ * bidder's money, which is not this question.
+ */
+export type Unfillable = "checking" | "gone" | "moved" | "unapproved";
+
+export function unfillableReason(
+  order: Pick<ReadOrder, "maker" | "amount" | "kind"> & {
+    params: { offer: ReadonlyArray<{ itemType: number }> };
+  },
+  checks: { first: ChainAnswer | undefined; second: ChainAnswer | undefined } | undefined,
+): Unfillable | undefined {
+  if (order.kind !== "listing") return undefined;
+  if (checks === undefined) return "checking";
+
+  const { first, second } = checks;
+  if (first === undefined || second === undefined) return "checking";
+
+  const isMulti = order.params.offer[0]?.itemType === ItemType.ERC1155;
+
+  if (first.status === "failure") {
+    // A balance read that reverts is a broken contract, not a burned token.
+    return isMulti ? "checking" : "gone";
+  }
+  // Anything else failing is a read we could not make, not a fact about the
+  // order. "I do not know" must never be reported as "it is gone".
+  if (second.status !== "success") return "checking";
+
+  if (second.result !== true) return "unapproved";
+
+  const holder = isMulti ? (first.result as bigint) : (first.result as Address);
+  return listingIsFillable(order, holder, true) ? undefined : "moved";
 }
 
 /**

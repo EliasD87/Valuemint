@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { zeroAddress, parseEther } from "viem";
-import { ACCEPTED_BID_CURRENCY, FEE_BPS, FEE_RECIPIENT, ItemType, ORDER_BOOK_WINDOW_BLOCKS, OrderType, buildListing, buildOffer, fulfillerOutlay, isExpired, LISTINGS_PER_TX, listingIsFillable, lotPrice, planBulkListing, resolveFillable, offerIsFillable, orderBookFloor, readFulfilment, readOrder, splitFee, toComponents, type OrderParameters, unitPrice, unsafeReason } from "./seaport";
+import { unfillableReason, ACCEPTED_BID_CURRENCY, FEE_BPS, FEE_RECIPIENT, ItemType, ORDER_BOOK_WINDOW_BLOCKS, OrderType, buildListing, buildOffer, fulfillerOutlay, isExpired, LISTINGS_PER_TX, listingIsFillable, lotPrice, planBulkListing, resolveFillable, offerIsFillable, orderBookFloor, readFulfilment, readOrder, splitFee, toComponents, type OrderParameters, unitPrice, unsafeReason } from "./seaport";
 import { deployment } from "@/config/contracts";
 
 /**
@@ -1204,5 +1204,95 @@ describe("planBulkListing", () => {
         priceWei: parseEther("1"),
       }),
     ).toEqual([]);
+  });
+});
+
+/**
+ * Why a listing cannot be filled.
+ *
+ * The same two reads `resolveFillable` weighs, asked a different question — so
+ * the thing worth guarding is that the two never disagree, and that "I could
+ * not read it" is never reported as "it is gone". Telling somebody their piece
+ * was burned on the evidence of a failed RPC call would be a lie with a
+ * confident face.
+ */
+describe("unfillableReason", () => {
+  const SEAPORT_LISTING = {
+    maker: SELLER,
+    amount: 1n,
+    /** Never read for a listing; `resolveFillable` wants the shape. */
+    priceWei: 1n,
+    kind: "listing" as const,
+    params: { offer: [{ itemType: ItemType.ERC721 }] },
+  };
+  const MULTI = {
+    ...SEAPORT_LISTING,
+    amount: 3n,
+    params: { offer: [{ itemType: ItemType.ERC1155 }] },
+  };
+  const ok = (result: unknown) => ({ status: "success" as const, result });
+  const reverted = { status: "failure" as const };
+
+  it("says nothing at all when the listing is fillable", () => {
+    expect(unfillableReason(SEAPORT_LISTING, { first: ok(SELLER), second: ok(true) })).toBe(
+      undefined,
+    );
+  });
+
+  it("reads a reverting ownerOf as the token being gone", () => {
+    /** The whole feature: a listed token that no longer exists was burned. */
+    expect(unfillableReason(SEAPORT_LISTING, { first: reverted, second: ok(true) })).toBe("gone");
+  });
+
+  it("never says gone for an ERC-1155, where a balance cannot tell burn from transfer", () => {
+    expect(unfillableReason(MULTI, { first: reverted, second: ok(true) })).toBe("checking");
+    expect(unfillableReason(MULTI, { first: ok(0n), second: ok(true) })).toBe("moved");
+  });
+
+  it("separates handed on from permission withdrawn", () => {
+    expect(unfillableReason(SEAPORT_LISTING, { first: ok(BUYER), second: ok(true) })).toBe("moved");
+    expect(unfillableReason(SEAPORT_LISTING, { first: ok(SELLER), second: ok(false) })).toBe(
+      "unapproved",
+    );
+  });
+
+  it("does not turn an unread check into a fact", () => {
+    expect(unfillableReason(SEAPORT_LISTING, undefined)).toBe("checking");
+    expect(unfillableReason(SEAPORT_LISTING, { first: undefined, second: undefined })).toBe(
+      "checking",
+    );
+    /** The approval read failing says nothing about whether the token exists. */
+    expect(unfillableReason(SEAPORT_LISTING, { first: ok(SELLER), second: reverted })).toBe(
+      "checking",
+    );
+  });
+
+  it("stays silent about bids, which fail for reasons of their own", () => {
+    const bid = { ...SEAPORT_LISTING, kind: "offer" as const };
+    expect(unfillableReason(bid, { first: ok(0n), second: ok(0n) })).toBe(undefined);
+  });
+
+  /**
+   * The two must never contradict each other: anything `resolveFillable` calls
+   * fillable must have no reason, and anything it refuses must have one.
+   */
+  it("agrees with resolveFillable on every combination", () => {
+    /*
+      The two slots have fixed meanings and the cases have to respect them:
+      `first` is `ownerOf`, so an address or a revert, and `second` is
+      `isApprovedForAll`, so a boolean or a revert. Feeding a boolean into the
+      first slot is not a combination that can occur — wagmi marks a result it
+      could not decode as a failure — and testing it only proves that
+      `resolveFillable` trusts its own input, which it is entitled to do.
+    */
+    const owners = [undefined, reverted, ok(SELLER), ok(BUYER)];
+    const approvals = [undefined, reverted, ok(true), ok(false)];
+    for (const first of owners) {
+      for (const second of approvals) {
+        const checks = { first, second };
+        const fillable = resolveFillable(SEAPORT_LISTING, checks);
+        expect(unfillableReason(SEAPORT_LISTING, checks) === undefined).toBe(fillable);
+      }
+    }
   });
 });

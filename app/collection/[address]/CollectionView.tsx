@@ -481,7 +481,7 @@ export function CollectionView({ params }: { params: Promise<{ address: string }
             <MintPanel address={collection} />
             {/* Everything that has happened here, not just this page of it —
                 the grid is capped at 60 tokens, the history is not. */}
-            <Activity collection={collection} title="Collection activity" />
+            <Activity collection={collection} title="Collection activity" markBurned />
           </aside>
         ) : null}
       </div>

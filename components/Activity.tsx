@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useBlockNumber } from "wagmi";
 import { useActivity, type ActivityRow } from "@/hooks/useActivity";
+import { useBurnedListedTokens } from "@/hooks/useSeaportOrders";
 import { deployment } from "@/config/contracts";
 import { Soso } from "@/components/Soso";
 import { formatSoso, shortAddress, timeAgo } from "@/lib/format";
@@ -39,11 +40,14 @@ function Row({
   row,
   showToken,
   head,
+  burned,
 }: {
   row: ActivityRow;
   showToken: boolean;
   /** The chain head, so a block number can be read as a time. */
   head?: bigint;
+  /** This row's token has since been burned. */
+  burned: boolean;
 }) {
   return (
     <li className={`act-row act-${row.kind}`}>
@@ -67,6 +71,43 @@ function Row({
             ) : null}
           </>
         )}
+
+        {/*
+          A listing whose token no longer exists.
+
+          Without it the row reads as live — which is what happened when
+          SoDEXTreasureBox's boxes were opened: the listings correctly vanished
+          from the market, and the history still said "Listed 100 SOSO" with
+          nothing to say the box had since been opened.
+
+          Inside the price cell, not beside it. `.act-row` is a declared
+          five-column grid, so an extra child would push every later cell out
+          of line — and only on some rows, which is worse than the problem. The
+          price column is `auto`, so it widens for this and the elastic `who`
+          column gives up the space.
+
+          Only on a listing. A sale that happened, happened, whatever became of
+          the piece afterwards; a burn does not reach back and change it.
+        */}
+        {burned && row.kind === "listed" ? (
+          <span className="act-gone" title="This piece has since been burned">
+            {/*
+              An opened box: a body with both lid flaps folded out and up.
+
+              Chosen by the owner, and it is the literal thing that happened to
+              every piece this mark has been drawn for so far — opening a SoDEX
+              Treasure Box burns it. Worth knowing if it ever looks wrong: the
+              mark itself is generic, so a token burned some other way would
+              carry this too.
+            */}
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="M4 10h16v10a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 20V10z" />
+              <path d="M4 10 2 6l8-2.5L12 10z" />
+              <path d="M20 10l2-4-8-2.5L12 10z" />
+            </svg>
+            burned
+          </span>
+        ) : null}
       </span>
 
       <span className="act-who">
@@ -111,6 +152,15 @@ export function Activity({
   full = false,
   /** Not inside a stack that already spaces it — give it room of its own. */
   standalone = false,
+  /**
+   * Mark listings whose token has since been burned.
+   *
+   * Only worth asking where the page already reads the order book for its own
+   * prices — the collection page and the token page — because there it is free.
+   * Off elsewhere so that drawing a word never starts a log scan. See
+   * `useBurnedListedTokens`.
+   */
+  markBurned = false,
 }: {
   collection: `0x${string}` | undefined;
   /** Omit for a whole collection's history. */
@@ -119,8 +169,20 @@ export function Activity({
   title?: string;
   full?: boolean;
   standalone?: boolean;
+  markBurned?: boolean;
 }) {
   const { rows, isLoading, logsUnavailable, logsPartial } = useActivity(collection, tokenId);
+
+  /**
+   * Which of these tokens have since been burned.
+   *
+   * Costs nothing: the order book already reads `ownerOf` for every standing
+   * order to decide whether it can be filled, and this is the orders where
+   * that read reverted. It only knows about tokens whose listing is still in
+   * the scan window, which is the common case for a row recent enough to be
+   * on this panel.
+   */
+  const { burned } = useBurnedListedTokens(markBurned);
 
   /**
    * One read, shared by every row and by every other panel on the page.
@@ -183,6 +245,7 @@ export function Activity({
               row={r}
               showToken={tokenId === undefined}
               head={head}
+              burned={burned.has(`${r.collection.toLowerCase()}-${r.tokenId}`)}
             />
           ))}
         </ul>
