@@ -74,6 +74,34 @@
   align-self: center;
 }
 
+/*
+ * Standing in for a title, it must occupy the LINE, not just its own ink.
+ *
+ * `--wm-cap` deliberately makes the box the height of the letterforms, which
+ * is right for the drawing and wrong for the row around it: a text title is a
+ * full line box, so a card whose title is drawn came out shorter than the one
+ * beside it and everything below inherited the difference. Measured on the
+ * front page's featured pair, both titles starting at the same y: the
+ * wordmark 9.4px tall against the typeset name's 15px, the SoDEX mark under
+ * them 5.7px out of line, and the two card bodies 54.5px against 60.2px.
+ *
+ * So the BOX becomes the line and the DRAWING stays at cap height inside it,
+ * centred. Only the places that replace a title outright need this — the
+ * collection card and the rail pill nest their mark inside the element that
+ * owns the line, which is why they were already level.
+ *
+ * `1lh` is the element's own line-height, so this cannot drift from whatever
+ * `.tcard-title` sets; the `em` above it is the fallback for anything that
+ * does not know the unit, and matches that rule's current 1.25.
+ */
+.wordmark.tcard-title {
+  height: 1.25em;
+  height: 1lh;
+  /* Not `contain`: that would grow the drawing to fill the taller box. The
+     cap height is fixed and the extra room is leading, as it is for text. */
+  background-size: auto var(--wm-cap);
+}
+
 .wordmark-cybereator {
   --wm-ratio: 6.714;
   background-image: var(--mark-cybereator);
