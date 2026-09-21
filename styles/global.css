@@ -693,6 +693,92 @@ textarea {
   border-bottom: 1px solid var(--line);
 }
 
+/* ------------------------------------------------- chip rows, on a phone ---
+ *
+ * Wrapping is the wrong answer for a row of chips on a narrow screen.
+ *
+ * Measured on /market at 375px: the sort row took two rows at 96px, the
+ * collection filters took FIVE at 252px, and with the stats strip between
+ * them the first listing started 601px down an 812px screen. The controls had
+ * pushed the thing they control off the phone.
+ *
+ * So below 620px these become one row that scrolls sideways. The height stops
+ * depending on how many collections have listings, which is the property that
+ * matters — a wrapping row grows without limit as the marketplace fills up,
+ * and this one cannot.
+ *
+ * The negative margin is the affordance, not decoration. Bleeding the row out
+ * to the screen edges means a chip is CUT by the edge rather than sitting
+ * neatly inside a gutter, which is what tells you there is more to the right;
+ * the padding puts the first chip back on the text margin. Each row is its own
+ * scroll container, so none of this reaches the page.
+ *
+ * `.filters` is DOUBLED, and measurably has to be. Its base rule lives in
+ * `home.css` at the same one-class specificity as this one, so which of the
+ * two applies comes down to which stylesheet the bundler happens to emit
+ * last — and it emitted that one. Measured with a single class: the row still
+ * reported `scrollWidth === clientWidth` at 375px and stayed six rows tall,
+ * wrapping exactly as before. `Wordmark.css` carries the same trick for the
+ * same reason; doubling costs nothing and settles it wherever the imports land.
+ * ------------------------------------------------------------------------- */
+
+@media (max-width: 620px) {
+  .head > .wrap-row,
+  .filters.filters {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    /* Swiping to the end of the chips must not then drag the page. */
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x proximity;
+    margin-inline: calc(var(--gutter) * -1);
+    padding-inline: var(--gutter);
+    /*
+     * Snap has to be told about that padding, or it undoes it.
+     *
+     * A snap point aligns to the scrollport's BORDER edge, not its padding
+     * edge, so `scroll-snap-align: start` on the first chip pulled the row to
+     * `scrollLeft: 20` — exactly cancelling the gutter and parking the chip
+     * flush against the screen edge at rest. Measured before this line: first
+     * chip at x=0 on a page whose every other line starts at x=20.
+     */
+    scroll-padding-inline: var(--gutter);
+    /*
+     * No scrollbar. The global `*` rule above gives every scroller a 10px
+     * one, which here would cost more height than wrapping saved and show a
+     * track under controls that are already only 34px tall. Touch screens
+     * draw an overlay bar while scrolling regardless, and the clipped chip at
+     * the edge is what says the row moves.
+     */
+    scrollbar-width: none;
+  }
+
+  .head > .wrap-row::-webkit-scrollbar,
+  .filters.filters::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* `flex: none`, or a nowrap row squeezes every chip until the longest names
+     lose their text rather than overflowing as intended. */
+  .head > .wrap-row > *,
+  .filters.filters > * {
+    flex: none;
+    scroll-snap-align: start;
+  }
+
+  /*
+   * The strip between them, on one line.
+   *
+   * 2.5rem between three short figures is a desktop rhythm; at 375px it was
+   * what pushed "8 collections" onto a second line, so the gap itself was
+   * buying the height. Nothing here is smaller, only closer.
+   */
+  .stats-row {
+    gap: 0.4rem 1.15rem;
+    margin-bottom: 1.15rem;
+    padding-bottom: 0.9rem;
+  }
+}
+
 /* A heading that opens a section *within* a page, below the page's own. */
 .head-sub {
   margin-top: clamp(2.25rem, 4vw, 3rem);
