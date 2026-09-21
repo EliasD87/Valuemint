@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
-import { indexConfigured, select, upsert } from "@/lib/supabase";
-import { metadataFetchAllowed } from "@/lib/media";
-import { readTokenMetadata } from "@/lib/tokenMetadata";
-import { decideDocument, documentAnswer, type DocStatus } from "@/lib/documentCache";
+import { indexConfigured, select } from "@/lib/supabase";
+import { documentAnswer, type DocStatus } from "@/lib/documentCache";
+import { fetchAndStore } from "@/lib/documentStore";
 
 /**
  * Token documents, many at a time, cached.
@@ -41,16 +40,6 @@ export const maxDuration = 60;
 const MAX_URLS = 100;
 
 /**
- * How many documents to fetch at once for a cold collection.
- *
- * Higher than the browser's politeness limit deliberately: this is one server
- * talking to one host it has been told it may call, rather than sixty cards
- * racing each other from someone's laptop. Twelve keeps a cold Cybereator page
- * near two seconds instead of seventeen without hammering SoDEX.
- */
-const CONCURRENCY = 12;
-
-/**
  * Stop fetching after this and answer with what landed.
  *
  * The caller can read the rest itself — that is what an absent URL means — so
@@ -58,9 +47,6 @@ const CONCURRENCY = 12;
  * platform's own limit and returns nothing at all.
  */
 const BUDGET_MS = 20_000;
-
-/** Per-document timeout. Longer than this and the page has moved on anyway. */
-const FETCH_MS = 8_000;
 
 /**
  * How long a stored document is trusted.
@@ -81,84 +67,6 @@ interface Row {
   raw: unknown;
   status: "ok" | "missing" | "refused";
   fetched_at: string;
-}
-
-/**
- * Fetch one document. Never throws: every outcome is a row worth keeping.
- *
- * The I/O is here and the *judgement* is in `lib/documentCache.ts`, which is
- * the only reason that judgement can be tested. Both of its rules were got
- * wrong inside this function once, and neither failure threw anything.
- *
- * The allowlist is checked before anything else: these URLs come from
- * `tokenURI` on a caller-named contract, so anyone can deploy an ERC-721 that
- * returns `http://169.254.169.254/…` and then ask this route to read it. See
- * `lib/media.ts` for why it is an allowlist rather than a denylist.
- */
-async function fetchOne(url: string): Promise<Omit<Row, "fetched_at">> {
-  const allowed = metadataFetchAllowed(url);
-  if (!allowed) return { url, ...decideDocument({ allowed: false, readable: false }) };
-
-  try {
-    const response = await fetch(url, {
-      signal: AbortSignal.timeout(FETCH_MS),
-      headers: { accept: "application/json" },
-      cache: "no-store",
-    });
-
-    let body: unknown;
-    let hadJson = false;
-    try {
-      body = await response.json();
-      hadJson = true;
-    } catch {
-      hadJson = false;
-    }
-
-    /**
-     * Read only to decide whether the body is worth keeping. What gets stored
-     * is the original — `readTokenMetadata` runs again on the client, which is
-     * where the decision about what a document *means* belongs.
-     */
-    const readable = hadJson && readTokenMetadata(body) !== undefined;
-
-    return {
-      url,
-      ...decideDocument({
-        allowed: true,
-        ok: response.ok,
-        status: response.status,
-        ...(hadJson ? { body } : {}),
-        readable,
-      }),
-    };
-  } catch {
-    /** The request never completed. Not an answer about the URL. */
-    return { url, ...decideDocument({ allowed: true, readable: false }) };
-  }
-}
-
-/** Run `work` over `items`, at most `CONCURRENCY` at a time, until the budget runs out. */
-async function pool<T, R>(
-  items: T[],
-  work: (item: T) => Promise<R>,
-  deadline: number,
-): Promise<R[]> {
-  const out: R[] = [];
-  let next = 0;
-
-  const worker = async (): Promise<void> => {
-    for (;;) {
-      if (Date.now() > deadline) return;
-      const i = next++;
-      const item = items[i];
-      if (item === undefined) return;
-      out.push(await work(item));
-    }
-  };
-
-  await Promise.all(Array.from({ length: Math.min(CONCURRENCY, items.length) }, worker));
-  return out;
 }
 
 export async function GET(request: Request): Promise<NextResponse> {
@@ -215,24 +123,8 @@ export async function GET(request: Request): Promise<NextResponse> {
     const toFetch = [...missing, ...stale];
 
     if (toFetch.length > 0) {
-      const fetched = await pool(toFetch, fetchOne, now + BUDGET_MS);
       const at = new Date().toISOString();
-
-      const parsedOf = (r: Omit<Row, "fetched_at">) => {
-        const doc = r.status === "ok" ? readTokenMetadata(r.raw) : undefined;
-        return {
-          url: r.url,
-          raw: r.raw,
-          status: r.status,
-          fetched_at: at,
-          /** Filter keys for search. What the row *means* is still decided client-side. */
-          name: doc?.name ?? null,
-          image: doc?.image ?? null,
-          traits: doc?.attributes ?? null,
-        };
-      };
-
-      await upsert("documents", fetched.map(parsedOf), "url");
+      const fetched = await fetchAndStore(toFetch, now + BUDGET_MS);
       for (const r of fetched) have.set(r.url, { ...r, fetched_at: at });
     }
 

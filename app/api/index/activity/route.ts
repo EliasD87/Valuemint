@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { indexConfigured, select } from "@/lib/supabase";
+import { indexConfigured, select, selectAll } from "@/lib/supabase";
 import { CURSOR } from "@/lib/indexSync";
 import type { JsonEventArgs } from "@/lib/indexRows";
 
@@ -103,11 +103,12 @@ export async function GET(request: Request): Promise<NextResponse> {
 
   try {
     const [events, cursor] = await Promise.all([
-      select<EventOut>(
+      /** Paged: the server's own 1,000-row cap would otherwise truncate history. */
+      selectAll<EventOut>(
         `events?select=tx_hash,log_index,kind,order_hash,block_number,args,collection,token_id` +
           `${filters.map((f) => `&${f}`).join("")}` +
-          `&order=block_number.desc,log_index.desc&limit=${MAX_EVENTS}`,
-      ),
+          `&order=block_number.desc,log_index.desc`,
+      ).then((rows) => rows.slice(0, MAX_EVENTS)),
       select<{ updated_at: string }>(
         `index_cursor?name=eq.${CURSOR}&select=updated_at&limit=1`,
       ),

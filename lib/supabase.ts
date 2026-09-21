@@ -161,6 +161,39 @@ export async function select<T>(query: string): Promise<T[]> {
   return (await response.json()) as T[];
 }
 
+/**
+ * Read rows, all of them, however many there are.
+ *
+ * PostgREST caps a response at a number the server chooses — 1,000 on Supabase
+ * — and it does so **silently**, whatever `limit` asks for. A query for 20,000
+ * returns 1,000 and looks exactly like a collection that has 1,000 rows.
+ *
+ * That is not a theoretical hazard; it had already broken the document warmer,
+ * which asked which URLs were cached, was told about the first thousand, and
+ * re-fetched the rest on every run forever. It would have gone on to truncate
+ * the order book and the history feed the moment either passed a thousand rows,
+ * and nothing would have said so — the market would simply have stopped showing
+ * the oldest orders.
+ *
+ * So anything that can exceed a page reads through here, and pages until a
+ * short one comes back.
+ */
+export async function selectAll<T>(query: string, pageSize = 1000): Promise<T[]> {
+  const out: T[] = [];
+
+  for (let offset = 0; ; offset += pageSize) {
+    const join = query.includes("?") ? "&" : "?";
+    const page = await select<T>(`${query}${join}limit=${pageSize}&offset=${offset}`);
+    out.push(...page);
+
+    /** A short page is the end. A full one might not be. */
+    if (page.length < pageSize) return out;
+
+    /** A bound, so a mistake upstream cannot turn into an unbounded read. */
+    if (out.length >= 100_000) return out;
+  }
+}
+
 /** Change matching rows. `query` carries the filter; there is no unfiltered form on purpose. */
 export async function patch(
   query: string,

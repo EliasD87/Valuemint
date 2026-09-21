@@ -7,6 +7,7 @@ import {
   type TokenMetadata,
 } from "@/lib/tokenMetadata";
 import { gated } from "@/lib/fetchGate";
+import { DOCUMENT_CACHE_ENABLED } from "@/config/features";
 
 /**
  * Sixty callers asking for sixty documents, one request on the wire.
@@ -274,6 +275,7 @@ async function flushIndex(): Promise<void> {
  * SoDEX's, whose contracts name SoDEX's gateway and always will.
  */
 function viaIndex(url: string): Promise<TokenMetadata | undefined | typeof UNANSWERED> {
+  if (!DOCUMENT_CACHE_ENABLED) return Promise.resolve(UNANSWERED);
   if (typeof window === "undefined" || indexAbsent) return Promise.resolve(UNANSWERED);
 
   return new Promise((resolve) => {

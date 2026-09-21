@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { indexConfigured, select } from "@/lib/supabase";
+import { indexConfigured, select, selectAll } from "@/lib/supabase";
 import { CURSOR } from "@/lib/indexSync";
 import type { JsonOrderParameters } from "@/lib/indexRows";
 
@@ -69,11 +69,16 @@ export async function GET(): Promise<NextResponse> {
 
   try {
     const [orders, counters, cursor] = await Promise.all([
-      select<OrderRowOut>(
+      /**
+       * Paged, because PostgREST silently caps a response at 1,000 rows
+       * whatever `limit` says — so this cap was the server's, not ours, and
+       * the market would have quietly stopped showing orders past a thousand.
+       */
+      selectAll<OrderRowOut>(
         `orders?select=order_hash,params,block_number&status=eq.open` +
-          `&order=block_number.desc&limit=${MAX_ORDERS}`,
-      ),
-      select<CounterRowOut>(`counters?select=offerer,voided_after_block&limit=5000`),
+          `&order=block_number.desc`,
+      ).then((rows) => rows.slice(0, MAX_ORDERS)),
+      selectAll<CounterRowOut>(`counters?select=offerer,voided_after_block`),
       select<CursorRowOut>(`index_cursor?name=eq.${CURSOR}&select=last_block,updated_at&limit=1`),
     ]);
 
