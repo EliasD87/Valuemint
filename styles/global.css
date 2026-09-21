@@ -967,7 +967,8 @@ textarea {
   .grid-tokens.grid-tokens,
   .manage-grid.manage-grid,
   .manage-list.manage-list,
-  .studio-designs.studio-designs {
+  .studio-designs.studio-designs,
+  .kol-grid.kol-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.6rem;
   }
