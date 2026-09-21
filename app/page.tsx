@@ -493,6 +493,17 @@ function Hero({ deck }: { deck: DeckCard[] }) {
           <Link className="btn btn-primary btn-lg" href="/collections">
             Explore collections
           </Link>
+          {/*
+            The other half of the headline, which had no door.
+
+            The hero says "Collect and trade", and until now the only way on
+            from it was into the collections list — browsing, not trading. The
+            market is where a price and a Buy button are, and it was four clicks
+            of the nav away from the sentence promising it.
+          */}
+          <Link className="btn btn-lg hx-btn-ghost" href="/market">
+            Trade NFTs
+          </Link>
           {CREATE_ENABLED ? (
             <Link className="btn btn-lg hx-btn-ghost" href="/create">
               Create a collection

@@ -36,9 +36,17 @@ interface NavItem {
 
 const NAV: NavItem[] = [
   { to: "/", label: "Explore", end: true },
+  /**
+   * Second, ahead of Mint and Collections.
+   *
+   * This is a marketplace, and the market is the thing most people arrive
+   * wanting. It sat fourth, behind two pages about making and listing
+   * collections, which is the order the site was built in rather than the
+   * order anybody reads it in.
+   */
+  { to: "/market", label: "Market" },
   { to: "/mint", label: "Mint" },
   { to: "/collections", label: "Collections" },
-  { to: "/market", label: "Market" },
   { to: "/trenches", label: "Trenches", mark: true },
   { to: "/kols", label: "KOLs" },
   { to: "/portfolio", label: "Portfolio" },
