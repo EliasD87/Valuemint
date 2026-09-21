@@ -49,8 +49,6 @@
      the pointer is revealing, and on a white ground a hairline at 0.045 alpha
      does not survive being drawn twice. */
   --hx-net: rgba(14, 14, 16, 0.1);
-  --hx-flow-warm: rgba(255, 92, 0, 0.1);
-  --hx-flow-cool: rgba(56, 189, 248, 0.09);
 }
 
 :root[data-theme="dark"] .hx {
@@ -65,8 +63,6 @@
   --hx-orb-2: rgba(255, 122, 51, 0.22);
   --hx-orb-3: rgba(56, 189, 248, 0.24);
   --hx-net: rgba(255, 255, 255, 0.075);
-  --hx-flow-warm: rgba(255, 122, 51, 0.16);
-  --hx-flow-cool: rgba(56, 189, 248, 0.15);
 }
 
 /* ---------------------------------------------------------------- aurora ---
@@ -874,19 +870,16 @@
 }
 
 /*
- * The flow, on its own layer because it must NOT take the net's mask — masked
- * twice it collapses to a hard little puck. Wider than the net's reveal, so
- * the colour is already there at the edge of the lit cells rather than
- * stopping with them.
+ * There was a warm-and-cool glow travelling with the pointer here, on its own
+ * layer so it escaped the net's mask. It is gone: with the cutouts behind it
+ * and the three orbs already lighting this ground, a fourth light following
+ * the cursor was one thing too many, and the mesh reads better as a mesh than
+ * as something carrying a lamp.
+ *
+ * What remains is the reveal — the grid lighting where the pointer is, which
+ * is the whole of the effect that was asked for. The `--hx-flow-*` tokens went
+ * with it rather than being left behind unused.
  */
-.hx-trace::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background-image:
-    radial-gradient(circle 13rem at var(--hx-mx) var(--hx-my), var(--hx-flow-warm), transparent 68%),
-    radial-gradient(circle 26rem at var(--hx-mx) var(--hx-my), var(--hx-flow-cool), transparent 72%);
-}
 
 /*
  * `hover: hover` only.
@@ -911,5 +904,178 @@
   .hx,
   .hx-trace {
     transition: none;
+  }
+}
+
+/* --------------------------------------------------------- counter-drift ---
+ *
+ * The ground leans away from the pointer.
+ *
+ * `--hx-px` / `--hx-py` are the pointer's signed distance from the middle,
+ * -1 at one edge and 1 at the other, written by `tracePointer` in page.tsx.
+ * Every depth below multiplies them by a NEGATIVE number, which is the whole
+ * effect the request asked for: move right and the scene moves left, so it
+ * reads as looking past something rather than dragging it.
+ *
+ * Registered as `<number>`, not as a length. A depth is "how far this layer
+ * travels", so it belongs with the layer; the pointer only says which way and
+ * how much of the way. It also has to be a number for `calc()` to multiply it
+ * by a per-layer `--depth` at all.
+ * ------------------------------------------------------------------------- */
+
+@property --hx-px {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 0;
+}
+
+@property --hx-py {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 0;
+}
+
+.hx {
+  transition:
+    --hx-mx 280ms cubic-bezier(0.22, 1, 0.36, 1),
+    --hx-my 280ms cubic-bezier(0.22, 1, 0.36, 1),
+    --hx-px 420ms cubic-bezier(0.22, 1, 0.36, 1),
+    --hx-py 420ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/*
+ * The mesh leans too, and least of all.
+ *
+ * It is the nearest thing to the reader, and in a parallax the near things
+ * move least — a grid sliding as far as the art behind it would read as the
+ * page itself coming loose.
+ */
+.hx-trace {
+  translate: calc(var(--hx-px) * -10px) calc(var(--hx-py) * -7px);
+}
+
+/* --------------------------------------------------------------- cutouts ---
+ *
+ * Three pieces of collection art, set into the ground rather than on top of
+ * it. They sit at -2 with the orbs and AFTER them in source, so an orb's light
+ * pools behind each piece instead of washing over it.
+ *
+ * Each carries its own `--depth`, and they differ on purpose: equal travel is
+ * a flat plane sliding about, and what sells depth is the near piece outrunning
+ * the far one. Order here is far to near.
+ *
+ * `translate` for the parallax and `transform` for the float, because a
+ * transform keyframe REPLACES the property outright — the two would take turns
+ * rather than compose, and the parallax would vanish for the length of every
+ * animation cycle. The orbs above carry the same split for the same reason.
+ * ------------------------------------------------------------------------- */
+
+.hx-cast {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.hx-cut {
+  position: absolute;
+  display: block;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  /*
+    Pushed back, two ways. A cutout at full strength competes with the heading
+    for the same eye, and the heading has to win: the blur reads as depth of
+    field rather than as a mistake, and the opacity keeps it a suggestion.
+  */
+  opacity: 0.42;
+  filter: blur(1.5px);
+  translate: calc(var(--hx-px) * var(--depth) * -1px)
+             calc(var(--hx-py) * var(--depth) * -0.68px);
+}
+
+/* Far: high on the right, small, barely moving. */
+.hx-cut-helm {
+  --depth: 14;
+  top: 6%;
+  right: -3%;
+  width: clamp(120px, 14vw, 210px);
+  aspect-ratio: 1;
+  background-image: url("/hero/helm.webp");
+  animation: hx-cut-float-a 29s ease-in-out infinite;
+}
+
+/* Mid-far: high on the left, the corner the other three leave empty. */
+.hx-cut-bear {
+  --depth: 20;
+  top: 10%;
+  left: -2%;
+  width: clamp(120px, 14vw, 215px);
+  aspect-ratio: 1;
+  background-image: url("/hero/bear.webp");
+  animation: hx-cut-float-d 41s ease-in-out infinite;
+}
+
+/* Middle: low on the left. */
+.hx-cut-plush {
+  --depth: 26;
+  bottom: 4%;
+  left: -4%;
+  width: clamp(150px, 18vw, 270px);
+  aspect-ratio: 1;
+  background-image: url("/hero/plush.webp");
+  animation: hx-cut-float-b 37s ease-in-out infinite;
+}
+
+/* Near: low on the right, largest travel. */
+.hx-cut-cat {
+  --depth: 38;
+  bottom: -6%;
+  right: 4%;
+  width: clamp(140px, 16vw, 240px);
+  aspect-ratio: 1;
+  background-image: url("/hero/cybercat.webp");
+  animation: hx-cut-float-c 31s ease-in-out infinite;
+}
+
+/* Periods mutually prime with each other and with the orbs' 37/43/53, so the
+   ground never settles into a beat you can see. */
+@keyframes hx-cut-float-a {
+  0%, 100% { transform: translate3d(0, 0, 0) rotate(0deg); }
+  50% { transform: translate3d(0, -14px, 0) rotate(2.5deg); }
+}
+
+@keyframes hx-cut-float-b {
+  0%, 100% { transform: translate3d(0, 0, 0) rotate(0deg); }
+  50% { transform: translate3d(0, -20px, 0) rotate(-3deg); }
+}
+
+@keyframes hx-cut-float-c {
+  0%, 100% { transform: translate3d(0, 0, 0) rotate(0deg); }
+  50% { transform: translate3d(0, -16px, 0) rotate(2deg); }
+}
+
+@keyframes hx-cut-float-d {
+  0%, 100% { transform: translate3d(0, 0, 0) rotate(0deg); }
+  50% { transform: translate3d(0, -12px, 0) rotate(-2.5deg); }
+}
+
+/*
+ * Gone on a phone.
+ *
+ * There is no pointer to lean away from, so the parallax is dead weight, and
+ * the hero is already tight enough there that three more things in the ground
+ * is clutter behind the one thing anybody came to read.
+ */
+@media (max-width: 760px) {
+  .hx-cast {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hx-cut {
+    animation: none;
   }
 }

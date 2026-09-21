@@ -415,9 +415,26 @@ function Hero({ deck }: { deck: DeckCard[] }) {
   const tracePointer = (event: React.PointerEvent<HTMLElement>): void => {
     const box = event.currentTarget.getBoundingClientRect();
     if (box.width === 0 || box.height === 0) return;
+
+    const fx = (event.clientX - box.left) / box.width;
+    const fy = (event.clientY - box.top) / box.height;
+
     const style = event.currentTarget.style;
-    style.setProperty("--hx-mx", `${((event.clientX - box.left) / box.width) * 100}%`);
-    style.setProperty("--hx-my", `${((event.clientY - box.top) / box.height) * 100}%`);
+    /** Where the light is: a position, so percentages. */
+    style.setProperty("--hx-mx", `${fx * 100}%`);
+    style.setProperty("--hx-my", `${fy * 100}%`);
+    /**
+     * How far from the middle, SIGNED, as -1..1.
+     *
+     * A second pair rather than deriving it from the first, because the two
+     * are different quantities: the light needs a point inside the box, and
+     * the parallax needs a direction away from its centre. Deriving one from
+     * the other in `calc` would mean every layer repeating the same
+     * subtraction, and `--hx-mx` carries a unit that cannot be multiplied by
+     * a depth.
+     */
+    style.setProperty("--hx-px", `${(fx - 0.5) * 2}`);
+    style.setProperty("--hx-py", `${(fy - 0.5) * 2}`);
   };
 
   return (
@@ -429,6 +446,21 @@ function Hero({ deck }: { deck: DeckCard[] }) {
         Atmospheric, so it is out of the accessibility tree and takes no
         pointer events; the section above is what listens.
       */}
+      {/*
+        Collection art, drifting behind everything.
+
+        Decoration: out of the accessibility tree, no pointer events, and
+        `priority` is deliberately absent — the hero's real subject is the
+        deck and the heading, and these must never compete with them for the
+        first bytes.
+      */}
+      <div className="hx-cast" aria-hidden="true">
+        <i className="hx-cut hx-cut-helm" />
+        <i className="hx-cut hx-cut-bear" />
+        <i className="hx-cut hx-cut-plush" />
+        <i className="hx-cut hx-cut-cat" />
+      </div>
+
       <div className="hx-trace" aria-hidden="true" />
 
       {/*
