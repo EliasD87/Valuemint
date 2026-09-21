@@ -724,7 +724,8 @@ textarea {
 
 @media (max-width: 620px) {
   .head > .wrap-row,
-  .filters.filters {
+  .filters.filters,
+  .stats-row {
     flex-wrap: nowrap;
     overflow-x: auto;
     /* Swiping to the end of the chips must not then drag the page. */
@@ -753,24 +754,35 @@ textarea {
   }
 
   .head > .wrap-row::-webkit-scrollbar,
-  .filters.filters::-webkit-scrollbar {
+  .filters.filters::-webkit-scrollbar,
+  .stats-row::-webkit-scrollbar {
     display: none;
   }
 
   /* `flex: none`, or a nowrap row squeezes every chip until the longest names
      lose their text rather than overflowing as intended. */
   .head > .wrap-row > *,
-  .filters.filters > * {
+  .filters.filters > *,
+  .stats-row > * {
     flex: none;
     scroll-snap-align: start;
   }
 
   /*
-   * The strip between them, on one line.
+   * The figures travel with them.
    *
-   * 2.5rem between three short figures is a desktop rhythm; at 375px it was
-   * what pushed "8 collections" onto a second line, so the gap itself was
-   * buying the height. Nothing here is smaller, only closer.
+   * /portfolio shows five: pieces, collections, listed, asking, balance. They
+   * total about 519px of text against 335px of room at 375px, so no gap makes
+   * them fit — measured wrapping to three ragged rows at 101px, the last
+   * figure orphaned on a line of its own. 2.5rem between them was a desktop
+   * rhythm and part of the problem, but closing it only moved the ragged edge.
+   *
+   * One row that scrolls gives this the property the chip rows above got: its
+   * height stops depending on how many figures there are. A fifth stat used
+   * to cost a row.
+   *
+   * The border-bottom belongs to the scroll container rather than its content,
+   * so it stays put as a full-bleed divider while the figures move under it.
    */
   .stats-row {
     gap: 0.4rem 1.15rem;
