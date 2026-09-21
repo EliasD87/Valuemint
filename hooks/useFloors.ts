@@ -28,6 +28,23 @@ export interface TierFloor {
   count: number;
 }
 
+/** Shared by both accessors, so they can never disagree about the rows themselves. */
+function tierRows(
+  byTier: Map<string, Map<string, { price: bigint; count: number }>>,
+  address: string,
+): TierFloor[] {
+  const inner = byTier.get(address.toLowerCase());
+  if (inner === undefined) return [];
+
+  const rows = [...inner.entries()]
+    /** The empty label is the untiered bucket, which is not a tier. */
+    .filter(([label]) => label !== "")
+    .map(([label, v]) => ({ tier: label, price: v.price, count: v.count }));
+
+  rows.sort((a, b) => (a.price < b.price ? -1 : a.price > b.price ? 1 : 0));
+  return rows;
+}
+
 export function useFloors() {
   const { tokens, isLoading } = useListingFeed();
 
@@ -67,21 +84,32 @@ export function useFloors() {
     floorFor: (address: string): bigint | undefined => byCollection.get(address.toLowerCase()),
 
     /**
-     * Floors within one collection, cheapest first.
+     * Every tier in one collection that has a listing, cheapest first.
      *
-     * Empty when the collection has no tiers worth showing - a single bucket is
-     * just the collection floor again, and repeating it as a breakdown is
-     * noise rather than information.
+     * Unfiltered, and that is the point of it existing separately. There are
+     * two different questions here and they had one answer between them:
+     *
+     *   "is a breakdown worth showing?"   one row is noise, so hide it.
+     *   "what is THIS piece worth?"       one row is the whole answer.
+     *
+     * `tierFloorsFor` below answers the first and hides a single row. Using it
+     * for the second meant a collection with four tiers and one of them listed
+     * reported no tiers at all, and every piece fell through to that one tier's
+     * price — a Super Rare quoted at a Common's floor. Treasure Box is exactly
+     * that shape.
+     */
+    tierRowsFor: (address: string): TierFloor[] => tierRows(byTier, address),
+
+    /**
+     * Floors within one collection, cheapest first, for showing as a breakdown.
+     *
+     * Empty when there are fewer than two - a single bucket is just the
+     * collection floor again, and repeating it as a breakdown is noise rather
+     * than information. Do not use this to price a token; use `tierRowsFor`.
      */
     tierFloorsFor: (address: string): TierFloor[] => {
-      const inner = byTier.get(address.toLowerCase());
-      if (inner === undefined) return [];
-      const rows = [...inner.entries()]
-        .filter(([label]) => label !== "")
-        .map(([label, v]) => ({ tier: label, price: v.price, count: v.count }));
-      if (rows.length < 2) return [];
-      rows.sort((a, b) => (a.price < b.price ? -1 : a.price > b.price ? 1 : 0));
-      return rows;
+      const rows = tierRows(byTier, address);
+      return rows.length < 2 ? [] : rows;
     },
   };
 }

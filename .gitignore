@@ -33,3 +33,6 @@ CLAUDE.md
 
 # Internal design notes — kept locally, not published.
 ARCHITECTURE.md
+
+# Local session config for Claude Code. Machine-specific, not shared.
+.claude/

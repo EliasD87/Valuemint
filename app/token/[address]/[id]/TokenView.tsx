@@ -15,6 +15,7 @@ import { MultiTokenView } from "./MultiTokenView";
 import { useSeaportFill, useSeaportTrade } from "@/hooks/useSeaportTrade";
 import { useListingFor } from "@/hooks/useSeaportOrders";
 import { splitFee } from "@/lib/seaport";
+import { priceMoved } from "@/lib/fillCheck";
 import { Offers } from "@/components/Offers";
 import { TxResult } from "@/components/TxResult";
 import { ShareLink } from "@/components/ShareLink";
@@ -198,7 +199,16 @@ export function TokenView({
    */
   const justListed = lastAction === "list" && trade.isSuccess && listing === undefined;
   const justCancelled = lastAction === "cancel" && trade.isSuccess && listing !== undefined;
-  const settling = justListed || justCancelled;
+  /**
+   * You bought it, and the book has not noticed.
+   *
+   * The same gap as the two above, in a third direction, and the one that read
+   * worst: the purchase succeeded, `ownerOf` came back as you, and the panel
+   * then showed the seller's order as "stale" with a Cancel button under it —
+   * over a green "Bought." Three true statements arranged into nonsense.
+   */
+  const justBought = lastAction === "buy" && fill.isSuccess && listing !== undefined;
+  const settling = justListed || justCancelled || justBought;
 
   /**
    * Also lifted above the early returns, and for the same hard reason.
@@ -219,6 +229,46 @@ export function TokenView({
   const queryClient = useQueryClient();
 
   /**
+   * The price that was on screen when Buy was pressed.
+   *
+   * Kept so that "somebody bought this" can become "somebody bought this, and
+   * it is listed again at 14 SOSO" — which is the version with something to do
+   * about it.
+   */
+  const [tried, setTried] = useState<{ hash: string; priceWei: bigint } | undefined>(undefined);
+
+  /**
+   * A fill that never left. Re-read the book at once.
+   *
+   * Without this the page prints "somebody bought this while you were looking"
+   * directly above a price and a Buy button for the listing that is gone, and
+   * waits up to thirty seconds to stop contradicting itself.
+   */
+  useEffect(() => {
+    if (fill.blocked === undefined) return;
+    void queryClient.invalidateQueries({ queryKey: ["indexed-orders"] });
+    void queryClient.invalidateQueries({ queryKey: ["seaport-validated"] });
+  }, [fill.blocked, queryClient]);
+
+  /** What the listing is now, against what was tried. */
+  const moved =
+    fill.blocked !== undefined && tried !== undefined
+      ? priceMoved(tried.priceWei, listing?.priceWei)
+      : undefined;
+
+  /**
+   * Is the order that was refused still the one on screen?
+   *
+   * The refusal is about one order, not about the piece. A seller who cancels
+   * and immediately re-lists has produced a different order with a different
+   * hash, and that one may be perfectly fillable — so the block has to lift
+   * when the book moves on, or the page would refuse a live listing on the
+   * strength of a dead one.
+   */
+  const blockedNow =
+    fill.blocked !== undefined && tried !== undefined && listing?.hash === tried.hash;
+
+  /**
    * While a write is settling, chase it instead of waiting for the poll.
    *
    * The order book refetches every thirty seconds and reads six confirmations
@@ -231,6 +281,17 @@ export function TokenView({
   useEffect(() => {
     if (!settling) return;
     const tick = () => {
+      /**
+       * Both keys, because there are two sources now.
+       *
+       * The book is read from the index when there is one and scanned when
+       * there is not, and this chase was written when scanning was the only
+       * way. Invalidating only the scan meant a page that had just listed sat
+       * on a cached indexed copy for the full thirty seconds and told its owner
+       * "Not listed" the whole time — the exact contradiction the comment above
+       * exists to prevent.
+       */
+      void queryClient.invalidateQueries({ queryKey: ["indexed-orders"] });
       void queryClient.invalidateQueries({ queryKey: ["seaport-validated"] });
     };
     const interval = setInterval(tick, 6_000);
@@ -275,6 +336,23 @@ export function TokenView({
 
   const isOwner =
     owner !== undefined && address !== undefined && (owner as string).toLowerCase() === address.toLowerCase();
+
+  /**
+   * Whether the standing order is *yours*, which is not the same as holding the
+   * piece — and the panel used to treat them as the same question.
+   *
+   * Seaport lets the offerer cancel and nobody else, so Cancel belongs to the
+   * maker. Keying it off ownership offered the button to anyone who acquired a
+   * listed token: buy one here and, for the half-minute before the book catches
+   * up, the page handed you a Cancel button for the seller's order. Pressing it
+   * reverts — Seaport checks — so it cost a wasted transaction rather than
+   * anything worse, but it is nonsense on its face.
+   */
+  const isMaker =
+    listing !== undefined &&
+    address !== undefined &&
+    listing.maker.toLowerCase() === address.toLowerCase();
+
   const listed = listing !== undefined;
 
   const listPrice = listing?.priceWei ?? 0n;
@@ -440,6 +518,31 @@ export function TokenView({
 
           {/* --- the trading panel ------------------------------------- */}
           <div className="token-panel card">
+            {/*
+              Outside the `listed` branch on purpose.
+
+              It used to sit inside, so the moment the order book caught up and
+              the listing went away, the explanation for why nothing was bought
+              went with it — the panel simply became "Not listed for sale" and
+              the person was left with no account of what had just happened.
+              The news outlives the thing it is about.
+            */}
+            {fill.blocked !== undefined ? (
+              <div className="token-gone" role="status" aria-live="polite">
+                <p>{fill.blocked.say}</p>
+                {moved !== undefined ? (
+                  <p>
+                    It is listed again at{" "}
+                    <strong>{formatSoso(moved.nowWei)} SOSO</strong> —{" "}
+                    {moved.direction === "cheaper" ? "less" : "more"} than the price you
+                    clicked. Check it before buying.
+                  </p>
+                ) : listing === undefined ? (
+                  <p>Nothing is listed for this piece at the moment.</p>
+                ) : null}
+              </div>
+            ) : null}
+
             {listed ? (
               <>
                 <div className="token-price-row">
@@ -447,14 +550,21 @@ export function TokenView({
                   <span className="token-price mono">{formatSoso(listPrice)} SOSO</span>
                 </div>
 
-                {!active ? (
+                {justBought ? (
+                  <p className="token-note">
+                    This piece is yours. The listing above is the one you just bought and
+                    disappears within a minute, once the order book has read the block it
+                    settled in.
+                  </p>
+                ) : !active ? (
                   <p className="token-warn">
-                    This listing is stale — the owner moved the token or withdrew the
-                    marketplace&rsquo;s approval. Buying it would fail, so the button is disabled.
+                    {isOwner
+                      ? "You hold this piece, and the listing showing here was made by whoever held it before you. It can no longer be filled, and it stops showing once it expires or its maker cancels it."
+                      : "This listing is stale — the owner moved the token or withdrew the marketplace’s approval. Buying it would fail, so the button is disabled."}
                   </p>
                 ) : null}
 
-                {isOwner ? (
+                {isMaker ? (
                   <button
                     className="btn btn-block"
                     disabled={busy}
@@ -465,18 +575,25 @@ export function TokenView({
                   >
                     {trade.busy ? "Cancelling…" : "Cancel listing"}
                   </button>
-                ) : (
+                ) : isOwner ? null : (
                   <button
                     className="btn btn-primary btn-lg btn-block"
-                    disabled={busy || !active || address === undefined}
+                    disabled={busy || !active || address === undefined || blockedNow}
                     onClick={() => {
                       setLastAction("buy");
-                      if (listing !== undefined) fill.buy(listing);
+                      if (listing !== undefined) {
+                        setTried({ hash: listing.hash, priceWei: listing.priceWei });
+                        fill.buy(listing);
+                      }
                     }}
                   >
-                    {address === undefined
+                    {blockedNow
+                      ? "No longer available"
+                      : address === undefined
                       ? "Connect wallet to buy"
-                      : fill.signing
+                      : fill.checking
+                        ? "Checking it is still for sale…"
+                        : fill.signing
                         ? "Confirm in wallet…"
                         : fill.confirming
                           ? "Buying…"

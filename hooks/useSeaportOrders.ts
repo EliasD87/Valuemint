@@ -17,6 +17,8 @@ import {
 import { RPC_HTTP, valuechain } from "@/config/chain";
 import { SEAPORT, SEAPORT_FROM_BLOCK, SeaportAbi } from "@/config/seaport";
 import { scanLogs } from "@/lib/logScan";
+import { capCandidates } from "@/lib/orderBook";
+import { useIndexedOrders } from "@/hooks/useIndexedOrders";
 import {
   forgetSeenOrders,
   pendingOrdersServerSnapshot,
@@ -38,14 +40,33 @@ import {
 export type { SeaportOrder } from "@/lib/seaport";
 
 /**
- * Every live Seaport order, read from the chain and nothing else.
+ * Every live Seaport order.
  *
- * This is the piece that makes the marketplace serverless. Orders are put on
- * chain with `validate()`, and Seaport's `OrderValidated` event carries the
- * *entire* order - not a hash, not a pointer, the full parameters. So the order
- * book is reconstructible by anyone with an RPC endpoint, and there is no
- * database that can lose an order, censor one, or go down and take the market
- * with it.
+ * Orders are put on chain with `validate()`, and Seaport's `OrderValidated`
+ * event carries the *entire* order - not a hash, not a pointer, the full
+ * parameters. So the order book is reconstructible by anyone with an RPC
+ * endpoint, and there is no database that can lose an order or censor one.
+ *
+ * That last claim used to read "and nothing else", because the scan below was
+ * the only way in. It is not any more: `useIndexedOrders` asks a cached copy
+ * first and this scan runs when that copy cannot answer. The claim survives the
+ * change intact, and it is worth being precise about why, because "we added a
+ * database to the marketplace" is exactly the kind of sentence that should
+ * invite suspicion.
+ *
+ * The index supplies *candidates* and nothing more - which announcements exist.
+ * Every question whose answer could cost someone money is still put to the
+ * chain, below, for every order on every poll: is it cancelled, is it filled,
+ * has its maker voided it, has it expired, does the maker still hold the token
+ * and still permit Seaport to move it. And the price is never taken from the
+ * index at all; `readOrder` derives it from the parameters the wallet is about
+ * to be handed.
+ *
+ * So an index that is wrong, stopped, or replaced outright can make an order
+ * appear that the next check rejects, or fail to mention one the chain would
+ * have shown. It cannot misprice anything, cannot forge an order Seaport will
+ * settle, and cannot take the market down: when it stops answering, this scan
+ * simply runs again.
  *
  * Three things can retire an order, and all three are checked here because
  * missing any one of them means showing a listing that cannot be bought:
@@ -69,26 +90,6 @@ const COUNTER_INCREMENTED = parseAbiItem(
   "event CounterIncremented(uint256 newCounter, address indexed offerer)",
 );
 
-/**
- * The most orders one visitor will read the status of.
- *
- * Each surviving candidate costs one `getOrderStatus` plus two fillability
- * reads, batched through multicall3 but real work all the same. 2,000 is far
- * beyond any honest volume this marketplace has seen — the entire order book is
- * currently six events — and small enough that a flood degrades the oldest
- * entries rather than the whole page.
- */
-const MAX_CANDIDATE_ORDERS = 2_000;
-
-/**
- * The most orders any one address may occupy in the candidate set.
- *
- * Chosen so the cap cannot be exhausted by a handful of addresses: at 200, it
- * takes ten distinct offerers to fill the book, and each one costs a funded
- * wallet rather than an array element. No honest maker on this marketplace has
- * ever held more than a few dozen live orders.
- */
-const MAX_ORDERS_PER_OFFERER = 200;
 
 /** ERC-1155 has no `ownerOf`; a holding is a balance. */
 const erc1155BalanceAbi = [
@@ -219,57 +220,22 @@ function useValidatedOrders(enabled = true) {
        * every thirty seconds. `orderBookFloor` bounds the scan by *time*, which
        * is not the dimension an attacker controls.
        *
-       * Capping displaces the flood into itself rather than into the whole
-       * book: a spammer buries their own orders, not everyone's. Newest-first
-       * because a genuine order is far more likely to be recent, and because an
-       * old order that survives is still reachable from its token's own page.
-       *
-       * This is a ceiling, not the answer. The structural fix is a cached read
-       * path — one scan serving every visitor — and this keeps the failure
-       * graceful until that exists.
+       * The rule itself now lives in `lib/orderBook.ts`, because the index is a
+       * second way into this set and a cap inside the scan would guard only the
+       * scan. See there for why it is per-offerer as well as global.
        */
+      const candidates = capCandidates([...byHash.values()]);
       /**
-       * Newest first, but no single offerer may take the whole book.
+       * Which source answered, in development only.
        *
-       * The global cap alone was the wrong shape of defence. Sorting newest
-       * first and slicing from the front means new orders evict old ones, so
-       * `validate(Order[])` — which takes an array — let one cheap transaction
-       * publish `MAX_CANDIDATE_ORDERS` shaped-but-worthless orders and displace
-       * every genuine listing and bid on the chain, refreshed every 30s.
-       *
-       * The second-order effect was worse than the empty market: with a
-       * bidder's own standing bids evicted, `useOwnOfferExposure` returns 0n,
-       * so the next `allow()` sets the WSOSO allowance to just the bid being
-       * placed — silently revoking the cover for bids already on chain, which
-       * is the exact failure `alsoCover` exists to prevent.
-       *
-       * A per-offerer quota bounds one address to its share, so a flood
-       * displaces itself rather than everyone. It is not the structural answer
-       * — that is a cached read path serving every visitor — but it makes the
-       * cheap attack cost an address per slot instead of a transaction.
+       * There are two now, and "why is my listing not showing" has a different
+       * answer depending on which one a page used. A line in the console is the
+       * cheapest way to tell them apart; in production it would be noise on
+       * every poll.
        */
-      const newestFirst = [...byHash.values()].sort((a, b) =>
-        Number(b.blockNumber - a.blockNumber),
-      );
-
-      const perOfferer = new Map<string, number>();
-      const candidates: typeof newestFirst = [];
-
-      for (const c of newestFirst) {
-        if (candidates.length >= MAX_CANDIDATE_ORDERS) break;
-        const maker = c.read.maker.toLowerCase();
-        const taken = perOfferer.get(maker) ?? 0;
-        if (taken >= MAX_ORDERS_PER_OFFERER) continue;
-        perOfferer.set(maker, taken + 1);
-        candidates.push(c);
+      if (process.env.NODE_ENV === "development") {
+        console.info(`[order book] chain scan: ${candidates.length} candidates`);
       }
-
-      if (byHash.size > MAX_CANDIDATE_ORDERS) {
-        console.warn(
-          `[order book] ${byHash.size} validated orders in range; showing the newest ${MAX_CANDIDATE_ORDERS}.`,
-        );
-      }
-
       return { candidates, voidedAfter };
     },
   });
@@ -285,7 +251,31 @@ function useValidatedOrders(enabled = true) {
  * hook per slice would mean a scan per slice.
  */
 export function useSeaportOrders(enabled = true) {
-  const { data, isLoading: scanning, error } = useValidatedOrders(enabled);
+  /**
+   * Two sources for the same announcements, and the chain is the one that
+   * always works.
+   *
+   * The index is asked first because the scan it replaces costs eleven
+   * `eth_getLogs` on a cold page and gains about two more every day the chain
+   * keeps mining — the growth `orderBookFloor` bounds by hiding old orders
+   * rather than by getting cheaper.
+   *
+   * The scan stays `enabled` only while the index cannot answer, so the two are
+   * never both running: no index configured, the route down, or a reader that
+   * has stopped committing. That costs one extra round trip on the way to the
+   * fallback and keeps the chain path permanently exercised rather than
+   * becoming code nobody has run in six months.
+   *
+   * Nothing downstream of here changed. Whichever source produced them, every
+   * candidate still faces `getOrderStatus`, the counter rule, its own expiry
+   * and a live fillability read before anyone is shown a price.
+   */
+  const indexed = useIndexedOrders(enabled);
+  const scan = useValidatedOrders(enabled && indexed.unavailable);
+
+  const data = indexed.book ?? scan.data;
+  const scanning = indexed.isLoading || (indexed.unavailable && scan.isLoading);
+  const error = indexed.unavailable ? scan.error : null;
 
   /**
    * Orders this tab placed moments ago, which the scan cannot have yet.

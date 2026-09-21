@@ -8,7 +8,11 @@
     "start": "next start -p 5173",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "index:sync": "node scripts/index-sync.mjs",
+    "index:check": "node scripts/index-check.mjs",
+    "index:reset": "node scripts/index-sync.mjs reset",
+    "fills:check": "node --experimental-strip-types scripts/check-fill-rules.mjs"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.90.0",

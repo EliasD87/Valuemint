@@ -1,19 +1,15 @@
 "use client";
 
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { usePublicClient } from "wagmi";
 import { useDeferred } from "@/hooks/useDeferred";
 import { parseAbiItem } from "viem";
 import { SEAPORT, SEAPORT_FROM_BLOCK } from "@/config/seaport";
 import { scanLogs } from "@/lib/logScan";
-import {
-  orderBookFloor,
-  readFulfilment,
-  readOrder,
-  type OrderParameters,
-  type ReceivedItem,
-  type SpentItem,
-} from "@/lib/seaport";
+import { buildActivityRows, type ActivityLog, type ActivityRow } from "@/lib/activityRows";
+import { useIndexedActivity } from "@/hooks/useIndexedActivity";
+import { orderBookFloor } from "@/lib/seaport";
 
 /**
  * The most rows this feed will ever hold.
@@ -80,21 +76,7 @@ const ORDER_CANCELLED = parseAbiItem(
   "event OrderCancelled(bytes32 orderHash, address indexed offerer, address indexed zone)",
 );
 
-export type ActivityKind = "sale" | "listed" | "cancelled" | "offer";
-
-export interface ActivityRow {
-  kind: ActivityKind;
-  collection: `0x${string}`;
-  tokenId: bigint;
-  /** Units moved. Always 1n for ERC-721; the lot size for an edition. */
-  amount: bigint;
-  /** Per unit, so an edition sale is comparable with a single-piece one. */
-  price?: bigint;
-  from?: `0x${string}`;
-  to?: `0x${string}`;
-  blockNumber: bigint;
-  logIndex: number;
-}
+export type { ActivityKind, ActivityRow } from "@/lib/activityRows";
 
 interface RawLog {
   args: Record<string, unknown>;
@@ -140,9 +122,24 @@ export function useActivity(
    */
   const ready = useDeferred(900);
 
+  /**
+   * The index first, the chain when it cannot answer.
+   *
+   * These three scans were the most expensive thing on most pages — and, once
+   * the order book moved to the index, the only thing still walking the chain
+   * for logs. `useSeaportOrders` and this hook both read `OrderValidated`, so
+   * while this kept scanning, the order book's saving was invisible: the page
+   * paid for the walk anyway, for a panel below the fold.
+   *
+   * The scanned path stays exactly where it was and runs whenever the index is
+   * unset, down, or behind. Both feed the same `buildActivityRows`, so the rows
+   * are identical whichever source produced them.
+   */
+  const indexed = useIndexedActivity({ collection, wallet, salesOnly }, ready);
+
   const query = useQuery({
     queryKey: ["seaport-activity"],
-    enabled: client !== undefined && ready,
+    enabled: client !== undefined && ready && indexed.unavailable,
     staleTime: 60_000,
     queryFn: async (): Promise<ActivityResult> => {
       /**
@@ -182,104 +179,43 @@ export function useActivity(
        */
       const failed = settled.filter((s) => s.status === "rejected").length;
 
-      const rows: ActivityRow[] = [];
+      /**
+       * `undefined` for a stream the node refused, an array for one that came
+       * back empty. `buildActivityRows` treats them differently on purpose:
+       * only the second means "nothing has traded here".
+       */
+      const stream = (s: PromiseSettledResult<unknown[]>): ActivityLog[] | undefined =>
+        s.status === "fulfilled" ? (s.value as ActivityLog[]) : undefined;
 
-      /** Order hash -> what it was, so a cancellation can say which token it freed. */
-      const known = new Map<string, { collection: `0x${string}`; tokenId: bigint }>();
+      const rows = buildActivityRows({
+        validated: stream(validated),
+        fulfilled: stream(fulfilled),
+        cancelled: stream(cancelled),
+      });
 
-      if (validated.status === "fulfilled") {
-        for (const log of validated.value as unknown as RawLog[]) {
-          const params = log.args.orderParameters as OrderParameters | undefined;
-          const hash = log.args.orderHash as string | undefined;
-          if (params === undefined) continue;
-
-          const read = readOrder(params);
-          if (read === undefined) continue;
-
-          if (hash !== undefined && read.tokenId !== undefined) {
-            known.set(hash, { collection: read.collection, tokenId: read.tokenId });
-          }
-
-          rows.push({
-            kind: read.kind === "listing" ? "listed" : "offer",
-            collection: read.collection,
-            /**
-             * A collection-wide offer names no token. It is still activity worth
-             * showing on the collection, so it is recorded against id 0 and only
-             * ever surfaces in the unfiltered feed.
-             */
-            tokenId: read.tokenId ?? 0n,
-            amount: read.amount,
-            price: read.priceWei,
-            from: read.maker,
-            blockNumber: log.blockNumber,
-            logIndex: log.logIndex ?? 0,
-          });
-        }
-      }
-
-      if (fulfilled.status === "fulfilled") {
-        for (const log of fulfilled.value as unknown as RawLog[]) {
-          const sale = readFulfilment(
-            log.args.offerer as `0x${string}`,
-            log.args.recipient as `0x${string}`,
-            (log.args.offer ?? []) as readonly SpentItem[],
-            (log.args.consideration ?? []) as readonly ReceivedItem[],
-          );
-          if (sale === undefined) continue;
-
-          rows.push({
-            kind: "sale",
-            collection: sale.collection,
-            tokenId: sale.tokenId,
-            amount: sale.amount,
-            // Per unit, so an edition sale sits on the same scale as a single.
-            price: sale.amount > 0n ? sale.priceWei / sale.amount : sale.priceWei,
-            from: sale.seller,
-            to: sale.buyer,
-            blockNumber: log.blockNumber,
-            logIndex: log.logIndex ?? 0,
-          });
-        }
-      }
-
-      if (cancelled.status === "fulfilled") {
-        for (const log of cancelled.value as unknown as RawLog[]) {
-          /**
-           * `OrderCancelled` carries only the hash, so the token is recovered
-           * from the order's own `OrderValidated`. An order cancelled without
-           * ever being validated on chain has no row here - correctly, since
-           * nothing in this app ever showed it.
-           */
-          const was = known.get(log.args.orderHash as string);
-          if (was === undefined) continue;
-
-          rows.push({
-            kind: "cancelled",
-            collection: was.collection,
-            tokenId: was.tokenId,
-            amount: 1n,
-            from: log.args.offerer as `0x${string}`,
-            blockNumber: log.blockNumber,
-            logIndex: log.logIndex ?? 0,
-          });
-        }
-      }
-
-      // Newest first. `logIndex` breaks ties inside a block, which matters:
-      // a listing and its sale can land in the same one.
-      rows.sort((x, y) =>
-        x.blockNumber === y.blockNumber
-          ? y.logIndex - x.logIndex
-          : x.blockNumber > y.blockNumber
-            ? -1
-            : 1,
-      );
       return { rows: rows.slice(0, MAX_ACTIVITY_ROWS), failed, scans: settled.length };
     },
   });
 
-  const all = query.data?.rows ?? [];
+  /**
+   * Rows from whichever source answered.
+   *
+   * `failed` and `scans` describe a scan's partial refusals and mean nothing on
+   * the indexed path — there, the feed either arrived whole or the hook fell
+   * back to scanning. Reporting zero refusals out of zero attempts is the
+   * honest version of that, and keeps callers that show "some history could not
+   * be read" from saying it about a feed that was read perfectly well.
+   */
+  const indexedRows = useMemo(
+    () =>
+      indexed.streams === undefined
+        ? undefined
+        : buildActivityRows(indexed.streams).slice(0, MAX_ACTIVITY_ROWS),
+    [indexed.streams],
+  );
+
+  const fromIndex = indexedRows !== undefined;
+  const all = indexedRows ?? query.data?.rows ?? [];
   const failed = query.data?.failed ?? 0;
   const scans = query.data?.scans ?? 3;
 
@@ -320,7 +256,7 @@ export function useActivity(
      * a claim about the chain made before the chain was asked. That is the same
      * failure `logsUnavailable` exists to prevent, arriving by a different door.
      */
-    isLoading: query.isLoading || !ready,
+    isLoading: indexed.isLoading || query.isLoading || !ready,
     /**
      * The node would not serve some or all of the logs this feed is built from.
      *
@@ -328,9 +264,15 @@ export function useActivity(
      * here" and "we could not find out what traded here" are different
      * statements, and only one of them is ever true after a refused scan.
      */
-    logsUnavailable: query.error != null || failed >= scans,
+    /**
+     * `failed` and `scans` count a scan's refusals, so both are meaningless
+     * once the index answered — and dangerous, because `scans` defaults to 3
+     * against a `failed` of 0 and the comparison would read a perfectly good
+     * indexed feed as a total refusal the moment those defaults drifted.
+     */
+    logsUnavailable: fromIndex ? false : query.error != null || failed >= scans,
     /** Some event types were refused; what is shown is real but incomplete. */
-    logsPartial: failed > 0 && failed < scans,
+    logsPartial: fromIndex ? false : failed > 0 && failed < scans,
     refetch: query.refetch,
   };
 }

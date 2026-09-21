@@ -1,12 +1,13 @@
 "use client";
 
-import { useCallback, useEffect } from "react";
-import { useAccount, useReadContract, useWriteContract } from "wagmi";
+import { useCallback, useEffect, useState } from "react";
+import { useAccount, usePublicClient, useReadContract, useWriteContract } from "wagmi";
 import { useTxOutcome } from "@/hooks/useTxOutcome";
 import { parseEther, zeroHash, type Address } from "viem";
 import { ValueChainCollectionAbi } from "@/config/contracts";
 import { rememberValidatedOrders } from "@/lib/pendingOrders";
 import { SEAPORT, SeaportAbi } from "@/config/seaport";
+import { classifyFillFailure, type FillBlock } from "@/lib/fillCheck";
 import { valuechain } from "@/config/chain";
 import { useVerifiedContracts } from "@/hooks/useVerifiedContracts";
 import {
@@ -318,6 +319,21 @@ export function useSeaportTrade(collection: Address | undefined) {
 }
 
 /**
+ * A fill, as both the simulation and the write take it.
+ *
+ * Written out rather than derived from wagmi, whose inferred argument type is a
+ * union over every function in Seaport's ABI and cannot be spread.
+ */
+interface FillRequest {
+  chainId: number;
+  address: Address;
+  abi: typeof SeaportAbi;
+  functionName: "fulfillOrder" | "fulfillAdvancedOrder";
+  args: readonly unknown[];
+  value?: bigint;
+}
+
+/**
  * The taking side: buying a listing, and accepting a bid.
  *
  * Separate from `useSeaportTrade` because it is not scoped to a collection - the
@@ -327,8 +343,71 @@ export function useSeaportTrade(collection: Address | undefined) {
  */
 export function useSeaportFill() {
   const { address } = useAccount();
+  const client = usePublicClient();
   const { writeContract, data: hash, isPending: signing, error, reset } = useWriteContract();
   const { isLoading: confirming, isSuccess } = useTxOutcome({ hash });
+
+  /**
+   * Why the last attempt did not reach the wallet, if it did not.
+   *
+   * Separate from `error`, which is a *transaction* that failed. This is a
+   * transaction that was never sent, and the difference matters to the person
+   * reading it: one costs gas and the other does not, and telling them so is
+   * most of the value of checking at all.
+   */
+  const [blocked, setBlocked] = useState<FillBlock | undefined>(undefined);
+
+  /** True while the order is being checked against the chain, before signing. */
+  const [checking, setChecking] = useState(false);
+
+  /**
+   * Ask the chain whether this would work, then sign only if it would.
+   *
+   * One `eth_call` against current state, which is the same thing the
+   * transaction is about to do — so it catches every way an order can have
+   * retired, including the counter increment that leaves an order reporting
+   * itself validated while being unreachable. Reassembling those checks by hand
+   * would be several reads and would still miss whatever Seaport adds next.
+   *
+   * A failure this does NOT recognise is not a reason to refuse: the simulation
+   * runs against one node's view, which can lag, and blocking a buy that would
+   * have worked is worse than the problem. See `classifyFillFailure`.
+   */
+  const send = useCallback(
+    async (request: FillRequest) => {
+      reset();
+      setBlocked(undefined);
+
+      if (client !== undefined && address !== undefined) {
+        setChecking(true);
+        try {
+          await client.simulateContract({ ...request, account: address } as never);
+        } catch (err) {
+          const why = classifyFillFailure(err instanceof Error ? err.message : String(err));
+          if (why !== undefined) {
+            setBlocked(why);
+            setChecking(false);
+            return;
+          }
+          // Unrecognised: let the wallet and the person decide, as before.
+        } finally {
+          setChecking(false);
+        }
+      }
+
+      /**
+       * One cast, at the boundary, and only here.
+       *
+       * wagmi infers `writeContract`'s argument from the ABI and the function
+       * name together, which is exactly what makes it useless as a parameter
+       * type: the union across every function on Seaport's ABI cannot be spread
+       * or built up. The shape is checked by `FillRequest` on the way in, and
+       * by Seaport on the way out.
+       */
+      writeContract(request as never);
+    },
+    [address, client, reset, writeContract],
+  );
 
   /**
    * Buy a listing at the price shown.
@@ -341,8 +420,7 @@ export function useSeaportFill() {
    */
   const buy = useCallback(
     (order: SeaportOrder) => {
-      reset();
-      writeContract({
+      void send({
         chainId: valuechain.id,
         address: SEAPORT,
         abi: SeaportAbi,
@@ -351,15 +429,14 @@ export function useSeaportFill() {
         value: order.priceWei,
       });
     },
-    [reset, writeContract],
+    [send],
   );
 
   /** Take part of an ERC-1155 listing: `units` of the order's total `amount`. */
   const buyPartial = useCallback(
     (order: SeaportOrder, units: bigint) => {
       if (address === undefined || order.amount === 0n) return;
-      reset();
-      writeContract({
+      void send({
         chainId: valuechain.id,
         address: SEAPORT,
         abi: SeaportAbi,
@@ -374,7 +451,7 @@ export function useSeaportFill() {
         value: (order.priceWei * units + order.amount - 1n) / order.amount,
       });
     },
-    [address, reset, writeContract],
+    [address, send],
   );
 
   /**
@@ -388,7 +465,6 @@ export function useSeaportFill() {
   const acceptOffer = useCallback(
     (order: SeaportOrder, tokenId: bigint) => {
       if (address === undefined) return;
-      reset();
 
       if (order.tokenId !== undefined) {
         /**
@@ -402,7 +478,7 @@ export function useSeaportFill() {
          */
         if (order.tokenId !== tokenId) return;
 
-        writeContract({
+        void send({
           chainId: valuechain.id,
           address: SEAPORT,
           abi: SeaportAbi,
@@ -415,7 +491,7 @@ export function useSeaportFill() {
       const index = criteriaIndex(order.params);
       if (index < 0) return;
 
-      writeContract({
+      void send({
         chainId: valuechain.id,
         address: SEAPORT,
         abi: SeaportAbi,
@@ -436,7 +512,7 @@ export function useSeaportFill() {
         ],
       });
     },
-    [address, reset, writeContract],
+    [address, send],
   );
 
   return {
@@ -445,7 +521,16 @@ export function useSeaportFill() {
     acceptOffer,
     signing,
     confirming,
-    busy: signing || confirming,
+    /**
+     * Why nothing was sent, when nothing was sent.
+     *
+     * Distinct from `error`: that is a transaction that failed and cost gas;
+     * this is one that never left, and the person deserves to know which.
+     */
+    blocked,
+    clearBlocked: () => setBlocked(undefined),
+    checking,
+    busy: signing || confirming || checking,
     isSuccess,
     error,
     reset,

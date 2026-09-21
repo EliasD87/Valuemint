@@ -12,6 +12,7 @@ import { BulkList } from "@/components/BulkList";
 import { TokenCard, TokenCardSkeleton } from "@/components/TokenCard";
 import { useGridColumns } from "@/hooks/useGridColumns";
 import { useFloors } from "@/hooks/useFloors";
+import { floorForTier } from "@/lib/floors";
 import { CREATE_ENABLED } from "@/config/features";
 import { formatSoso } from "@/lib/format";
 import "@/styles/home.css";
@@ -39,7 +40,7 @@ export default function Portfolio() {
    * Query collapses the identical key against the order book this page already
    * reads for its own listings.
    */
-  const { floorFor, tierFloorsFor } = useFloors();
+  const { floorFor, tierFloorsFor, tierRowsFor } = useFloors();
 
   /**
    * There is no "waiting for you" balance any more, and there is nothing to
@@ -188,6 +189,7 @@ export default function Portfolio() {
               viewer={address}
               floorFor={floorFor}
               tierFloorsFor={tierFloorsFor}
+              tierRowsFor={tierRowsFor}
             />
           ))}
         </div>
@@ -267,11 +269,14 @@ function Holdings({
   viewer,
   floorFor,
   tierFloorsFor,
+  tierRowsFor,
 }: {
   group: Group;
   viewer: `0x${string}` | undefined;
   floorFor: (address: string) => bigint | undefined;
   tierFloorsFor: (address: string) => { tier: string; price: bigint; count: number }[];
+  /** Unfiltered — see lib/floors.ts for why this is not the same list. */
+  tierRowsFor: (address: string) => { tier: string; price: bigint; count: number }[];
 }) {
   const grid = useRef<HTMLDivElement>(null);
   const columns = useGridColumns(grid);
@@ -292,15 +297,8 @@ function Holdings({
 
   const collectionFloor = floorFor(group.address);
   const tierFloors = tierFloorsFor(group.address);
-
-  /** The cheapest comparable piece: same tier if the collection has tiers. */
-  const floorForToken = (t: ChainToken): bigint | undefined => {
-    if (t.tier !== undefined) {
-      const mine = tierFloors.find((f) => f.tier === t.tier);
-      if (mine !== undefined) return mine.price;
-    }
-    return collectionFloor;
-  };
+  /** Unfiltered, because pricing a piece is not the same question as showing a breakdown. */
+  const tierRows = tierRowsFor(group.address);
 
   return (
     <div>
@@ -362,17 +360,20 @@ function Holdings({
                this card offering you a bid on your own piece. */
             markOwned={false}
             /*
-              This piece's own tier floor where the collection has tiers, the
-              collection floor otherwise.
+              This piece's own tier floor, or none.
 
-              The distinction is the whole point. A collection holding Epics
-              and Commons has two floors, and quoting the Common one against an
-              Epic tells its owner precisely the wrong thing about what they
-              hold. `tierFloorsFor` returns nothing for a collection with one
-              bucket, which falls through to the collection figure — the same
-              number by then anyway.
+              The distinction is the whole point. A collection holding Epics and
+              Commons has two floors, and quoting the Common one against an Epic
+              tells its owner precisely the wrong thing about what they hold.
+
+              It used to fall through to the collection floor whenever a tier had
+              nothing listed, which fired exactly when it was most wrong: the
+              collection floor is the minimum across every tier, so a Super Rare
+              with none for sale was shown the cheapest Common's asking price and
+              told it was its floor. `floorForTier` says nothing instead, and the
+              card omits the plate. See lib/floors.ts.
             */
-            floor={floorForToken(t)}
+            floor={floorForTier(t.tier, tierRows, collectionFloor)}
           />
         ))}
       </div>
