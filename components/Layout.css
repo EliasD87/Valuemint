@@ -337,6 +337,9 @@
   align-items: center;
   gap: 0.6rem;
   margin-left: auto;
+  /* So the wallet pill inside can give way rather than pushing the header
+     wider than the window. See the note on `.wallet` in Wallet.css. */
+  min-width: 0;
 }
 
 /* ========================================================== compact header */

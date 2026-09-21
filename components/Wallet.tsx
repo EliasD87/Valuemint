@@ -4,6 +4,41 @@ import { useEffect, useState } from "react";
 import { useAccount, useBalance, useChainId, useConnect, useDisconnect, useSwitchChain } from "wagmi";
 import { valuechain } from "@/config/chain";
 import { formatSoso, shortAddress } from "@/lib/format";
+
+/**
+ * The account's glyph, with the live dot badged onto it.
+ *
+ * One component for the pill and the menu, so the two cannot drift into
+ * different drawings of the same idea — the menu is meant to read as that pill
+ * opened, not as a second component that happens to sit under it.
+ *
+ * Inline rather than an icon font: one glyph, no extra request. The dot is a
+ * real element rather than part of the path so it can take `--up` and the
+ * surface-coloured ring that punches it out of the wallet behind it.
+ */
+function WalletGlyph({ size }: { size: number }) {
+  return (
+    <span className="wallet-mark" style={{ ["--glyph" as string]: `${size}px` }} aria-hidden="true">
+      <svg width={size} height={size} viewBox="0 0 16 16">
+        <path
+          d="M2.4 4.6h9.9a1.3 1.3 0 0 1 1.3 1.3v5.6a1.3 1.3 0 0 1-1.3 1.3H2.4a1.3 1.3 0 0 1-1.3-1.3V4.6Z"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+        />
+        <path
+          d="M1.1 5.4V4a1.3 1.3 0 0 1 1.3-1.3h7.4"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+        />
+        <circle cx="10.9" cy="8.7" r="1.05" fill="currentColor" />
+      </svg>
+      <span className="wallet-dot" />
+    </span>
+  );
+}
 import { WalletPicker } from "./WalletPicker";
 import "./Wallet.css";
 import { Soso } from "@/components/Soso";
@@ -121,15 +156,29 @@ export function Wallet() {
         }}
         aria-expanded={open}
       >
-        <span className="wallet-dot" aria-hidden="true" />
-        {/* Stacked rather than in a row: side by side this pill was the widest
-            thing in the header, and the address wrapped mid-string to fit. Two
-            short lines take less width than one long one. */}
-        <span className="wallet-stack">
-          <span className="mono wallet-addr">{shortAddress(address)}</span>
-          <span className="mono wallet-bal">
-            <Soso size={13}>{formatSoso(balance?.value)}</Soso>
-          </span>
+        {/*
+          One row: who you are, then what you hold.
+
+          The mark carries the live dot as a badge rather than standing beside
+          it as a third loose item — the dot qualifies the account, so it
+          belongs on the account's own glyph.
+
+          `unit=""` on the balance. The SOSO mark is right there saying it, and
+          the word again inside a header pill costs 34px to repeat a symbol.
+          Safe here specifically because this is `useBalance` — the chain's own
+          native balance — and not an order's currency, which is the case
+          `currencyLabel` exists for and must never be hardcoded.
+        */}
+        <WalletGlyph size={15} />
+
+        <span className="mono wallet-addr">{shortAddress(address)}</span>
+
+        <span className="wallet-rule" aria-hidden="true" />
+
+        <span className="mono wallet-bal">
+          <Soso size={13} unit="">
+            {formatSoso(balance?.value)}
+          </Soso>
         </span>
       </button>
 
@@ -154,6 +203,9 @@ export function Wallet() {
             */}
             <div className="wallet-menu-head">
               <span className="label">Connected</span>
+
+              {/* The same glyph the pill carries, so the menu reads as that
+                  pill opened rather than as a different component. */}
               <button
                 className="wallet-copy"
                 title={address}
@@ -163,10 +215,19 @@ export function Wallet() {
                   setCopied(true);
                 }}
               >
+                <WalletGlyph size={17} />
                 <span className="mono wallet-copy-addr">{shortAddress(address)}</span>
                 <span className="wallet-copy-hint">{copied ? "Copied" : "Copy"}</span>
               </button>
-              <span className="wallet-menu-bal">
+            </div>
+
+            {/* A labelled row, not a loose figure. The balance is the one
+                number in here, and giving it a name on the left and the ink on
+                the right is what stops it reading as a caption to the address
+                above it. */}
+            <div className="wallet-menu-bal">
+              <span className="wallet-menu-bal-label">Balance</span>
+              <span className="mono wallet-menu-bal-value">
                 <Soso size={13}>{formatSoso(balance?.value)}</Soso>
               </span>
             </div>

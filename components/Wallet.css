@@ -1,5 +1,30 @@
+/*
+ * `min-width: 0` here and on `.header-actions`, or the pill below cannot
+ * actually shrink.
+ *
+ * A flex item defaults to `min-width: auto`, which is its CONTENT's width — so
+ * every ancestor between the pill and the header row silently refuses to go
+ * narrower than the longest balance, and `min-width: 0` on the pill alone does
+ * nothing. Measured before this: a 1,284,905.4417 balance grew the pill from
+ * 212px to 263px and pushed the header past the viewport with the address
+ * still at its full 82px, untruncated.
+ */
 .wallet {
   position: relative;
+  /*
+   * `flex`, not the default block, and that is the half that was missing.
+   *
+   * `min-width: 0` lets a FLEX ITEM shrink; it does nothing for a block, and a
+   * block container sizes its child button to the button's content and simply
+   * lets it spill. Measured with only `min-width` set: a 1,284,905.4417
+   * balance still grew the pill 212px -> 263px, still pushed the document past
+   * the viewport, and the address still sat untruncated at its full width.
+   *
+   * As a flex container it hands the button its own constrained width, which
+   * is what finally reaches `.wallet-addr` and lets the ellipsis do its job.
+   */
+  display: flex;
+  min-width: 0;
 }
 
 /* Matches .btn geometry exactly, so the header row reads as one set of controls
@@ -28,6 +53,18 @@
   color: var(--ink);
   font-size: var(--step--2);
   font-weight: 600;
+  /*
+   * Allowed to shrink, and the address is what gives.
+   *
+   * A balance is variable-width: this row fits at 1181px — the tightest width
+   * that still shows the nav — with 24px between the last link and the search
+   * icon, but that is measured on a four-figure balance. A whale's would push
+   * the pill into the nav. So the pill may narrow, the figure never does, and
+   * the address takes the loss: it is already an abbreviation, so shortening
+   * it further tells no lies, where an ellipsised NUMBER would.
+   */
+  min-width: 0;
+  max-width: 100%;
   transition: border-color var(--fast), background var(--fast);
 }
 
@@ -35,39 +72,77 @@
   border-color: var(--ink);
 }
 
+/*
+ * The account's glyph, with the live dot badged onto it.
+ *
+ * `position: relative` only so the dot has something to pin to. Standing
+ * beside the address in a single row the dot read as a bullet rather than a
+ * status light; on the glyph it qualifies the thing it is about.
+ */
+.wallet-mark {
+  position: relative;
+  display: flex;
+  flex: none;
+  color: var(--ink-2);
+}
+
 .wallet-dot {
+  position: absolute;
+  right: -1px;
+  bottom: -1px;
   width: 6px;
   height: 6px;
   border-radius: 50%;
   background: var(--up);
-  flex: none;
+  /*
+   * The ring is the SURFACE colour, not a tint of the dot: it punches the
+   * badge out of the glyph behind it so the two do not merge into one shape.
+   * That is why it follows `--surface` and not `--up`.
+   */
+  box-shadow: 0 0 0 1.5px var(--surface);
 }
 
-/* The two lines of the pill, stacked. `min-width: 0` so a long balance
-   ellipsises rather than forcing the column wider. */
-.wallet-stack {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0.05rem;
-  min-width: 0;
-  line-height: 1.25;
-}
-
+/*
+ * The identity, and now simply the first of two figures rather than a label
+ * over a value. It keeps `--ink-2`: the balance is still the one worth
+ * reading, and two equal weights in one row give the eye nowhere to land.
+ */
 .wallet-addr {
   font-variant-numeric: tabular-nums;
   font-size: var(--step--2);
+  color: var(--ink-2);
   /* The break that started all this: an address is one token, never two. */
   white-space: nowrap;
+  /* The one part of the row that yields. See `.wallet-trigger`. */
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
+/*
+ * A hairline between them, because they are different KINDS of thing — an
+ * identity and a quantity — and a gap alone lets them read as one run of
+ * characters. `currentColor` at low alpha, so it follows the pill's ink into
+ * either theme instead of needing a literal per theme.
+ */
+.wallet-rule {
+  width: 1px;
+  height: 0.95em;
+  flex: none;
+  background: currentColor;
+  opacity: 0.22;
+}
+
+/* The value, and the one thing here that never shrinks. */
 .wallet-bal {
   display: flex;
+  flex: none;
   align-items: center;
-  gap: 0.25rem;
+  gap: 0.3rem;
   font-variant-numeric: tabular-nums;
-  font-size: var(--step--3);
-  color: var(--ink-3);
+  font-size: var(--step--2);
+  font-weight: 650;
+  color: var(--ink);
   white-space: nowrap;
 }
 
@@ -132,15 +207,24 @@
 
 /* The address, which is also the copy button. The hint only shows the action
    on hover so the resting state is just the address. */
+/*
+ * Glyph, address, hint. `center` not `baseline`: a drawing has no baseline to
+ * share, and aligning to one drops it a couple of pixels below the text it is
+ * standing beside.
+ */
 .wallet-copy {
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 0.6rem;
+  align-items: center;
+  gap: 0.5rem;
   width: 100%;
-  padding: 0;
+  padding: 0.1rem 0;
   text-align: left;
   border-radius: var(--r-sm);
+}
+
+/* The hint goes to the far end; the glyph and address stay together. */
+.wallet-copy .wallet-copy-hint {
+  margin-left: auto;
 }
 
 .wallet-copy-addr {
@@ -169,10 +253,37 @@
   transition: opacity var(--fast);
 }
 
+/*
+ * A labelled row rather than a loose figure under the address.
+ *
+ * It sat directly beneath the address at `--ink-2`, which read as a caption to
+ * it — a second line about the account rather than a separate fact. Named on
+ * the left and set in full ink on the right, it is the one number in here and
+ * looks like it.
+ */
 .wallet-menu-bal {
-  font-size: var(--step--2);
-  color: var(--ink-2);
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.5rem 0.4rem;
+  margin-top: 0.1rem;
+  border-top: 1px solid var(--line);
+}
+
+.wallet-menu-bal-label {
+  font-size: var(--step--3);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.wallet-menu-bal-value {
+  font-size: var(--step--1);
+  font-weight: 650;
   font-variant-numeric: tabular-nums;
+  color: var(--ink);
 }
 
 .wallet-menu-actions {
