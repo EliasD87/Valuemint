@@ -1,0 +1,103 @@
+/*
+ * The lens. See `FocusLine.tsx` for what drives it.
+ *
+ * Two knobs, both on the line rather than buried in the rules below:
+ * `--foc-blur` is how soft the unfocused words go, `--foc-ret` the reticle's
+ * colour. The blur is deliberately gentler than a camera's would be — this is
+ * a real sentence in a real footer, and a reader skimming it without a pointer
+ * has to be able to.
+ */
+.foc {
+  --foc-blur: 2.4px;
+  --foc-ret: var(--accent);
+}
+
+/*
+ * `inline-block`, so each word is a box.
+ *
+ * As plain inline content a word that wrapped would be two fragments, and the
+ * reticle below — one absolutely positioned box — can only ever draw around
+ * one of them. A word is never broken internally, so nothing is lost by making
+ * it atomic.
+ */
+.foc-word {
+  position: relative;
+  display: inline-block;
+  filter: blur(var(--foc-blur));
+  opacity: 0.55;
+  /*
+    `filter` and `opacity` only. Neither reflows, so a sentence racking focus
+    across seven words never moves the four columns beside it.
+  */
+  transition: filter 420ms ease, opacity 420ms ease;
+}
+
+.foc-word.is-sharp {
+  filter: blur(0);
+  opacity: 1;
+}
+
+/*
+ * The reticle: four corners, one element, eight gradients.
+ *
+ * Corners rather than a border, because a full rectangle reads as a button or
+ * an input — something to press. Four right angles floating off the word's
+ * edges read as an instrument sighting it, which is the whole idea.
+ *
+ * Each corner is two bars, a horizontal arm and a vertical one, placed at that
+ * corner with `no-repeat`. Doing it with pseudo-elements instead would take
+ * four of them; a span has two.
+ */
+.foc-word::before {
+  content: "";
+  position: absolute;
+  /* Off the ink, not on it: room for the type's own side bearings. */
+  inset: -0.26em -0.2em;
+  --t: 1.5px;
+  --l: 0.42em;
+  background-image:
+    linear-gradient(var(--foc-ret) 0 0), linear-gradient(var(--foc-ret) 0 0),
+    linear-gradient(var(--foc-ret) 0 0), linear-gradient(var(--foc-ret) 0 0),
+    linear-gradient(var(--foc-ret) 0 0), linear-gradient(var(--foc-ret) 0 0),
+    linear-gradient(var(--foc-ret) 0 0), linear-gradient(var(--foc-ret) 0 0);
+  background-size:
+    var(--l) var(--t), var(--t) var(--l),
+    var(--l) var(--t), var(--t) var(--l),
+    var(--l) var(--t), var(--t) var(--l),
+    var(--l) var(--t), var(--t) var(--l);
+  background-position:
+    left top, left top,
+    right top, right top,
+    left bottom, left bottom,
+    right bottom, right bottom;
+  background-repeat: no-repeat;
+  /* It belongs to the word, so it must not eat the pointer aimed at the word. */
+  pointer-events: none;
+  opacity: 0;
+  /* Arrives a beat after the sharpening starts, the way a lens settles. */
+  transition: opacity 260ms ease 90ms;
+}
+
+.foc-word.is-sharp::before {
+  opacity: 1;
+}
+
+/*
+ * Nothing soft, nothing moving.
+ *
+ * `still` in the component already stops the cycle and focuses no word, so
+ * this is what "no word focused" has to look like: the sentence, sharp. Worth
+ * stating rather than relying on the component, because a blurred paragraph is
+ * a legibility fault and not merely a quieter animation.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .foc-word {
+    filter: none;
+    opacity: 1;
+    transition: none;
+  }
+
+  .foc-word::before {
+    transition: none;
+  }
+}

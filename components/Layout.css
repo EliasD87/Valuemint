@@ -242,10 +242,23 @@
   transform: translateY(0.5px);
 }
 
+/*
+ * Words in a row, spaced by the gap rather than by their own padding.
+ *
+ * These read as chips before: 13.6px of horizontal padding each and 2.4px
+ * between them, so what separated one link from the next was the edge of its
+ * own box. Nav labels are text, and a row of text is spaced by the space
+ * between the words.
+ *
+ * It is also narrower — measured at 1280, 643px of nav became 611px — so the
+ * bar reaches its 1180px breakpoint with more slack than it had, not less.
+ * Measured at 1181, the tightest width that still shows it: 36px clear of the
+ * wordmark and 72px clear of the actions.
+ */
 .nav {
   display: flex;
   align-items: center;
-  gap: 0.15rem;
+  gap: 1.35rem;
 }
 
 /**
@@ -263,24 +276,34 @@
   align-items: center;
   gap: 0.35rem;
   white-space: nowrap;
-  padding: 0.45rem 0.85rem;
-  border-radius: var(--r-pill);
+  /*
+   * Vertical only. The horizontal is the `gap` above; this keeps the pointer
+   * target the full height of the bar rather than the height of the glyphs,
+   * and leaves the active marker below somewhere to sit.
+   */
+  padding: 0.45rem 0.2rem;
   font-size: var(--step--1);
   font-weight: 600;
   color: var(--ink-2);
-  transition: color var(--fast), background var(--fast);
+  transition: color var(--fast);
 }
 
+/* Ink, not a box. The label is the control, so the label is what responds. */
 .nav-link:hover {
   color: var(--ink);
-  background: var(--paper-2);
 }
 
-/* The current page has to outrank a hovered one, or the nav stops telling you
-   where you are the moment the pointer is anywhere near it. */
+/*
+ * The current page has to outrank a hovered one, or the nav stops telling you
+ * where you are the moment the pointer is anywhere near it.
+ *
+ * It used to say so twice — a `--paper-3` pill AND the accent marker below.
+ * With the pill gone the marker is doing the job alone, which is why it stays
+ * and why the weight bump stays with it: colour on its own is the one signal a
+ * reader with low contrast vision may not get.
+ */
 .nav-link.is-active {
   color: var(--ink);
-  background: var(--paper-3);
   font-weight: 650;
 }
 
@@ -319,7 +342,9 @@
 /* ========================================================== compact header */
 
 /**
- * Below 940px the nine primary links do not fit, and they move into the drawer.
+ * Below 1180px the primary links do not fit, and they move into the drawer.
+ * (940 for a while, which was wrong for every viewport up to ~1190 — see the
+ * "1180, not 940" note further down.)
  *
  * The drawer is the *only* phone navigation. It replaced a bottom tab bar that
  * carried four of the nine: two navigations on screen at once meant every
@@ -689,10 +714,108 @@
 
 /* =================================================================== footer */
 
+/* ------------------------------------------------------------ footer mesh ---
+ *
+ * The ground answers the pointer, the way the hero's does.
+ *
+ * Registered custom properties again, and for the same reason: an unregistered
+ * one is a string to the cascade, so it jumps between values and the light
+ * lands wherever the pointer was at that instant. Given a type the browser can
+ * interpolate them, and the ease below turns a stream of destinations into a
+ * glide — no rAF loop, no React state, two property writes a frame.
+ *
+ * Named apart from the hero's `--hx-*` on purpose. They are the same technique
+ * and not the same surface: this one is dark in both themes and has its own
+ * cell size and reach, and sharing names would mean one section could never be
+ * retuned without the other moving.
+ * ------------------------------------------------------------------------- */
+
+@property --fm-x {
+  syntax: "<length-percentage>";
+  inherits: true;
+  initial-value: 22%;
+}
+
+@property --fm-y {
+  syntax: "<length-percentage>";
+  inherits: true;
+  initial-value: 40%;
+}
+
 .footer {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
   margin-top: clamp(3rem, 8vw, 6rem);
   background: var(--dark);
   color: var(--dark-ink);
+  transition:
+    --fm-x 320ms cubic-bezier(0.22, 1, 0.36, 1),
+    --fm-y 320ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/*
+ * The mesh itself: one cell size, two layers, both lit only near the pointer.
+ *
+ * `z-index: 0` with the footer isolated, so it sits under every column without
+ * needing a negative index that could escape the stacking context. It takes no
+ * pointer events — the footer is what listens.
+ */
+.footer-mesh {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(var(--fm-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--fm-line) 1px, transparent 1px);
+  background-size: 56px 56px;
+  /*
+    Three stops, not two. A linear ramp on a mask reads as a disc with an edge,
+    and an edge travelling around a footer is a spotlight rather than a mesh
+    coming alive.
+  */
+  mask-image: radial-gradient(
+    circle 20rem at var(--fm-x) var(--fm-y),
+    #000 0%,
+    rgba(0, 0, 0, 0.38) 48%,
+    transparent 78%
+  );
+}
+
+/*
+ * The glow, on its own layer so it escapes the mesh's mask — masked twice it
+ * collapses into a hard puck. Wider than the lit cells, so colour is already
+ * there at the edge of them instead of stopping with them.
+ */
+.footer-mesh::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(circle 14rem at var(--fm-x) var(--fm-y), var(--fm-warm), transparent 70%),
+    radial-gradient(circle 28rem at var(--fm-x) var(--fm-y), var(--fm-cool), transparent 74%);
+}
+
+/* Dark in both themes, so these are literals rather than theme tokens — the
+   same reasoning `--dark-ink` beside them already follows. */
+.footer {
+  --fm-line: rgba(255, 255, 255, 0.055);
+  --fm-warm: rgba(255, 122, 51, 0.1);
+  --fm-cool: rgba(99, 102, 241, 0.12);
+}
+
+/* The columns ride above the mesh. */
+.footer-inner,
+.footer-base {
+  position: relative;
+  z-index: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .footer {
+    transition: none;
+  }
 }
 
 .footer-inner {
@@ -711,11 +834,34 @@
   align-items: flex-start;
 }
 
+/*
+ * The mark and the name on one line, above the statement.
+ *
+ * Sized to lead the column rather than label it: this is the one place the
+ * product signs its own name, and at 34px the disc read as a bullet beside
+ * the sentence instead of the thing the sentence belongs to.
+ */
+.footer-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.footer-name {
+  font-family: var(--display);
+  font-size: clamp(1.5rem, 2.2vw, 1.9rem);
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  line-height: 1;
+  color: var(--dark-ink);
+}
+
 /* The footer is dark in both themes, so the disc takes the light ink and the
    V shows the band through it. */
 .footer-lead .brand-mark {
-  width: 34px;
-  height: 34px;
+  width: 48px;
+  height: 48px;
+  flex: none;
 }
 .footer-lead .brand-mark svg {
   color: var(--dark-ink);

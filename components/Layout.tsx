@@ -6,6 +6,7 @@ import { useVerifiedContracts } from "@/hooks/useVerifiedContracts";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Wallet } from "./Wallet";
 import { ThemeToggle } from "./ThemeToggle";
+import { FocusLine } from "./FocusLine";
 import { Search } from "./Search";
 import { SodexLogo } from "./SodexLogo";
 import { deployment } from "@/config/contracts";
@@ -250,13 +251,42 @@ export function Layout({ children }: { children: ReactNode }) {
 
       <main id="main">{children}</main>
 
-      <footer className="footer">
+      <footer
+        className="footer"
+        /*
+          Two property writes and nothing else — no rAF loop, no state, no
+          render. `--fm-x`/`--fm-y` are registered in `Layout.css`, so the
+          browser interpolates them and the ease there does the gliding.
+          Putting the pointer in React state would re-render the whole footer
+          on every frame of a mouse movement.
+        */
+        onPointerMove={(event) => {
+          const box = event.currentTarget.getBoundingClientRect();
+          if (box.width === 0 || box.height === 0) return;
+          const style = event.currentTarget.style;
+          style.setProperty("--fm-x", `${((event.clientX - box.left) / box.width) * 100}%`);
+          style.setProperty("--fm-y", `${((event.clientY - box.top) / box.height) * 100}%`);
+        }}
+      >
+        {/* Atmospheric, so it is out of the accessibility tree and takes no
+            pointer events; the footer above is what listens. */}
+        <div className="footer-mesh" aria-hidden="true" />
+
         <div className="footer-inner">
           <div className="footer-lead">
-            <span className="brand-mark" aria-hidden="true">
-              <Mark />
-            </span>
-            <p className="footer-statement">The marketplace for everything minted on ValueChain.</p>
+            {/* The mark and the name together, the way the header carries them.
+                The disc alone said nothing to anybody who had not already
+                learned it. */}
+            <div className="footer-brand">
+              <span className="brand-mark" aria-hidden="true">
+                <Mark />
+              </span>
+              <span className="footer-name">ValueMint</span>
+            </div>
+            <FocusLine
+              className="footer-statement"
+              text="The marketplace for everything minted on ValueChain."
+            />
           </div>
 
           <div className="footer-col">
