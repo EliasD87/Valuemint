@@ -72,8 +72,6 @@ export function CollectionView({ params }: { params: Promise<{ address: string }
     isFetching: loadingMore,
   } = useTokenIds(collection, supply, limit);
 
-  const { tokens, isLoading } = useGenericTokens(collection, ids);
-
   /**
    * Listings for this collection, from the shared Seaport scan.
    *
@@ -82,6 +80,41 @@ export function CollectionView({ params }: { params: Promise<{ address: string }
    * order once, so the whole market is already in memory and this is a lookup.
    */
   const { best: bestListings } = useBestListings(collection);
+
+  /** Which of this collection's pieces are for sale, whatever their id. */
+  const listedIds = useMemo(() => {
+    const prefix = `${(collection ?? "0x0").toLowerCase()}-`;
+    const out: bigint[] = [];
+    for (const key of bestListings.keys()) {
+      if (key.startsWith(prefix)) out.push(BigInt(key.slice(prefix.length)));
+    }
+    return out;
+  }, [bestListings, collection]);
+
+  /**
+   * The page's window, plus every listed piece whether or not it falls in it.
+   *
+   * Without the second half this page could not show its own market. The
+   * window is the first `limit` ids the collection will name, which for a
+   * contract without Enumerable is whatever the explorer lists first — the
+   * newest. Cybereator has 1,427 pieces and six of them for sale at #1005,
+   * #1051 and thereabouts; the window held #1427 down to #1368, so the page
+   * reported "0 listed", drew "Not listed" on every card, and offered a
+   * "Price low" sort over a set with no prices in it. The boxes did the same
+   * at 8,230 minted and eight on sale.
+   *
+   * Reaching them by paging is not an answer: it is twenty-three presses of
+   * Load more on Cybereator, and the pieces somebody came to buy are the last
+   * thing they would find. The order book already names them exactly, so they
+   * are simply added — a handful of extra reads, for the only pieces on the
+   * page that can be acted on.
+   */
+  const shownIds = useMemo(() => {
+    const seen = new Set(ids.map((id) => id.toString()));
+    return [...ids, ...listedIds.filter((id) => !seen.has(id.toString()))];
+  }, [ids, listedIds]);
+
+  const { tokens, isLoading } = useGenericTokens(collection, shownIds);
 
   /**
    * Sorting and trait filtering.
@@ -99,7 +132,7 @@ export function CollectionView({ params }: { params: Promise<{ address: string }
   const [traitFilter, setTraitFilter] = useState<Record<string, string>>({});
 
   const listings = new Map<string, Listing>();
-  for (const id of ids) {
+  for (const id of shownIds) {
     const order = bestListings.get(`${(collection ?? "0x0").toLowerCase()}-${id}`);
     if (order !== undefined) listings.set(id.toString(), toListing(order));
   }
@@ -240,7 +273,13 @@ export function CollectionView({ params }: { params: Promise<{ address: string }
           <b>{formatCount(supply as bigint | undefined)}</b> minted
         </span>
         <span className="strip-item">
-          <b>{listings.size}</b> listed
+          {/*
+            The collection's own count, not this page's. `listings` above is
+            keyed by what is on screen, and reading the figure off it meant a
+            collection with six pieces for sale outside the loaded window
+            announced "0 listed" while the market was selling them.
+          */}
+          <b>{formatCount(BigInt(bestListings.size))}</b> listed
         </span>
         <span className="strip-item mono dim">{shortAddress(raw, 6)}</span>
       </div>
