@@ -185,12 +185,131 @@ async function flush(endpoint: string): Promise<void> {
 }
 
 /**
- * One token's metadata, batched with its neighbours where that is possible.
+ * The index answered nothing for this URL — not "there is nothing there".
  *
- * The promise is per token and resolves with that token's document, so callers
- * need know nothing about any of this.
+ * A distinct value rather than `undefined`, because `undefined` already means
+ * "no metadata" to every caller. Confusing the two would render a card as
+ * permanently blank the moment the index ran out of time on it.
  */
-export function loadTokenDocument(
+const UNANSWERED = Symbol("unanswered");
+
+/** One ask waiting on the index. */
+interface IndexPending {
+  url: string;
+  resolve: (value: TokenMetadata | undefined | typeof UNANSWERED) => void;
+}
+
+const indexQueue: IndexPending[] = [];
+let indexTimer: ReturnType<typeof setTimeout> | undefined;
+
+/**
+ * Set once the index says it is not configured.
+ *
+ * Without it, a build with no index pays a wasted request per batch for the
+ * life of the tab to be told the same thing every time.
+ */
+let indexAbsent = false;
+
+/**
+ * Fewer per request than the route will take.
+ *
+ * The URLs travel in the query string and some of them are long; 100 of
+ * SoDEX's would run past the 8 KB a proxy may quietly cut off. Fifty is well
+ * inside that and still one request for a page of sixty cards.
+ */
+const INDEX_MAX_URLS = 50;
+
+async function flushIndex(): Promise<void> {
+  const waiting = indexQueue.splice(0);
+  indexTimer = undefined;
+  if (waiting.length === 0) return;
+
+  const give = (value: TokenMetadata | undefined | typeof UNANSWERED) => {
+    for (const w of waiting) w.resolve(value);
+  };
+
+  try {
+    const query = waiting.map((w) => encodeURIComponent(w.url)).join(",");
+    const response = await fetch(`/api/index/documents?urls=${query}`);
+
+    /** 503 is "no index here". Stop asking for the life of the tab. */
+    if (response.status === 503) {
+      indexAbsent = true;
+      give(UNANSWERED);
+      return;
+    }
+    if (!response.ok) {
+      give(UNANSWERED);
+      return;
+    }
+
+    const body = (await response.json()) as { documents?: Record<string, unknown> };
+    const documents = body.documents ?? {};
+
+    for (const w of waiting) {
+      if (!Object.prototype.hasOwnProperty.call(documents, w.url)) {
+        /** Not answered. The caller reads it the way it always did. */
+        w.resolve(UNANSWERED);
+        continue;
+      }
+      const raw = documents[w.url];
+      /**
+       * Read here, not trusted as sent. `readTokenMetadata` is the gate that
+       * decides what counts as a name, a picture and a trait, and the cached
+       * path must not be a laxer door than the direct one.
+       */
+      w.resolve(raw === null ? undefined : readTokenMetadata(raw));
+    }
+  } catch {
+    give(UNANSWERED);
+  }
+}
+
+/**
+ * Ask the index for one document, batched with everything asked alongside it.
+ *
+ * Every URL goes through here, whatever host it belongs to — which is the
+ * point. The batching already in this file only ever applied to this project's
+ * own metadata route, and the collections that actually cost something are
+ * SoDEX's, whose contracts name SoDEX's gateway and always will.
+ */
+function viaIndex(url: string): Promise<TokenMetadata | undefined | typeof UNANSWERED> {
+  if (typeof window === "undefined" || indexAbsent) return Promise.resolve(UNANSWERED);
+
+  return new Promise((resolve) => {
+    indexQueue.push({ url, resolve });
+
+    if (indexQueue.length >= INDEX_MAX_URLS) {
+      if (indexTimer !== undefined) clearTimeout(indexTimer);
+      indexTimer = undefined;
+      void flushIndex();
+      return;
+    }
+
+    if (indexTimer === undefined) {
+      indexTimer = setTimeout(() => void flushIndex(), WINDOW_MS);
+    }
+  });
+}
+
+export async function loadTokenDocument(
+  url: string,
+  timeoutMs = 20_000,
+): Promise<TokenMetadata | undefined> {
+  const cached = await viaIndex(url);
+  if (cached !== UNANSWERED) return cached;
+
+  return loadTokenDocumentDirect(url, timeoutMs);
+}
+
+/**
+ * The path this file had before the index existed, unchanged.
+ *
+ * Still reached whenever the index is unset, down, or ran out of time on a
+ * URL — so it stays exercised rather than becoming code nobody has run in six
+ * months.
+ */
+function loadTokenDocumentDirect(
   url: string,
   timeoutMs = 20_000,
 ): Promise<TokenMetadata | undefined> {
