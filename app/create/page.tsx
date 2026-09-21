@@ -67,19 +67,26 @@ export default function CreatePage() {
 /**
  * What somebody arriving on an old link or a bookmark sees.
  *
- * Not a 404. The page has not moved and is not gone, it is paused — saying so
- * is both true and the difference between "this site is broken" and "come
- * back". Nothing here promises a date, because none has been set.
+ * Not a 404. The page has not moved and is not gone, it is closed for now —
+ * saying so is both true and the difference between "this site is broken" and
+ * "come back". Nothing here promises a date, because none has been set.
  */
 function CreateClosed() {
   return (
     <section className="page section market-empty">
       <p className="eyebrow">Create</p>
-      <h2>Creating a collection is paused.</h2>
-      <p className="muted">
-        It is coming back. Everything already deployed is unaffected — collections still mint,
-        trade and transfer exactly as before, and anything you own stays yours.
-      </p>
+      {/*
+        One line, and nothing about deployments.
+
+        It used to reassure the reader that "everything already deployed is
+        unaffected — collections still mint, trade and transfer exactly as
+        before". True, but it answers a question only somebody who knows how
+        this is built would think to ask, and raising it is what plants the
+        worry. A visitor who finds this page wants to know whether to come
+        back, not what a pause does to a contract.
+      */}
+      <h2>Creating a collection is temporarily closed.</h2>
+      <p className="muted">It will be back soon.</p>
       <div className="wrap-row mt-md">
         <Link className="btn btn-primary" href="/collections">
           Browse collections
