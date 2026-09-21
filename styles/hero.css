@@ -550,6 +550,9 @@
     rgba(0, 0, 0, 0.66) 40%,
     rgba(0, 0, 0, 0) 100%
   );
+  /* Above the extension below, which is otherwise a pseudo-element and would
+     paint last — over the very text it exists to make readable. */
+  z-index: 1;
   pointer-events: none;
 
   /**
@@ -570,11 +573,57 @@
   transform: none;
 }
 
+/**
+ * The scrim, carried down to the card's edge.
+ *
+ * The body holds the gradient, and the body is lifted off the bottom by
+ * `--abs * 7%` so the names land on one line across the fan. That lift took
+ * the gradient with it: measured at 1280, a 10px strip of bare artwork under
+ * the name on the |n|=1 cards and 25px on the |n|=2 pair, directly beneath
+ * text that the gradient exists to make readable.
+ *
+ * So the gap is filled with the gradient's own darkest stop, `0.86`, which is
+ * exactly the value the gradient has reached at its bottom edge — the two meet
+ * with no seam to find.
+ *
+ * `calc(var(--abs) * 7%)` is deliberately the SAME expression that opened the
+ * gap, on an element that resolves it against the same box, so the two cannot
+ * drift: change the fan's spread and the patch follows it. On the centre card
+ * it computes to zero and nothing is drawn. Percentages here resolve against
+ * the card's untransformed height, which is also what `bottom` used, so the
+ * fan's rotate and scale do not enter into it.
+ */
+.hx-card::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0 0;
+  height: calc(var(--abs) * 7%);
+  background: rgba(0, 0, 0, 0.86);
+  pointer-events: none;
+}
+
 @media (hover: hover) and (pointer: fine) {
   .hx-card-body {
     opacity: 0;
     transform: translateY(8px);
     transition: opacity 260ms var(--ease), transform 260ms var(--ease);
+  }
+
+  /*
+   * It hides and arrives with the name, for the reason the name hides at all.
+   * Left visible it would be a black bar under an unhovered card with nothing
+   * on it. No transform: the body slides, but a scrim anchored to the bottom
+   * edge sliding would open the very gap this closes.
+   */
+  .hx-card::after {
+    opacity: 0;
+    transition: opacity 260ms var(--ease);
+  }
+
+  .hx-card:hover::after,
+  .hx-card:focus-visible::after,
+  .hx-card:focus-within::after {
+    opacity: 1;
   }
 
   /* `:focus-within` as well as `:hover`: a card that links is reachable by
