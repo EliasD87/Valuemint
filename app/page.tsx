@@ -490,18 +490,24 @@ function Hero({ deck }: { deck: DeckCard[] }) {
         <p className="hx-lede">{HERO_COPY.lede}</p>
 
         <div className="hx-actions">
-          <Link className="btn btn-primary btn-lg" href="/collections">
+          <Link className="btn btn-lg hx-btn-ghost" href="/collections">
             Explore collections
           </Link>
           {/*
-            The other half of the headline, which had no door.
+            The other half of the headline, and the one carrying the emphasis.
 
             The hero says "Collect and trade", and until now the only way on
             from it was into the collections list — browsing, not trading. The
-            market is where a price and a Buy button are, and it was four clicks
-            of the nav away from the sentence promising it.
+            market is where a price and a Buy button are, and it was four items
+            down the nav from the sentence promising it.
+
+            It takes the solid fill and the collections link takes the outline,
+            rather than the other way round, because this is the action the
+            page is for. An accent-orange variant was tried first and read as
+            loud next to a hero whose every other colour is deliberately black
+            and white.
           */}
-          <Link className="btn btn-lg hx-btn-ghost" href="/market">
+          <Link className="btn btn-primary btn-lg" href="/market">
             Trade NFTs
           </Link>
           {CREATE_ENABLED ? (

@@ -74,7 +74,19 @@
   --accent: #ff5c00;
   --accent-hover: #ff6f1f;
   --accent-2: #ff8a3d;
-  --accent-ink: #ffffff;
+  /**
+   * Dark, not white, and the dark theme has always said so.
+   *
+   * White on #ff5c00 is 3.10:1 — under AA for anything smaller than large
+   * text, which a button label is. This deep brown-black is 6.18:1 on it, and
+   * 7.36:1 on the dark theme's lighter orange, so the same ink is the better
+   * ink on both. White never wins on either.
+   *
+   * It read `#ffffff` for as long as nothing consumed it: `.btn-accent` was
+   * defined and never used, so the first thing to put a label on the accent
+   * was the home page's market button, and that is when it showed.
+   */
+  --accent-ink: #1a0c04;
   --accent-wash: #fff1e8;
   --accent-line: #ffd0b3;
 

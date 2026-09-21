@@ -73,10 +73,18 @@
 }
 
 /* Done: the dot is filled and so is the line leading into the next rung. */
+/*
+  `--paper`, not `--accent-ink`. The two greens `--good` carries are opposites
+  — a deep one in the light theme and a bright one in the dark — so the ink on
+  it has to flip with the theme, which is exactly what `--paper` does: 6.59:1
+  and 11.22:1. The accent's ink is dark in both themes and would be 2.90:1 on
+  the light one. The rules this replaced borrowed it anyway, so that was a
+  latent failure on the token page too.
+*/
 .step.is-done .step-dot {
   background: var(--good);
   border-color: var(--good);
-  color: var(--accent-ink);
+  color: var(--paper);
 }
 
 .step.is-done + .step::before {
