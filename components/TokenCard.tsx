@@ -50,6 +50,20 @@ interface Props {
    */
   vouched?: boolean;
   /**
+   * Whether to badge this as yours.
+   *
+   * On in a mixed grid, where "Yours" is the whole point — /market and a
+   * collection page put your pieces among everyone else's. Off on /portfolio,
+   * which is nothing BUT your pieces, so the badge is on every card and
+   * therefore tells you nothing about any of them.
+   *
+   * Only the badge. `isYours` also decides whether this card offers to bid,
+   * and that must keep working from the addresses wherever the card appears —
+   * a page that turned the badge off should not start offering you your own
+   * token.
+   */
+  markOwned?: boolean;
+  /**
    * Set on the handful of cards above the fold. Everything else stays lazy —
    * marking a whole grid priority just moves the queue rather than shortening
    * it.
@@ -80,6 +94,9 @@ export function TokenCard({
   vouched,
   priority = false,
   floor,
+  /* On by default: a mixed grid is the common case, and that is where the
+     badge earns its place. */
+  markOwned = true,
 }: Props) {
   const { isConnected } = useAccount();
   const isYours =
@@ -198,7 +215,7 @@ export function TokenCard({
         ) : null}
 
         <div className="tcard-badges">
-          {isYours ? <span className="chip chip-up">Yours</span> : null}
+          {isYours && markOwned ? <span className="chip chip-up">Yours</span> : null}
         </div>
 
         {/*

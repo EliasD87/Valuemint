@@ -366,6 +366,10 @@ function Holdings({
             listing={t.listing}
             owner={t.owner}
             viewerAddress={viewer}
+            /* Every card here is yours, so the badge marks nothing. The
+               addresses above still go in, because they are also what stops
+               this card offering you a bid on your own piece. */
+            markOwned={false}
             /*
               This piece's own tier floor where the collection has tiers, the
               collection floor otherwise.
