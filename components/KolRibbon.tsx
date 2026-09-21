@@ -174,8 +174,18 @@ const MAX_K = 1.25;
 /** Samples per wave in the x lookup table. */
 const TABLE = 1024;
 
-/** Cards per second at rest. */
-const DRIFT = 1.6;
+/**
+ * Cards per second at rest.
+ *
+ * One, down from 1.6. On a wide screen a card covers about 82px of the row, so
+ * the belt runs at roughly 82px/s and takes some seventeen seconds to carry a
+ * portrait across a 1440 frame — against eleven before. The page is a thing to
+ * look at rather than a thing to keep up with, and at the old pace a crest
+ * passed before you had finished reading the face on it.
+ *
+ * A push still moves it as fast as ever: this is only the speed it returns to.
+ */
+const DRIFT = 1.0;
 /** Wheel delta to belt speed. One notch of a mouse wheel is about 100. */
 const WHEEL_GAIN = 5;
 /** Page-scroll pixels to belt speed, for the scrollbar and for touch. */
