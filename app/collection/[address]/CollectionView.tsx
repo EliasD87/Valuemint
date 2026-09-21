@@ -30,6 +30,14 @@ import { Activity } from "@/components/Activity";
  * rather than assumed - a collection that lacks `totalSupply` still renders, just
  * without a grid.
  */
+/**
+ * Pieces per page, and per press of "Load more".
+ *
+ * Sixty fills three or four rows of a desktop grid, which is enough to show
+ * what a collection looks like without reading the whole of it.
+ */
+const PAGE = 60;
+
 export function CollectionView({ params }: { params: Promise<{ address: string }> }) {
   const { address: raw } = use(params);
   const { address: viewer } = useAccount();
@@ -46,8 +54,23 @@ export function CollectionView({ params }: { params: Promise<{ address: string }
   const { isErc721, name, symbol, supply, supplyKnown, probing } =
     useCollectionBasics(collection);
 
-  // Cap the first page; a large collection should not fire thousands of reads.
-  const { ids, isLoading: findingIds } = useTokenIds(collection, supply, 60);
+  /**
+   * How much of the collection is on screen, and what "more" means.
+   *
+   * A page rather than the whole thing, because there is no index behind this
+   * site: every visitor's own browser walks the collection, so a thousand-piece
+   * contract would otherwise fire a thousand reads at anyone who opened it.
+   *
+   * Sixty was a hard cap, and an invisible one — Cybereator has 1,001 pieces
+   * and this page drew sixty of them while saying nothing about the other 941.
+   * It is a starting point now, and the line under the grid says what is left.
+   */
+  const [limit, setLimit] = useState(PAGE);
+  const {
+    ids,
+    isLoading: findingIds,
+    isFetching: loadingMore,
+  } = useTokenIds(collection, supply, limit);
 
   const { tokens, isLoading } = useGenericTokens(collection, ids);
 
@@ -99,6 +122,9 @@ export function CollectionView({ params }: { params: Promise<{ address: string }
      */
     return [...out.entries()].filter(([, values]) => values.size > 1);
   }, [tokens]);
+
+  /** Whether any trait filter is narrowing the grid right now. */
+  const filtering = Object.values(traitFilter).some((v) => v !== "");
 
   const shown = useMemo(() => {
     const active = Object.entries(traitFilter).filter(([, v]) => v !== "");
@@ -337,6 +363,60 @@ export function CollectionView({ params }: { params: Promise<{ address: string }
           ))}
         </div>
       )}
+
+      {/*
+        What is on screen, and the way to get more of it.
+
+        `ids.length >= limit` is the test for "there is more", and it is doing
+        real work: if a press comes back with fewer ids than were asked for,
+        the source has given everything it has and the button takes itself
+        away. Comparing against `supply` alone would leave it sitting there
+        doing nothing for a collection whose explorer index is short of its own
+        `totalSupply` — which is exactly the case this page already has a
+        paragraph about.
+
+        The count is shown whenever the grid is not the whole collection, with
+        or without a button under it, because the sixty-card cap used to be
+        completely silent and that was the worse half of the problem.
+      */}
+      {supply !== undefined && ids.length > 0 && ids.length < Number(supply) ? (
+        <div className="coll-more">
+          <p className="coll-more-count">
+            {/*
+              Two different sentences, because a filter changes what the
+              numbers mean. Unfiltered, the grid is the first N of the
+              collection. Filtered, the grid is what matched *within* the first
+              N — and saying "12 of 1,001" there would imply the other 989 had
+              been looked at and rejected, when most of them have not been read
+              at all. That is the single most misleading thing this line could
+              do, so it says outright how far the search got.
+            */}
+            {filtering ? (
+              <>
+                Searched <b>{formatCount(BigInt(ids.length))}</b> of{" "}
+                <b>{formatCount(supply as bigint)}</b> —{" "}
+                <b>{formatCount(BigInt(shown.length))}</b>{" "}
+                match so far
+              </>
+            ) : (
+              <>
+                Showing <b>{formatCount(BigInt(shown.length))}</b> of{" "}
+                <b>{formatCount(supply as bigint)}</b>
+              </>
+            )}
+          </p>
+          {ids.length >= limit ? (
+            <button
+              type="button"
+              className="btn"
+              onClick={() => setLimit((n) => n + PAGE)}
+              disabled={loadingMore}
+            >
+              {loadingMore ? "Loading…" : `Load ${PAGE} more`}
+            </button>
+          ) : null}
+        </div>
+      ) : null}
         </div>
 
         {/*

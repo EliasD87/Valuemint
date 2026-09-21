@@ -1,5 +1,6 @@
 "use client";
 
+import { keepPreviousData } from "@tanstack/react-query";
 import { useReadContracts } from "wagmi";
 import { erc721Abi } from "viem";
 import { resolveMediaUrl } from "@/lib/format";
@@ -75,7 +76,17 @@ export function useGenericTokens(
       functionName: "tokenURI" as const,
       args: [id],
     })),
-    query: { enabled: collection !== undefined && ids.length > 0, staleTime: Infinity },
+    query: {
+      enabled: collection !== undefined && ids.length > 0,
+      staleTime: Infinity,
+      /**
+       * The id list grows when somebody asks for more of a collection, and a
+       * longer list is a different query. Keeping the previous answer is what
+       * stops the grid blanking and re-filling on every "Load more"; the extra
+       * cards simply appear under the ones already there.
+       */
+      placeholderData: keepPreviousData,
+    },
   });
 
   const uris = ids.map((_, i) =>

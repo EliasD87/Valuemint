@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { usePublicClient } from "wagmi";
 import { erc721Abi, type Address } from "viem";
 import { deployment } from "@/config/contracts";
@@ -49,8 +49,25 @@ interface ExplorerInstance {
   id?: string;
 }
 
-/** The explorer pages at 50, and the grid shows 60. Two pages covers it. */
-const MAX_PAGES = 3;
+/** What the explorer returns per page. */
+const EXPLORER_PAGE = 50;
+
+/**
+ * How far to walk the explorer for a given `limit`.
+ *
+ * It was a flat 3, which was right while the grid only ever asked for 60 —
+ * `limit * 2` candidates at 50 a page is three pages. The grid can now ask for
+ * more, a page at a time, and a fixed three would silently stop feeding it: the
+ * "Load more" button would be there and pressing it would change nothing.
+ *
+ * Capped all the same. These pages are fetched one after another because each
+ * needs the previous one's cursor, so the ceiling is what stops somebody
+ * holding the button down and turning a page render into a minute of serial
+ * round trips to a third party.
+ */
+const HARD_PAGE_CAP = 24;
+const pagesFor = (limit: number) =>
+  Math.min(HARD_PAGE_CAP, Math.ceil((limit * 2) / EXPLORER_PAGE) + 1);
 
 export function useMintedIds(
   collection: Address | undefined,
@@ -64,6 +81,13 @@ export function useMintedIds(
     queryKey: ["minted-ids", collection?.toLowerCase(), limit],
     enabled: enabled && collection !== undefined && client !== undefined,
     staleTime: 30_000,
+    /**
+     * `limit` is in the key, so asking for more is a different query. Without
+     * this the grid empties to skeletons on every "Load more" and fills back
+     * in — the cards you were already looking at disappear to be replaced by
+     * themselves plus sixty.
+     */
+    placeholderData: keepPreviousData,
     queryFn: async (): Promise<bigint[]> => {
       const candidates: bigint[] = [];
       const seen = new Set<string>();
@@ -75,7 +99,7 @@ export function useMintedIds(
        */
       try {
       let cursor: Record<string, unknown> | undefined;
-      for (let page = 0; page < MAX_PAGES; page++) {
+      for (let page = 0; page < pagesFor(limit); page++) {
         const url = new URL(
           `${deployment.explorer}/api/v2/tokens/${collection}/instances`,
         );
@@ -160,6 +184,8 @@ export function useMintedIds(
   return {
     ids: query.data ?? [],
     isLoading: query.isLoading,
+    /** A longer list is on its way; the one being returned is the old one. */
+    isFetching: query.isFetching,
     /**
      * Whether this has finished having an opinion.
      *

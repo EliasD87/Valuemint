@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { keepPreviousData } from "@tanstack/react-query";
 import { useReadContracts } from "wagmi";
 import { enumerableAbi } from "@/config/erc721";
 import { useMintedIds } from "@/hooks/useMintedIds";
@@ -41,17 +42,26 @@ export function useTokenIds(
   collection: `0x${string}` | undefined,
   total: bigint | undefined,
   limit = 60,
-): { ids: bigint[]; isLoading: boolean } {
+): { ids: bigint[]; isLoading: boolean; isFetching: boolean } {
   const count = total === undefined ? 0 : Math.min(Number(total), limit);
 
-  const { data } = useReadContracts({
+  const { data, isFetching: fetchingEnumerated } = useReadContracts({
     contracts: Array.from({ length: count }, (_, i) => ({
       address: collection ?? "0x0",
       abi: enumerableAbi,
       functionName: "tokenByIndex" as const,
       args: [BigInt(i)],
     })),
-    query: { enabled: collection !== undefined && count > 0, refetchInterval: 30_000 },
+    query: {
+      enabled: collection !== undefined && count > 0,
+      refetchInterval: 30_000,
+      /**
+       * A longer `limit` is a different set of contracts, so it is a different
+       * query. Without this the grid empties to skeletons on every "Load more"
+       * and fills back in — the cards already on screen vanish and return.
+       */
+      placeholderData: keepPreviousData,
+    },
   });
 
   /**
@@ -77,7 +87,11 @@ export function useTokenIds(
    */
   const notEnumerable = count > 0 && data !== undefined && enumerated.length === 0;
 
-  const { ids: recovered, settled: recoveryDone } = useMintedIds(collection, notEnumerable, limit);
+  const {
+    ids: recovered,
+    settled: recoveryDone,
+    isFetching: fetchingRecovered,
+  } = useMintedIds(collection, notEnumerable, limit);
 
   const ids = useMemo(
     () => (enumerated.length > 0 ? enumerated : recovered),
@@ -103,5 +117,14 @@ export function useTokenIds(
     // It came back empty, and recovery has not finished having an opinion.
     (notEnumerable && !recoveryDone);
 
-  return { ids, isLoading };
+  return {
+    ids,
+    isLoading,
+    /**
+     * More is on the way, and what is being returned is the shorter previous
+     * answer. The caller uses this to say so on the button rather than to hide
+     * the grid, which is the whole point of keeping the previous data.
+     */
+    isFetching: notEnumerable ? fetchingRecovered : fetchingEnumerated,
+  };
 }
