@@ -155,53 +155,6 @@ create index if not exists events_by_maker on events (maker, block_number desc);
 create index if not exists events_by_taker on events (taker, block_number desc);
 
 -- ---------------------------------------------------------------------------
--- Token documents
--- ---------------------------------------------------------------------------
-
--- What a `tokenURI` returns, cached by the URL it came from.
---
--- Keyed by URL rather than by (collection, token) on purpose. That is the key
--- the app already thinks in — `useTokenDocuments` caches per document because
--- "a document at a URL is that document forever" — and it handles the shape
--- the collections here actually have: every Treasure Box of a given tier shares
--- one document, so 626 tokens are two rows rather than 626.
---
--- Why it exists, measured on the live collection page for Cybereator:
---
---     mainnet-gw.sodex.dev    69 requests    17,029 ms
---
--- One request per token, to SoDEX's gateway, which sends no cache headers — so
--- every cold visit pays it again. That is not IPFS and not this project's
--- metadata route: those collections' contracts carry SoDEX URLs, permanently.
--- It became the slowest thing on the site once the order book stopped scanning.
---
--- `raw` is the document exactly as fetched. Deliberately not pre-digested:
--- `readTokenMetadata` is the gate that decides what counts as a name, a picture
--- and a trait, and it stays on the client where every other path already runs
--- it. The columns beside it are filter keys for searching, not claims.
-create table if not exists documents (
-  url         text primary key,
-  raw         jsonb,
-  name        text,
-  image       text,
-  traits      jsonb,
-  -- 'ok' — fetched and parsed.
-  -- 'missing' — the host answered, and its answer was nothing.
-  -- 'refused' — not fetchable: a host the server may not call, or an error.
-  -- The last two are remembered so a dead collection is not re-asked once per
-  -- card, per visitor, forever.
-  status      text        not null check (status in ('ok', 'missing', 'refused')),
-  fetched_at  timestamptz not null default now()
-);
-
--- Refreshing works oldest-first, so this is the order it reads in.
-create index if not exists documents_stale on documents (fetched_at);
-
--- Search, when it arrives. Cheap to carry now and expensive to backfill later.
-create index if not exists documents_name
-  on documents using gin (to_tsvector('simple', coalesce(name, '')));
-
--- ---------------------------------------------------------------------------
 -- What the app reads
 -- ---------------------------------------------------------------------------
 
@@ -299,9 +252,8 @@ alter table index_cursor enable row level security;
 alter table orders       enable row level security;
 alter table counters     enable row level security;
 alter table events       enable row level security;
-alter table documents    enable row level security;
 
-revoke all on index_cursor, orders, counters, events, documents from anon, authenticated;
+revoke all on index_cursor, orders, counters, events from anon, authenticated;
 revoke all on live_orders, listings_public, offers_public, collection_floors
   from anon, authenticated;
 

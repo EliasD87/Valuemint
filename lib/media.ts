@@ -40,21 +40,6 @@ export const OPTIMISED_IMAGE_HOSTS = [
  * rebinding, IPv6-mapped addresses and decimal or octal IP encodings, and the
  * set of hosts that are legitimately involved here is small and known.
  */
-/**
- * Hosts that serve token *documents*, on top of the gateways above.
- *
- * Kept as its own list rather than added to `OPTIMISED_IMAGE_HOSTS`, because
- * that one also decides what Next may resize — and permission to read a JSON
- * document is not permission to pipe a host's images through an optimiser.
- *
- * `mainnet-gw.sodex.dev` is where Cybereator's and the Treasure Box's contracts
- * point their `tokenURI`, permanently: those collections are SoDEX's, not this
- * project's, and the URL is baked into bytecode. The browser already fetches it
- * on every card. Letting the server fetch it too is what turns 69 requests per
- * visitor into one.
- */
-const DOCUMENT_HOSTS = ["mainnet-gw.sodex.dev"] as const;
-
 export function metadataFetchAllowed(raw: string): boolean {
   try {
     const u = new URL(raw);
@@ -62,7 +47,6 @@ export function metadataFetchAllowed(raw: string): boolean {
     // `file:`, `data:` and the rest have no business here at all.
     if (u.protocol !== "https:") return false;
     if ((OPTIMISED_IMAGE_HOSTS as readonly string[]).includes(u.hostname)) return true;
-    if ((DOCUMENT_HOSTS as readonly string[]).includes(u.hostname)) return true;
     return u.hostname === "www.valuemint.store" || u.hostname === "valuemint.store";
   } catch {
     return false;
