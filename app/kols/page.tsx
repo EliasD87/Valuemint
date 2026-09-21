@@ -61,13 +61,30 @@ export default function Kols() {
           {/* The production status line and the "list is still open" note were
               working notes addressed at us, not at a visitor. What is left says
               what the set is and who it is for. */}
-          <p className="kol-eyebrow">One of one</p>
-          {/* Said plainly and near the top, because the page otherwise reads as
-              a shop: the portraits are made and shown, and nothing about them
-              can be acted on yet. */}
-          <p className="kol-soon">
-            <span className="kol-soon-dot" aria-hidden="true" />
-            Coming soon
+          {/*
+            What the set is and when it is, on one line.
+
+            The status was its own pill under this, which made two uppercase
+            tracked labels stacked competing to be read first — and it carried
+            `align-self: flex-start` inside a centred column, so it hung 466px
+            off the axis everything else lines up on. Both are facts about the
+            set, so they belong on the same line; this eyebrow was already an
+            inline-flex with a gap, waiting for exactly this.
+
+            Still near the top, for the reason it always was: the page
+            otherwise reads as a shop, and nothing here can be acted on yet.
+          */}
+          <p className="kol-eyebrow">
+            {/* An explicit space, or the two halves concatenate in the
+                accessible name and are read as "One of oneComing soon". A
+                whitespace-only text node generates no flex item, so this
+                changes nothing on screen. */}
+            One of one{" "}
+            <span className="kol-eyebrow-rule" aria-hidden="true" />
+            <span className="kol-soon">
+              <span className="kol-soon-dot" aria-hidden="true" />
+              Coming soon
+            </span>
           </p>
           <h1 className="kol-title">The people who show up</h1>
           <p className="kol-lede">

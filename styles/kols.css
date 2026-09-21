@@ -158,6 +158,28 @@
      it - the portraits are the subject, the word is the ground. */
   filter: drop-shadow(0 26px 46px rgba(0, 0, 0, 0.55));
   user-select: none;
+  /*
+   * Stand the letterforms on the line, not merely their boxes.
+   *
+   * `line-height: 0.74` above crops the glyph's leading, and the row is
+   * `align-items: flex-end` with no bottom padding, so the letter BOX already
+   * ends exactly on the edge where the hero meets the roster. The ink does
+   * not. Rasterised at 200px and scanned for the lowest inked pixel: the
+   * baseline sits 0.70em below the box top, K and L bottom out 0.005em above
+   * it and the O overshoots 0.01em below it, the way round letters do. That
+   * leaves 0.03em of empty violet underneath — 8px at the size this renders
+   * now, and ~17px once `--letter` reaches its 560px ceiling, because the
+   * band scales with the type.
+   *
+   * So it is `em`, not a pixel nudge: the gap is a property of the typeface
+   * at any size, and a fixed number would only be right at one width.
+   *
+   * Transform rather than a margin on purpose. The figures are positioned
+   * against the plinth, whose height is the letter's line box; moving that
+   * box would drag them down with it, and they are already standing where
+   * they should.
+   */
+  transform: translateY(var(--letter-drop, 0.03em));
 }
 
 .kol-figure {
@@ -331,29 +353,33 @@
 }
 
 /*
- * "Coming soon", on the same terms as the Trenches status.
+ * "Coming soon", as the second half of the eyebrow.
  *
- * A label rather than a banner: uppercase, tracked, quiet, on the glass the
- * hero is built from, with the dot carrying the only colour. It is a fact about
- * timing, not a warning, and the page it sits on is a gallery.
+ * It was a glass pill on its own line, and it read as a banner on a page that
+ * is a gallery — two uppercase tracked labels stacked, the lower one hanging
+ * off the left margin because `align-self: flex-start` fought the centred
+ * column around it.
+ *
+ * Nothing sizes or tracks itself here now: sitting inside `.kol-eyebrow` it
+ * takes that line's type, so the two halves cannot drift apart. All it sets is
+ * a slightly brighter ink than the purple beside it — the category is context,
+ * the status is the news — and the dot, which carries the only colour.
  */
 .kol-soon {
   display: inline-flex;
   align-items: center;
-  gap: 0.6rem;
-  align-self: flex-start;
-  margin-top: 0.15rem;
-  padding: 0.45rem 1rem 0.45rem 0.8rem;
-  border-radius: var(--r-pill);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  background: rgba(255, 255, 255, 0.06);
-  -webkit-backdrop-filter: blur(8px);
-  backdrop-filter: blur(8px);
-  color: rgba(255, 255, 255, 0.82);
-  font-size: var(--step--2);
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  gap: 0.55rem;
+  color: rgba(255, 255, 255, 0.86);
+}
+
+/* A hairline rather than a middot: a character would join the accessible name
+   and be read out between the two halves. */
+.kol-eyebrow-rule {
+  width: 1px;
+  height: 0.95em;
+  flex: none;
+  background: currentColor;
+  opacity: 0.32;
 }
 
 .kol-soon-dot {
