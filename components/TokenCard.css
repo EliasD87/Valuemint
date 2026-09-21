@@ -189,14 +189,115 @@
   }
 }
 
+/*
+ * The tier, across the top of the art.
+ *
+ * A band rather than a corner chip: rarity is the first thing anybody sorts a
+ * grid by, and a 40px pill in a corner made it something you go looking for.
+ * Centred and flush to the top edge, it reads as part of the piece.
+ *
+ * `--paper` for the ink, measured rather than chosen. Across all six tiers
+ * every colour is DARK in the light theme (relative luminance .077-.149) and
+ * LIGHT in the dark one (.336-.456), so the readable ink is always the inverse
+ * of the page's ink — which is exactly what `--paper` is. Worst pairing 5.27:1,
+ * best 9.29:1, so one declaration covers twelve cases.
+ */
+.tcard-ribbon {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1;
+  padding: 0.22rem 0.85rem 0.26rem;
+  min-width: 42%;
+  border-radius: 0 0 var(--r-sm) var(--r-sm);
+  color: var(--paper);
+  font-size: var(--step--3);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-align: center;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: var(--shadow-sm);
+}
+
+/*
+ * Solid, where `.chip-<tier>` is a wash. Two classes beat one, so this needs
+ * no !important and a new tier still only has to exist in the palette.
+ */
+.tcard-ribbon.chip-legendary { background: var(--legendary); }
+.tcard-ribbon.chip-epic { background: var(--epic); }
+.tcard-ribbon.chip-rare { background: var(--rare); }
+.tcard-ribbon.chip-common { background: var(--common); }
+.tcard-ribbon.chip-uncommon { background: var(--uncommon); }
+.tcard-ribbon.chip-superrare { background: var(--superrare); }
+
+/*
+ * The money, plated over the foot of the artwork.
+ *
+ * On the art rather than under it, so the card layers instead of stacking and
+ * the figure lands where the eye already is. The scrim is its own background
+ * and reaches the bottom edge — the same mistake the hero deck made, where a
+ * lifted gradient left bare artwork under the text it was meant to carry.
+ *
+ * Literal blacks and a literal white, deliberately: this sits on ARTWORK, not
+ * on a surface, so it must not follow the theme. Every other plate on the site
+ * that lies over a picture does the same.
+ */
+.tcard-plate {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 1.5rem 0.6rem 0.5rem;
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.8) 0%,
+    rgba(0, 0, 0, 0.52) 42%,
+    rgba(0, 0, 0, 0) 100%
+  );
+  color: #fff;
+  font-size: var(--step--1);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+
+/*
+ * The label is what stops a floor reading as this piece's own price. It is
+ * quieter than the figure but never hidden — a floor is somebody else's price,
+ * and an unlabelled number here would be a quiet lie on a page about what you
+ * own.
+ */
+.tcard-plate-label {
+  font-size: var(--step--3);
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  opacity: 0.72;
+}
+
+/* A floor is a softer claim than an asking price, and looks it. */
+.tcard-plate.is-floor {
+  font-weight: 650;
+}
+
 .tcard-badges {
   position: absolute;
   inset: 0.55rem 0.55rem auto;
   display: flex;
-  justify-content: space-between;
+  /* `end`: the tier used to sit on the left of this row and now has the top
+     edge to itself, so what is left is one badge against the right. */
+  justify-content: flex-end;
   gap: 0.4rem;
   pointer-events: none;
-  z-index: 1;
+  z-index: 2;
 }
 
 .tcard-badges .chip {

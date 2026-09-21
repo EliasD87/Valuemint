@@ -181,10 +181,41 @@ export function TokenCard({
         ) : (
           <div className="tcard-placeholder tcard-loading" aria-hidden="true" />
         )}
+        {/*
+          The tier, as a band across the top of the art rather than a chip in
+          the corner.
+
+          It reuses `chip-<tier>` for the tier's identity and overrides the two
+          colour properties, so a tier added to the palette needs nothing here.
+          The ink is `--paper` and that is not a guess: measured across all six
+          tiers, every colour is DARK in the light theme (luminance .077-.149)
+          and LIGHT in the dark one (.336-.456), so the readable ink is always
+          the inverse of the page's — which is what `--paper` is. Worst pair is
+          5.27:1, best 9.29:1.
+        */}
+        {token.tier !== undefined ? (
+          <span className={`tcard-ribbon chip-${tier}`}>{token.tier}</span>
+        ) : null}
+
         <div className="tcard-badges">
-          {token.tier !== undefined ? <span className={`chip chip-${tier}`}>{token.tier}</span> : <span />}
           {isYours ? <span className="chip chip-up">Yours</span> : null}
         </div>
+
+        {/*
+          The money, plated over the foot of the artwork.
+
+          Labelled, and that label is load-bearing: a floor is SOMEBODY ELSE'S
+          price, and a bare figure here would read as this piece's own. The
+          same distinction the foot used to carry, kept.
+        */}
+        {listing !== undefined || floor !== undefined ? (
+          <span className={`tcard-plate${listing === undefined ? " is-floor" : ""}`}>
+            <span className="tcard-plate-label">{listing !== undefined ? "Price" : "Floor"}</span>
+            <Soso size={14}>
+              {formatSoso(listing !== undefined ? listing.price : floor)}
+            </Soso>
+          </span>
+        ) : null}
       </div>
 
       <div className="tcard-body">
@@ -231,7 +262,7 @@ export function TokenCard({
                   Unverified
                 </span>
               ) : null}
-              {listing !== undefined ? "Price" : floor !== undefined ? "Floor" : "Status"}
+              Status
             </dt>
             {/*
               Three states, and the middle one is the new one.
@@ -247,22 +278,8 @@ export function TokenCard({
               floor is somebody else's price, and making it look like this
               piece's own would be a quiet lie on a page about what you own.
             */}
-            <dd
-              className={
-                listing !== undefined
-                  ? "tcard-price"
-                  : floor !== undefined
-                    ? "tcard-floor"
-                    : "tcard-none"
-              }
-            >
-              {listing !== undefined ? (
-                <Soso>{formatSoso(listing.price)}</Soso>
-              ) : floor !== undefined ? (
-                <Soso>{formatSoso(floor)}</Soso>
-              ) : (
-                "Not listed"
-              )}
+            <dd className={listing !== undefined ? "tcard-listed" : "tcard-none"}>
+              {listing !== undefined ? "Listed" : "Not listed"}
             </dd>
           </div>
         </dl>
