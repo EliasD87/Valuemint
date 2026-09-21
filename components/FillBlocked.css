@@ -1,0 +1,27 @@
+/**
+ * A fill that was stopped before it cost anything.
+ *
+ * Deliberately --warn and not --danger. Nothing went wrong and nothing was
+ * charged: somebody else got there first, or the maker withdrew, which is the
+ * ordinary way a trade fails on a marketplace. Red would read as a fault and
+ * send the person looking for a mistake of their own that is not there.
+ *
+ * Measured on both themes: 5.52:1 light, 8.84:1 dark.
+ */
+.fill-blocked {
+  font-size: var(--step--2);
+  line-height: 1.55;
+  border-radius: var(--r-sm);
+  padding: 0.7rem 0.8rem;
+  color: var(--warn);
+  background: var(--warn-wash);
+  border-left: 3px solid currentColor;
+  display: grid;
+  gap: 0.4rem;
+  /* Rows above and below it are tight; this needs its own air on every surface. */
+  margin: 0.6rem 0;
+}
+
+.fill-blocked p {
+  margin: 0;
+}

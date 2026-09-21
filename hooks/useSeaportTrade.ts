@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useAccount, usePublicClient, useReadContract, useWriteContract } from "wagmi";
+import { useQueryClient } from "@tanstack/react-query";
 import { useTxOutcome } from "@/hooks/useTxOutcome";
 import { parseEther, zeroHash, type Address } from "viem";
 import { ValueChainCollectionAbi } from "@/config/contracts";
@@ -360,6 +361,18 @@ export function useSeaportFill() {
   /** True while the order is being checked against the chain, before signing. */
   const [checking, setChecking] = useState(false);
 
+  const queryClient = useQueryClient();
+
+  /**
+   * A refusal means the book on screen is out of date. Re-read it here rather
+   * than in each page, or the surfaces that forgot would go on offering the
+   * order that was just refused.
+   */
+  const refreshBook = useCallback(() => {
+    void queryClient.invalidateQueries({ queryKey: ["indexed-orders"] });
+    void queryClient.invalidateQueries({ queryKey: ["seaport-validated"] });
+  }, [queryClient]);
+
   /**
    * Ask the chain whether this would work, then sign only if it would.
    *
@@ -387,6 +400,7 @@ export function useSeaportFill() {
           if (why !== undefined) {
             setBlocked(why);
             setChecking(false);
+            refreshBook();
             return;
           }
           // Unrecognised: let the wallet and the person decide, as before.
@@ -406,7 +420,7 @@ export function useSeaportFill() {
        */
       writeContract(request as never);
     },
-    [address, client, reset, writeContract],
+    [address, client, refreshBook, reset, writeContract],
   );
 
   /**

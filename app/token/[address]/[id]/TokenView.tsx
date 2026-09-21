@@ -18,6 +18,7 @@ import { splitFee } from "@/lib/seaport";
 import { priceMoved } from "@/lib/fillCheck";
 import { Offers } from "@/components/Offers";
 import { TxResult } from "@/components/TxResult";
+import { FillBlocked } from "@/components/FillBlocked";
 import { ShareLink } from "@/components/ShareLink";
 import { formatSoso, resolveMediaUrl, shortAddress } from "@/lib/format";
 import { MovingArt } from "@/components/MovingArt";
@@ -236,19 +237,6 @@ export function TokenView({
    * about it.
    */
   const [tried, setTried] = useState<{ hash: string; priceWei: bigint } | undefined>(undefined);
-
-  /**
-   * A fill that never left. Re-read the book at once.
-   *
-   * Without this the page prints "somebody bought this while you were looking"
-   * directly above a price and a Buy button for the listing that is gone, and
-   * waits up to thirty seconds to stop contradicting itself.
-   */
-  useEffect(() => {
-    if (fill.blocked === undefined) return;
-    void queryClient.invalidateQueries({ queryKey: ["indexed-orders"] });
-    void queryClient.invalidateQueries({ queryKey: ["seaport-validated"] });
-  }, [fill.blocked, queryClient]);
 
   /** What the listing is now, against what was tried. */
   const moved =
@@ -527,21 +515,17 @@ export function TokenView({
               the person was left with no account of what had just happened.
               The news outlives the thing it is about.
             */}
-            {fill.blocked !== undefined ? (
-              <div className="token-gone" role="status" aria-live="polite">
-                <p>{fill.blocked.say}</p>
-                {moved !== undefined ? (
-                  <p>
-                    It is listed again at{" "}
-                    <strong>{formatSoso(moved.nowWei)} SOSO</strong> —{" "}
-                    {moved.direction === "cheaper" ? "less" : "more"} than the price you
-                    clicked. Check it before buying.
-                  </p>
-                ) : listing === undefined ? (
-                  <p>Nothing is listed for this piece at the moment.</p>
-                ) : null}
-              </div>
-            ) : null}
+            <FillBlocked blocked={fill.blocked}>
+              {moved !== undefined ? (
+                <p>
+                  It is listed again at <strong>{formatSoso(moved.nowWei)} SOSO</strong> —{" "}
+                  {moved.direction === "cheaper" ? "less" : "more"} than the price you clicked.
+                  Check it before buying.
+                </p>
+              ) : listing === undefined ? (
+                <p>Nothing is listed for this piece at the moment.</p>
+              ) : null}
+            </FillBlocked>
 
             {listed ? (
               <>

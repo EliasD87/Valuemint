@@ -115,6 +115,26 @@ export function OfferForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [target.isSuccess, target.hash, wsoso.isSuccess]);
 
+  /**
+   * Empty the box once the offer is on chain.
+   *
+   * Left there, the amount is no longer a record of what was offered — it is
+   * read as a *second* offer being prepared. And because the first one is now
+   * standing, `useOwnOfferExposure` counts it, so the allowance this imaginary
+   * second offer needs is the typed amount plus the one just committed, which
+   * is more than was approved. `needsAllowance` flips back to true and the
+   * whole ladder returns.
+   *
+   * The result was "Offer placed" and "Wrap → Allow → Offer" on screen
+   * together: a receipt for something the form was simultaneously insisting
+   * had not been done. Clearing it leaves the receipt alone and the form ready
+   * for another offer, which is what the ladder reappearing was clumsily
+   * trying to say.
+   */
+  useEffect(() => {
+    if (step === "offer" && target.isSuccess) setAmount("");
+  }, [step, target.isSuccess]);
+
   return (
     <div className="offers-make">
       <div className="offers-fields">

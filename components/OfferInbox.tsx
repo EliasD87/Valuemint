@@ -9,6 +9,7 @@ import { whenExpires } from "@/components/Offers";
 import { useAccount } from "wagmi";
 import { useOwnOfferExposure, useSeaportOrders, type SeaportOrder } from "@/hooks/useSeaportOrders";
 import { useSeaportFill, useSeaportTrade } from "@/hooks/useSeaportTrade";
+import { FillBlocked } from "@/components/FillBlocked";
 import { useCanPayFeeInWsoso } from "@/hooks/useWsoso";
 import { formatSoso, shortAddress } from "@/lib/format";
 import { currencyLabel, fulfillerOutlay } from "@/lib/seaport";
@@ -201,6 +202,14 @@ function InboxRow({ row, onChange }: { row: Row; onChange: () => void }) {
           <span className="inbox-fine">The fee is taken in WSOSO from what you are paid.</span>
         ) : null}
       </span>
+
+      {/*
+        An offer withdrawn while this row sat on screen is the likeliest way an
+        Accept here fails, and this inbox is where somebody sits looking at a
+        list of them. Refusing in silence left a button that appeared to do
+        nothing at all.
+      */}
+      <FillBlocked blocked={fill.blocked} />
 
       <TxResult
         hash={fill.hash ?? trade.hash}

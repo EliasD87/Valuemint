@@ -8,6 +8,7 @@ import { useCanPayFeeInWsoso } from "@/hooks/useWsoso";
 import { formatSoso, shortAddress } from "@/lib/format";
 import { currencyLabel, fulfillerOutlay } from "@/lib/seaport";
 import { deployment } from "@/config/contracts";
+import { FillBlocked } from "@/components/FillBlocked";
 import { OfferForm, useTokenOfferTarget } from "@/components/OfferForm";
 import { TxResult } from "@/components/TxResult";
 import "./Offers.css";
@@ -210,6 +211,13 @@ export function Offers({
           })}
         </ul>
       )}
+
+      {/*
+        Why an Accept did not reach the wallet. Without it the check refuses in
+        silence, and a button that visibly does nothing is worse than the gas it
+        saved.
+      */}
+      <FillBlocked blocked={fill.blocked} />
 
       {/* Accepting or withdrawing reports here; the form reports inside itself. */}
       <TxResult
