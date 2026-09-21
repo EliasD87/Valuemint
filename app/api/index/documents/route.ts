@@ -101,11 +101,24 @@ async function fetchOne(url: string): Promise<Omit<Row, "fetched_at">> {
       cache: "no-store",
     });
 
-    /** A 404 is an answer: there is no document. Anything else may recover. */
-    if (response.status === 404) return { url, raw: null, status: "missing" };
-    if (!response.ok) return { url, raw: null, status: "refused" };
-
-    const raw: unknown = await response.json();
+    /**
+     * The body decides, not the status. This is not laxness.
+     *
+     * SoDEX's gateway answers `501 Not Implemented` and then sends a perfectly
+     * good document — for every Treasure Box, every time. `fetchTokenMetadata`
+     * has always read it this way, which is why the browser path worked; this
+     * route checked `response.ok` first and filed every box as unfetchable,
+     * and 626 cards rendered with no name and no picture.
+     *
+     * So: parse first. The status only gets a say when there is no JSON to
+     * read, where it separates "nothing here" from "ask again later".
+     */
+    let raw: unknown;
+    try {
+      raw = await response.json();
+    } catch {
+      return { url, raw: null, status: response.ok ? "missing" : "refused" };
+    }
 
     /**
      * Parsed here only to decide whether it is worth keeping. What gets stored
@@ -228,6 +241,19 @@ export async function GET(request: Request): Promise<NextResponse> {
     for (const url of urls) {
       const row = have.get(url);
       if (row === undefined) continue;
+
+      /**
+       * `refused` is left out, not sent as null.
+       *
+       * The whole point of the absent/null distinction, and the place it was
+       * got wrong: `refused` means this route could not read the document, and
+       * answering `null` told every caller there was nothing to read. A card
+       * then renders blank forever instead of fetching the document itself.
+       *
+       * Absent puts it back on the path it took before this route existed.
+       */
+      if (row.status === "refused") continue;
+
       documents[url] = row.status === "ok" ? row.raw : null;
     }
 
