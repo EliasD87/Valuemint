@@ -105,8 +105,8 @@ export default function Portfolio() {
     <section className="page section">
       <div className="head">
         <div>
-          <p className="eyebrow">Portfolio</p>
-          <h2>What you hold</h2>
+          {/* The label is the heading; see `.head h2.eyebrow` in global.css. */}
+          <h2 className="eyebrow">Portfolio</h2>
         </div>
       </div>
 

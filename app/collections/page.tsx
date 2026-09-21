@@ -111,8 +111,8 @@ export default function Collections() {
     <section className="page section">
       <div className="head">
         <div>
-          <p className="eyebrow">Collections</p>
-          <h2>Every NFT collection on ValueChain</h2>
+          {/* The label is the heading; see `.head h2.eyebrow` in global.css. */}
+          <h2 className="eyebrow">Collections</h2>
         </div>
         {CREATE_ENABLED ? (
           <Link className="btn btn-primary" href="/create">

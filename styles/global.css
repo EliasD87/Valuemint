@@ -241,6 +241,25 @@ textarea {
   font-size: var(--step-3);
 }
 
+/*
+ * An eyebrow that IS the heading.
+ *
+ * /portfolio and /collections dropped their big titles, and those titles were
+ * each page's ONLY heading — taken out plainly, both pages were left with none
+ * at all, which is a page with no outline to anything reading it that way. The
+ * short label above was already saying what the page is, so it becomes the
+ * heading rather than a second thing being invented to sit beside it.
+ *
+ * Two declarations, and both are overrides rather than styling: `.head h2`
+ * would impose the display size on it, and the `h1..h4` reset the display
+ * face. Everything else still comes from `.eyebrow`, so this cannot drift
+ * away from the eyebrows on every other page.
+ */
+.head h2.eyebrow {
+  font-size: var(--step--2);
+  font-family: var(--sans);
+}
+
 /* The eyebrow labels a heading, so it should read as attached to it. */
 .head .eyebrow + h2 {
   margin-top: -0.1rem;
