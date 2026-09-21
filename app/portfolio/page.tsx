@@ -2,7 +2,7 @@
 
 import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { useAccount, useBalance, useConnect } from "wagmi";
+import { useAccount, useBalance } from "wagmi";
 import { useQueryClient } from "@tanstack/react-query";
 import { useHoldings } from "@/hooks/useHoldings";
 import type { ChainToken } from "@/hooks/useEverything";
@@ -17,10 +17,10 @@ import { formatSoso } from "@/lib/format";
 import "@/styles/home.css";
 import "@/styles/portfolio.css";
 import { Soso } from "@/components/Soso";
+import { ConnectButton } from "@/components/ConnectButton";
 
 export default function Portfolio() {
   const { address, isConnected } = useAccount();
-  const { connect, connectors, isPending } = useConnect();
   const {
     tokens: mine,
     collections,
@@ -87,16 +87,7 @@ export default function Portfolio() {
           Holdings are read straight from every collection on the chain — nothing is stored on our
           side.
         </p>
-        <button
-          className="btn btn-primary btn-lg"
-          disabled={isPending}
-          onClick={() => {
-            const injected = connectors.find((c) => c.id === "injected");
-            if (injected !== undefined) connect({ connector: injected });
-          }}
-        >
-          {isPending ? "Check your wallet…" : "Connect wallet"}
-        </button>
+        <ConnectButton>Connect wallet</ConnectButton>
       </section>
     );
   }

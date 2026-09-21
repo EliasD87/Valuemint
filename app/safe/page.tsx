@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useAccount, useConnect, useReadContract, useWriteContract } from "wagmi";
+import { useAccount, useReadContract, useWriteContract } from "wagmi";
 import { useTxOutcome } from "@/hooks/useTxOutcome";
 import {
   decodeAbiParameters,
@@ -16,6 +16,7 @@ import { deployment } from "@/config/contracts";
 import { TxResult } from "@/components/TxResult";
 import { shortAddress } from "@/lib/format";
 import "./safe.css";
+import { ConnectButton } from "@/components/ConnectButton";
 
 /**
  * The owner console for the project's multisig.
@@ -225,7 +226,6 @@ function approvedHashSignatures(owners: readonly string[]): `0x${string}` {
 
 export default function SafeConsole() {
   const { address, isConnected } = useAccount();
-  const { connect, connectors, isPending: connecting } = useConnect();
 
   // Read once on mount rather than through a router hook, so the page is a
   // plain static document with nothing about this Safe in the bundle.
@@ -363,16 +363,9 @@ export default function SafeConsole() {
           )}
 
           {!isConnected ? (
-            <button
-              className="btn btn-primary btn-block"
-              disabled={connecting}
-              onClick={() => {
-                const injected = connectors.find((c) => c.id === "injected");
-                if (injected !== undefined) connect({ connector: injected });
-              }}
-            >
-              {connecting ? "Check your wallet…" : "Connect wallet to approve"}
-            </button>
+            <ConnectButton className="btn btn-primary btn-block">
+              Connect wallet to approve
+            </ConnectButton>
           ) : (
             <ApproveRow
               safeAddress={safeAddress}

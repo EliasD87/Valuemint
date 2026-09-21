@@ -5,7 +5,6 @@ import {
   useAccount,
   useBalance,
   useChainId,
-  useConnect,
   useReadContracts,
   useSwitchChain,
   useWriteContract,
@@ -16,6 +15,7 @@ import { valuechain } from "@/config/chain";
 import { formatCount, formatSoso } from "@/lib/format";
 import "@/styles/mint.css";
 import { Soso } from "@/components/Soso";
+import { ConnectButton } from "@/components/ConnectButton";
 
 /**
  * Minting for any collection, not a particular one.
@@ -28,7 +28,6 @@ import { Soso } from "@/components/Soso";
 export function MintPanel({ address: collection }: { address: `0x${string}` }) {
   const { address, isConnected } = useAccount();
   const chainId = useChainId();
-  const { connect, connectors, isPending: connecting } = useConnect();
   const { switchChain, isPending: switching } = useSwitchChain();
   const { data: balance } = useBalance({ address, query: { enabled: address !== undefined } });
 
@@ -140,16 +139,9 @@ export function MintPanel({ address: collection }: { address: `0x${string}` }) {
 
           <div className="mint-action">
             {!isConnected ? (
-              <button
-                className="btn btn-primary btn-lg btn-block"
-                disabled={connecting}
-                onClick={() => {
-                  const injected = connectors.find((c) => c.id === "injected");
-                  if (injected !== undefined) connect({ connector: injected });
-                }}
-              >
-                {connecting ? "Check your wallet…" : "Connect wallet to mint"}
-              </button>
+              <ConnectButton className="btn btn-primary btn-lg btn-block">
+                Connect wallet to mint
+              </ConnectButton>
             ) : wrongChain ? (
               <button
                 className="btn btn-primary btn-lg btn-block"

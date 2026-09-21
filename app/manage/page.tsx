@@ -3,13 +3,14 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { CREATE_ENABLED } from "@/config/features";
-import { useAccount, useConnect } from "wagmi";
+import { useAccount } from "wagmi";
 import { useOwnedCollections } from "@/hooks/useAllCollections";
 import { formatCount, formatSoso } from "@/lib/format";
 import { Art } from "@/components/Art";
 import { useCollectionArt } from "@/hooks/useCollectionArt";
 import "@/styles/manage.css";
 import "@/styles/home.css";
+import { ConnectButton } from "@/components/ConnectButton";
 
 /**
  * The creator's index: every collection this wallet owns.
@@ -28,7 +29,6 @@ export default function Manage() {
    */
   const { artFor } = useCollectionArt();
   
-  const { connect, connectors, isPending } = useConnect();
 
   /**
    * Wallet state does not exist during server rendering.
@@ -53,16 +53,7 @@ export default function Manage() {
           Ownership is read from each contract, so whatever you control shows up — including
           collections deployed before this site existed.
         </p>
-        <button
-          className="btn btn-primary btn-lg"
-          disabled={isPending}
-          onClick={() => {
-            const injected = connectors.find((c) => c.id === "injected");
-            if (injected !== undefined) connect({ connector: injected });
-          }}
-        >
-          {isPending ? "Check your wallet…" : "Connect wallet"}
-        </button>
+        <ConnectButton>Connect wallet</ConnectButton>
       </section>
     );
   }

@@ -2,12 +2,13 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { useAccount, useConnect } from "wagmi";
+import { useAccount } from "wagmi";
 import { useApprovals, useRevoke, type Approval } from "@/hooks/useApprovals";
 import { TxResult } from "@/components/TxResult";
 import { deployment } from "@/config/contracts";
 import { formatCount, shortAddress } from "@/lib/format";
 import "@/styles/approvals.css";
+import { ConnectButton } from "@/components/ConnectButton";
 
 /**
  * What this wallet has let other contracts move, and how to stop them.
@@ -20,7 +21,6 @@ import "@/styles/approvals.css";
  */
 export default function Approvals() {
   const { address } = useAccount();
-  const { connect, connectors, isPending } = useConnect();
   const { approvals, retired, isLoading, connected, refetch } = useApprovals();
 
   /** Which row is being revoked, so the banner belongs to one action. */
@@ -44,16 +44,7 @@ export default function Approvals() {
         <p className="eyebrow">Approvals</p>
         <h2>What can move your NFTs</h2>
         <p className="muted">Connect a wallet to see what it has approved.</p>
-        <button
-          className="btn btn-primary btn-lg"
-          disabled={isPending}
-          onClick={() => {
-            const injected = connectors.find((c) => c.id === "injected");
-            if (injected !== undefined) connect({ connector: injected });
-          }}
-        >
-          {isPending ? "Check your wallet…" : "Connect wallet"}
-        </button>
+        <ConnectButton>Connect wallet</ConnectButton>
       </section>
     );
   }

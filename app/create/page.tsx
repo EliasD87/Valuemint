@@ -6,7 +6,6 @@ import { getAddress, parseEther, parseEventLogs } from "viem";
 import {
   useAccount,
   useChainId,
-  useConnect,
   useSignMessage,
   useSwitchChain,
   useWriteContract,
@@ -23,6 +22,7 @@ import { TxResult } from "@/components/TxResult";
 import { CREATE_ENABLED } from "@/config/features";
 import { Select } from "@/components/Select";
 import "@/styles/create.css";
+import { ConnectButton } from "@/components/ConnectButton";
 
 /**
  * Creating a collection, artwork included.
@@ -102,7 +102,6 @@ function CreateClosed() {
 function Create() {
   const { address, isConnected } = useAccount();
   const chainId = useChainId();
-  const { connect, connectors, isPending: connecting } = useConnect();
   const { switchChain, isPending: switching } = useSwitchChain();
   const { signMessageAsync } = useSignMessage();
 
@@ -661,16 +660,7 @@ function Create() {
                 Continue
               </button>
             ) : !isConnected ? (
-              <button
-                className="btn btn-primary btn-lg"
-                disabled={connecting}
-                onClick={() => {
-                  const injected = connectors.find((c) => c.id === "injected");
-                  if (injected !== undefined) connect({ connector: injected });
-                }}
-              >
-                {connecting ? "Check your wallet…" : "Connect wallet"}
-              </button>
+              <ConnectButton>Connect wallet</ConnectButton>
             ) : chainId !== valuechain.id ? (
               <button className="btn btn-primary btn-lg" disabled={switching} onClick={() => switchChain({ chainId: valuechain.id })}>
                 {switching ? "Switching…" : "Switch to ValueChain"}
