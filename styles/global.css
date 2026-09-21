@@ -265,6 +265,23 @@ textarea {
   margin-top: -0.1rem;
 }
 
+/*
+ * Two ways out of a section, side by side, with the link last.
+ *
+ * `.head > .head-tools`, not `.head-tools`, for the reason `.head > .wrap-row`
+ * above already carries: `.head > div` matches ANY div dropped in a head and
+ * makes it a column. Measured with the bare class: the button and the link
+ * stacked 43px apart instead of sitting on one row. Two classes beat one class
+ * and one type, so this needs no !important.
+ */
+.head > .head-tools {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
 .head-link {
   display: inline-flex;
   align-items: center;

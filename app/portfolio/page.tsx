@@ -330,9 +330,21 @@ function Holdings({
           </p>
           <h3>{group.name}</h3>
         </div>
-        <Link className="head-link" href={`/collection/${group.address}`}>
-          View collection &rarr;
-        </Link>
+        {/* Both ways out of this group, side by side. The bulk button used to
+            be a full-width bar under the heading, which put a banner between a
+            collection's name and its pieces. */}
+        <div className="head-tools">
+          <BulkList
+            collection={group.address}
+            collectionName={group.name}
+            items={group.items
+              .filter((t) => t.listing === undefined)
+              .map((t) => ({ id: t.id, tier: t.tier }))}
+          />
+          <Link className="head-link" href={`/collection/${group.address}`}>
+            View collection &rarr;
+          </Link>
+        </div>
       </div>
 
       {/*
@@ -345,14 +357,6 @@ function Holdings({
         about everything held here, and collapsing the grid is a reading
         convenience that must not quietly change what a button acts on.
       */}
-      <BulkList
-        collection={group.address}
-        collectionName={group.name}
-        items={group.items
-          .filter((t) => t.listing === undefined)
-          .map((t) => ({ id: t.id, tier: t.tier }))}
-      />
-
       <div className="grid-tokens" ref={grid}>
         {shown.map((t) => (
           <TokenCard

@@ -129,7 +129,15 @@ export function BulkList({
       is one target rather than a small one next to some text.
     */
     return (
-      <button className="bulk-open" onClick={() => setOpen(true)}>
+      <button
+        className="bulk-open"
+        onClick={() => setOpen(true)}
+        title={
+          `List several at once — ${formatCount(BigInt(items.length))} unlisted` +
+          (groups.length > 1 ? ` across ${groups.length} levels` : "") +
+          ", one price per level"
+        }
+      >
         <span className="bulk-open-mark" aria-hidden="true">
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.7">
             <rect x="3.25" y="3.25" width="8" height="8" rx="2" />
@@ -139,18 +147,16 @@ export function BulkList({
           </svg>
         </span>
 
-        <span className="bulk-open-text">
-          <b>List several at once</b>
-          <small>
-            {formatCount(BigInt(items.length))} unlisted
-            {groups.length > 1 ? ` across ${groups.length} levels` : null} &mdash; one price
-            per level
-          </small>
-        </span>
+        {/*
+          The count is the label now, and the rest is the title.
 
-        <span className="bulk-open-go" aria-hidden="true">
-          &rarr;
-        </span>
+          As a full-width bar this said what there was to list before offering
+          to list it, which is the right shape for a banner and the wrong one
+          for a control sitting beside a link. The same facts are still here —
+          the tooltip carries the long form, and the panel it opens says it
+          again in full before anything is priced.
+        */}
+        <span className="bulk-open-text">List {formatCount(BigInt(items.length))}</span>
       </button>
     );
   }

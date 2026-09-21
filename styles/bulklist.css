@@ -18,27 +18,40 @@
  * cards immediately below, which is the one control on this page that spends
  * somebody's money.
  */
+/*
+ * A control beside the link, not a bar above the pieces.
+ *
+ * It was full width with a title, a sentence and an arrow, which sat between a
+ * collection's name and its artwork — a banner's shape for something that is
+ * one of two ways out of the group. Sized to `.head-link` so the pair reads as
+ * one set of controls, and the sentence it dropped lives in the `title` and in
+ * the panel it opens.
+ */
 .bulk-open {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 0.85rem;
-  width: 100%;
-  margin: 0 0 1rem;
-  padding: 0.75rem 0.9rem;
-  text-align: left;
-  background: var(--surface);
+  gap: 0.4rem;
+  /* Matches `.head-link`: a line box alone is ~17px, under the 24px a touch
+     target needs. */
+  min-height: 24px;
+  padding: 0.3rem 0.7rem;
   border: 1px solid var(--line);
-  border-radius: var(--r-md);
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  color: var(--ink-2);
+  font-size: var(--step--1);
+  font-weight: 600;
+  white-space: nowrap;
   transition:
     border-color var(--fast),
-    background var(--fast),
-    box-shadow var(--fast);
+    color var(--fast),
+    background var(--fast);
 }
 
 .bulk-open:hover {
   border-color: var(--line-strong);
+  color: var(--ink);
   background: var(--surface-2);
-  box-shadow: var(--shadow-sm);
 }
 
 .bulk-open:focus-visible {
@@ -46,15 +59,24 @@
   outline-offset: 2px;
 }
 
+/*
+ * The glyph, at the size of a glyph.
+ *
+ * It was a 2.25rem tinted tile, which is right for a banner and is what kept
+ * this button 47px tall next to a 24px link. No tile now: the icon takes the
+ * accent so it still marks the control as the one that acts, and the button is
+ * the height of its own text.
+ */
 .bulk-open-mark {
   display: grid;
   place-items: center;
   flex: none;
-  width: 2.25rem;
-  height: 2.25rem;
-  border-radius: var(--r-sm);
   color: var(--accent);
-  background: var(--accent-wash);
+}
+
+.bulk-open-mark svg {
+  width: 14px;
+  height: 14px;
 }
 
 .bulk-open-text {
