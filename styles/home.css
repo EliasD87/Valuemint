@@ -128,7 +128,17 @@
   letter-spacing: -0.015em;
 }
 
-.coll-pill span {
+/*
+ * The DIRECT child, for the reason `.coll-card-name > span` carries in full.
+ *
+ * A wordmark is a `<span role="img">` inside the `<b>` above, so a descendant
+ * selector reaches it and hands it the ticker's size. The drawing is measured
+ * in `em`, so that shrinks the mark itself rather than just restyling it: 9.4px
+ * tall here against the 10.4px the name asks for.
+ *
+ * `.coll-fallback` is a direct child too, so it keeps everything it had.
+ */
+.coll-pill > span {
   font-variant-numeric: tabular-nums;
   font-size: var(--step--2);
   color: var(--ink-3);

@@ -220,7 +220,13 @@ export default function Home() {
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={stillUrl(art, 128)} alt="" loading="lazy" decoding="async" />
                   )}
-                  <b>{c.name}</b>
+                  <b>
+                    {wordmarkFor(c.address) === undefined ? (
+                      c.name
+                    ) : (
+                      <Wordmark mark={wordmarkFor(c.address)!} name={c.name} />
+                    )}
+                  </b>
                   <span>{c.symbol}</span>
                 </Link>
               );

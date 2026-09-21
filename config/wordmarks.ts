@@ -12,6 +12,10 @@
  * wordmark on a white card does not look wrong, it disappears, which is the
  * harder fault to notice. Generating the second from the first's alpha channel
  * keeps them the same shape — see the note in Wordmark.css.
+ *
+ * Add the word it spells to `SAYS` below at the same time. A mark is only a
+ * legitimate substitute for the text it actually draws, and `wordmarkSaying`
+ * is what enforces that.
  */
 
 export type WordmarkKey = "cybereator";
@@ -25,6 +29,11 @@ const WORDMARKS: Record<string, WordmarkKey> = {
   "0x412d8af16b7ff3fe75e1cd380bd86ef33dd8ad0f": "cybereator",
 };
 
+/** What each mark spells, so a caller can check before substituting it. */
+const SAYS: Record<WordmarkKey, string> = {
+  cybereator: "Cybereator",
+};
+
 /**
  * The wordmark for a collection, if it has one.
  *
@@ -34,4 +43,27 @@ const WORDMARKS: Record<string, WordmarkKey> = {
 export function wordmarkFor(address: string | undefined): WordmarkKey | undefined {
   if (address === undefined) return undefined;
   return WORDMARKS[address.toLowerCase()];
+}
+
+/**
+ * The mark for this collection, but only if it spells this exact text.
+ *
+ * Use this wherever the text being replaced is a PIECE's name rather than the
+ * collection's. On a token card the name comes from the design in the
+ * manifest, and it is only a coincidence of Cybereator's that all thousand of
+ * them read "Cybereator" — the collection ships one design. Swapping on
+ * `wordmarkFor` alone would draw that same mark over "Red #3" and "Blue #7"
+ * the moment a collection with a wordmark has more than one design, silently
+ * replacing the one thing on the card that told the pieces apart.
+ *
+ * So the substitution is allowed exactly when it changes nothing but the
+ * typesetting: the drawing says what the text said.
+ */
+export function wordmarkSaying(
+  address: string | undefined,
+  text: string | undefined,
+): WordmarkKey | undefined {
+  const mark = wordmarkFor(address);
+  if (mark === undefined || text === undefined) return undefined;
+  return SAYS[mark].toLowerCase() === text.trim().toLowerCase() ? mark : undefined;
 }

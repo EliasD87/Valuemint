@@ -10,6 +10,8 @@ import type { Listing } from "@/lib/seaport";
 import { formatSoso } from "@/lib/format";
 import { tierClass } from "@/lib/tokenMetadata";
 import { Art } from "@/components/Art";
+import { Wordmark } from "@/components/Wordmark";
+import { wordmarkSaying } from "@/config/wordmarks";
 import { soleArtworkFor } from "@/config/covers";
 import "./TokenCard.css";
 import { Soso } from "@/components/Soso";
@@ -112,6 +114,9 @@ export function TokenCard({
    */
   const image = soleArtworkFor(collection) ?? token.image;
 
+  /** The collection's drawn name, if this piece's name is the word it draws. */
+  const titleMark = wordmarkSaying(collection, token.design);
+
   /**
    * One scan for the whole marketplace, shared by every card. React Query
    * collapses the identical key, so a grid of twenty cards costs one log scan
@@ -184,14 +189,30 @@ export function TokenCard({
 
       <div className="tcard-body">
         <div className="tcard-head">
-          <span className="tcard-title">
-            {token.design ??
-              (noMetadata ? (
-                <span className="tcard-fallback-name">{collectionName ?? "Unnamed"}</span>
-              ) : (
-                "—"
-              ))}
-          </span>
+          {/*
+            The collection's own drawing of its name, where there is one.
+
+            Same substitution the featured grid and the collection heading
+            already make, and it lands on the same `.tcard-title` slot the
+            grid uses — which is why `Wordmark.css` beats that class's
+            `flex: 1` with a doubled selector rather than a width here.
+
+            `wordmarkSaying` rather than `wordmarkFor`: this text is the
+            PIECE's name, and the mark may only stand in for it when it spells
+            the same word. See the note on it in `config/wordmarks.ts`.
+          */}
+          {titleMark !== undefined && token.design !== undefined ? (
+            <Wordmark mark={titleMark} name={token.design} className="tcard-title" />
+          ) : (
+            <span className="tcard-title">
+              {token.design ??
+                (noMetadata ? (
+                  <span className="tcard-fallback-name">{collectionName ?? "Unnamed"}</span>
+                ) : (
+                  "—"
+                ))}
+            </span>
+          )}
           <span className="tcard-num">#{token.id.toString()}</span>
         </div>
 

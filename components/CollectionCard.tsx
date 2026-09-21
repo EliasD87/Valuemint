@@ -3,6 +3,8 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { Art } from "@/components/Art";
+import { Wordmark } from "@/components/Wordmark";
+import { wordmarkFor } from "@/config/wordmarks";
 import { shortAddress } from "@/lib/format";
 
 /**
@@ -35,6 +37,13 @@ interface Props {
 
 export function CollectionCard({ href, name, symbol, address, images, badge, stats }: Props) {
   const initials = (symbol || name || "?").slice(0, 2).toUpperCase();
+
+  /**
+   * `wordmarkFor`, not `wordmarkSaying`: this really is the collection's name,
+   * so the drawing of that name always says the same thing. The narrower check
+   * is only for a PIECE's name — see the note in `config/wordmarks.ts`.
+   */
+  const mark = wordmarkFor(address);
 
   /**
    * Every card gets the same strip, whatever the collection holds.
@@ -90,7 +99,12 @@ export function CollectionCard({ href, name, symbol, address, images, badge, sta
       <div className="coll-card-body">
         <div className="coll-card-head">
           <div className="coll-card-name">
-            <b>{name}</b>
+            {/* Inside the `<b>`, not instead of it: this row is a flex COLUMN,
+                which would either stretch a bare mark across the card or, with
+                the `align-self` Wordmark.css carries, centre it over the symbol
+                below. The `<b>` also gives it the font-size its `em` sizing
+                reads. */}
+            <b>{mark === undefined ? name : <Wordmark mark={mark} name={name} />}</b>
             <span className="mono dim">{symbol || shortAddress(address, 4)}</span>
           </div>
           {badge}

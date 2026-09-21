@@ -105,7 +105,20 @@
   text-overflow: ellipsis;
 }
 
-.coll-card-name span {
+/*
+ * The DIRECT child, or it also catches the wordmark.
+ *
+ * A wordmark is a `<span role="img">` nested inside the `<b>` above, so a
+ * descendant selector here reaches it and sets it to the symbol's size — and
+ * because the drawing is sized in `em`, that does not merely restyle it, it
+ * shrinks the whole thing. Measured: 9.35px tall against the 11.7px the name
+ * beside it asks for, and the width follows the height, so the mark came out a
+ * quarter small with nothing in the markup to explain it.
+ *
+ * The symbol is a direct child, so `>` still reaches everything this rule was
+ * written for.
+ */
+.coll-card-name > span {
   font-size: var(--step--2);
 }
 

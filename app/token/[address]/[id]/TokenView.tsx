@@ -21,6 +21,8 @@ import { ShareLink } from "@/components/ShareLink";
 import { formatSoso, resolveMediaUrl, shortAddress } from "@/lib/format";
 import { MovingArt } from "@/components/MovingArt";
 import { soleArtworkFor } from "@/config/covers";
+import { Wordmark } from "@/components/Wordmark";
+import { wordmarkSaying } from "@/config/wordmarks";
 import "@/styles/token.css";
 import { Activity, LastSale } from "@/components/Activity";
 
@@ -73,6 +75,9 @@ export function TokenView({
    */
   const { standard, isLoading: loadingStandard } = useTokenStandard(collection);
   const { data: metadata, isLoading, uri: tokenUri } = useTokenMetadata(collection, tokenId);
+
+  /** The collection's drawn name, if this piece's name is the word it draws. */
+  const titleMark = wordmarkSaying(collection, metadata?.name);
 
   /**
    * The collection's own `name()`, which is a different question from the
@@ -367,10 +372,26 @@ export function TokenView({
               &larr; Back to the collection
             </Link>
             <h1 className="token-title">
-              {metadata?.name ??
+              {/*
+                `wordmarkSaying`, because this is the PIECE's name rather than
+                the collection's — Cybereator ships one design, so all thousand
+                read "Cybereator", but a collection with two would not. The
+                fallback below composes "<collection> #<id>", which no mark
+                spells, so it is refused there without needing to be excluded.
+
+                Inside the heading rather than replacing it: the mark carries
+                `role="img"` and its own label, so the h1's accessible name is
+                still the piece's name, and the drawing takes the heading's
+                font-size for its `em` sizing.
+              */}
+              {titleMark !== undefined && metadata?.name !== undefined ? (
+                <Wordmark mark={titleMark} name={metadata.name} />
+              ) : (
+                (metadata?.name ??
                 (isLoading
                   ? "Loading…"
-                  : `${typeof collectionName === "string" && collectionName !== "" ? collectionName : "Token"} #${id}`)}
+                  : `${typeof collectionName === "string" && collectionName !== "" ? collectionName : "Token"} #${id}`))
+              )}
             </h1>
             <div className="token-chips">
               {tierOf(metadata) !== undefined ? (
