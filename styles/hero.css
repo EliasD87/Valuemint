@@ -35,16 +35,30 @@
  * an explicit light choice, and the explicit dark stamp.
  */
 .hx {
-  --hx-cool: rgba(99, 102, 241, 0.1);
-  --hx-warm: rgba(255, 92, 0, 0.07);
+  /*
+   * The ground is monochrome: ink on a light page, light on a dark one.
+   *
+   * These were indigo and orange, and the orbs below were indigo, orange and
+   * sky. Named `cool` and `warm` for hues they no longer have, so they are
+   * named for their jobs instead — `lift` washes behind the copy at the top,
+   * `floor` pools under the deck.
+   *
+   * The alphas are NOT mirrored between the themes, and cannot be. Black on a
+   * near-white ground shifts it far faster than white on a near-black one:
+   * matched against the old colours, 0.05 of ink here lands where 0.17 of
+   * white lands in dark. Mirroring the numbers would give a light page a
+   * bruise and a dark page nothing.
+   */
+  --hx-lift: rgba(14, 14, 16, 0.05);
+  --hx-floor: rgba(14, 14, 16, 0.04);
   --hx-ground: linear-gradient(180deg, #ffffff 0%, #fafafb 46%, #f4f4f6 100%);
   --hx-grid: rgba(14, 14, 16, 0.045);
   --hx-card: var(--surface);
   --hx-card-line: var(--line-strong);
   --hx-shadow: 0 34px 70px -30px rgba(14, 14, 16, 0.22);
-  --hx-orb-1: rgba(99, 102, 241, 0.09);
-  --hx-orb-2: rgba(255, 92, 0, 0.07);
-  --hx-orb-3: rgba(56, 189, 248, 0.06);
+  --hx-orb-1: rgba(14, 14, 16, 0.05);
+  --hx-orb-2: rgba(14, 14, 16, 0.04);
+  --hx-orb-3: rgba(14, 14, 16, 0.035);
   /* The trace. Stronger than the resting grid on purpose — it is the thing
      the pointer is revealing, and on a white ground a hairline at 0.045 alpha
      does not survive being drawn twice. */
@@ -52,16 +66,16 @@
 }
 
 :root[data-theme="dark"] .hx {
-  --hx-cool: rgba(120, 130, 255, 0.16);
-  --hx-warm: rgba(255, 122, 51, 0.14);
+  --hx-lift: rgba(255, 255, 255, 0.09);
+  --hx-floor: rgba(255, 255, 255, 0.075);
   --hx-ground: linear-gradient(180deg, #0a0a0c 0%, #0d0d11 46%, #121218 100%);
   --hx-grid: rgba(255, 255, 255, 0.028);
   --hx-card: #17171c;
   --hx-card-line: rgba(255, 255, 255, 0.14);
   --hx-shadow: 0 34px 70px -30px rgba(0, 0, 0, 0.95);
-  --hx-orb-1: rgba(129, 140, 248, 0.3);
-  --hx-orb-2: rgba(255, 122, 51, 0.22);
-  --hx-orb-3: rgba(56, 189, 248, 0.24);
+  --hx-orb-1: rgba(255, 255, 255, 0.17);
+  --hx-orb-2: rgba(255, 255, 255, 0.12);
+  --hx-orb-3: rgba(255, 255, 255, 0.13);
   --hx-net: rgba(255, 255, 255, 0.075);
 }
 
@@ -189,8 +203,8 @@
   inset: 0;
   z-index: -2;
   background:
-    radial-gradient(58% 42% at 50% 4%, var(--hx-cool), transparent 70%),
-    radial-gradient(70% 45% at 50% 96%, var(--hx-warm), transparent 72%),
+    radial-gradient(58% 42% at 50% 4%, var(--hx-lift), transparent 70%),
+    radial-gradient(70% 45% at 50% 96%, var(--hx-floor), transparent 72%),
     var(--hx-ground);
 }
 
@@ -255,16 +269,33 @@
  * end and barely there at the other. The light ramp runs the other way, ink to
  * the same lavender, so the phrase fades toward the lede in both.
  */
+/*
+ * The second line fades, and it fades through grey.
+ *
+ * It ramped into periwinkle — #4b4fa8 then #7f85c4 — which was the last hue
+ * left in the hero once the ground went monochrome, so it read as the one
+ * that got missed rather than as an accent.
+ *
+ * The greys are LUMINANCE-MATCHED to the colours they replace, not picked to
+ * look about right: #4b4fa8 measures 0.0991 and #595959 measures 0.0999,
+ * #7f85c4 measures 0.2527 and #8a8a8a 0.2542. Choosing by eye would have
+ * flattened the ramp, because a saturated blue reads darker than the grey of
+ * the same lightness and the mid stop would have landed too pale. This way the
+ * line keeps exactly the contrast structure it was drawn with, and only the
+ * hue is gone.
+ */
 .hx-title em {
   font-style: normal;
-  background: linear-gradient(96deg, #0e0e10 0%, #4b4fa8 55%, #7f85c4 100%);
+  background: linear-gradient(96deg, #0e0e10 0%, #595959 55%, #8a8a8a 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
 }
 
+/* Matched the same way: #cfd3ff 0.6707 -> #d6d6d6 0.6724, #8f95c9 0.3155 ->
+   #989898 0.3140. */
 :root[data-theme="dark"] .hx-title em {
-  background: linear-gradient(96deg, #ffffff 0%, #cfd3ff 45%, #8f95c9 100%);
+  background: linear-gradient(96deg, #ffffff 0%, #d6d6d6 45%, #989898 100%);
   -webkit-background-clip: text;
   background-clip: text;
 }
