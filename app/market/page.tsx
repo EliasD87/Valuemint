@@ -31,7 +31,7 @@ const PIN_RANK = new Map(PINNED_COLLECTIONS.map((a, i) => [a.toLowerCase(), i]))
 const pinRank = (address: string) => PIN_RANK.get(address.toLowerCase()) ?? PIN_RANK.size;
 
 /** How many collection chips the filter row will carry. */
-const CHIP_LIMIT = 5;
+const CHIP_LIMIT = 4;
 
 export default function Market() {
   const { address } = useAccount();
@@ -151,16 +151,16 @@ export default function Market() {
   );
 
   /**
-   * The filter chips: the pinned collections, then the busiest, five at most.
+   * The filter chips: the pinned collections, then the busiest, four at most.
    *
-   * Five because the row is a row. Every collection with a listing used to get
+   * Four because the row is a row. Every collection with a listing used to get
    * a chip, which on a phone is a horizontally scrolling strip of them — and
    * the one anybody came for could be the fourth one off the right-hand edge.
    *
    * Nothing is hidden by this. A chip is a shortcut, not a gate: "All" still
    * carries every listing, a collection dropped from the row still has all of
    * its pieces in the grid, and its own page is a click from any of them. What
-   * is lost is one shortcut for the quietest collection on the page.
+   * is lost is the shortcut, for the quietest collections on the page.
    *
    * Whatever is currently selected stays in the row whatever its rank, or
    * choosing it would remove the control that undoes it.
