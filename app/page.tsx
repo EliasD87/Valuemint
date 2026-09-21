@@ -423,8 +423,8 @@ function Hero({ deck }: { deck: DeckCard[] }) {
         </p>
 
         <div className="hx-actions">
-          <Link className="btn btn-primary btn-lg" href="/mint">
-            Explore mints
+          <Link className="btn btn-primary btn-lg" href="/collections">
+            Explore collections
           </Link>
           {CREATE_ENABLED ? (
             <Link className="btn btn-lg hx-btn-ghost" href="/create">
