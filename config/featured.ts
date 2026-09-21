@@ -293,6 +293,50 @@ export const PINNED_COLLECTIONS: ReadonlyArray<`0x${string}`> = [
   "0xCD30D4bCaa99E556B70A2C4bDFC4050D26E48D30",
 ];
 
+/**
+ * How /market's filter row is cut up, and the only place it is decided.
+ *
+ * ── EDIT THIS TO CHANGE THE MARKET'S FILTER BUTTONS ──────────────────────
+ *
+ * The row used to be one chip per collection that had a listing, ranked and
+ * cut to four. That works while no single collection dominates the book, and
+ * stops working the moment one does: the Treasure Boxes are a 6,451-piece
+ * contract whose commons are the cheapest thing on the chain, so once they are
+ * listing in volume every other collection's pieces are pages down behind
+ * them. A chip per collection does not help, because they are all *one*
+ * collection.
+ *
+ * So the row is named rather than ranked. Tiers of the box get a button each,
+ * the collections worth their own button get one, and everything else is
+ * "Others" — which is what makes the rest of the market reachable in one click
+ * however many boxes are on sale.
+ *
+ * Nothing is hidden by any of it. "All" still carries every listing, and a
+ * chip with nothing behind it takes itself off the row.
+ */
+
+/** The collection whose listings are split into one button per tier. */
+export const MARKET_TIERED: {
+  address: `0x${string}`;
+  /** The short word on the button; "box" is appended in the UI. */
+  tiers: ReadonlyArray<string>;
+} = {
+  /** SoDEX Treasure Box, the real one. */
+  address: "0x371c4F7F68bE3e558b89cC1f0fB113851C76E750",
+  /**
+   * Cheapest first, which is also rarest last — the order somebody scanning
+   * for a bargain reads in. Matched through `tierClass`, so "SuperRare",
+   * "Super Rare" and "super-rare" all land on the same button.
+   */
+  tiers: ["Common", "Uncommon", "Rare", "SuperRare"],
+};
+
+/** Collections that get one button of their own, undivided. */
+export const MARKET_CHIPPED: ReadonlyArray<`0x${string}`> = [
+  /** Cybereator, the real one. */
+  "0xCD30D4bCaa99E556B70A2C4bDFC4050D26E48D30",
+];
+
 export const WARM_COLLECTIONS: ReadonlyArray<`0x${string}`> = [
   /**
    * The real boxes, first, because every card in the hero now opens this one.

@@ -213,7 +213,8 @@
   font-style: normal;
   font-variant-numeric: tabular-nums;
   font-size: var(--step--2);
-  color: var(--ink-3);
+  /* Follows the pill, like the floor beside it — see `.filt-floor`. */
+  color: color-mix(in srgb, currentColor 72%, transparent);
 }
 
 .filt:hover {
@@ -225,13 +226,6 @@
   background: var(--ink);
   border-color: var(--ink);
   color: var(--paper);
-}
-
-/* The pressed filter is an inverted pill, so its count has to be expressed
-   against --paper. A literal white disappears on the light pill dark mode
-   gives this element. */
-.filt[aria-pressed="true"] em {
-  color: color-mix(in srgb, var(--paper) 62%, transparent);
 }
 
 /**
@@ -253,18 +247,88 @@
   gap: 0.3rem;
   margin-left: 0.15rem;
   padding-left: 0.5rem;
-  border-left: 1px solid var(--line);
   font-size: var(--step--2);
   font-weight: 600;
-  color: var(--ink-3);
   white-space: nowrap;
+  /*
+    Both the rule and the ink are drawn from `currentColor` rather than named,
+    so they follow whatever the chip is wearing — neutral, a tier's colour, or
+    the inverted pressed state — without a rule per combination. Twenty-odd
+    overrides collapse into these two lines.
+  */
+  border-left: 1px solid color-mix(in srgb, currentColor 22%, transparent);
+  color: color-mix(in srgb, currentColor 78%, transparent);
 }
 
-/* Both the rule and the ink have to be restated against the inverted pill,
-   for the same reason the count above does. */
-.filt[aria-pressed="true"] .filt-floor {
-  border-left-color: color-mix(in srgb, var(--paper) 28%, transparent);
-  color: color-mix(in srgb, var(--paper) 72%, transparent);
+/* ------------------------------------------------------- tiered filters ---
+ *
+ * The treasure box ladder, on the market's filter row.
+ *
+ * Same palette as the cards and the ribbons — `--<tier>` and `--<tier>-wash`
+ * are already a contrast-tuned pair in both themes, so this borrows rather
+ * than invents, and a tier means the same colour everywhere on the site.
+ *
+ * Only the rungs are coloured. Cybereator and Others stay neutral on purpose:
+ * the colour is what makes the ladder readable as a ladder, and it stops being
+ * a ladder the moment everything on the row is coloured.
+ *
+ * Pressed fills with the tier itself and prints in `--paper`, which is the
+ * treatment `.tcard-ribbon` already uses and which was measured across all six
+ * tiers in both themes — worst case 5.27:1.
+ * -------------------------------------------------------------------------- */
+
+.filt-common,
+.filt-uncommon,
+.filt-rare,
+.filt-superrare {
+  border-color: color-mix(in srgb, currentColor 30%, transparent);
+}
+
+.filt-common {
+  background: var(--common-wash);
+  color: var(--common);
+}
+.filt-uncommon {
+  background: var(--uncommon-wash);
+  color: var(--uncommon);
+}
+.filt-rare {
+  background: var(--rare-wash);
+  color: var(--rare);
+}
+.filt-superrare {
+  background: var(--superrare-wash);
+  color: var(--superrare);
+}
+
+/* Hover has to be restated: the base `.filt:hover` pulls the border to
+   `--ink`, which on a tinted pill reads as the colour draining out of it. */
+.filt-common:hover,
+.filt-uncommon:hover,
+.filt-rare:hover,
+.filt-superrare:hover {
+  border-color: color-mix(in srgb, currentColor 60%, transparent);
+}
+
+.filt-common[aria-pressed="true"] {
+  background: var(--common);
+  border-color: var(--common);
+  color: var(--paper);
+}
+.filt-uncommon[aria-pressed="true"] {
+  background: var(--uncommon);
+  border-color: var(--uncommon);
+  color: var(--paper);
+}
+.filt-rare[aria-pressed="true"] {
+  background: var(--rare);
+  border-color: var(--rare);
+  color: var(--paper);
+}
+.filt-superrare[aria-pressed="true"] {
+  background: var(--superrare);
+  border-color: var(--superrare);
+  color: var(--paper);
 }
 
 /* Only the first row in each column gets the top rule once wrapped to one column. */

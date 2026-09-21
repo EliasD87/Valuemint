@@ -4,7 +4,8 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useAccount } from "wagmi";
 import { useListingFeed } from "@/hooks/useListingFeed";
-import { PINNED_COLLECTIONS } from "@/config/featured";
+import { MARKET_CHIPPED, MARKET_TIERED, PINNED_COLLECTIONS } from "@/config/featured";
+import { tierClass } from "@/lib/tokenMetadata";
 import { useActivity } from "@/hooks/useActivity";
 import { TokenCard, TokenCardSkeleton } from "@/components/TokenCard";
 import { formatSoso } from "@/lib/format";
@@ -30,8 +31,6 @@ const PIN_RANK = new Map(PINNED_COLLECTIONS.map((a, i) => [a.toLowerCase(), i]))
  */
 const pinRank = (address: string) => PIN_RANK.get(address.toLowerCase()) ?? PIN_RANK.size;
 
-/** How many collection chips the filter row will carry. */
-const CHIP_LIMIT = 4;
 
 export default function Market() {
   const { address } = useAccount();
@@ -71,10 +70,91 @@ export default function Market() {
   const [sort, setSort] = useState<Sort>("traded");
   const [filterTo, setFilterTo] = useState<string>("all");
 
+  /**
+   * The filter row: named buttons, not one per collection.
+   *
+   * See `MARKET_TIERED` / `MARKET_CHIPPED` in config/featured.ts for what goes
+   * on it and why. The short version: one chip per collection stops working
+   * when a single collection is most of the book, because they are all the
+   * same chip.
+   *
+   * Each chip owns its own predicate, so the grid filter, the count and the
+   * floor all come from one definition and cannot drift apart. The floor is
+   * the cheapest of *this chip's* rows rather than a lookup — which is both
+   * simpler and the only figure that is true of what the chip shows.
+   */
+  const chips = useMemo(() => {
+    const boxAt = MARKET_TIERED.address.toLowerCase();
+    const named = new Set<string>([boxAt, ...MARKET_CHIPPED.map((a) => a.toLowerCase())]);
+    const nameOf = (address: string) =>
+      collections.find((c) => c.address.toLowerCase() === address.toLowerCase())?.name ??
+      "Collection";
+
+    const defs: Array<{
+      key: string;
+      label: string;
+      tone?: string;
+      match: (t: (typeof listed)[number]) => boolean;
+    }> =
+      [
+        ...MARKET_CHIPPED.map((address) => ({
+          key: `c:${address.toLowerCase()}`,
+          label: nameOf(address),
+          match: (t: (typeof listed)[number]) =>
+            t.collection.toLowerCase() === address.toLowerCase(),
+        })),
+        ...MARKET_TIERED.tiers.map((tier) => ({
+          key: `t:${tier}`,
+          /* "Common box", the way somebody would say it out loud. */
+          label: `${tier === "SuperRare" ? "Super Rare" : tier} box`,
+          /*
+            The tier's own colour, from the same palette the cards and ribbons
+            wear. Only the tiers are coloured: it is what makes the ladder
+            legible at a glance, and it only works while the buttons that are
+            not rungs on it stay neutral.
+          */
+          tone: tierClass(tier),
+          match: (t: (typeof listed)[number]) =>
+            t.collection.toLowerCase() === boxAt && tierClass(t.tier) === tierClass(tier),
+        })),
+        {
+          key: "others",
+          label: "Others",
+          /* Everything the named buttons do not reach. Without it the rest of
+             the market is unreachable in one click once the boxes are the bulk
+             of the book, which is the whole reason this row was rebuilt. */
+          match: (t: (typeof listed)[number]) => !named.has(t.collection.toLowerCase()),
+        },
+      ];
+
+    return defs
+      .map((d) => {
+        const rows = listed.filter(d.match);
+        const floor = rows.reduce<bigint | undefined>(
+          (least, r) => (least === undefined || r.listing!.price < least ? r.listing!.price : least),
+          undefined,
+        );
+        return { ...d, count: rows.length, floor };
+      })
+      /* A button with nothing behind it takes itself off the row rather than
+         sitting there dead. */
+      .filter((d) => d.count > 0);
+  }, [listed, collections]);
+
+  const active = chips.find((c) => c.key === filterTo);
+
+  /**
+   * The per-tier breakdown, which only says something for a whole collection.
+   *
+   * Pointless under a tier button — it would break one tier into one row — and
+   * meaningless under "Others", which is several collections at once.
+   */
+  const chosen =
+    filterTo.startsWith("c:") ? (filterTo.slice(2) as `0x${string}`) : undefined;
+  const tierFloors = chosen === undefined ? [] : tierFloorsFor(chosen);
+
   const visible = useMemo(() => {
-    const rows = listed.filter(
-      (t) => filterTo === "all" || t.collection.toLowerCase() === filterTo.toLowerCase(),
-    );
+    const rows = active === undefined ? listed : listed.filter(active.match);
 
     const cheapestFirst = (a: (typeof rows)[number], b: (typeof rows)[number]) => {
       const diff = a.listing!.price - b.listing!.price;
@@ -124,7 +204,7 @@ export default function Market() {
       const n = cheapestFirst(a, b);
       return sort === "price-asc" ? n : -n;
     });
-  }, [listed, sort, filterTo, tradesPerCollection]);
+  }, [listed, sort, active, tradesPerCollection]);
 
   /**
    * There is no market-wide floor here, deliberately.
@@ -142,51 +222,6 @@ export default function Market() {
    * and quoting the lower one misleads anyone shopping for the other.
    */
   const total = visible.reduce((sum, t) => sum + t.listing!.price, 0n);
-  const chosen = filterTo === "all" ? undefined : filterTo;
-  const tierFloors = chosen === undefined ? [] : tierFloorsFor(chosen);
-
-  /** Only offer a collection filter for collections that actually have listings. */
-  const withListings = collections.filter((c) =>
-    listed.some((t) => t.collection.toLowerCase() === c.address.toLowerCase()),
-  );
-
-  /**
-   * The filter chips: the pinned collections, then the busiest, four at most.
-   *
-   * Four because the row is a row. Every collection with a listing used to get
-   * a chip, which on a phone is a horizontally scrolling strip of them — and
-   * the one anybody came for could be the fourth one off the right-hand edge.
-   *
-   * Nothing is hidden by this. A chip is a shortcut, not a gate: "All" still
-   * carries every listing, a collection dropped from the row still has all of
-   * its pieces in the grid, and its own page is a click from any of them. What
-   * is lost is the shortcut, for the quietest collections on the page.
-   *
-   * Whatever is currently selected stays in the row whatever its rank, or
-   * choosing it would remove the control that undoes it.
-   */
-  const chips = (() => {
-    const counted = withListings.map((c) => ({
-      collection: c,
-      listings: listed.filter((t) => t.collection.toLowerCase() === c.address.toLowerCase())
-        .length,
-    }));
-
-    const ranked = counted.sort((a, b) => {
-      const pa = pinRank(a.collection.address);
-      const pb = pinRank(b.collection.address);
-      if (pa !== pb) return pa - pb;
-      return b.listings - a.listings;
-    });
-
-    const shown = ranked.slice(0, CHIP_LIMIT);
-    const isChosen = (r: (typeof ranked)[number]) => r.collection.address === chosen;
-    if (chosen !== undefined && !shown.some(isChosen)) {
-      const selected = ranked.find(isChosen);
-      if (selected !== undefined) shown.push(selected);
-    }
-    return shown;
-  })();
 
   return (
     <section className="page section">
@@ -226,21 +261,21 @@ export default function Market() {
         </span>
       </div>
 
-      {withListings.length > 1 ? (
+      {chips.length > 1 ? (
         <div className="filters">
           <button className="filt" aria-pressed={filterTo === "all"} onClick={() => setFilterTo("all")}>
             All <em>{listed.length}</em>
           </button>
-          {chips.map(({ collection: c, listings }) => (
+          {chips.map((chip) => (
             <button
-              key={c.address}
-              className="filt"
-              aria-pressed={filterTo === c.address}
-              onClick={() => setFilterTo(c.address)}
+              key={chip.key}
+              className={`filt${chip.tone === undefined ? "" : ` filt-${chip.tone}`}`}
+              aria-pressed={filterTo === chip.key}
+              onClick={() => setFilterTo(chip.key)}
             >
-              {c.name} <em>{listings}</em>
+              {chip.label} <em>{chip.count}</em>
               {/*
-                The floor that actually means something: this collection's own.
+                The cheapest thing behind this button.
 
                 It carries the SOSO mark, and it is fenced off by a rule in the
                 stylesheet, because it did neither and was misread — "8" then
@@ -249,11 +284,14 @@ export default function Market() {
                 figures side by side in one pill will always read as a fraction;
                 only the currency says otherwise.
               */}
-              {floorFor(c.address) !== undefined ? (
+              {chip.floor !== undefined ? (
                 <span className="filt-floor">
-                  from{" "}
+                  {/* No "from". The mark already says this is money and the
+                      rule already says it is a different figure to the count;
+                      the word was a third device doing the same job, and six
+                      of them across a row is most of its width. */}
                   <Soso size={13} unit="">
-                    {formatSoso(floorFor(c.address)!)}
+                    {formatSoso(chip.floor)}
                   </Soso>
                 </span>
               ) : null}
