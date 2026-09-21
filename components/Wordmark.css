@@ -1,12 +1,21 @@
 /*
  * Collection wordmarks, swapped by theme.
  *
- * The three-block pattern `styles/tokens.css` uses for colour, for the same
- * reason: this site has THREE theme states, not two. A bare `:root` for light,
- * a `prefers-color-scheme` block guarded against an explicit light choice, and
- * a `[data-theme="dark"]` block so the toggle wins in both directions. Written
- * any other way, whoever has used the toggle gets a white drawing on a white
- * card — which does not look wrong, it disappears.
+ * TWO states, matching `styles/tokens.css`: light by default, dark only when
+ * something has stamped `[data-theme="dark"]`. That file says so outright —
+ * "deliberately no `prefers-color-scheme` block: the site has a look" — and
+ * every colour on the site follows it.
+ *
+ * This file used to carry a `prefers-color-scheme: dark` block anyway, and it
+ * caused exactly the fault the note below warns about. A first-time visitor on
+ * a dark-OS machine has set no theme, so the page renders LIGHT while that
+ * media query matched and handed them the light-ink cut: the white drawing on
+ * a white card. Reported by real users as the Cybereator name simply missing
+ * from the front page — which is the trouble with this particular failure. It
+ * does not look wrong, it disappears, so nobody reports it as a bug in the
+ * mark. They report that the collection has no name.
+ *
+ * The rule is therefore the site's rule, not a third one: no media query here.
  *
  * `-dark` is the cut for DARK grounds, i.e. the light drawing, matching
  * `sodex-dark.svg` beside it in `public/brand/`.
@@ -19,12 +28,6 @@
 
 :root {
   --mark-cybereator: url("/brand/cybereator-light.png");
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --mark-cybereator: url("/brand/cybereator-dark.png");
-  }
 }
 
 :root[data-theme="dark"] {

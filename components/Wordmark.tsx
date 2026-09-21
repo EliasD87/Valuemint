@@ -11,11 +11,11 @@ import "./Wordmark.css";
  * caller already decided how big its text is.
  *
  * It is a `role="img"` span with a background rather than an `<img>`, because
- * the two theme cuts are swapped in CSS and this site has THREE theme states,
- * not two: an explicit light choice, an explicit dark one, and a system
- * default that stamps no attribute at all. `<picture>` with
- * `prefers-color-scheme` can only see the last, so anybody who had used the
- * theme toggle would get the wrong cut.
+ * the two cuts are swapped in CSS off `[data-theme="dark"]`, which is the only
+ * thing that makes this site dark. `<picture>` can only switch on
+ * `prefers-color-scheme`, and this site deliberately ignores the OS — so it
+ * would hand a dark-OS visitor the light-ink cut on a page that is still
+ * light, which is the bug this file already shipped once. See Wordmark.css.
  *
  * `name` is not optional and is not decoration. It is the accessible name, so
  * the page reads identically whether or not the drawing arrives — and every
