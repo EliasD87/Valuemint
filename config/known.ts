@@ -86,7 +86,10 @@ export const KNOWN_COLLECTIONS: KnownCollection[] = [
     symbol: "TESTCYBR",
     reason:
       "SoDEX's test deployment of the same artwork, and the one most of the " +
-      "traded pieces are today. Same deployer as Cybereator.",
+      "traded pieces are today. Same deployer as Cybereator. Hidden from " +
+      "every listing since 2026-09-21 (see hidden.ts) but still named here, " +
+      "so the page its holders can still reach has a name and a symbol " +
+      "without waiting on a contract read.",
   },
   {
     address: "0x761C3DD0f7a9282E9c5D108394EC7f3AB524A213",
@@ -94,8 +97,10 @@ export const KNOWN_COLLECTIONS: KnownCollection[] = [
     symbol: "TESTSOBOX",
     reason:
       "SoDEX's test treasure boxes, and still where nearly every traded box " +
-      "is: 6,451 pieces against the real contract's handful. Kept listed for " +
-      "that reason, not retired.",
+      "is: 9,623 pieces against the real contract's one. That is what " +
+      "kept it listed, and on 2026-09-21 it stopped being enough — the real " +
+      "contract had shipped and this one was outranking it. Hidden since " +
+      "(see hidden.ts), still named here for the page its holders reach.",
   },
   {
     address: "0x371c4F7F68bE3e558b89cC1f0fB113851C76E750",

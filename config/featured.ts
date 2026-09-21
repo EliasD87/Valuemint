@@ -297,11 +297,17 @@ export const WARM_COLLECTIONS: ReadonlyArray<`0x${string}`> = [
    */
   "0x371c4F7F68bE3e558b89cC1f0fB113851C76E750",
 
-  /** The test boxes, still where nearly every traded box actually is. */
-  "0x761C3DD0f7a9282E9c5D108394EC7f3AB524A213",
+  /*
+    The two test contracts used to sit here, and they earned it: they held
+    nearly every traded box and most of the traded Cybereators, so warming
+    them warmed what people were about to look at.
 
-  /** TestCybereator, which most of the traded pieces are. */
-  "0x412D8af16B7fF3FE75e1CD380BD86Ef33dD8AD0f",
+    They went into `hidden.ts` on 2026-09-21, which means no page this list
+    serves enumerates them any more — warming a collection the visitor is
+    never shown is spend with nothing on the other side of it. Their own
+    pages still work, and land cold, which is the right trade for two
+    contracts nothing links to.
+  */
 
   /** Cybereator, the real one. */
   "0xCD30D4bCaa99E556B70A2C4bDFC4050D26E48D30",

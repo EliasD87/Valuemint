@@ -103,6 +103,37 @@ export const HIDDEN_COLLECTIONS: HiddenCollection[] = [
     address: "0x698ECFbd5c0855810Ddb4385bA212D989107B011",
     reason: "Trading Beasts (BEAST) — one of three identically named ERC-1155s from 0x36a2D7e0…35C6.",
   },
+  /**
+   * SoDEX's two test deployments, retired 2026-09-21.
+   *
+   * Both carry the real collections' own artwork on throwaway contracts, and
+   * until today they were listed for an honest reason: they are where nearly
+   * all the trading actually happened — 9,623 test boxes against the real
+   * contract's one, and 2,474 test Cybereators besides. On a
+   * marketplace whose default sort is activity that is decisive, and /market
+   * put both of them above the collections they were testing.
+   *
+   * `PINNED_COLLECTIONS` was written for exactly this and could not reach it,
+   * because no ranking knows which of two identical-looking contracts is the
+   * one that counts. That is a decision, so it is written down here instead.
+   *
+   * As with everything in this file, both stay live on chain, stay tradeable,
+   * and stay reachable at /collection/<address> — which is why `covers.ts`
+   * and `wordmarks.ts` keep their entries for these two addresses. Remove
+   * those and the pages their holders can still reach go blank.
+   */
+  {
+    address: "0x412D8af16B7fF3FE75e1CD380BD86Ef33dD8AD0f",
+    reason:
+      "TestCybereator (TESTCYBR) — SoDEX's test deployment of Cybereator's " +
+      "artwork, retired in favour of the real contract at 0xCD30D4bC…8D30.",
+  },
+  {
+    address: "0x761C3DD0f7a9282E9c5D108394EC7f3AB524A213",
+    reason:
+      "TestSoDEXTreasureBox (TESTSOBOX) — SoDEX's test boxes, 9,623 of them, " +
+      "retired in favour of the real contract at 0x371c4F7F…E750.",
+  },
 ];
 
 /**
