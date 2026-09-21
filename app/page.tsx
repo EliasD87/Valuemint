@@ -399,9 +399,37 @@ function Hero({ deck }: { deck: DeckCard[] }) {
   const axis = (deck.length - 1) / 2;
   const nearest = Math.min(...deck.map((_, i) => Math.abs(i - axis)));
 
+  /**
+   * Hand the pointer's position to the stylesheet, and let CSS do the rest.
+   *
+   * Two property writes and nothing else — no rAF loop, no state, no render.
+   * `--hx-mx` and `--hx-my` are registered in `hero.css`, so the browser
+   * interpolates them and the 280ms ease there turns a series of destinations
+   * into a glide. Putting this in React state instead would re-render the
+   * whole hero, deck and all, on every frame of a mouse movement.
+   *
+   * `pointermove` is coalesced to at most one event per frame, so the
+   * `getBoundingClientRect` below runs at most once a frame on an element
+   * whose layout is already clean.
+   */
+  const tracePointer = (event: React.PointerEvent<HTMLElement>): void => {
+    const box = event.currentTarget.getBoundingClientRect();
+    if (box.width === 0 || box.height === 0) return;
+    const style = event.currentTarget.style;
+    style.setProperty("--hx-mx", `${((event.clientX - box.left) / box.width) * 100}%`);
+    style.setProperty("--hx-my", `${((event.clientY - box.top) / box.height) * 100}%`);
+  };
+
   return (
-    <section className="hx">
+    <section className="hx" onPointerMove={tracePointer}>
       <div className="hx-deep" aria-hidden="true" />
+
+      {/*
+        The ground's answer to the pointer — see the trace block in hero.css.
+        Atmospheric, so it is out of the accessibility tree and takes no
+        pointer events; the section above is what listens.
+      */}
+      <div className="hx-trace" aria-hidden="true" />
 
       {/*
         Three drifting lights. Purely atmospheric, so it is hidden from the

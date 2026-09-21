@@ -45,6 +45,12 @@
   --hx-orb-1: rgba(99, 102, 241, 0.09);
   --hx-orb-2: rgba(255, 92, 0, 0.07);
   --hx-orb-3: rgba(56, 189, 248, 0.06);
+  /* The trace. Stronger than the resting grid on purpose — it is the thing
+     the pointer is revealing, and on a white ground a hairline at 0.045 alpha
+     does not survive being drawn twice. */
+  --hx-net: rgba(14, 14, 16, 0.1);
+  --hx-flow-warm: rgba(255, 92, 0, 0.1);
+  --hx-flow-cool: rgba(56, 189, 248, 0.09);
 }
 
 :root[data-theme="dark"] .hx {
@@ -58,6 +64,9 @@
   --hx-orb-1: rgba(129, 140, 248, 0.3);
   --hx-orb-2: rgba(255, 122, 51, 0.22);
   --hx-orb-3: rgba(56, 189, 248, 0.24);
+  --hx-net: rgba(255, 255, 255, 0.075);
+  --hx-flow-warm: rgba(255, 122, 51, 0.16);
+  --hx-flow-cool: rgba(56, 189, 248, 0.15);
 }
 
 /* ---------------------------------------------------------------- aurora ---
@@ -793,6 +802,114 @@
 
   .hx-card,
   .hx-card:hover {
+    transition: none;
+  }
+}
+
+/* ----------------------------------------------------------------- trace ---
+ *
+ * The ground answering the pointer: the net lights up around it, and a warm
+ * core inside a cool halo travels with it.
+ *
+ * Registered rather than plain custom properties, and that registration is the
+ * whole mechanism. An unregistered `--x` is a string to the cascade, so it
+ * jumps from one value to the next and the light lands wherever the pointer
+ * was at that instant — a twitch, not a glide. Given a `<length-percentage>`
+ * syntax the browser can interpolate them, so the transition below does the
+ * easing and the script only ever writes a destination.
+ *
+ * That is also why there is no rAF loop here. `pointermove` is already
+ * coalesced to at most one event per frame, and each one restarts a 280ms
+ * ease-out from wherever the light currently is, which is an exponential
+ * follow — the trailing feel, for two property writes and no animation frame
+ * of our own.
+ * ------------------------------------------------------------------------- */
+
+@property --hx-mx {
+  syntax: "<length-percentage>";
+  inherits: true;
+  initial-value: 50%;
+}
+
+@property --hx-my {
+  syntax: "<length-percentage>";
+  inherits: true;
+  initial-value: 38%;
+}
+
+.hx {
+  transition:
+    --hx-mx 280ms cubic-bezier(0.22, 1, 0.36, 1),
+    --hx-my 280ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.hx-trace {
+  position: absolute;
+  inset: 0;
+  /* Above the ground and the aurora at -2, below the content. The resting grid
+     on `.hx::before` shares this level and this box, which is what lets the
+     two grids line up rather than moire against each other. */
+  z-index: -1;
+  pointer-events: none;
+
+  /* Same 64px cell and same origin as `.hx::before`, so the lit net falls
+     exactly on the resting one instead of beside it. */
+  background-image:
+    linear-gradient(var(--hx-net) 1px, transparent 1px),
+    linear-gradient(90deg, var(--hx-net) 1px, transparent 1px);
+  background-size: 64px 64px;
+
+  /* Visible only around the pointer. Three stops, not two: a linear ramp on a
+     mask reads as a disc with an edge, which is the one thing this must not
+     look like. */
+  mask-image: radial-gradient(
+    circle 15rem at var(--hx-mx) var(--hx-my),
+    #000 0%,
+    rgba(0, 0, 0, 0.42) 46%,
+    transparent 76%
+  );
+
+  opacity: 0;
+  transition: opacity 420ms ease;
+}
+
+/*
+ * The flow, on its own layer because it must NOT take the net's mask — masked
+ * twice it collapses to a hard little puck. Wider than the net's reveal, so
+ * the colour is already there at the edge of the lit cells rather than
+ * stopping with them.
+ */
+.hx-trace::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(circle 13rem at var(--hx-mx) var(--hx-my), var(--hx-flow-warm), transparent 68%),
+    radial-gradient(circle 26rem at var(--hx-mx) var(--hx-my), var(--hx-flow-cool), transparent 72%);
+}
+
+/*
+ * `hover: hover` only.
+ *
+ * On a touch screen `:hover` sticks after a tap, so the net would light under
+ * the last place touched and stay there with nothing to dismiss it.
+ */
+@media (hover: hover) {
+  .hx:hover .hx-trace {
+    opacity: 1;
+  }
+}
+
+/*
+ * Reduced motion keeps the effect and drops the travel.
+ *
+ * The request is about movement, not about contrast, and the net is still
+ * useful as a response to the pointer. So the light stops easing between
+ * positions — it is simply where the pointer is — and stops fading in.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .hx,
+  .hx-trace {
     transition: none;
   }
 }
