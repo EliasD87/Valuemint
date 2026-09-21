@@ -334,11 +334,54 @@ export function CollectionView({ params }: { params: Promise<{ address: string }
           ))}
         </div>
       ) : shown.length === 0 ? (
-        // A filter that matches nothing has to say so, or the page reads as broken.
-        <div className="market-empty">
-          <h3>Nothing matches those traits.</h3>
-          <p className="muted">Clear a filter to widen the search.</p>
-        </div>
+        /*
+          Three different nothings, and they used to share one sentence.
+
+          "Nothing matches those traits. Clear a filter to widen the search."
+          was shown whenever the grid came out empty — including when no filter
+          was set, which is every empty collection. The trait row is built from
+          the tokens that loaded, so an empty collection has no filters at all:
+          the page was telling people to clear a control that was not on screen.
+
+          Seen on SoDEXTreasureBox the day its boxes were opened. Opening one
+          burns it, all 21 went, and `totalSupply` fell to 0 — so the page
+          offered a filter to clear on a collection with nothing in it.
+        */
+        filtering ? (
+          <div className="market-empty">
+            <h3>Nothing matches those traits.</h3>
+            <p className="muted">Clear a filter to widen the search.</p>
+          </div>
+        ) : supply === 0n ? (
+          <div className="market-empty">
+            <h3>This collection is empty.</h3>
+            {/*
+              Both halves, because `totalSupply` cannot tell them apart: it
+              counts what exists now, not what has ever existed. A collection
+              nobody has minted from and one whose every piece has been burned
+              both read 0, and claiming "none minted yet" to the second would
+              be wrong in front of somebody who minted them.
+            */}
+            <p className="muted">
+              Nothing has been minted yet — or everything that was has since been burned.
+            </p>
+          </div>
+        ) : (
+          <div className="market-empty">
+            {/*
+              Supply says there are pieces and we could not find their ids. For
+              a collection without Enumerable that means the explorer's index
+              is the only route to them and it did not answer, which is a
+              failure to read rather than a collection with nothing in it.
+            */}
+            <h3>Couldn&rsquo;t list this collection&rsquo;s pieces.</h3>
+            <p className="muted">
+              It reports {formatCount(supply as bigint | undefined)} minted, but the token list
+              could not be read just now. Try again shortly, or open a piece directly if you know
+              its id.
+            </p>
+          </div>
+        )
       ) : (
         <div className="grid-tokens">
           {shown.map((t, i) => (
