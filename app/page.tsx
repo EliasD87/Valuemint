@@ -19,6 +19,7 @@ import { Wordmark } from "@/components/Wordmark";
 import { wordmarkFor } from "@/config/wordmarks";
 import { PINNED_COLLECTIONS } from "@/config/featured";
 import { CREATE_ENABLED } from "@/config/features";
+import { heroCopy } from "@/config/heroCopy";
 
 /** "all", "listed", or a collection address. */
 
@@ -387,6 +388,10 @@ interface DeckCard {
  * Every card is a collection that exists on chain, so the fan is never a
  * mock-up of a busier site than this one.
  */
+
+/** Keyed to the flag, so the hero cannot promise a feature that is off. */
+const HERO_COPY = heroCopy(CREATE_ENABLED);
+
 function Hero({ deck }: { deck: DeckCard[] }) {
   /**
    * The fan's axis, which is a *position* and not a card.
@@ -477,16 +482,12 @@ function Hero({ deck }: { deck: DeckCard[] }) {
       <div className="page hx-inner">
 
         <h1 className="hx-title">
-          Create, collect and trade
+          {HERO_COPY.lead}
           <br />
-          <em>everything minted here</em>
+          <em>{HERO_COPY.em}</em>
         </h1>
 
-        <p className="hx-lede">
-          Deploy your own collection, mint it, and trade it — with no custodian holding
-          anything. You own the contract outright, and every trade settles in seconds for a
-          fraction of a cent.
-        </p>
+        <p className="hx-lede">{HERO_COPY.lede}</p>
 
         <div className="hx-actions">
           <Link className="btn btn-primary btn-lg" href="/collections">
