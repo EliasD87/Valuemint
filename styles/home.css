@@ -234,6 +234,39 @@
   color: color-mix(in srgb, var(--paper) 62%, transparent);
 }
 
+/**
+ * The collection's floor, fenced off from its listing count.
+ *
+ * This had no rule at all, which is the whole bug: it inherited the chip's own
+ * 600 weight and --ink-2, so a pill read "ValueChain Genesis 8 from 50" in one
+ * flat voice and the two figures fused into a fraction. A real reader reported
+ * it as "2 out of 10" — a supply, which is a different and much more
+ * interesting number than the one actually on screen.
+ *
+ * So: a rule between the two, a lighter ink, and the SOSO mark on the figure
+ * from the markup side. Any one of the three would probably do; together the
+ * misreading is not available.
+ */
+.filt-floor {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-left: 0.15rem;
+  padding-left: 0.5rem;
+  border-left: 1px solid var(--line);
+  font-size: var(--step--2);
+  font-weight: 600;
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+
+/* Both the rule and the ink have to be restated against the inverted pill,
+   for the same reason the count above does. */
+.filt[aria-pressed="true"] .filt-floor {
+  border-left-color: color-mix(in srgb, var(--paper) 28%, transparent);
+  color: color-mix(in srgb, var(--paper) 72%, transparent);
+}
+
 /* Only the first row in each column gets the top rule once wrapped to one column. */
 @media (max-width: 52rem) {
   .board-row:nth-child(-n + 2) {

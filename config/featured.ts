@@ -277,11 +277,20 @@ export const FEATURED: FeaturedPiece[] = [
  * Anything not named here keeps its existing order, after these.
  */
 export const PINNED_COLLECTIONS: ReadonlyArray<`0x${string}`> = [
+  /**
+   * SoDEX Treasure Box, the real one, and first by decision.
+   *
+   * Cybereator led this list until 2026-09-21, which cost nothing while
+   * neither contract had a listing. It stopped being free the moment /market
+   * started reading this order too: the boxes are the collection that is
+   * actually trading, and the owner asked for them at the top twice. Written
+   * here rather than as a special case in /market, so the two pages that
+   * consult this list cannot disagree about it.
+   */
+  "0x371c4F7F68bE3e558b89cC1f0fB113851C76E750",
+
   /** Cybereator, the real one. */
   "0xCD30D4bCaa99E556B70A2C4bDFC4050D26E48D30",
-
-  /** SoDEX Treasure Box, the real one. */
-  "0x371c4F7F68bE3e558b89cC1f0fB113851C76E750",
 ];
 
 export const WARM_COLLECTIONS: ReadonlyArray<`0x${string}`> = [

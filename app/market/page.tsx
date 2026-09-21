@@ -30,6 +30,9 @@ const PIN_RANK = new Map(PINNED_COLLECTIONS.map((a, i) => [a.toLowerCase(), i]))
  */
 const pinRank = (address: string) => PIN_RANK.get(address.toLowerCase()) ?? PIN_RANK.size;
 
+/** How many collection chips the filter row will carry. */
+const CHIP_LIMIT = 5;
+
 export default function Market() {
   const { address } = useAccount();
   const { tokens: listed, collections, isLoading, logsUnavailable } = useListingFeed();
@@ -147,6 +150,44 @@ export default function Market() {
     listed.some((t) => t.collection.toLowerCase() === c.address.toLowerCase()),
   );
 
+  /**
+   * The filter chips: the pinned collections, then the busiest, five at most.
+   *
+   * Five because the row is a row. Every collection with a listing used to get
+   * a chip, which on a phone is a horizontally scrolling strip of them — and
+   * the one anybody came for could be the fourth one off the right-hand edge.
+   *
+   * Nothing is hidden by this. A chip is a shortcut, not a gate: "All" still
+   * carries every listing, a collection dropped from the row still has all of
+   * its pieces in the grid, and its own page is a click from any of them. What
+   * is lost is one shortcut for the quietest collection on the page.
+   *
+   * Whatever is currently selected stays in the row whatever its rank, or
+   * choosing it would remove the control that undoes it.
+   */
+  const chips = (() => {
+    const counted = withListings.map((c) => ({
+      collection: c,
+      listings: listed.filter((t) => t.collection.toLowerCase() === c.address.toLowerCase())
+        .length,
+    }));
+
+    const ranked = counted.sort((a, b) => {
+      const pa = pinRank(a.collection.address);
+      const pb = pinRank(b.collection.address);
+      if (pa !== pb) return pa - pb;
+      return b.listings - a.listings;
+    });
+
+    const shown = ranked.slice(0, CHIP_LIMIT);
+    const isChosen = (r: (typeof ranked)[number]) => r.collection.address === chosen;
+    if (chosen !== undefined && !shown.some(isChosen)) {
+      const selected = ranked.find(isChosen);
+      if (selected !== undefined) shown.push(selected);
+    }
+    return shown;
+  })();
+
   return (
     <section className="page section">
       <div className="head">
@@ -190,18 +231,31 @@ export default function Market() {
           <button className="filt" aria-pressed={filterTo === "all"} onClick={() => setFilterTo("all")}>
             All <em>{listed.length}</em>
           </button>
-          {withListings.map((c) => (
+          {chips.map(({ collection: c, listings }) => (
             <button
               key={c.address}
               className="filt"
               aria-pressed={filterTo === c.address}
               onClick={() => setFilterTo(c.address)}
             >
-              {c.name}{" "}
-              <em>{listed.filter((t) => t.collection.toLowerCase() === c.address.toLowerCase()).length}</em>
-              {/* The floor that actually means something: this collection's own. */}
+              {c.name} <em>{listings}</em>
+              {/*
+                The floor that actually means something: this collection's own.
+
+                It carries the SOSO mark, and it is fenced off by a rule in the
+                stylesheet, because it did neither and was misread — "8" then
+                "from 50" at the same weight, a hand's width apart, was reported
+                as "8 out of 50", which is what a supply looks like. Two bare
+                figures side by side in one pill will always read as a fraction;
+                only the currency says otherwise.
+              */}
               {floorFor(c.address) !== undefined ? (
-                <span className="filt-floor">from {formatSoso(floorFor(c.address)!)}</span>
+                <span className="filt-floor">
+                  from{" "}
+                  <Soso size={13} unit="">
+                    {formatSoso(floorFor(c.address)!)}
+                  </Soso>
+                </span>
               ) : null}
             </button>
           ))}
