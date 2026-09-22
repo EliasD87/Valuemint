@@ -9,6 +9,8 @@ import { BulkList, type BulkListItem } from "@/components/BulkList";
 import { formatCount } from "@/lib/format";
 import { Art } from "@/components/Art";
 import { soleArtworkFor } from "@/config/covers";
+import { verifiedAs } from "@/config/verified";
+import { VerifiedMark } from "@/components/VerifiedMark";
 import "./ListPrompt.css";
 
 /**
@@ -121,7 +123,22 @@ export function ListPrompt() {
       by.set(key, group);
     }
 
-    return [...by.values()].sort((a, b) => b.items.length - a.items.length);
+    /**
+     * Most pieces first, except that what this marketplace vouches for itself
+     * goes above all of it.
+     *
+     * The same `mint` tone that lights a row decides this, so there is one
+     * rule with two effects rather than two lists to keep in step — and, as
+     * with the glow, no address is named here. Only that tone floats;
+     * `publisher` collections stay in the count order with everything else,
+     * because otherwise a single piece of a verified collection would outrank
+     * five of an unverified one, which reads as a ranking of the collections
+     * rather than of what the reader holds.
+     */
+    const first = (g: Group) => (verifiedAs(g.address)?.tone === "mint" ? 0 : 1);
+    return [...by.values()].sort(
+      (a, b) => first(a) - first(b) || b.items.length - a.items.length,
+    );
   }, [tokens]);
 
   const signature = address === undefined ? "" : signatureOf(address, groups);
@@ -171,7 +188,20 @@ export function ListPrompt() {
 
       <ul className="lp-rows">
         {groups.map((g) => (
-          <li key={g.address} className="lp-row">
+          <li
+            key={g.address}
+            className="lp-row"
+            /*
+              Lit from `config/verified.ts` rather than from an address written
+              here, for the reason the whole app keeps relearning: a component
+              that names a collection is a component that is wrong the moment
+              there is a second one. The `mint` tone means this marketplace
+              vouches for it itself — today that is ValueChain Genesis and
+              nothing else — so adding a second mint-tone entry lights its row
+              too, with no change to this file.
+            */
+            {...(verifiedAs(g.address)?.tone === "mint" ? { "data-vouched": "mint" } : {})}
+          >
             <span className="lp-piece">
               {/*
                 `position: relative` on the wrapper is load-bearing, not
@@ -187,8 +217,18 @@ export function ListPrompt() {
                   <Art src={g.image} alt="" sizes="44px" />
                 )}
               </span>
-              <span className="lp-name">
-                <strong>{formatCount(BigInt(g.items.length))}</strong> {g.name}
+              {/*
+                The tick sits OUTSIDE `.lp-name`, which truncates with an
+                ellipsis. Inside it, a long collection name would eat the mark
+                before it ate the name — the one part of the row that must not
+                disappear is the part making a claim about which contract this
+                is. The name shrinks; the tick does not.
+              */}
+              <span className="lp-label">
+                <span className="lp-name">
+                  <strong>{formatCount(BigInt(g.items.length))}</strong> {g.name}
+                </span>
+                <VerifiedMark collection={g.address} size={13} />
               </span>
             </span>
             {/*

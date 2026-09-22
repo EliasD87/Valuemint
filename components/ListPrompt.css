@@ -113,6 +113,44 @@
   gap: 0.6rem;
   font-size: var(--step--1);
   color: var(--ink-2);
+  /*
+   * Padding on EVERY row, not only the lit one.
+   *
+   * A glow needs something to sit around, and inset only the highlighted row
+   * and its thumbnail no longer lines up with the ones above and below it —
+   * the lit row reads as nudged rather than lit. The padding is transparent
+   * here and costs the others nothing.
+   */
+  padding: 0.4rem;
+  border-radius: var(--r-sm);
+}
+
+/*
+ * The row for a collection this marketplace vouches for itself.
+ *
+ * `--verified` rather than `--accent`: it is the blue the tick beside that
+ * collection's name already uses, so the panel and the collection page agree
+ * about what the colour means. It is a token, so it follows the theme —
+ * a literal here would be right in one and wrong in the other.
+ *
+ * Three layers doing three jobs: a wash so the row reads as a surface, a
+ * hairline so its edge is defined against that wash, and the glow proper,
+ * pulled in with a negative spread so it stays a halo rather than a box.
+ *
+ * Static, deliberately. A pulse in a corner panel is movement in the corner of
+ * somebody's eye while they are reading the page behind it, and this panel
+ * already appears uninvited.
+ */
+.lp-row[data-vouched="mint"] {
+  background: color-mix(in srgb, var(--verified) 9%, transparent);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--verified) 34%, transparent),
+    0 0 16px -3px color-mix(in srgb, var(--verified) 55%, transparent);
+}
+
+/* The artwork picks up the same edge, so the thumb belongs to the lit row. */
+.lp-row[data-vouched="mint"] .lp-thumb {
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--verified) 45%, transparent);
 }
 
 .lp-row:has(.bulk) {
@@ -165,11 +203,30 @@
 }
 
 /** A long collection name shortens rather than shoving the button out of the card. */
+/*
+ * Name and tick travel together, and only the name gives ground.
+ *
+ * `min-width: 0` on the wrapper is what lets the name inside it shrink at all —
+ * a flex item's default `min-width: auto` refuses to go below its content, so
+ * without this the row grows past the panel instead of the name truncating.
+ */
+.lp-label {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
 .lp-name {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* The mark keeps its size while the name truncates around it. */
+.lp-label .vm {
+  flex: none;
 }
 
 .lp-name strong {
