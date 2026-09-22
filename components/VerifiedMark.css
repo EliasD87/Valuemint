@@ -1,0 +1,45 @@
+/* ============================================================ verified mark
+ *
+ * A tick beside a collection's name. Sized from the text it sits with rather
+ * than from a fixed pixel value, so it stays in proportion wherever it is used.
+ * ========================================================================= */
+
+.vm {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  /*
+   * `vertical-align` does nothing useful here — the span is a flex item in
+   * every call site — but the mark still needs to sit ON the text's optical
+   * centre rather than its box centre, which is a touch lower.
+   */
+  translate: 0 1px;
+}
+
+.vm svg {
+  width: var(--vm-size, 15px);
+  height: var(--vm-size, 15px);
+  display: block;
+}
+
+/*
+ * The badge is `--accent`, not blue.
+ *
+ * Blue is the tick everybody recognises, and that is exactly the problem: a
+ * blue check is Twitter's and OpenSea's, and borrowing it implies their
+ * verification rather than this marketplace's. The site's own accent says the
+ * same thing in this site's voice — and it is already a token that works on
+ * both grounds, which a hardcoded brand blue would not be.
+ */
+.vm-badge {
+  fill: var(--accent);
+}
+
+/*
+ * The tick is the page colour, so it reads as cut out of the badge rather than
+ * drawn on top of it. `--paper` and not white: on a light theme the badge sits
+ * on white and a white tick would vanish into it in reverse.
+ */
+.vm-tick {
+  stroke: var(--paper);
+}

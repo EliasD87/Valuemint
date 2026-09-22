@@ -4,6 +4,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { Art } from "@/components/Art";
 import { Wordmark } from "@/components/Wordmark";
+import { VerifiedMark } from "@/components/VerifiedMark";
 import { wordmarkFor } from "@/config/wordmarks";
 import { shortAddress } from "@/lib/format";
 
@@ -104,7 +105,16 @@ export function CollectionCard({ href, name, symbol, address, images, badge, sta
                 the `align-self` Wordmark.css carries, centre it over the symbol
                 below. The `<b>` also gives it the font-size its `em` sizing
                 reads. */}
-            <b>{mark === undefined ? name : <Wordmark mark={mark} name={name} />}</b>
+            {/*
+              The mark rides inside the `<b>` with the name, not beside it in
+              the column. As a sibling it would be a row of its own under the
+              name — the container is a flex COLUMN — and would end up between
+              the name and the symbol.
+            */}
+            <b className="coll-card-title">
+              {mark === undefined ? name : <Wordmark mark={mark} name={name} />}
+              <VerifiedMark collection={address} size={14} />
+            </b>
             <span className="mono dim">{symbol || shortAddress(address, 4)}</span>
           </div>
           {badge}

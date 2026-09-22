@@ -515,3 +515,24 @@
   color: var(--ink-2);
   font-weight: 700;
 }
+
+
+/*
+ * The card's title line holds the name and, where there is one, the verified
+ * mark.
+ *
+ * `inline-flex` rather than `flex`: the `<b>` sits in a flex column and a
+ * block-level flex would stretch it to the card's full width, putting the mark
+ * against the far edge instead of against the name it qualifies.
+ *
+ * `min-width: 0` on the name so a long one truncates rather than pushing the
+ * mark out of the card — the mark is `flex: none` and would otherwise be the
+ * thing that overflows.
+ */
+.coll-card-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+  max-width: 100%;
+}

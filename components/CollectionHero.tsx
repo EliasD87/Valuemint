@@ -6,6 +6,7 @@ import { heroFor } from "@/config/heroes";
 import { wordmarkFor } from "@/config/wordmarks";
 import { Wordmark } from "@/components/Wordmark";
 import { ShareLink } from "@/components/ShareLink";
+import { VerifiedMark } from "@/components/VerifiedMark";
 import { deployment } from "@/config/contracts";
 import { formatCount, shortAddress } from "@/lib/format";
 import "./CollectionHero.css";
@@ -158,6 +159,14 @@ export function CollectionHero({
               ) : (
                 (name ?? "Loading…")
               )}
+              {/*
+                Inside the heading, beside the name it qualifies. Outside it the
+                mark would be a sibling of the title rather than part of it, and
+                a screen reader would read the collection's name and then,
+                separately, that something here is verified — without saying
+                what.
+              */}
+              <VerifiedMark collection={address} size={20} />
             </h2>
 
             <div className="ch-actions">

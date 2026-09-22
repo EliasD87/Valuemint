@@ -230,7 +230,15 @@
   padding-bottom: 0.1rem;
 }
 
+/*
+ * The heading is a flex row now, because it holds the name AND the verified
+ * mark. `inline-flex` rather than `flex` so a wrapping name still behaves like
+ * text rather than like a block.
+ */
 .ch-name {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
   margin: 0;
   font-size: var(--step-2);
   line-height: 1.15;

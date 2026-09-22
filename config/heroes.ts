@@ -77,6 +77,22 @@ export const COLLECTION_HEROES: Record<string, HeroArt> = {
     foregroundAlt: "The Cybereator cat, leaning on a bar",
   },
 
+  /*
+    SoDEXTreasureBox — supplied by the owner, and it needs no foreground.
+
+    The source is already composed as a banner: 2048x768, the three boxes
+    arranged across it with room around them. So there is nothing to cut out and
+    nothing to align — `foreground` is omitted and the band is simply the
+    picture.
+
+    Re-encoded to 1600 wide as WebP. The band never draws wider than about
+    1168 CSS pixels, and checked against the real crop (cover into 1168x240)
+    all three boxes survive with the concrete above and below taken off.
+  */
+  "0x371c4f7f68be3e558b89cc1f0fb113851c76e750": {
+    background: "/heroes/treasurebox.webp",
+  },
+
   /** TestCybereator — the same artwork, from the same two files. */
   "0x412d8af16b7ff3fe75e1cd380bd86ef33dd8ad0f": {
     background: "/heroes/cybereator-bg.webp",
