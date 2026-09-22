@@ -1,6 +1,7 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { indexConfigured, select, selectAll } from "@/lib/supabase";
 import { CURSOR } from "@/lib/indexSync";
+import { healIfCold } from "@/lib/indexHeal";
 import type { JsonOrderParameters } from "@/lib/indexRows";
 
 /**
@@ -83,6 +84,21 @@ export async function GET(): Promise<NextResponse> {
     ]);
 
     const head = cursor[0];
+
+    /**
+     * If the cursor has gone cold, this read repairs it.
+     *
+     * `after` runs once the response has been sent, so nothing here is on the
+     * path of the request that triggered it — and the edge cache above means
+     * the origin sees this route roughly four times a minute however busy the
+     * site is, which is the rate limit on how often it can fire.
+     *
+     * The scheduler stays the primary way the index advances. This exists
+     * because on 2026-09-22 the scheduler stopped for four and three quarter
+     * hours and the only symptom was the site being slower, which nobody can
+     * be expected to spot. See lib/indexHeal.ts.
+     */
+    after(() => healIfCold(head?.updated_at ?? null));
 
     return NextResponse.json(
       {
