@@ -11,15 +11,16 @@ import { useGenericTokens } from "@/hooks/useGenericTokens";
 import { useTokenIds } from "@/hooks/useTokenIds";
 import { MintPanel } from "@/components/MintPanel";
 import { TokenCard, TokenCardSkeleton } from "@/components/TokenCard";
-import { ShareLink } from "@/components/ShareLink";
-import { formatCount, shortAddress } from "@/lib/format";
+import { formatCount } from "@/lib/format";
 import "@/styles/home.css";
 import "@/styles/collections.css";
 import { Sortie } from "@/components/Sortie";
 import { Select } from "@/components/Select";
-import { Wordmark } from "@/components/Wordmark";
-import { wordmarkFor } from "@/config/wordmarks";
 import { Activity } from "@/components/Activity";
+import { TopHolders } from "@/components/TopHolders";
+import { CollectionHero } from "@/components/CollectionHero";
+import { CollectionStats } from "@/components/CollectionStats";
+import { PageTabs, type TabDef } from "@/components/PageTabs";
 
 /**
  * Any ERC-721 on ValueChain, not only ours.
@@ -38,12 +39,29 @@ import { Activity } from "@/components/Activity";
  */
 const PAGE = 60;
 
+/**
+ * The sections of a collection, as tabs rather than a stack.
+ *
+ * Activity and holders used to live in the sidebar beside the grid, in a panel
+ * roughly 22rem wide, because there was nowhere else to put them. That is a
+ * table of addresses and prices in a column narrow enough that every row
+ * wrapped — and it pushed the mint panel, the one thing on the page with a
+ * button, further from the top on every collection that was still minting.
+ *
+ * As tabs they get the page's full width and cost nothing when unopened: only
+ * the selected one is rendered, so a visitor who never presses "Top holders"
+ * never calls the explorer. See `PageTabs`.
+ */
+type Tab = "items" | "activity" | "holders";
+
 export function CollectionView({ params }: { params: Promise<{ address: string }> }) {
   const { address: raw } = use(params);
   const { address: viewer } = useAccount();
 
   const valid = /^0x[0-9a-fA-F]{40}$/.test(raw);
   const collection = valid ? (raw as `0x${string}`) : undefined;
+
+  const [tab, setTab] = useState<Tab>("items");
 
   /**
    * One multicall for the four things everything else waits on.
@@ -114,7 +132,16 @@ export function CollectionView({ params }: { params: Promise<{ address: string }
     return [...ids, ...listedIds.filter((id) => !seen.has(id.toString()))];
   }, [ids, listedIds]);
 
-  const { tokens, isLoading } = useGenericTokens(collection, shownIds);
+  /**
+   * Only while the items tab is open.
+   *
+   * This is the ladder that makes a collection page slow — ids, then a
+   * `tokenURI` each, then a metadata document each — and somebody who opened
+   * the page to read its history has no use for any of it. The order book
+   * above is deliberately NOT gated the same way: the stats bar shows the
+   * floor on every tab, and it is one shared scan either way.
+   */
+  const { tokens, isLoading } = useGenericTokens(collection, tab === "items" ? shownIds : []);
 
   /**
    * Sorting and trait filtering.
@@ -225,305 +252,276 @@ export function CollectionView({ params }: { params: Promise<{ address: string }
     );
   }
 
+  /**
+   * Only the items tab carries a count, and that is not an omission.
+   *
+   * A count on the other two would have to be fetched to be drawn, which means
+   * calling the explorer and reading the history for a tab nobody has opened —
+   * paying the whole cost of a tab to print its size next to its name. Supply
+   * is already on screen in the stats bar above, so the items count is free.
+   */
+  const tabs: ReadonlyArray<TabDef<Tab>> = [
+    { key: "items", label: "Items", ...(supply === undefined ? {} : { count: Number(supply) }) },
+    { key: "activity", label: "Activity" },
+    { key: "holders", label: "Top holders" },
+  ];
+
   return (
     <section className="page section">
-      <div className="head">
-        <div>
-          <p className="eyebrow">Collection</p>
+      <CollectionHero
+        address={raw as `0x${string}`}
+        {...(name === undefined ? {} : { name })}
+        {...(symbol === undefined ? {} : { symbol })}
+        supply={supply as bigint | undefined}
+      />
+
+      <CollectionStats collection={collection} supply={supply as bigint | undefined} />
+
+      <PageTabs tabs={tabs} active={tab} onChange={setTab} label="Collection sections" />
+
+      {tab === "activity" ? (
+        /* The page's full width, and more rows than a sidebar could hold. */
+        <Activity collection={collection} limit={25} markBurned />
+      ) : tab === "holders" ? (
+        <TopHolders collection={collection} supply={supply as bigint | undefined} />
+      ) : (
+        <>
           {/*
-            The collection's own wordmark in the heading where it has one.
+            Drawn as soon as the collection is known to have more than one piece,
+            which is two round trips before the pieces themselves arrive.
 
-            Still inside the `<h2>`, so the document outline is unchanged and
-            the heading keeps an accessible name — the mark carries the
-            collection's name as its `aria-label`. Gated on `name` having
-            arrived as well as the mark existing: swapping a drawing in for
-            "Loading…" would show a finished heading over a page that is still
-            reading, which is a worse lie than the placeholder.
+            This was gated on `tokens.length > 1`, and `tokens` is the end of the
+            ladder: ids, then tokenURIs, then a metadata document each. So the sort
+            row appeared seconds after the header above it and shoved the whole grid
+            down at the moment somebody had started reading it.
+
+            `supply` comes back in the first multicall, alongside the name and
+            symbol already on screen, and answers the same question — is there more
+            than one thing here to sort. Until it lands the row is drawn anyway, on
+            the assumption that a collection has more than one piece, because nearly
+            every one does and being wrong costs a row disappearing on a page with a
+            single token on it.
           */}
-          <h2>
-            {name !== undefined && wordmarkFor(collection) !== undefined ? (
-              <Wordmark mark={wordmarkFor(collection)!} name={name} />
-            ) : (
-              (name ?? "Loading…")
-            )}
-          </h2>
-        </div>
-        {/* Share and the explorer link belong together: both are ways of
-            taking this collection somewhere else. */}
-        <div className="wrap-row head-actions">
-          <ShareLink title={name ?? undefined} />
-          <a
-            className="head-link"
-            href={`${deployment.explorer}/token/${raw}`}
-            target="_blank"
-            rel="noreferrer noopener"
-          >
-            On the explorer &rarr;
-          </a>
-        </div>
-      </div>
+          {(supply ?? 2n) > 1n ? (
+            <div className="coll-controls">
+              <div className="wrap-row">
+                <Sortie active={sort === "id-desc"} onClick={() => setSort("id-desc")}>
+                  Newest
+                </Sortie>
+                <Sortie active={sort === "id-asc"} onClick={() => setSort("id-asc")}>
+                  Oldest
+                </Sortie>
+                <Sortie active={sort === "price-asc"} onClick={() => setSort("price-asc")}>
+                  Price low
+                </Sortie>
+                <Sortie active={sort === "price-desc"} onClick={() => setSort("price-desc")}>
+                  Price high
+                </Sortie>
+              </div>
 
-      <div
-        className="strip-inner"
-              >
-        <span className="strip-item">
-          <b>{symbol ?? "—"}</b> symbol
-        </span>
-        <span className="strip-item">
-          <b>{formatCount(supply as bigint | undefined)}</b> minted
-        </span>
-        <span className="strip-item">
-          {/*
-            The collection's own count, not this page's. `listings` above is
-            keyed by what is on screen, and reading the figure off it meant a
-            collection with six pieces for sale outside the loaded window
-            announced "0 listed" while the market was selling them.
-          */}
-          <b>{formatCount(BigInt(bestListings.size))}</b> listed
-        </span>
-        <span className="strip-item mono dim">{shortAddress(raw, 6)}</span>
-      </div>
+              {traitOptions.length > 0 ? (
+                <div className="coll-traits">
+                  {traitOptions.map(([type, values]) => (
+                    <div key={type} className="coll-trait">
+                      <span className="coll-trait-label" id={`trait-${type}`}>
+                        {type}
+                      </span>
+                      {/* The count moves out of the label and into `note`, so it
+                          stays dim and column-aligned instead of being glued to the
+                          value as "VELOCITY (9)". */}
+                      <Select
+                        label={type}
+                        value={traitFilter[type] ?? ""}
+                        onChange={(v) => setTraitFilter((f) => ({ ...f, [type]: v }))}
+                        options={[
+                          { value: "", label: "Any" },
+                          ...[...values.entries()]
+                            .sort((a, b) => b[1] - a[1])
+                            .map(([value, count]) => ({
+                              value,
+                              label: value,
+                              note: String(count),
+                            })),
+                        ]}
+                      />
+                    </div>
+                  ))}
 
-      {/*
-        Drawn as soon as the collection is known to have more than one piece,
-        which is two round trips before the pieces themselves arrive.
-
-        This was gated on `tokens.length > 1`, and `tokens` is the end of the
-        ladder: ids, then tokenURIs, then a metadata document each. So the sort
-        row appeared seconds after the header above it and shoved the whole grid
-        down at the moment somebody had started reading it.
-
-        `supply` comes back in the first multicall, alongside the name and
-        symbol already on screen, and answers the same question — is there more
-        than one thing here to sort. Until it lands the row is drawn anyway, on
-        the assumption that a collection has more than one piece, because nearly
-        every one does and being wrong costs a row disappearing on a page with a
-        single token on it.
-      */}
-      {(supply ?? 2n) > 1n ? (
-        <div className="coll-controls">
-          <div className="wrap-row">
-            <Sortie active={sort === "id-desc"} onClick={() => setSort("id-desc")}>
-              Newest
-            </Sortie>
-            <Sortie active={sort === "id-asc"} onClick={() => setSort("id-asc")}>
-              Oldest
-            </Sortie>
-            <Sortie active={sort === "price-asc"} onClick={() => setSort("price-asc")}>
-              Price low
-            </Sortie>
-            <Sortie active={sort === "price-desc"} onClick={() => setSort("price-desc")}>
-              Price high
-            </Sortie>
-          </div>
-
-          {traitOptions.length > 0 ? (
-            <div className="coll-traits">
-              {traitOptions.map(([type, values]) => (
-                <div key={type} className="coll-trait">
-                  <span className="coll-trait-label" id={`trait-${type}`}>
-                    {type}
-                  </span>
-                  {/* The count moves out of the label and into `note`, so it
-                      stays dim and column-aligned instead of being glued to the
-                      value as "VELOCITY (9)". */}
-                  <Select
-                    label={type}
-                    value={traitFilter[type] ?? ""}
-                    onChange={(v) => setTraitFilter((f) => ({ ...f, [type]: v }))}
-                    options={[
-                      { value: "", label: "Any" },
-                      ...[...values.entries()]
-                        .sort((a, b) => b[1] - a[1])
-                        .map(([value, count]) => ({
-                          value,
-                          label: value,
-                          note: String(count),
-                        })),
-                    ]}
-                  />
+                  {Object.values(traitFilter).some((v) => v !== "") ? (
+                    <button type="button" className="filt" onClick={() => setTraitFilter({})}>
+                      Clear
+                    </button>
+                  ) : null}
                 </div>
-              ))}
-
-              {Object.values(traitFilter).some((v) => v !== "") ? (
-                <button type="button" className="filt" onClick={() => setTraitFilter({})}>
-                  Clear
-                </button>
               ) : null}
             </div>
           ) : null}
-        </div>
-      ) : null}
 
-      <div className="coll-layout">
-        <div className="coll-layout-main">
-      {supplyKnown && supply === undefined ? (
-        <div className="market-empty">
-          <h3>This collection doesn&rsquo;t publish a token list.</h3>
-          <p className="muted">
-            It&rsquo;s a valid ERC-721 and its tokens can still be traded, but it doesn&rsquo;t
-            implement the optional Enumerable extension, so there&rsquo;s no way to walk its
-            contents from the chain alone. Open a token directly if you know its id.
-          </p>
-        </div>
-      ) : (!supplyKnown || isLoading || findingIds) && tokens.length === 0 ? (
-        <div className="grid-tokens">
-          {Array.from({ length: 8 }, (_, i) => (
-            <TokenCardSkeleton key={i} />
-          ))}
-        </div>
-      ) : shown.length === 0 ? (
-        /*
-          Three different nothings, and they used to share one sentence.
+          <div className="coll-layout">
+            <div className="coll-layout-main">
+              {supplyKnown && supply === undefined ? (
+                <div className="market-empty">
+                  <h3>This collection doesn&rsquo;t publish a token list.</h3>
+                  <p className="muted">
+                    It&rsquo;s a valid ERC-721 and its tokens can still be traded, but it
+                    doesn&rsquo;t implement the optional Enumerable extension, so there&rsquo;s
+                    no way to walk its contents from the chain alone. Open a token directly if
+                    you know its id.
+                  </p>
+                </div>
+              ) : (!supplyKnown || isLoading || findingIds) && tokens.length === 0 ? (
+                <div className="grid-tokens">
+                  {Array.from({ length: 8 }, (_, i) => (
+                    <TokenCardSkeleton key={i} />
+                  ))}
+                </div>
+              ) : shown.length === 0 ? (
+                /*
+                  Three different nothings, and they used to share one sentence.
 
-          "Nothing matches those traits. Clear a filter to widen the search."
-          was shown whenever the grid came out empty — including when no filter
-          was set, which is every empty collection. The trait row is built from
-          the tokens that loaded, so an empty collection has no filters at all:
-          the page was telling people to clear a control that was not on screen.
+                  "Nothing matches those traits. Clear a filter to widen the search."
+                  was shown whenever the grid came out empty — including when no filter
+                  was set, which is every empty collection. The trait row is built from
+                  the tokens that loaded, so an empty collection has no filters at all:
+                  the page was telling people to clear a control that was not on screen.
 
-          Seen on SoDEXTreasureBox the day its boxes were opened. Opening one
-          burns it, all 21 went, and `totalSupply` fell to 0 — so the page
-          offered a filter to clear on a collection with nothing in it.
-        */
-        filtering ? (
-          <div className="market-empty">
-            <h3>Nothing matches those traits.</h3>
-            <p className="muted">Clear a filter to widen the search.</p>
-          </div>
-        ) : supply === 0n ? (
-          <div className="market-empty">
-            <h3>This collection is empty.</h3>
+                  Seen on SoDEXTreasureBox the day its boxes were opened. Opening one
+                  burns it, all 21 went, and `totalSupply` fell to 0 — so the page
+                  offered a filter to clear on a collection with nothing in it.
+                */
+                filtering ? (
+                  <div className="market-empty">
+                    <h3>Nothing matches those traits.</h3>
+                    <p className="muted">Clear a filter to widen the search.</p>
+                  </div>
+                ) : supply === 0n ? (
+                  <div className="market-empty">
+                    <h3>This collection is empty.</h3>
+                    {/*
+                      Both halves, because `totalSupply` cannot tell them apart: it
+                      counts what exists now, not what has ever existed. A collection
+                      nobody has minted from and one whose every piece has been burned
+                      both read 0, and claiming "none minted yet" to the second would
+                      be wrong in front of somebody who minted them.
+                    */}
+                    <p className="muted">
+                      Nothing has been minted yet — or everything that was has since been
+                      burned.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="market-empty">
+                    {/*
+                      Supply says there are pieces and we could not find their ids. For
+                      a collection without Enumerable that means the explorer's index
+                      is the only route to them and it did not answer, which is a
+                      failure to read rather than a collection with nothing in it.
+                    */}
+                    <h3>Couldn&rsquo;t list this collection&rsquo;s pieces.</h3>
+                    <p className="muted">
+                      It reports {formatCount(supply as bigint | undefined)} minted, but the
+                      token list could not be read just now. Try again shortly, or open a piece
+                      directly if you know its id.
+                    </p>
+                  </div>
+                )
+              ) : (
+                <div className="grid-tokens">
+                  {shown.map((t, i) => (
+                    <TokenCard
+                      key={t.id.toString()}
+                      token={t}
+                      collection={collection!}
+                      collectionName={name}
+                      listing={listings.get(t.id.toString())}
+                      viewerAddress={viewer}
+                      /*
+                        The first row loads eagerly.
+
+                        `next/image` is lazy by default, and measured on this page that
+                        meant 0 of 60 images began fetching when their src was set —
+                        every one waited on an intersection callback, on the row already
+                        filling the screen. The home page marks its first four; this
+                        page never did.
+                      */
+                      priority={i < 4}
+                    />
+                  ))}
+                </div>
+              )}
+
+              {/*
+                What is on screen, and the way to get more of it.
+
+                `ids.length >= limit` is the test for "there is more", and it is doing
+                real work: if a press comes back with fewer ids than were asked for,
+                the source has given everything it has and the button takes itself
+                away. Comparing against `supply` alone would leave it sitting there
+                doing nothing for a collection whose explorer index is short of its own
+                `totalSupply` — which is exactly the case this page already has a
+                paragraph about.
+
+                The count is shown whenever the grid is not the whole collection, with
+                or without a button under it, because the sixty-card cap used to be
+                completely silent and that was the worse half of the problem.
+              */}
+              {supply !== undefined && ids.length > 0 && ids.length < Number(supply) ? (
+                <div className="coll-more">
+                  <p className="coll-more-count">
+                    {/*
+                      Two different sentences, because a filter changes what the
+                      numbers mean. Unfiltered, the grid is the first N of the
+                      collection. Filtered, the grid is what matched *within* the first
+                      N — and saying "12 of 1,001" there would imply the other 989 had
+                      been looked at and rejected, when most of them have not been read
+                      at all. That is the single most misleading thing this line could
+                      do, so it says outright how far the search got.
+                    */}
+                    {filtering ? (
+                      <>
+                        Searched <b>{formatCount(BigInt(ids.length))}</b> of{" "}
+                        <b>{formatCount(supply as bigint)}</b> —{" "}
+                        <b>{formatCount(BigInt(shown.length))}</b> match so far
+                      </>
+                    ) : (
+                      <>
+                        Showing <b>{formatCount(BigInt(shown.length))}</b> of{" "}
+                        <b>{formatCount(supply as bigint)}</b>
+                      </>
+                    )}
+                  </p>
+                  {ids.length >= limit ? (
+                    <button
+                      type="button"
+                      className="btn"
+                      onClick={() => setLimit((n) => n + PAGE)}
+                      disabled={loadingMore}
+                    >
+                      {loadingMore ? "Loading…" : `Load ${PAGE} more`}
+                    </button>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
+
             {/*
-              Both halves, because `totalSupply` cannot tell them apart: it
-              counts what exists now, not what has ever existed. A collection
-              nobody has minted from and one whose every piece has been burned
-              both read 0, and claiming "none minted yet" to the second would
-              be wrong in front of somebody who minted them.
+              The sidebar holds one thing now.
+
+              It used to hold the mint panel and the history panel, and it had to
+              wrap them in a single element: a two-column grid auto-places a third
+              child in row two, column one, so the history landed underneath the
+              entire sixty-card grid. The history is a tab of its own now, so the
+              wrapper has one occupant — kept, because `.coll-side` is what gives
+              the column its width and its phone behaviour.
             */}
-            <p className="muted">
-              Nothing has been minted yet — or everything that was has since been burned.
-            </p>
+            {collection !== undefined ? (
+              <aside className="coll-side">
+                <MintPanel address={collection} />
+              </aside>
+            ) : null}
           </div>
-        ) : (
-          <div className="market-empty">
-            {/*
-              Supply says there are pieces and we could not find their ids. For
-              a collection without Enumerable that means the explorer's index
-              is the only route to them and it did not answer, which is a
-              failure to read rather than a collection with nothing in it.
-            */}
-            <h3>Couldn&rsquo;t list this collection&rsquo;s pieces.</h3>
-            <p className="muted">
-              It reports {formatCount(supply as bigint | undefined)} minted, but the token list
-              could not be read just now. Try again shortly, or open a piece directly if you know
-              its id.
-            </p>
-          </div>
-        )
-      ) : (
-        <div className="grid-tokens">
-          {shown.map((t, i) => (
-            <TokenCard
-              key={t.id.toString()}
-              token={t}
-              collection={collection!}
-              collectionName={name}
-              listing={listings.get(t.id.toString())}
-              viewerAddress={viewer}
-              /*
-                The first row loads eagerly.
-                
-                `next/image` is lazy by default, and measured on this page that
-                meant 0 of 60 images began fetching when their src was set —
-                every one waited on an intersection callback, on the row already
-                filling the screen. The home page marks its first four; this
-                page never did.
-              */
-              priority={i < 4}
-            />
-          ))}
-        </div>
+        </>
       )}
-
-      {/*
-        What is on screen, and the way to get more of it.
-
-        `ids.length >= limit` is the test for "there is more", and it is doing
-        real work: if a press comes back with fewer ids than were asked for,
-        the source has given everything it has and the button takes itself
-        away. Comparing against `supply` alone would leave it sitting there
-        doing nothing for a collection whose explorer index is short of its own
-        `totalSupply` — which is exactly the case this page already has a
-        paragraph about.
-
-        The count is shown whenever the grid is not the whole collection, with
-        or without a button under it, because the sixty-card cap used to be
-        completely silent and that was the worse half of the problem.
-      */}
-      {supply !== undefined && ids.length > 0 && ids.length < Number(supply) ? (
-        <div className="coll-more">
-          <p className="coll-more-count">
-            {/*
-              Two different sentences, because a filter changes what the
-              numbers mean. Unfiltered, the grid is the first N of the
-              collection. Filtered, the grid is what matched *within* the first
-              N — and saying "12 of 1,001" there would imply the other 989 had
-              been looked at and rejected, when most of them have not been read
-              at all. That is the single most misleading thing this line could
-              do, so it says outright how far the search got.
-            */}
-            {filtering ? (
-              <>
-                Searched <b>{formatCount(BigInt(ids.length))}</b> of{" "}
-                <b>{formatCount(supply as bigint)}</b> —{" "}
-                <b>{formatCount(BigInt(shown.length))}</b>{" "}
-                match so far
-              </>
-            ) : (
-              <>
-                Showing <b>{formatCount(BigInt(shown.length))}</b> of{" "}
-                <b>{formatCount(supply as bigint)}</b>
-              </>
-            )}
-          </p>
-          {ids.length >= limit ? (
-            <button
-              type="button"
-              className="btn"
-              onClick={() => setLimit((n) => n + PAGE)}
-              disabled={loadingMore}
-            >
-              {loadingMore ? "Loading…" : `Load ${PAGE} more`}
-            </button>
-          ) : null}
-        </div>
-      ) : null}
-        </div>
-
-        {/*
-          The sidebar, and it has to be ONE element.
-
-          This was two children of `.coll-layout` — the mint panel and the
-          activity panel — and a two-column grid auto-places a third child in
-          row two, column one. So the history landed underneath the entire
-          sixty-card grid, and the only way to read it was to scroll past every
-          piece in the collection. Wrapped, they share the second column and the
-          history sits beside the pieces where it can be found.
-
-          On a phone the wrapper becomes `display: contents`, which dissolves it
-          so both are grid children again and can be ordered separately — mint
-          above the grid, history below it.
-        */}
-        {collection !== undefined ? (
-          <aside className="coll-side">
-            <MintPanel address={collection} />
-            {/* Everything that has happened here, not just this page of it —
-                the grid is capped at 60 tokens, the history is not. */}
-            <Activity collection={collection} title="Collection activity" markBurned />
-          </aside>
-        ) : null}
-      </div>
     </section>
   );
 }

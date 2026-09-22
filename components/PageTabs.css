@@ -1,0 +1,119 @@
+/* ================================================================ page tabs
+ *
+ * One row, sitting on a rule that runs the width of the page. The rule is what
+ * makes these read as sections of one thing rather than four buttons: without
+ * it the selected tab's underline floats with nothing to sit on.
+ * ========================================================================= */
+
+.pt {
+  display: flex;
+  align-items: stretch;
+  gap: 1.35rem;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 1.25rem;
+  /*
+   * Scrolls rather than wraps on a phone.
+   *
+   * Five tabs will not fit at 360px, and a wrapped row puts the last one alone
+   * on a second line under a rule that then runs above it — the underline and
+   * the rule end up on different rows and the whole thing stops reading as a
+   * tab bar. A scroller keeps one row at every width.
+   */
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.pt::-webkit-scrollbar {
+  display: none;
+}
+
+.pt-tab {
+  position: relative;
+  flex: none;
+  padding: 0 0 0.6rem;
+  border: 0;
+  background: none;
+  cursor: pointer;
+
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+
+  font: inherit;
+  font-size: var(--step-0);
+  font-weight: 600;
+  letter-spacing: 0.005em;
+  line-height: 1.4;
+
+  /* The unselected tab recedes without moving: same box, quieter ink. */
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+
+.pt-tab:hover {
+  color: var(--ink-2);
+}
+
+.pt-tab.is-on {
+  color: var(--ink);
+}
+
+/*
+ * The rule under the selected tab is a pseudo-element, not a border.
+ *
+ * A border toggled on and off changes the element's height, so every press
+ * nudges the whole page down by two pixels and back. Drawn this way, switching
+ * tabs moves nothing.
+ *
+ * It sits *on* the row's own bottom border rather than above it — the -1px is
+ * the border's width, so the two occupy the same line and the selected tab
+ * appears to cut through it.
+ */
+.pt-tab.is-on::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  border-radius: 999px;
+  background: currentColor;
+}
+
+/*
+ * The count beside a label.
+ *
+ * Tabular and a tier quieter, so a tab reads as its word first and its size
+ * second. At the label's own weight the two compete and the row turns into a
+ * table of numbers.
+ */
+.pt-count {
+  font-size: var(--step--2);
+  font-weight: 500;
+  color: var(--ink-4);
+  font-variant-numeric: tabular-nums;
+}
+
+.pt-tab.is-on .pt-count {
+  color: var(--ink-3);
+}
+
+.pt-tab:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+@media (max-width: 560px) {
+  .pt {
+    gap: 1.1rem;
+    /* Room for the last tab to clear the screen edge when scrolled fully. */
+    padding-right: 0.5rem;
+  }
+
+  .pt-tab {
+    font-size: var(--step--1);
+  }
+}

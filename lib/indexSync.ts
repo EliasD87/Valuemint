@@ -107,6 +107,8 @@ export interface SyncResult {
   events: number;
   filled: number;
   cancelled: number;
+  /** Collections whose floor was recorded this run. 0 before the table exists. */
+  floors: number;
   /** False when the run hit `MAX_BLOCKS_PER_RUN` and there is more to read. */
   done: boolean;
   ms: number;
@@ -249,6 +251,60 @@ async function markStatus(hashes: string[], status: "filled" | "cancelled"): Pro
  * re-read of an old block resurrecting an order somebody has already bought —
  * the column keeps whatever it had, and only ever moves one way.
  */
+/**
+ * Record what the floor is right now, per collection.
+ *
+ * **The only thing in this database that cannot be rebuilt from the chain.**
+ *
+ * Every other table here is a cache: truncate it, replay it, get the same rows
+ * back. A floor is different. It is the minimum over the orders that were live
+ * AT A MOMENT, and "live" depends on fills, cancellations, expiries and counter
+ * increments — the last of which leaves no per-order trace at all. Yesterday's
+ * floor cannot be reconstructed from today's logs, and an attempt gets a number
+ * that is wrong in a KNOWN DIRECTION: a stale cheap listing that nothing
+ * records as dead drags the reconstruction down, so every change computed
+ * against it reads more positive than the truth. A price signal biased one way
+ * is worse than no price signal, so this is recorded forward instead.
+ *
+ * Bucketed to the hour, which is what makes it affordable. The sync runs every
+ * thirty seconds; keyed on a timestamp this would write 2,880 rows per
+ * collection per day. Keyed on the hour it upserts one row 120 times and leaves
+ * 24 a day — a couple of hundred across the whole chain, and still far finer
+ * than a figure labelled "1d" needs.
+ *
+ * **A collection with nothing listed writes no row**, because `collection_floors`
+ * only names collections that have a live listing. That is deliberate: the gap
+ * reads as "not known", which is true, rather than as a floor of zero, which
+ * would be a price nobody ever asked. A reader must treat a missing bucket as
+ * unknown and not interpolate across it.
+ */
+export async function snapshotFloors(at: Date): Promise<number> {
+  const rows = await select<{
+    collection: string;
+    listed: number;
+    floor_wei: string | null;
+  }>("collection_floors?select=collection,listed,floor_wei");
+
+  if (rows.length === 0) return 0;
+
+  /** Floored to the hour — this is the whole de-duplication mechanism. */
+  const bucket = new Date(Math.floor(at.getTime() / 3_600_000) * 3_600_000).toISOString();
+
+  await upsert(
+    "floor_history",
+    rows.map((r) => ({
+      collection: r.collection,
+      bucket,
+      floor_wei: r.floor_wei,
+      listed: r.listed,
+      updated_at: at.toISOString(),
+    })),
+    "collection,bucket",
+  );
+
+  return rows.length;
+}
+
 export async function syncSeaport(client: PublicClient = indexClient()): Promise<SyncResult> {
   const started = Date.now();
 
@@ -262,6 +318,23 @@ export async function syncSeaport(client: PublicClient = indexClient()): Promise
   const to = capped > safeHead ? safeHead : capped;
 
   if (from > to) {
+    /**
+     * Caught up — and the floor is still snapshotted.
+     *
+     * Easy to skip here on the reasoning that nothing can have changed without
+     * new blocks. That is wrong: `live_orders` filters on
+     * `end_time > extract(epoch from now())`, so an order EXPIRING moves the
+     * floor with no block, no log and no event. Returning early without a
+     * snapshot would drop exactly the hours in which a quiet market's floor
+     * rose because its cheapest listing timed out.
+     */
+    let idleFloors = 0;
+    try {
+      idleFloors = await snapshotFloors(new Date());
+    } catch (err) {
+      console.error("[index] floor snapshot failed", err);
+    }
+
     return {
       from: Number(from),
       to: Number(committed),
@@ -271,6 +344,7 @@ export async function syncSeaport(client: PublicClient = indexClient()): Promise
       events: 0,
       filled: 0,
       cancelled: 0,
+      floors: idleFloors,
       done: true,
       ms: Date.now() - started,
     };
@@ -343,10 +417,26 @@ export async function syncSeaport(client: PublicClient = indexClient()): Promise
     "name",
   );
 
+  /**
+   * After the watermark, and deliberately not allowed to fail the run.
+   *
+   * The floor snapshot is an extra this sync takes on the way past; the sync's
+   * actual job is the order book, and that has already been committed by the
+   * time this runs. A snapshot that throws must cost one missing hourly point,
+   * not a whole index run and the block range it would have advanced.
+   */
+  let floors = 0;
+  try {
+    floors = await snapshotFloors(at);
+  } catch (err) {
+    console.error("[index] floor snapshot failed", err);
+  }
+
   return {
     from: Number(from),
     to: Number(to),
     head: Number(head),
+    floors,
     orders: orders.length,
     counters: voided.length,
     events: history.length,

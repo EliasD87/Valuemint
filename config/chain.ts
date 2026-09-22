@@ -59,6 +59,27 @@ export const valuechainTestnet = defineChain({
 export const BLOCK_TIME_MS = 2_000;
 
 /**
+ * ValueChain's block spacing, measured.
+ *
+ * The only way this app turns a block number into a time. Reading a block's
+ * real timestamp costs a `getBlock` per row, which for a history panel or a
+ * price chart is one request per point — so the distance from the chain head is
+ * converted at this spacing instead.
+ *
+ * That makes it an ESTIMATE, and it must never be used to price anything or to
+ * decide whether an order has expired. Seaport's `endTime` is a unix timestamp
+ * and is compared against the clock, never against a block. This dates a row
+ * and nothing more.
+ *
+ * Distinct from `BLOCK_TIME_MS` above, which is deliberately rounded *down* so
+ * wagmi polls slightly ahead of each block rather than slightly behind it.
+ */
+export const SECONDS_PER_BLOCK = 2.065;
+
+/** Blocks in a day at that spacing. Rounded: it dates rows, it does not price them. */
+export const BLOCKS_PER_DAY = Math.round(86_400 / SECONDS_PER_BLOCK);
+
+/**
  * HTTP endpoints, in preference order, for the fallback transport.
  *
  * More than one on purpose. Every page here is assembled from chain reads, so a

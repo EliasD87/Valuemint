@@ -234,6 +234,60 @@ create or replace view collection_floors as
   group by collection;
 
 -- ---------------------------------------------------------------------------
+-- Floor history
+-- ---------------------------------------------------------------------------
+
+-- What the floor was, hour by hour.
+--
+-- The ONLY figure on this site that cannot be recovered from the chain.
+--
+-- Everything else here is a cache: truncate it and a replay rebuilds it exactly.
+-- A floor is different. It is the minimum over the orders that were live AT A
+-- MOMENT, and "live" depends on fills, cancellations, expiries and counter
+-- increments — the last of which leaves no per-order trace at all. Reconstructing
+-- yesterday's floor from today's logs gets a number that is close and quietly
+-- wrong, and it is wrong in one direction: a stale cheap listing that nothing
+-- records as dead drags the reconstructed floor down, so every change computed
+-- against it reads more positive than the truth.
+--
+-- A price signal biased in a known direction is worse than no price signal. So
+-- this is recorded forward rather than derived backward, and the cell that shows
+-- it stays empty until there is genuinely a day of history behind it.
+--
+-- BUCKETED TO THE HOUR, and that is what makes it affordable. The sync runs
+-- every 30 seconds; keyed on a timestamp it would write 2,880 rows per
+-- collection per day. Keyed on the hour it upserts the same row 120 times and
+-- leaves 24 rows a day — about 200 across every collection on the chain, which
+-- is nothing, and still far finer than a figure labelled "1d" needs.
+create table if not exists floor_history (
+  collection  text        not null,
+  -- The hour this belongs to, floored. Part of the key: that is the whole
+  -- mechanism that collapses 120 writes an hour into one row.
+  bucket      timestamptz not null,
+  -- Nullable, deliberately. A collection with nothing listed has NO floor, and
+  -- that is a real state rather than a zero — zero is a price somebody could
+  -- have asked. A change into or out of it is undefined, not infinite.
+  floor_wei   numeric(78, 0),
+  listed      int         not null default 0,
+  updated_at  timestamptz not null default now(),
+  primary key (collection, bucket)
+);
+
+-- What a collection page asks for: this collection's recent buckets.
+create index if not exists floor_history_recent
+  on floor_history (collection, bucket desc);
+
+-- Safe to serialise. price as text for the same reason every other view does
+-- it: a uint256 sent as a JSON number loses precision above 2^53.
+create or replace view floor_history_public as
+  select
+    collection,
+    bucket,
+    floor_wei::text as floor_wei,
+    listed
+  from floor_history;
+
+-- ---------------------------------------------------------------------------
 -- Access
 -- ---------------------------------------------------------------------------
 
@@ -252,9 +306,12 @@ alter table index_cursor enable row level security;
 alter table orders       enable row level security;
 alter table counters     enable row level security;
 alter table events       enable row level security;
+alter table floor_history enable row level security;
 
-revoke all on index_cursor, orders, counters, events from anon, authenticated;
-revoke all on live_orders, listings_public, offers_public, collection_floors
+revoke all on index_cursor, orders, counters, events, floor_history
+  from anon, authenticated;
+revoke all on live_orders, listings_public, offers_public, collection_floors,
+  floor_history_public
   from anon, authenticated;
 
 -- And for anything added later, so this cannot be forgotten once.

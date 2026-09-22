@@ -1,0 +1,138 @@
+/* ============================================================== top holders */
+
+/*
+ * Rows sit inside `.act-list`, which already draws the hairlines and the
+ * rounded ends. Only the column layout differs, so only that is restated.
+ */
+.th-row {
+  grid-template-columns: 1.5rem minmax(0, 1fr) minmax(3rem, 8rem) auto;
+}
+
+/* A leaderboard is read down the numbers, so they line up and stay quiet. */
+.th-rank {
+  font-size: var(--step--2);
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.th-who {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.th-who:hover {
+  text-decoration: underline;
+}
+
+/* Your own row, marked the way every other list here marks it. */
+.th-row.is-mine .th-who {
+  font-weight: 700;
+}
+
+/*
+ * A contract at the top of a leaderboard is not a collector.
+ *
+ * A bridge, a vault or an escrow can hold more than anybody and it would be
+ * misleading to draw it identically to a person who bought them.
+ */
+.th-tag {
+  flex: none;
+  padding: 0.05rem 0.35rem;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  font-size: var(--step--3);
+  color: var(--ink-3);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+/*
+ * Relative to the leader, not to supply.
+ *
+ * Against total supply every bar in a large collection is a sliver and the
+ * column says nothing. Against the top holder the shape of the distribution is
+ * the point: one bar full and nine stubs reads very differently from ten
+ * near-equal ones, and that is what somebody opens this tab to see.
+ */
+.th-bar {
+  display: block;
+  height: 0.4rem;
+  border-radius: 999px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+
+.th-bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--ink-3);
+}
+
+.th-row.is-mine .th-bar-fill {
+  background: var(--accent);
+}
+
+.th-count {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  justify-content: end;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.th-count small {
+  font-size: var(--step--3);
+  color: var(--ink-3);
+}
+
+/* The bar is the first thing to go: the count carries the same fact exactly. */
+@container act (max-width: 26rem) {
+  .th-row {
+    grid-template-columns: 1.5rem minmax(0, 1fr) auto;
+  }
+
+  .th-bar {
+    display: none;
+  }
+}
+
+/*
+ * Expanded, the list scrolls rather than the panel growing to a hundred rows.
+ *
+ * This panel sits in the collection page's sidebar beside the grid; left to
+ * grow it would be several screens tall and push everything under it out of
+ * reach. Roughly a dozen rows is enough to scan and short enough to stay put.
+ */
+.th-list.is-expanded {
+  max-height: 26rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.th-more {
+  align-self: start;
+  margin-top: 0.1rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--step--2);
+  color: var(--ink-2);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.th-more:hover {
+  color: var(--ink);
+}

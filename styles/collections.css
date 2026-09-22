@@ -236,6 +236,27 @@
 }
 
 /*
+ * A sidebar with nothing in it gives its width back.
+ *
+ * `MintPanel` renders nothing at all for a collection that is not minting
+ * through this marketplace — which is every collection deployed elsewhere, and
+ * most of the ones here once their mint closes. That used to be invisible,
+ * because the column also held the history panel and so was never empty.
+ *
+ * The history is a tab of its own now, so on Cybereator this column was 336px
+ * of dead air holding a zero-height element, with the grid squeezed into 783 of
+ * an available 1167. Measured, not guessed.
+ *
+ * `:empty` is exact here: React renders no node whatsoever, not an empty
+ * wrapper, so there is no text node to defeat it. A browser without `:has()`
+ * falls back to the two-column layout, which is what shipped — a worse result,
+ * not a broken one.
+ */
+.coll-layout:has(> .coll-side:empty) {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+/*
  * Mint and history, stacked in the second column.
  *
  * Deliberately NOT sticky, and deliberately not a scroll container.

@@ -1,0 +1,356 @@
+/* =========================================================== collection hero
+ *
+ * Band, avatar, name, chips. Everything above the figures.
+ * ========================================================================= */
+
+.ch {
+  margin-bottom: 1.25rem;
+}
+
+/* ------------------------------------------------------------------ band */
+
+/*
+ * Fixed height rather than an aspect ratio, and taller than it was.
+ *
+ * An aspect ratio grows the band with the viewport: at 1600px wide a 4:1 band
+ * is 400px, so the whole first screen is decoration and the collection's name
+ * is below the fold. A fixed band is the same piece of chrome at every width.
+ *
+ * It went from 168px to 240 because 168 could not hold a character. Measured:
+ * the Cybereator cutout at a height that read as deliberate was 268px, so at
+ * the old height its ears were clipped by the top edge — and shrinking it to
+ * fit made it a sticker rather than someone standing there. 240 fits the
+ * figure whole with room under its feet.
+ */
+.ch-band {
+  position: relative;
+  height: clamp(132px, 20vw, 240px);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  background: var(--surface-2);
+  /*
+   * A hairline, because a pale collection's band and the page behind it can be
+   * the same colour, and then the shape simply disappears.
+   */
+  border: 1px solid var(--line);
+}
+
+/* ---------------------------------------------------- composed artwork */
+
+/*
+ * The background of a named hero. Sharp, not blurred: somebody drew this.
+ *
+ * `object-position` centres vertically because the band crops hard — about 5:1
+ * on a desktop and far squarer on a phone — so the middle of the picture is
+ * the only part guaranteed to survive at every width.
+ */
+.ch-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+}
+
+/*
+ * The cutout, standing on the line where the identity row begins.
+ *
+ * Height-driven and width-auto, so the figure keeps its proportions whatever
+ * the band does. Anchored to the bottom rather than centred: a character with
+ * its feet on a floor reads as standing in the scene, and the same figure
+ * centred in the box reads as a sticker pasted on it.
+ *
+ * `bottom: 0` is load-bearing and was arrived at the hard way. The figure was
+ * raised 2.25rem to clear the Share control, which it did — and exposed that
+ * the cutout's bottom-right corner is FULLY OPAQUE, because the bar counter
+ * the cat leans on is part of the artwork. Measured: three corners at alpha 0,
+ * the fourth at 255. Lifted off the floor, that counter became a hard-edged
+ * rectangle hanging in mid-air over the background.
+ *
+ * On the floor it reads as what it is — the bar — and its straight lower edge
+ * is flush with the band's own. The control it used to collide with moved to
+ * the opposite corner instead.
+ *
+ * 97% rather than 100% keeps a hairline of clearance at the head, measured at
+ * 8px, so the figure reads as placed rather than cropped by the top edge.
+ */
+.ch-fg {
+  position: absolute;
+  right: clamp(1rem, 6vw, 5rem);
+  bottom: 0;
+  height: 97%;
+  width: auto;
+  display: block;
+  /*
+   * Its own shadow, so it sits ON the background rather than in front of it.
+   * The source has no shadow of its own — it is a clean cutout — and without
+   * one the figure floats.
+   */
+  filter: drop-shadow(0 6px 14px rgb(0 0 0 / 35%));
+}
+
+/* ------------------------------------------------- fallback: blurred covers */
+
+.ch-band-blur {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  /*
+   * Blurred hard, and scaled past the edges so the blur has something to
+   * sample there. Without the scale, `filter: blur()` fades to transparent at
+   * the boundary and the band gets a soft grey frame on all four sides.
+   *
+   * Saturation is pushed well past 1 on purpose. Blur averages colour toward
+   * the mean, so a tiled set of thumbnails collapses to a single muddy brown —
+   * which is exactly what the old header looked like. Lifting saturation keeps
+   * the collection's palette readable as a colour field rather than a smear.
+   */
+  filter: blur(32px) saturate(1.7);
+  transform: scale(1.3);
+}
+
+.ch-band-blur[data-count="1"] {
+  grid-template-columns: 1fr;
+}
+
+.ch-band-blur[data-count="2"] {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+/* Three and four both tile to four cells; three repeats its first. */
+.ch-band-blur[data-count="3"],
+.ch-band-blur[data-count="4"] {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.ch-band-blur img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/*
+ * The scrim, and it is lighter over composed artwork than over a blur.
+ *
+ * Over a blur its job is to stop a bright colour field out-shouting the page,
+ * so it covers the whole band. Over artwork somebody drew, that same wash is
+ * vandalism — it is the picture they wanted seen. So the flat layer is dropped
+ * for a custom hero and only the bottom gradient remains, which is the half
+ * that was doing legibility work for the name below.
+ */
+.ch-scrim {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(to bottom, rgb(0 0 0 / 0%) 45%, rgb(0 0 0 / 42%) 100%),
+    color-mix(in srgb, var(--paper) 22%, transparent);
+}
+
+.ch-band-art-custom .ch-scrim {
+  background: linear-gradient(to bottom, rgb(0 0 0 / 0%) 52%, rgb(0 0 0 / 38%) 100%);
+}
+
+/* ------------------------------------------------------- identity row */
+
+/*
+ * The row sits below the band. Only the avatar reaches into it.
+ *
+ * This used to be `margin-top: -2.25rem` on the whole row, which lifted the
+ * name, the chips AND the controls into the artwork — and that is what put
+ * "Share" on top of the Cybereator cat. Lifting one element instead means
+ * nothing that renders text shares a layer with a picture.
+ */
+.ch-body {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-top: 0.6rem;
+  padding-inline: 1rem;
+  position: relative;
+}
+
+/*
+ * The one thing that overlaps the band, tying the two together — the avatar
+ * reads as belonging to the collection rather than sitting under a picture of
+ * it.
+ *
+ * `align-self: flex-start` matters and is not tidiness. Under the row's old
+ * `flex-end`, a negative margin-top SHORTENED the avatar's outer box and, with
+ * its bottom pinned, pushed its top DOWN: measured, -2rem gave 22px of overlap
+ * and -3rem gave 38px... but going further reduced it again, and at -4.25rem
+ * the overlap was -2px. Aligned to the start, the margin does what it reads
+ * like, and -2.5rem is a measured 30px.
+ */
+.ch-avatar {
+  flex: none;
+  align-self: flex-start;
+  margin-top: -2.5rem;
+  width: 72px;
+  height: 72px;
+  border-radius: var(--r-md);
+  overflow: hidden;
+  background: var(--surface-2);
+  /*
+   * The ring is the page colour, not a line colour: it is the gap that makes a
+   * square of artwork sit *on* the band rather than in it, so it has to match
+   * whatever is behind — which changes with the theme.
+   */
+  border: 3px solid var(--paper);
+  box-shadow: 0 2px 10px rgb(0 0 0 / 12%);
+  display: grid;
+  place-items: center;
+}
+
+.ch-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.ch-avatar-empty {
+  font-size: var(--step-0);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--ink-3);
+}
+
+.ch-id {
+  min-width: 0;
+  flex: 1 1 18rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  /* Sits below the band's lower edge, so the name is never over artwork. */
+  padding-bottom: 0.1rem;
+}
+
+.ch-name {
+  margin: 0;
+  font-size: var(--step-2);
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.ch-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+/*
+ * Facts, drawn as facts.
+ *
+ * Small, outlined and quiet: nothing here is a control except the address, and
+ * a row of filled pills would read as three buttons nobody can press.
+ */
+.ch-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.1rem 0.45rem;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  font-size: var(--step--3);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.ch-chip-link {
+  text-decoration: none;
+}
+
+.ch-chip-link:hover {
+  color: var(--ink);
+  border-color: var(--line-strong);
+}
+
+/*
+ * Name left, actions right, on one line, below the band.
+ *
+ * `align-items: baseline` rather than centre: the actions are smaller than the
+ * name, and centred they float half a line high beside it. On a baseline they
+ * sit on the same rule the name does.
+ */
+.ch-namerow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.ch-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: none;
+}
+
+.ch-back {
+  font-size: var(--step--1);
+  color: var(--ink-2);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.ch-back:hover {
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* -------------------------------------------------------------- phones */
+
+@media (max-width: 560px) {
+  .ch-body {
+    margin-top: 0.5rem;
+    padding-inline: 0.25rem;
+    gap: 0.75rem;
+  }
+
+  .ch-avatar {
+    width: 56px;
+    height: 56px;
+    border-width: 2px;
+    margin-top: -2rem;
+  }
+
+  .ch-name {
+    font-size: var(--step-1);
+  }
+
+  /*
+   * The actions drop below the name rather than squeezing beside it. At 360px
+   * a wrapping name and two controls cannot share a line.
+   */
+  .ch-namerow {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  /*
+   * The cutout gets out of the way.
+   *
+   * At phone widths the band is barely 130px tall and the figure would fill
+   * most of it, crowding the avatar that overlaps the same corner. The
+   * background is the part that still works small.
+   */
+  .ch-fg {
+    display: none;
+  }
+}

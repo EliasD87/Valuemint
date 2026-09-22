@@ -1,0 +1,131 @@
+/* ========================================================== collection stats
+ *
+ * Six figures under the hero. Small type throughout: this is a reference strip
+ * somebody glances at, not a headline — the figures are already the largest
+ * thing in it and they only need to beat their own labels.
+ * ========================================================================= */
+
+.cs {
+  margin-bottom: 1.25rem;
+}
+
+/*
+ * A grid that fills, not a wrapping row.
+ *
+ * `flex-wrap` put two cells alone on a second line with a chasm between them
+ * and no column alignment — six figures reading as scattered fragments, which
+ * is the exact failure the home page's trust strip already has a note about.
+ * `auto-fit` keeps every cell on the same grid at every width, so the labels
+ * line up down the page however many rows it takes.
+ */
+.cs-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr));
+  gap: 0.9rem 1.25rem;
+  margin: 0;
+  padding: 0.9rem 1.1rem;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface);
+}
+
+.cs-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.cs-label {
+  font-size: var(--step--3);
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  white-space: nowrap;
+  /*
+   * The longest label is "Total volume", which does not fit a 7.5rem cell at
+   * this tracking on the narrowest phones. Ellipsis rather than wrap: a label
+   * on two lines pushes its own figure out of alignment with the five beside
+   * it, and the figure is the part being compared.
+   */
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cs-value {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.15rem 0.4rem;
+  font-size: var(--step-0);
+  font-weight: 600;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.25;
+  min-width: 0;
+}
+
+/* A figure with no mark beside it — a count rather than a price. */
+.cs-plain {
+  white-space: nowrap;
+}
+
+/*
+ * The qualifier under a figure: a share, a sale count.
+ *
+ * Deliberately quiet and deliberately not a second figure. It answers "out of
+ * what" for the number above it, and at the same weight the two would compete.
+ */
+.cs-note {
+  font-size: var(--step--3);
+  font-weight: 500;
+  color: var(--ink-3);
+  white-space: nowrap;
+  letter-spacing: 0;
+}
+
+/*
+ * Not knowable, drawn as not knowable.
+ *
+ * `--ink-4` was the obvious choice and it is the wrong one. That tier is
+ * documented in tokens.css as decoration only — rules, disabled glyphs — and it
+ * measured 4.02:1 on the stats card in dark and worse in light, under the 4.5
+ * that normal text needs.
+ *
+ * A dash here is not decoration. It is the cell's whole answer: it says this
+ * figure could not be known, which is a different fact from a zero and the one
+ * thing somebody must not mis-read. So it takes the label tier, quieter than a
+ * real figure at full ink but legible on both grounds.
+ */
+.cs-dash {
+  color: var(--ink-3);
+}
+
+.cs-foot {
+  margin: 0.5rem 0 0;
+  font-size: var(--step--3);
+  color: var(--ink-3);
+  line-height: 1.45;
+}
+
+/*
+ * The failure line is not red.
+ *
+ * Nothing is broken for the visitor — some figures are absent. Colouring it as
+ * an error makes a slow explorer look like a problem with the collection, which
+ * is the wrong thing to worry somebody on a page where they are about to spend.
+ * A little more ink is enough to say "read this one".
+ */
+.cs-foot-warn {
+  color: var(--ink-2);
+}
+
+@media (max-width: 560px) {
+  .cs-row {
+    grid-template-columns: repeat(auto-fit, minmax(6.25rem, 1fr));
+    padding: 0.8rem 0.9rem;
+    gap: 0.8rem 1rem;
+  }
+}
