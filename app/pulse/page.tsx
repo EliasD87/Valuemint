@@ -133,6 +133,15 @@ export default function PulsePage() {
   const visible = useMemo(() => all.filter((r) => !isHidden(r.collection)), [all]);
 
   /**
+   * Nothing to show yet, as opposed to nothing to show.
+   *
+   * `visible.length` and not `rows.length`: a refetch with the window narrowed
+   * to an empty stretch is not a loading page, and treating it as one would
+   * replace a true answer with a shimmer.
+   */
+  const loading = isLoading && visible.length === 0;
+
+  /**
    * The chosen window, or everything.
    *
    * Every figure on the page reads from this rather than from `visible`, so the
@@ -231,7 +240,7 @@ export default function PulsePage() {
         <h2 className="pulse-title">ValueMint Pulse</h2>
       </div>
 
-      {isLoading && visible.length === 0 ? null : logsUnavailable ? null : (
+      {logsUnavailable ? null : (
         <div className="pulse-controls">
           {/* `Sortie` rather than three buttons of this page's own: it is the
               control the market and collection pages already use, and it is
@@ -244,14 +253,22 @@ export default function PulsePage() {
             ))}
           </div>
 
-          <span className="pulse-span dim">
-            {rows.length} {rows.length === 1 ? "event" : "events"}
-            {stats.span === undefined
-              ? null
-              : stats.span < 48
-                ? ` across ${Math.round(stats.span)} hours`
-                : ` across ${Math.round(stats.span / 24)} days`}
-          </span>
+          {/* The controls are up before the data, so the page has its shape
+              from the first paint and nothing jumps when the rows land. The
+              count is the one part that cannot be honest yet — "0 events" is a
+              claim about the market, not a loading state. */}
+          {loading ? (
+            <span className="skeleton pulse-bar" style={{ width: "9rem", height: "11px" }} />
+          ) : (
+            <span className="pulse-span dim">
+              {rows.length} {rows.length === 1 ? "event" : "events"}
+              {stats.span === undefined
+                ? null
+                : stats.span < 48
+                  ? ` across ${Math.round(stats.span)} hours`
+                  : ` across ${Math.round(stats.span / 24)} days`}
+            </span>
+          )}
 
           <button className="pulse-refresh" type="button" onClick={() => void refetch()}>
             Refresh
@@ -259,10 +276,8 @@ export default function PulsePage() {
         </div>
       )}
 
-      {isLoading && visible.length === 0 ? (
-        <div className="pulse-wait">
-          <div className="skeleton pulse-skeleton" />
-        </div>
+      {loading ? (
+        <Waiting field={field} />
       ) : logsUnavailable ? (
         /* "Nothing traded" and "we could not read what traded" are different
            statements, and only the second is ever true after a refused scan. */
@@ -443,6 +458,102 @@ export default function PulsePage() {
         </>
       )}
     </section>
+  );
+}
+
+/**
+ * The page before it has anything to say.
+ *
+ * Built from the real classes, so the shimmer occupies the geometry the data
+ * will occupy: the same six-tile grid, the same two panels, the same frame for
+ * the field. A skeleton that is merely a grey rectangle buys nothing — the
+ * page still jumps when the rows land, which is the cost this exists to avoid.
+ *
+ * The wait is real and worth naming. `useActivity` holds itself back 900ms so
+ * the reads a page actually paints with go first, then the index answers, then
+ * a few hundred logs are decoded. That is a second or more of nothing, and a
+ * bare shimmer says only "something".
+ *
+ * The phrases cycle rather than advance. Nothing here ticks off a completed
+ * step, because the page cannot see those boundaries and a progress bar that
+ * invents them is a lie told with an animation — these name the parts of one
+ * job that is genuinely in flight.
+ */
+function Waiting({ field }: { field: boolean }) {
+  const stages = [
+    "Reading Seaport's logs",
+    "Decoding orders",
+    "Counting wallets and collections",
+    /* On a phone there is no field to plot, and saying so would be the one
+       false note in a sequence that is otherwise all true. */
+    field ? "Plotting the field" : "Sorting the feed",
+  ];
+
+  /*
+   * Cycled in JavaScript, and the text is text.
+   *
+   * The first version stacked all four and cross-faded them in CSS, with the
+   * first given `opacity: 1` as the at-rest fallback. That fallback does not
+   * work: an infinite animation's 0% keyframe wins over the base rule, so any
+   * document that is not running animations — a backgrounded tab, a frozen
+   * compositor, print — showed an empty line where the status should be.
+   * Measured in that state: computed opacity 0 on all four.
+   *
+   * This is the same shape as the bug that once rendered the hero deck blank,
+   * and the rule it broke is the one this project already wrote down: content
+   * must never be reachable only through an animation. So the phrase is plain
+   * visible text and the timer only swaps which one. If the timer is throttled
+   * to nothing, the first phrase simply stays — still true, still legible.
+   */
+  const [stage, setStage] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setStage((s) => s + 1), 2000);
+    return () => clearInterval(id);
+  }, []);
+
+  return (
+    <div className="pulse-waiting">
+      <p className="pulse-stage" role="status">
+        <i className="pulse-stage-dot" aria-hidden="true" />
+        <span className="pulse-stage-line">{stages[stage % stages.length]}</span>
+      </p>
+
+      <div className="pulse-ticker pulse-ticker-wait" aria-hidden="true">
+        <div className="pt-run">
+          {[132, 88, 164, 104, 148, 92, 176, 116].map((w, i) => (
+            <span key={i} className="skeleton pulse-bar" style={{ width: `${w}px`, height: "11px" }} />
+          ))}
+        </div>
+      </div>
+
+      <ul className="pulse-figures" aria-hidden="true">
+        {["3.5rem", "6rem", "4rem", "2.5rem", "3rem", "2.5rem"].map((w, i) => (
+          <li key={i}>
+            <span className="skeleton pulse-bar" style={{ width: w, height: "22px" }} />
+            <span className="skeleton pulse-bar" style={{ width: "5.5rem", height: "10px" }} />
+          </li>
+        ))}
+      </ul>
+
+      {field ? <div className="pf pf-wait" aria-hidden="true" /> : null}
+
+      <div className="pulse-split" aria-hidden="true">
+        {[0, 1].map((panel) => (
+          <div className="pulse-panel" key={panel}>
+            <span className="skeleton pulse-bar" style={{ width: "7rem", height: "10px" }} />
+            <div className="pulse-wait-rows">
+              {Array.from({ length: panel === 0 ? MOVERS : 8 }, (_, i) => (
+                <span
+                  key={i}
+                  className="skeleton pulse-bar"
+                  style={{ width: `${96 - i * 4}%`, height: "14px" }}
+                />
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 

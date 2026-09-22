@@ -60,13 +60,83 @@
   color: var(--accent-hover);
 }
 
-.pulse-wait {
-  margin: 1rem 0 2rem;
+/* ================================================================ waiting */
+
+/* A shimmering bar. Sized in place by whatever is standing in for what it
+   will become, so there is one rule rather than a class per width. */
+.pulse-bar {
+  display: block;
+  border-radius: var(--r-sm);
 }
 
-.pulse-skeleton {
-  height: 340px;
-  border-radius: var(--r-lg);
+.pulse-waiting {
+  display: contents;
+}
+
+.pulse-stage {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0 0 1.25rem;
+  font-size: var(--step--1);
+  color: var(--ink-2);
+}
+
+/* The one thing on this page that is genuinely still happening, so it gets the
+   one live mark. Same figure as the field's `pf-ping`, at a tenth the size. */
+.pulse-stage-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--r-pill);
+  background: var(--accent);
+  animation: pulse-breathe 1.6s var(--ease) infinite;
+}
+
+@keyframes pulse-breathe {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/*
+ * The phrase itself: ordinary visible text, swapped by a timer.
+ *
+ * No entrance animation, deliberately — see the note in `Waiting`. A fixed
+ * height keeps the row from reflowing as the wording changes length, which is
+ * the only thing the stacked version was actually buying.
+ */
+.pulse-stage-line {
+  display: block;
+  flex: 1;
+  min-height: 1.4em;
+  line-height: 1.4;
+}
+
+/* The ticker's frame without its content: the rule above and below is what
+   makes the strip read as the same object once the events arrive. */
+.pulse-ticker-wait .pt-run {
+  animation: none;
+}
+
+/* The field's frame, at roughly the height it resolves to. `42vw` mirrors the
+   component's own `width * 0.42` closely enough for a placeholder — the page
+   is very nearly the viewport once the gutters are off. */
+.pf-wait {
+  height: clamp(300px, 40vw, 520px);
+}
+
+.pulse-wait-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  margin-top: 1.1rem;
 }
 
 /* ================================================================== ticker */
