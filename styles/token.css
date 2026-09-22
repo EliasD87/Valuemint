@@ -1,7 +1,52 @@
+/*
+ * The artwork is CAPPED and the detail column takes the rest.
+ *
+ * It was the other way round — `1fr` for the picture and a 27rem cap on the
+ * detail — and measured at 1280 that gave the artwork 672x672 and 58% of the
+ * row, while the column holding the price, the figures, the trade panel, the
+ * history, the offers and the traits got 432px and had 1,059px of content to
+ * fit into it. The half of the page nobody reads was the bigger half.
+ *
+ * Capping the first column inverts it without a media query: the picture stops
+ * growing at 30rem and everything past that goes to the column that needs it.
+ * A square piece is then 480px, which is a comfortable size to look at and
+ * still fits a laptop screen whole.
+ */
 .token-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(min(24rem, 100%), 27rem);
-  gap: clamp(2rem, 5vw, 4rem);
+  /*
+   * The picture scales with the page up to a cap; the text column takes the
+   * rest. A flat `30rem` cap looked right at 1280 and wrong at 1024, where the
+   * artwork sat at its maximum while the reading column sat at its minimum —
+   * the tighter the screen, the more the half nobody reads was winning.
+   *
+   * `38vw` makes the picture give ground first, which is the correct priority:
+   * a smaller piece of art is still a piece of art, a squeezed price panel is
+   * a worse page.
+   */
+  /*
+   * BOTH tracks are capped, and the row centres in whatever is left.
+   *
+   * The detail column was `1fr`, so on a wide monitor it simply kept growing:
+   * at 1900px it reached past 800px and every component inside it stretched to
+   * match. "Price" and "9 SOSO" ended up at opposite ends of a card with a
+   * canyon between them, the buy button ran the full width, and each activity
+   * row had its price, its address and its timestamp spread so far apart they
+   * stopped reading as one row.
+   *
+   * 34rem is the cap because the components inside are rows of two or three
+   * things — a label and a figure, a badge and a price and a time. Past that
+   * width they stop being rows and become things at opposite ends of a card.
+   * A wide screen gets the row centred rather than stretched.
+   */
+  grid-template-columns: minmax(0, clamp(17rem, 38vw, 30rem)) minmax(min(22rem, 100%), 34rem);
+  justify-content: center;
+  /*
+   * A smaller gap than the 4rem this used at width. Two columns that are now
+   * closer in size do not need a canyon between them to read as separate, and
+   * 64px of nothing was 6% of the row.
+   */
+  gap: clamp(1.5rem, 3.5vw, 3rem);
   align-items: start;
 }
 
@@ -123,11 +168,23 @@
   letter-spacing: -0.02em;
 }
 
+/*
+ * Label above the figure, both hard left.
+ *
+ * This was `justify-content: space-between`, which pins the word "Price" to
+ * one edge of the card and the figure to the other. Measured on a wide screen
+ * that put 477px of nothing between them — two things that describe each other
+ * sitting so far apart they stop reading as a pair, and the gap grows with
+ * every pixel of screen.
+ *
+ * Stacked, the distance between the label and what it labels is fixed at a
+ * line's height whatever the card does.
+ */
 .token-price-row {
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 1rem;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
   padding-bottom: 0.9rem;
   border-bottom: 1px solid var(--line);
 }
@@ -451,4 +508,19 @@
   background: color-mix(in srgb, var(--up) 15%, transparent);
   color: var(--up);
   font-weight: 600;
+}
+
+
+/*
+ * The buy and list buttons stop growing with the panel.
+ *
+ * `.btn-block` is width:100%, which is right in a narrow column and wrong once
+ * the panel is 670px across — a single button that wide reads as a banner
+ * rather than as something to press, and the label floats alone in the middle
+ * of it.
+ *
+ * Left-aligned rather than centred, so it sits under the price it acts on.
+ */
+.token-panel .btn-block {
+  max-width: 22rem;
 }
