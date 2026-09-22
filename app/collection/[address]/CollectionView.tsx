@@ -18,6 +18,8 @@ import { Sortie } from "@/components/Sortie";
 import { Select } from "@/components/Select";
 import { Activity } from "@/components/Activity";
 import { TopHolders } from "@/components/TopHolders";
+import { OrderBook } from "@/components/OrderBook";
+import { PriceChart } from "@/components/PriceChart";
 import { CollectionHero } from "@/components/CollectionHero";
 import { CollectionStats } from "@/components/CollectionStats";
 import { PageTabs, type TabDef } from "@/components/PageTabs";
@@ -52,7 +54,7 @@ const PAGE = 60;
  * the selected one is rendered, so a visitor who never presses "Top holders"
  * never calls the explorer. See `PageTabs`.
  */
-type Tab = "items" | "activity" | "holders";
+type Tab = "items" | "orders" | "chart" | "activity" | "holders";
 
 export function CollectionView({ params }: { params: Promise<{ address: string }> }) {
   const { address: raw } = use(params);
@@ -262,6 +264,14 @@ export function CollectionView({ params }: { params: Promise<{ address: string }
    */
   const tabs: ReadonlyArray<TabDef<Tab>> = [
     { key: "items", label: "Items", ...(supply === undefined ? {} : { count: Number(supply) }) },
+    /*
+      Orders and Chart cost nothing to offer. Both read hooks this page has
+      already mounted for the card prices and the history panel, so unlike the
+      holders tab they are not a request somebody pays for by pressing them.
+      They still render only when selected, because drawing is not free either.
+    */
+    { key: "orders", label: "Orders", count: bestListings.size },
+    { key: "chart", label: "Chart" },
     { key: "activity", label: "Activity" },
     { key: "holders", label: "Top holders" },
   ];
@@ -279,7 +289,11 @@ export function CollectionView({ params }: { params: Promise<{ address: string }
 
       <PageTabs tabs={tabs} active={tab} onChange={setTab} label="Collection sections" />
 
-      {tab === "activity" ? (
+      {tab === "orders" ? (
+        <OrderBook collection={collection} />
+      ) : tab === "chart" ? (
+        <PriceChart collection={collection} />
+      ) : tab === "activity" ? (
         /* The page's full width, and more rows than a sidebar could hold. */
         <Activity collection={collection} limit={25} markBurned />
       ) : tab === "holders" ? (
