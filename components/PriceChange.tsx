@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import { useBlockNumber } from "wagmi";
 import { useActivity } from "@/hooks/useActivity";
-import { tradedChange, hourlyMeans } from "@/lib/salesWindow";
+import { tradedChange, rollingMeans } from "@/lib/salesWindow";
 import { smoothPath, norm } from "@/lib/priceSeries";
 import { formatSoso } from "@/lib/format";
 import "./PriceChange.css";
@@ -36,10 +36,26 @@ import "./PriceChange.css";
  * the cell's `title` — and a window with nothing in it yields no percentage at
  * all rather than a comparison against a zero.
  *
- * **The number is the claim; the curve is only a shape.** The hourly means are
- * real points and the line between them is an interpolation — no price ever
- * existed along it. The svg is `aria-hidden` and the figure carries the
- * accessible claim.
+ * ---
+ *
+ * **The curve is a ROLLING 24-hour mean, and that is not a detail.**
+ *
+ * It was an hourly mean over the last day, drawn beside a figure comparing
+ * that day against the one before. Both were correct and together they looked
+ * like a contradiction: prices climbed through the day so the line rose, while
+ * the day still averaged below the previous one so the number was red. A
+ * rising curve next to a red figure is indefensible whatever the arithmetic
+ * says.
+ *
+ * Rolling fixes it by construction. The window ending now is exactly the
+ * percentage's recent window and the window ending 24 hours ago is exactly its
+ * previous one, so the line BEGINS at the figure being compared from and ENDS
+ * at the one being compared to. A negative change cannot render as a rising
+ * line. There is a test asserting precisely that.
+ *
+ * The number is still the claim and the curve still only a shape: the points
+ * are real means but no price existed along the line between two of them, so
+ * the svg is `aria-hidden` and the figure carries the accessible claim.
  */
 
 /** The drawing's own space. Width is arbitrary; CSS stretches it. */
@@ -60,7 +76,7 @@ export function PriceChange({ collection }: { collection: `0x${string}` | undefi
   );
 
   const change = useMemo(() => tradedChange(windowSales, head), [windowSales, head]);
-  const buckets = useMemo(() => hourlyMeans(windowSales, head, 24), [windowSales, head]);
+  const buckets = useMemo(() => rollingMeans(windowSales, head, 24), [windowSales, head]);
 
   const path = useMemo(() => {
     if (buckets.length < 2) return "";
@@ -74,7 +90,7 @@ export function PriceChange({ collection }: { collection: `0x${string}` | undefi
     return smoothPath(
       buckets.map((b, i) => ({
         /**
-         * Spaced by time, not by index. An hour with no sales gets no bucket at
+         * Spaced by time, not by index. A window with no sales gets no point at
          * all, so evenly spacing what remains would draw a six-hour gap the
          * same width as a one-hour one — and a quiet stretch would read as
          * activity.
