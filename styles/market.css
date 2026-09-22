@@ -1,0 +1,178 @@
+/* ------------------------------------------------------------- controls */
+
+/*
+ * Filtering and sorting on one row: what to look at, and in what order.
+ *
+ * They were two bands at opposite ends of the header — sorting beside the
+ * title, filtering below the figures — which is the same kind of control
+ * twice, with everything else the page had to say in between.
+ *
+ * `space-between` with both children allowed to wrap: on a wide screen the
+ * sorts sit at the right end, and when the two groups no longer fit the sorts
+ * drop to their own line rather than the chips being squeezed. The chips are
+ * the ones with variable-length labels.
+ */
+.mk-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  /*
+   * `nowrap`, and this is what actually keeps the sort control in place.
+   *
+   * With `wrap`, a flex line that cannot hold both children WRAPS one rather
+   * than shrinking the other — so the chip row kept its full natural width and
+   * pushed the sort onto a second line. Making the chips scroll fixed the chip
+   * row and did nothing for this: measured at eight chips the row was one line
+   * and the band was still 93px, because the sort had moved below it.
+   *
+   * `nowrap` forces the shrink instead, which the chip row is built to absorb —
+   * it has `min-width: 0` and scrolls what does not fit. The phone rule below
+   * switches to a column, where stacking is the right answer.
+   */
+  flex-wrap: nowrap;
+  gap: 0.6rem 1.25rem;
+  /*
+   * No rule under this row, and no padding to hold one.
+   *
+   * It had both, which made the controls band 59px against the 38px chip row
+   * it replaced — so removing the totals band above saved nothing net. The
+   * rule was drawing a boundary the grid already draws: a wall of cards
+   * starting immediately underneath is not something a reader can confuse with
+   * the pills above it.
+   */
+  margin-bottom: 1.1rem;
+}
+
+/*
+ * The chip row's own margin is removed: the controls row owns the spacing now,
+ * and leaving it in put 1.5rem of gap inside a row that had already closed.
+ */
+/*
+ * ONE LINE AT EVERY WIDTH, scrolling when there is more than fits.
+ *
+ * The chip row is the point of this page and it grows with the market: a chip
+ * per collection, and a chip per tier once people list Uncommon and Super Rare
+ * alongside Common and Rare. Wrapping cannot hold that. Measured at 1280 with
+ * eight chips — today's five plus three tiers — the row wrapped to two lines,
+ * the controls band went from 44px to 136, and the sort control was pushed off
+ * the first line entirely. The band's height became a function of how many
+ * tiers exist.
+ *
+ * `global.css` already argues this exact case for phones and solves it the
+ * same way, gated at 620px. Nothing about the argument is about phones: a
+ * wrapping row of unknown length is as bad at 1280 as at 375. So it applies
+ * here at every width, and the media query keeps adding its edge-bleed on top
+ * for touch.
+ *
+ * No fade mask and no arrows. The affordance is the chip CUT by the row's
+ * right edge, which is the same one the phone rules rely on — and on this row
+ * the edge is the sort control sitting beside it, so a clipped chip reads as
+ * "there is more behind this" rather than as a rendering fault.
+ *
+ * DOUBLED, for the reason `global.css` records at length: `.filters` lives in
+ * `home.css` at one-class specificity, and which of two single-class rules wins
+ * comes down to which stylesheet the bundler emits last. Doubling settles it
+ * wherever the imports land.
+ */
+.mk-filters.mk-filters {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  /* Swiping to the end of the chips must not then drag the page. */
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
+  /*
+   * No scrollbar track. The global `*` rule gives every scroller a 10px one,
+   * which here would be taller than the gap under the row and would draw a
+   * permanent grey line under controls only 34px tall.
+   */
+  scrollbar-width: none;
+}
+
+.mk-filters.mk-filters::-webkit-scrollbar {
+  display: none;
+}
+
+/*
+ * Chips do not shrink. In a nowrap flex row the default is to squash every
+ * item until the longest label wraps inside its own pill — which is how a
+ * scrolling row silently becomes a row of ragged two-line chips instead.
+ */
+.mk-filters .filt {
+  flex: none;
+  scroll-snap-align: start;
+}
+
+/*
+ * `flex: 0 1 auto` and NOT `1 1 auto`.
+ *
+ * Allowed to grow, the chip row takes every pixel the controls row has and
+ * pushes the sort buttons onto a line of their own — which is what the two-band
+ * layout did in the first place, reintroduced by one keyword. Measured: 101px
+ * for the controls row with grow on, 45px with it off.
+ *
+ * It may still SHRINK, because the chips are the side with variable-length
+ * labels and the sort buttons are fixed.
+ */
+.mk-filters {
+  margin-bottom: 0;
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+/*
+ * Fixed width, so the controls row's ability to hold one line does not depend
+ * on how many collections are listing today.
+ */
+.mk-sorts {
+  flex: 0 0 auto;
+  min-width: 11rem;
+}
+
+@media (max-width: 700px) {
+  .mk-controls {
+    /*
+     * Stacked on a phone, and the sorts go FIRST.
+     *
+     * The chip row scrolls horizontally at this width (see the chip-row rules
+     * in global.css); putting a scroller above the sort buttons means the
+     * buttons move under the thumb as the chips are swiped. Sorting first
+     * keeps the two apart.
+     */
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+
+  .mk-sorts {
+    order: -1;
+  }
+}
+
+
+/* ------------------------------------------------------------- chip type */
+
+/*
+ * Smaller than the shared `.filt`, and only on this page.
+ *
+ * This row is the page's heading now — there is no title above it — so it
+ * carries more chips than anywhere else `.filt` is used and it carries them
+ * for longer. At `--step--1` five chips already ran 784px; at `--step--2` the
+ * same five fit with room, which is width that goes to the market growing
+ * rather than to the type.
+ *
+ * The count and the floor drop a step further. They are figures attached to a
+ * label, not labels themselves, and at the same size as the collection name
+ * all three read as one run of text.
+ */
+.mk-filters .filt {
+  font-size: var(--step--2);
+  padding: 0.38rem 0.8rem;
+}
+
+.mk-filters .filt em {
+  font-size: var(--step--3);
+}
+
+.mk-filters .filt-floor {
+  font-size: var(--step--3);
+}

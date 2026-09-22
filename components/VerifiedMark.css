@@ -23,15 +23,24 @@
 }
 
 /*
- * The badge is `--accent`, not blue.
+ * Two tones, and they answer "who vouched", not "how good".
  *
- * Blue is the tick everybody recognises, and that is exactly the problem: a
- * blue check is Twitter's and OpenSea's, and borrowing it implies their
- * verification rather than this marketplace's. The site's own accent says the
- * same thing in this site's voice — and it is already a token that works on
- * both grounds, which a hardcoded brand blue would not be.
+ *   `mint`      — ValueMint's own collections, in `--verified` blue. Blue is
+ *                 the tick everybody already reads as "the platform says so",
+ *                 which is exactly what this one means.
+ *   `publisher` — somebody else's collection, confirmed as genuinely theirs,
+ *                 in the site's accent. A different claim, so a different
+ *                 colour — if both wore blue the distinction would exist only
+ *                 in the tooltip.
+ *
+ * `--verified` is its own token rather than `--rare`, which is also blue and
+ * already spoken for by the Rare filter chip.
  */
-.vm-badge {
+.vm-mint .vm-badge {
+  fill: var(--verified);
+}
+
+.vm-publisher .vm-badge {
   fill: var(--accent);
 }
 

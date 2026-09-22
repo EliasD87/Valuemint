@@ -93,6 +93,15 @@ export const COLLECTION_HEROES: Record<string, HeroArt> = {
     background: "/heroes/treasurebox.webp",
   },
 
+  /*
+    ValueChain Genesis — the owner's own artwork, and like the boxes it is
+    already a banner: six panels across 2048x768, so no foreground and nothing
+    to align. Re-encoded to 1600 wide as WebP.
+  */
+  "0x5fadc59297e86acea20bff519aea0f9651cdc90b": {
+    background: "/heroes/genesis.webp",
+  },
+
   /** TestCybereator — the same artwork, from the same two files. */
   "0x412d8af16b7ff3fe75e1cd380bd86ef33dd8ad0f": {
     background: "/heroes/cybereator-bg.webp",

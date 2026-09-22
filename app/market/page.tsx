@@ -10,9 +10,10 @@ import { useActivity } from "@/hooks/useActivity";
 import { TokenCard, TokenCardSkeleton } from "@/components/TokenCard";
 import { formatSoso } from "@/lib/format";
 import "@/styles/home.css";
+import "@/styles/market.css";
 import { Soso } from "@/components/Soso";
 import { useFloors } from "@/hooks/useFloors";
-import { Sortie } from "@/components/Sortie";
+import { Select } from "@/components/Select";
 
 type Sort = "traded" | "price-asc" | "price-desc" | "recent";
 
@@ -222,48 +223,34 @@ export default function Market() {
    * because a collection with an Epic and a Common edition has two floors
    * and quoting the lower one misleads anyone shopping for the other.
    */
-  const total = visible.reduce((sum, t) => sum + t.listing!.price, 0n);
 
   return (
     <section className="page section">
-      <div className="head">
-        <div>
-          <p className="eyebrow">Market</p>
-          <h2>Everything for sale on ValueChain</h2>
-        </div>
-        <div className="wrap-row">
-          <Sortie active={sort === "traded"} onClick={() => setSort("traded")}>
-            Featured
-          </Sortie>
-          <Sortie active={sort === "price-asc"} onClick={() => setSort("price-asc")}>
-            Price low
-          </Sortie>
-          <Sortie active={sort === "price-desc"} onClick={() => setSort("price-desc")}>
-            Price high
-          </Sortie>
-          <Sortie active={sort === "recent"} onClick={() => setSort("recent")}>
-            Newest
-          </Sortie>
-        </div>
-      </div>
+      {/*
+        No heading, and nothing replacing it.
 
-      <div className="stats-row">
-        <span className="strip-item">
-          <b>{visible.length}</b> listed
-        </span>
-        <span className="strip-item">
-          <Soso size={16}>
-            <b>{formatSoso(total)}</b>
-          </Soso>{" "}
-          total
-        </span>
-        <span className="strip-item">
-          <b>{collections.length}</b> collections
-        </span>
-      </div>
+        It read "MARKET / Everything for sale on ValueChain" — an eyebrow
+        repeating the nav item that is highlighted directly above it, over a
+        sentence describing the grid the visitor is looking at. Neither told
+        anybody anything they did not already know from having clicked Market,
+        and together they were the first 61px of the page.
 
-      {chips.length > 1 ? (
-        <div className="filters">
+        The filter row is the heading now: it says what is here, in counts, and
+        it is a control rather than a caption.
+      */}
+      {/*
+        Filters and sorting on ONE row: what to look at on the left, what order
+        to see it in on the right.
+
+        They were two bands at opposite ends of the page — sorting up beside the
+        title, filtering below the figures — which is the same kind of control
+        twice, separated by everything else the header had to say. Together they
+        read as the controls for the grid they sit above, and the page loses a
+        band.
+      */}
+      <div className="mk-controls">
+        {chips.length > 1 ? (
+        <div className="filters mk-filters">
           <button className="filt" aria-pressed={filterTo === "all"} onClick={() => setFilterTo("all")}>
             All <em>{listed.length}</em>
           </button>
@@ -299,7 +286,37 @@ export default function Market() {
             </button>
           ))}
         </div>
-      ) : null}
+        ) : null}
+
+        {/*
+          A dropdown, where this was four buttons.
+
+          Not a style preference — a space one, measured. The chip row is 784px
+          and four sort buttons are 376px, which is 1,180 in a 1,168 row: they
+          missed sharing a line by twelve pixels and the sorts wrapped, which is
+          the two-band layout this change set out to remove. Shrinking the gap
+          would have fixed it today and broken again on the next collection,
+          because the chip row grows with the market and the sort options do
+          not.
+
+          A dropdown is ~160px whatever happens, so the row holds. It also costs
+          a click to change sort, which is the right trade on a page where
+          filtering is the frequent act and sorting is occasional.
+        */}
+        <div className="mk-sorts">
+          <Select
+            label="Sort listings"
+            value={sort}
+            onChange={(v) => setSort(v as Sort)}
+            options={[
+              { value: "traded", label: "Featured" },
+              { value: "price-asc", label: "Price low to high" },
+              { value: "price-desc", label: "Price high to low" },
+              { value: "recent", label: "Newest" },
+            ]}
+          />
+        </div>
+      </div>
 
       {/* Within one collection a tier is its own market, so each gets its own
           floor. Shown only when there is more than one - a single row would

@@ -103,6 +103,16 @@
   --danger-wash: #fdeeed;
   --danger-wash-2: #fbe0de;
 
+  /*
+   * The verification tick, and it is NOT `--rare`.
+   *
+   * `--rare` is already blue and already spoken for: the "Rare box" filter chip
+   * wears it, so a tick in that colour would read as a rarity mark rather than
+   * a claim about authenticity. This is its own token because it means its own
+   * thing.
+   */
+  --verified: #1d7fd4;
+
   /* --- rarity ------------------------------------------------------------ */
   --legendary: #8a5200; /* 3.9:1 on its wash before; now 5.6:1 */
   --legendary-wash: #fff5e0;
@@ -282,6 +292,9 @@
   --legendary-wash: #2a2110;
   --epic: #a78bfa;
   --epic-wash: #1e1730;
+  /* Lifted for a dark ground. The tick is drawn in --paper on top of it. */
+  --verified: #4aa3f0;
+
   --rare: #58b6f5;
   --rare-wash: #0e1f2e;
   /* 6.71:1 ink on wash, 8.16:1 paper on ink. See the light block. */

@@ -1,6 +1,6 @@
 "use client";
 
-import { verifiedReason } from "@/config/verified";
+import { verifiedAs } from "@/config/verified";
 import "./VerifiedMark.css";
 
 /**
@@ -37,13 +37,17 @@ export function VerifiedMark({
   /** Matches the text it sits beside; the SVG scales to it. */
   size?: number;
 }) {
-  const reason = verifiedReason(collection);
-  if (reason === undefined) return null;
+  const entry = verifiedAs(collection);
+  if (entry === undefined) return null;
 
-  const label = `Verified collection — ${reason}`;
+  const label = `Verified collection — ${entry.reason}`;
 
   return (
-    <span className="vm" title={label} style={{ ["--vm-size" as string]: `${size}px` }}>
+    <span
+      className={`vm vm-${entry.tone}`}
+      title={label}
+      style={{ ["--vm-size" as string]: `${size}px` }}
+    >
       <svg viewBox="0 0 24 24" role="img" aria-label={label} focusable="false">
         {/*
           A rosette rather than a plain circle, so the mark is recognisable at
