@@ -1,10 +1,6 @@
 import tradeBuddies from "@/data/trade-buddies.json";
 import { assignDesigns, documentFor, type Assignment } from "@/lib/buildMetadata";
-import {
-  parseManifest,
-  type CollectionManifest,
-  type ManifestDesign,
-} from "@/lib/collectionManifest";
+import { parseManifest, type CollectionManifest, type ManifestDesign, supplyOfManifest } from "@/lib/collectionManifest";
 import { gatewayUrl } from "@/lib/pinning";
 import { TIERS, TIER_GATEWAY, formatVolume } from "@/config/tiers";
 import { TIER_STRIDE, TRENCHES_SLUG } from "@/config/trenches";
@@ -171,6 +167,44 @@ const MANIFEST_GATEWAYS: Array<(cid: string) => string> = [
   (cid) => `https://ipfs.io/ipfs/${cid}`,
 ];
 
+
+/**
+ * Where a CID is fetched from for this manifest.
+ *
+ * Shared by the revealed and unrevealed paths deliberately: they resolve the
+ * same CIDs from the same place, and two copies of this would eventually
+ * disagree about the trailing slash.
+ */
+function toGateway(manifest: CollectionManifest, cid: string, path: string): string {
+  if (manifest.gateway === undefined) return gatewayUrl(cid, path);
+  const base = manifest.gateway.replace(/\/+$/, "");
+  return `${base}/${cid}${path === "" ? "" : `/${path}`}`;
+}
+
+/**
+ * What each token carries: the explicit list when the manifest has one, the
+ * seeded shuffle otherwise.
+ *
+ * v3 manifests may name the assignment outright instead of deriving it, so a
+ * collection can be minted before its rarity is public — see
+ * `CollectionManifest.assignment`. Editions are numbered exactly as the shuffle
+ * numbers them, by counting occurrences in order, so a token's "3 of 15" means
+ * the same thing whichever way it was assigned.
+ */
+function assignmentsFor(manifest: CollectionManifest): Assignment[] {
+  if (manifest.assignment === undefined) {
+    return assignDesigns(manifest.designs, manifest.seed);
+  }
+
+  const seen = new Map<string, number>();
+  return manifest.assignment.map((index) => {
+    const design = manifest.designs[index]!;
+    const edition = (seen.get(design.name) ?? 0) + 1;
+    seen.set(design.name, edition);
+    return { design, edition };
+  });
+}
+
 export async function loadManifest(cid: string) {
   const hit = cache.get(cid);
   if (hit !== undefined) return hit;
@@ -203,7 +237,7 @@ export async function loadManifest(cid: string) {
   const manifest = parseManifest(parsed);
   if (manifest === undefined) return undefined;
 
-  const entry = { manifest, assignments: assignDesigns(manifest.designs, manifest.seed) };
+  const entry = { manifest, assignments: assignmentsFor(manifest) };
   remember(cid, entry);
   return entry;
 }
@@ -335,7 +369,45 @@ export async function tokenDocument(
   }
 
   const { manifest, assignments } = entry;
-  if (tokenId < 1 || tokenId > assignments.length) return NO_SUCH_TOKEN;
+
+  /**
+   * The supply is what `designs` declares, which is NOT always what
+   * `assignments` covers.
+   *
+   * A v3 manifest can stop its assignment short of the supply: those tokens
+   * exist and can be minted, their rarity simply is not public yet. Bounding
+   * on `assignments.length` would 404 them — the collection would look like it
+   * had fewer tokens than it does, and a freshly minted one would have no
+   * metadata at all.
+   */
+  const supply = supplyOfManifest(manifest);
+  if (tokenId < 1 || tokenId > supply) return NO_SUCH_TOKEN;
+
+  if (tokenId > assignments.length) {
+    const hidden = manifest.hidden;
+    /** `parseManifest` refuses a short assignment without one, so this cannot happen. */
+    if (hidden === undefined) return NO_SUCH_TOKEN;
+
+    return {
+      ok: true,
+      document: {
+        name: `${manifest.name} #${tokenId}`,
+        description: manifest.description,
+        image: toGateway(manifest, hidden.cid, ""),
+        image_ipfs: `ipfs://${hidden.cid}`,
+        ...(manifest.externalUrl === undefined ? {} : { external_url: manifest.externalUrl }),
+        /**
+         * No Design and no Tier — not even "Unknown".
+         *
+         * A trait saying the rarity is unrevealed is still a trait, and
+         * marketplaces index and filter on those: a collection would end up
+         * with a browsable "Unrevealed" rarity bucket whose size announces
+         * exactly how many are left. Absent traits leak nothing.
+         */
+        attributes: [{ trait_type: "Status", value: "Unrevealed" }],
+      },
+    };
+  }
 
   const assignment = assignments[tokenId - 1]!;
   const design = assignment.design as ManifestDesign;
@@ -354,10 +426,7 @@ export async function tokenDocument(
         collectionName: manifest.name,
         description: manifest.description,
         imagesCid: imageCid,
-        gateway: (cid, path) =>
-          manifest.gateway === undefined
-            ? gatewayUrl(cid, path)
-            : `${manifest.gateway.replace(/\/+$/, "")}/${cid}${path === "" ? "" : `/${path}`}`,
+        gateway: (cid, path) => toGateway(manifest, cid, path),
         ...(manifest.externalUrl === undefined ? {} : { externalUrl: manifest.externalUrl }),
       },
       { design: { ...design, file: imagePath }, edition: assignment.edition },

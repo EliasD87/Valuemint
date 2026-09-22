@@ -1,0 +1,484 @@
+{
+ "manifest": {
+  "v": 2,
+  "name": "ValueChain Genesis",
+  "description": "The first NFT collection on ValueChain, SoSoValue's Layer 1. Ten forged helms, one hundred editions, minted on a chain that had never held an NFT before.",
+  "externalUrl": "https://main-scan.valuechain.xyz/token/0x5Fadc59297e86aceA20Bff519aea0f9651Cdc90B",
+  "gateway": "https://ipfs.filebase.io/ipfs",
+  "seed": "valuechain-genesis-2026-08-28",
+  "designs": [
+   {
+    "file": "01-origin.jpg",
+    "name": "ORIGIN",
+    "count": 3,
+    "tier": "Legendary",
+    "cid": "QmTNBw3NT4VxasJFmHUMAvWmo5SA7cdgNdtaYgVs927gio"
+   },
+   {
+    "file": "06-obsidian.jpg",
+    "name": "OBSIDIAN",
+    "count": 5,
+    "tier": "Legendary",
+    "cid": "QmaoM1sKhgYxjEyaF2H9BjZCjTNfwj4GK1AhvyvvrAoomM"
+   },
+   {
+    "file": "10-ascend.jpg",
+    "name": "ASCEND",
+    "count": 7,
+    "tier": "Epic",
+    "cid": "QmaBin8JpbpkJ671uJ3hA7kUtPkKdCNqSHqradHow6sqof"
+   },
+   {
+    "file": "05-luminate.jpg",
+    "name": "LUMINATE",
+    "count": 8,
+    "tier": "Epic",
+    "cid": "QmZUQTa5waSZCEqGiynkiTFyE9v9cgHEynP3BwwzuL4P4L"
+   },
+   {
+    "file": "07-ignite.jpg",
+    "name": "IGNITE",
+    "count": 10,
+    "tier": "Rare",
+    "cid": "QmdrLcgR3LS5ttUnRCpgGFKydxQhTTY5Y3K1WrmDapVEsx"
+   },
+   {
+    "file": "09-horizon.jpg",
+    "name": "HORIZON",
+    "count": 11,
+    "tier": "Rare",
+    "cid": "QmPozrKy1o2TErRZBxrGe5zYBGeYPVi9jwevRoM1wFzYS9"
+   },
+   {
+    "file": "02-nexus.jpg",
+    "name": "NEXUS",
+    "count": 12,
+    "tier": "Rare",
+    "cid": "QmUnTbv3JkoEE8NdHfZTFdutRPw3NAT3QyB46JfG2LsWL5"
+   },
+   {
+    "file": "08-velocity.jpg",
+    "name": "VELOCITY",
+    "count": 14,
+    "tier": "Common",
+    "cid": "QmPDdYY5HaGXsoxmymM6yfSrsCqvb2PbwNY2R7HWW5csLk"
+   },
+   {
+    "file": "04-elevate.jpg",
+    "name": "ELEVATE",
+    "count": 15,
+    "tier": "Common",
+    "cid": "QmcpEvxNyZsLgZ5zy8ypHjiUwxFeDDZXRbDN7L4Sw5UE6G"
+   },
+   {
+    "file": "03-stride.jpg",
+    "name": "STRIDE",
+    "count": 15,
+    "tier": "Common",
+    "cid": "QmYMTGjnRRdgf1VqhBMzwXjT81SAzSkGnXXRwkEX22YXj4"
+   }
+  ]
+ },
+ "assignment": [
+  [
+   "STRIDE",
+   "1 of 15"
+  ],
+  [
+   "OBSIDIAN",
+   "1 of 5"
+  ],
+  [
+   "STRIDE",
+   "2 of 15"
+  ],
+  [
+   "LUMINATE",
+   "1 of 8"
+  ],
+  [
+   "LUMINATE",
+   "2 of 8"
+  ],
+  [
+   "OBSIDIAN",
+   "2 of 5"
+  ],
+  [
+   "STRIDE",
+   "3 of 15"
+  ],
+  [
+   "HORIZON",
+   "1 of 11"
+  ],
+  [
+   "HORIZON",
+   "2 of 11"
+  ],
+  [
+   "VELOCITY",
+   "1 of 14"
+  ],
+  [
+   "ELEVATE",
+   "1 of 15"
+  ],
+  [
+   "ORIGIN",
+   "1 of 3"
+  ],
+  [
+   "NEXUS",
+   "1 of 12"
+  ],
+  [
+   "IGNITE",
+   "1 of 10"
+  ],
+  [
+   "NEXUS",
+   "2 of 12"
+  ],
+  [
+   "STRIDE",
+   "4 of 15"
+  ],
+  [
+   "ASCEND",
+   "1 of 7"
+  ],
+  [
+   "VELOCITY",
+   "2 of 14"
+  ],
+  [
+   "HORIZON",
+   "3 of 11"
+  ],
+  [
+   "ORIGIN",
+   "2 of 3"
+  ],
+  [
+   "NEXUS",
+   "3 of 12"
+  ],
+  [
+   "ELEVATE",
+   "2 of 15"
+  ],
+  [
+   "HORIZON",
+   "4 of 11"
+  ],
+  [
+   "NEXUS",
+   "4 of 12"
+  ],
+  [
+   "OBSIDIAN",
+   "3 of 5"
+  ],
+  [
+   "VELOCITY",
+   "3 of 14"
+  ],
+  [
+   "IGNITE",
+   "2 of 10"
+  ],
+  [
+   "NEXUS",
+   "5 of 12"
+  ],
+  [
+   "HORIZON",
+   "5 of 11"
+  ],
+  [
+   "NEXUS",
+   "6 of 12"
+  ],
+  [
+   "STRIDE",
+   "5 of 15"
+  ],
+  [
+   "VELOCITY",
+   "4 of 14"
+  ],
+  [
+   "VELOCITY",
+   "5 of 14"
+  ],
+  [
+   "HORIZON",
+   "6 of 11"
+  ],
+  [
+   "VELOCITY",
+   "6 of 14"
+  ],
+  [
+   "STRIDE",
+   "6 of 15"
+  ],
+  [
+   "HORIZON",
+   "7 of 11"
+  ],
+  [
+   "ELEVATE",
+   "3 of 15"
+  ],
+  [
+   "STRIDE",
+   "7 of 15"
+  ],
+  [
+   "ELEVATE",
+   "4 of 15"
+  ],
+  [
+   "NEXUS",
+   "7 of 12"
+  ],
+  [
+   "HORIZON",
+   "8 of 11"
+  ],
+  [
+   "ASCEND",
+   "2 of 7"
+  ],
+  [
+   "ASCEND",
+   "3 of 7"
+  ],
+  [
+   "ELEVATE",
+   "5 of 15"
+  ],
+  [
+   "LUMINATE",
+   "3 of 8"
+  ],
+  [
+   "STRIDE",
+   "8 of 15"
+  ],
+  [
+   "ELEVATE",
+   "6 of 15"
+  ],
+  [
+   "ASCEND",
+   "4 of 7"
+  ],
+  [
+   "ELEVATE",
+   "7 of 15"
+  ],
+  [
+   "ASCEND",
+   "5 of 7"
+  ],
+  [
+   "STRIDE",
+   "9 of 15"
+  ],
+  [
+   "HORIZON",
+   "9 of 11"
+  ],
+  [
+   "STRIDE",
+   "10 of 15"
+  ],
+  [
+   "LUMINATE",
+   "4 of 8"
+  ],
+  [
+   "HORIZON",
+   "10 of 11"
+  ],
+  [
+   "VELOCITY",
+   "7 of 14"
+  ],
+  [
+   "ELEVATE",
+   "8 of 15"
+  ],
+  [
+   "VELOCITY",
+   "8 of 14"
+  ],
+  [
+   "VELOCITY",
+   "9 of 14"
+  ],
+  [
+   "ELEVATE",
+   "9 of 15"
+  ],
+  [
+   "IGNITE",
+   "3 of 10"
+  ],
+  [
+   "ELEVATE",
+   "10 of 15"
+  ],
+  [
+   "LUMINATE",
+   "5 of 8"
+  ],
+  [
+   "OBSIDIAN",
+   "4 of 5"
+  ],
+  [
+   "NEXUS",
+   "8 of 12"
+  ],
+  [
+   "LUMINATE",
+   "6 of 8"
+  ],
+  [
+   "LUMINATE",
+   "7 of 8"
+  ],
+  [
+   "VELOCITY",
+   "10 of 14"
+  ],
+  [
+   "STRIDE",
+   "11 of 15"
+  ],
+  [
+   "LUMINATE",
+   "8 of 8"
+  ],
+  [
+   "ORIGIN",
+   "3 of 3"
+  ],
+  [
+   "HORIZON",
+   "11 of 11"
+  ],
+  [
+   "STRIDE",
+   "12 of 15"
+  ],
+  [
+   "ELEVATE",
+   "11 of 15"
+  ],
+  [
+   "ELEVATE",
+   "12 of 15"
+  ],
+  [
+   "NEXUS",
+   "9 of 12"
+  ],
+  [
+   "IGNITE",
+   "4 of 10"
+  ],
+  [
+   "IGNITE",
+   "5 of 10"
+  ],
+  [
+   "ELEVATE",
+   "13 of 15"
+  ],
+  [
+   "NEXUS",
+   "10 of 12"
+  ],
+  [
+   "VELOCITY",
+   "11 of 14"
+  ],
+  [
+   "IGNITE",
+   "6 of 10"
+  ],
+  [
+   "ASCEND",
+   "6 of 7"
+  ],
+  [
+   "NEXUS",
+   "11 of 12"
+  ],
+  [
+   "VELOCITY",
+   "12 of 14"
+  ],
+  [
+   "STRIDE",
+   "13 of 15"
+  ],
+  [
+   "IGNITE",
+   "7 of 10"
+  ],
+  [
+   "NEXUS",
+   "12 of 12"
+  ],
+  [
+   "IGNITE",
+   "8 of 10"
+  ],
+  [
+   "ASCEND",
+   "7 of 7"
+  ],
+  [
+   "IGNITE",
+   "9 of 10"
+  ],
+  [
+   "STRIDE",
+   "14 of 15"
+  ],
+  [
+   "STRIDE",
+   "15 of 15"
+  ],
+  [
+   "IGNITE",
+   "10 of 10"
+  ],
+  [
+   "VELOCITY",
+   "13 of 14"
+  ],
+  [
+   "OBSIDIAN",
+   "5 of 5"
+  ],
+  [
+   "VELOCITY",
+   "14 of 14"
+  ],
+  [
+   "ELEVATE",
+   "14 of 15"
+  ],
+  [
+   "ELEVATE",
+   "15 of 15"
+  ]
+ ]
+}

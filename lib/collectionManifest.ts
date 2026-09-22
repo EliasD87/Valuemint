@@ -32,10 +32,15 @@ export interface CollectionManifest {
    *       this way. Also strictly more portable: every image is independently
    *       verifiable rather than only as part of a folder.
    *
+   *   3 - as 2, plus an EXPLICIT per-token assignment that replaces the seeded
+   *       shuffle. Added so a collection can be minted before its rarity is
+   *       public: the array may be shorter than the declared supply, and every
+   *       token past its end is simply not revealed yet.
+   *
    * Both are readable forever. A manifest is immutable once pinned, so old ones
    * must keep working no matter what the current uploader writes.
    */
-  v: 1 | 2;
+  v: 1 | 2 | 3;
   name: string;
   description: string;
   externalUrl?: string;
@@ -46,6 +51,43 @@ export interface CollectionManifest {
   /** Publishing this is what lets a holder verify the rarity was not steered. */
   seed: string;
   designs: ManifestDesign[];
+
+  /**
+   * v3 only: the design each token carries, as an index into `designs`.
+   * Index 0 is token #1.
+   *
+   * Present, it REPLACES the seeded shuffle — which is the whole point. A
+   * seeded shuffle is reproducible by anyone holding the manifest, so the
+   * rarity of every unminted token is public from the moment the collection is.
+   * Somebody can read `nextTokenId()`, compute what it will be, and mint only
+   * when the answer is worth minting. Measured on Genesis: with 23 tokens left,
+   * the position of the single remaining Legendary was computable by anyone.
+   *
+   * An explicit array can stop SHORT of the supply, and that is what closes it:
+   * the unminted tail is not in the file at all, so there is nothing to
+   * compute. It is published later, alongside the seed that produced it and
+   * against the `commit` below.
+   */
+  assignment?: number[];
+
+  /**
+   * v3 only: what a token past the end of `assignment` shows.
+   *
+   * Required whenever the assignment is short of the supply — something has to
+   * be served, and it must not be a design from the real set, or the shape of
+   * what is left leaks.
+   */
+  hidden?: { name: string; file: string; cid: string };
+
+  /**
+   * v3 only: `sha256` of the seed that produced the unrevealed tail.
+   *
+   * Published BEFORE the tail is, so that when the tail and its seed appear
+   * anybody can check the seed hashes to this and the shuffle reproduces what
+   * was published. Without it "we re-rolled it fairly" is a claim rather than
+   * a proof.
+   */
+  commit?: string;
 }
 
 /** Rejects anything that is not a manifest we can safely expand. */
@@ -65,7 +107,7 @@ export function parseManifest(value: unknown): CollectionManifest | undefined {
   if (typeof value !== "object" || value === null) return undefined;
   const m = value as Record<string, unknown>;
 
-  const version = m.v === 1 || m.v === 2 ? m.v : undefined;
+  const version = m.v === 1 || m.v === 2 || m.v === 3 ? m.v : undefined;
   if (version === undefined) return undefined;
   if (typeof m.name !== "string" || typeof m.description !== "string") return undefined;
   if (typeof m.seed !== "string") return undefined;
@@ -81,7 +123,9 @@ export function parseManifest(value: unknown): CollectionManifest | undefined {
     const d = raw as Record<string, unknown>;
     if (typeof d.file !== "string" || typeof d.name !== "string") return undefined;
     if (typeof d.count !== "number" || !Number.isInteger(d.count) || d.count < 1) return undefined;
-    if (version === 2 && (typeof d.cid !== "string" || d.cid === "")) return undefined;
+    if ((version === 2 || version === 3) && (typeof d.cid !== "string" || d.cid === "")) {
+      return undefined;
+    }
     // A hostile manifest could otherwise ask for a deck of a billion entries and
     // hold the request open while it is shuffled.
     supply += d.count;
@@ -105,6 +149,42 @@ export function parseManifest(value: unknown): CollectionManifest | undefined {
     });
   }
 
+  /**
+   * v3's explicit assignment, validated hard.
+   *
+   * Every entry has to index a real design: an out-of-range one would resolve
+   * to `undefined` and serve a token with no design at all, and a fractional or
+   * negative one would do the same more quietly. The length may be short — that
+   * is the unrevealed tail — but never longer than the supply it describes.
+   */
+  let assignment: number[] | undefined;
+  let hidden: CollectionManifest["hidden"];
+  if (version === 3 && m.assignment !== undefined) {
+    if (!Array.isArray(m.assignment) || m.assignment.length > supply) return undefined;
+    const list: number[] = [];
+    for (const raw of m.assignment) {
+      if (typeof raw !== "number" || !Number.isInteger(raw) || raw < 0 || raw >= designs.length) {
+        return undefined;
+      }
+      list.push(raw);
+    }
+    assignment = list;
+
+    /**
+     * A short assignment with nothing to show for the rest is unserveable, and
+     * failing here is far better than failing per token later: the manifest is
+     * refused before a collection can be pointed at it.
+     */
+    if (list.length < supply) {
+      const h = m.hidden;
+      if (typeof h !== "object" || h === null) return undefined;
+      const hh = h as Record<string, unknown>;
+      if (typeof hh.name !== "string" || typeof hh.file !== "string") return undefined;
+      if (typeof hh.cid !== "string" || hh.cid === "") return undefined;
+      hidden = { name: hh.name, file: hh.file, cid: hh.cid };
+    }
+  }
+
   return {
     v: version,
     name: m.name,
@@ -124,6 +204,9 @@ export function parseManifest(value: unknown): CollectionManifest | undefined {
     ...(typeof m.gateway === "string" && /^https:\/\//.test(m.gateway) ? { gateway: m.gateway } : {}),
     seed: m.seed,
     designs,
+    ...(assignment === undefined ? {} : { assignment }),
+    ...(hidden === undefined ? {} : { hidden }),
+    ...(version === 3 && typeof m.commit === "string" && m.commit !== "" ? { commit: m.commit } : {}),
   };
 }
 
