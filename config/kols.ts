@@ -41,6 +41,15 @@ export const KOLS: Kol[] = [
   { n: 10, name: "TAKIMI", image: "QmdMQBwzSru7WyeaJJbTX8a1yw8rA6mX69TBTtVc2rJFAa" },
   { n: 11, name: "VICTOR", image: "QmZYgrPQiMB6pUHPGcVbaiLEKcet5yV1NeDp6iNpRkh2cS" },
   { n: 12, name: "VITALY", image: "QmTRUUobkZ8VCjtdh1Tby3gwt4tu7UJ6YYCS6jTx3Ac2G6" },
+  /* Appended rather than sorted into place. The twelve above happen to be
+     alphabetical, which is a coincidence of the order they were added in — and
+     "0xYeFz" would sort to the top, which is exactly the move the note above
+     forbids: token N carries entry N, so reordering repoints somebody's
+     portrait at a different person. */
+  { n: 13, name: "0xYeFz", image: "QmYdzZKnNZBvrQ7TKgheAcdXJRp3Yg8t5SYGpQ8v3DW1mM" },
+  { n: 14, name: "Vault", image: "QmR3mn5oGzragL4EkMsJE3hp5soTPMX2DLLh61pUxeh6Si" },
+  { n: 15, name: "Stephen", image: "QmVdG9ZbGHfNEkGe1QPqZfHBuJF7QduoUUoxQhBQiTLP3w" },
+  { n: 16, name: "NFTrader-Crypto", image: "QmeQ23pxiPzEWuW1ZebqEqmBbYdz39KvRBNTrfQZeSwZp7" },
 ];
 
 /** The collection's slug, matching the metadata route and the contract baseURI. */
