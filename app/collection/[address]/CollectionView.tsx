@@ -12,6 +12,7 @@ import { useTokenIds } from "@/hooks/useTokenIds";
 import { MintPanel } from "@/components/MintPanel";
 import { TokenCard, TokenCardSkeleton } from "@/components/TokenCard";
 import { formatCount } from "@/lib/format";
+import { isFilterable } from "@/lib/traitRoles";
 import "@/styles/home.css";
 import "@/styles/collections.css";
 import { Sortie } from "@/components/Sortie";
@@ -170,6 +171,16 @@ export function CollectionView({ params }: { params: Promise<{ address: string }
     for (const t of tokens) {
       for (const a of t.metadata?.attributes ?? []) {
         if (a.trait_type === undefined || a.value === undefined) continue;
+        /**
+         * Not every attribute is an axis. `/api/metadata` emits four — Design,
+         * Tier, Edition and Editions Minted — and this row was drawing a
+         * dropdown for each of them, because "has more than one value" was the
+         * only question being asked. Two of the four answer a question nobody
+         * has: `Editions Minted` is the number the Rarity cell is computed
+         * from, and `Edition` is a serial whose values run across designs. See
+         * `lib/traitRoles.ts`.
+         */
+        if (!isFilterable(a.trait_type)) continue;
         const value = String(a.value);
         const inner = out.get(a.trait_type) ?? new Map<string, number>();
         inner.set(value, (inner.get(value) ?? 0) + 1);

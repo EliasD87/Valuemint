@@ -1,6 +1,7 @@
 "use client";
 
 import { useCollectionBasics } from "@/hooks/useCollectionBasics";
+import { isDisplayable } from "@/lib/traitRoles";
 import type { TokenMetadata } from "@/lib/tokenMetadata";
 import "./TokenTraits.css";
 
@@ -18,10 +19,9 @@ import "./TokenTraits.css";
  * `Editions Minted` is now shown twice — once here and once as the Rarity cell
  * above, which is the worse of the two problems. They are filtered out.
  *
- * The filter is a NAMED LIST rather than a rule like "drop numeric traits",
- * because a numeric trait can be perfectly real — a Trenches piece has a tier
- * and a serial, and dropping those would empty the panel for a whole
- * collection.
+ * The list is in `lib/traitRoles.ts` and is shared with the collection page's
+ * filter row, which had no notion of any of this and was offering a dropdown
+ * for every attribute a token carried.
  *
  * ---
  *
@@ -32,14 +32,6 @@ import "./TokenTraits.css";
  * one, so there is nothing where there is nothing.
  */
 
-/**
- * Attributes the document carries for other parts of the app to read.
- *
- * Lower-cased on comparison, because a manifest is written by hand and the
- * casing of a field name is not something to rely on.
- */
-const PLUMBING = new Set(["editions minted", "design number"]);
-
 export function TokenTraits({
   collection,
   metadata,
@@ -49,9 +41,7 @@ export function TokenTraits({
 }) {
   const { supply } = useCollectionBasics(collection);
 
-  const traits = (metadata?.attributes ?? []).filter(
-    (a) => !PLUMBING.has(String(a.trait_type).toLowerCase()),
-  );
+  const traits = (metadata?.attributes ?? []).filter((a) => isDisplayable(a.trait_type));
 
   if (traits.length === 0) return null;
 

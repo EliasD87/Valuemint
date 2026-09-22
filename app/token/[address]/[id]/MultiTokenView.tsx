@@ -12,6 +12,7 @@ import { TxResult } from "@/components/TxResult";
 import { ShareLink } from "@/components/ShareLink";
 import { Soso } from "@/components/Soso";
 import { formatSoso, resolveMediaUrl, shortAddress } from "@/lib/format";
+import { isDisplayable } from "@/lib/traitRoles";
 import "@/styles/token.css";
 import { Activity } from "@/components/Activity";
 import { MovingArt } from "@/components/MovingArt";
@@ -298,7 +299,8 @@ export function MultiTokenView({
             <div className="token-panel card">
               <p className="token-panel-title">Traits</p>
               <dl className="token-traits">
-                {metadata.attributes.map((a) => (
+                {/* Same bookkeeping split the single-token panel uses. */}
+                {metadata.attributes.filter((a) => isDisplayable(a.trait_type)).map((a) => (
                   <div key={a.trait_type}>
                     <dt>{a.trait_type}</dt>
                     <dd>{trait(metadata, a.trait_type) ?? "—"}</dd>
