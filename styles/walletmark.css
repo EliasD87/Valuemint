@@ -1,0 +1,23 @@
+/**
+ * The generated wallet disc. See `components/WalletMark.tsx` for why its
+ * colour comes from an address rather than from a token.
+ */
+
+.wmark {
+  display: inline-block;
+  flex: none;
+  border-radius: 50%;
+  overflow: hidden;
+  /* `outline`, not an inset shadow: an inset shadow paints under the element's
+     own content, and the content here is an opaque svg that covers it. */
+  outline: 1px solid var(--ring);
+  outline-offset: -1px;
+  line-height: 0;
+}
+
+.wmark svg {
+  display: block;
+  /* The 5×5 grid is drawn at integer coordinates; without this the browser
+     antialiases every block edge and the mark goes soft at 22px. */
+  shape-rendering: crispEdges;
+}

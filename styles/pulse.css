@@ -1,0 +1,897 @@
+/**
+ * /pulse — the whole market on one screen.
+ *
+ * Only tokens, in both themes, as everywhere else. The field below is the one
+ * place on the site where colour carries meaning rather than emphasis: green is
+ * a settled sale, accent is an ask nobody has taken yet, grey is an offer and
+ * the rug under the axis is what was withdrawn. A literal here would be right
+ * in one theme and a different claim in the other.
+ *
+ * There is no glow. A dark scatter plot wants it and it is exactly what makes a
+ * light layout look plasticky — density and the connector lines do the work
+ * instead.
+ */
+
+.pulse {
+  /* The field wants the full measure; nothing on this page is prose. */
+  max-width: none;
+}
+
+/* Two words and nothing else. The page had an eyebrow, a headline, a sentence
+   of explanation and a link stacked above the first pixel of data; what the
+   page is called is the only part of that the reader needed. */
+.pulse-title {
+  margin: 0;
+}
+
+.pulse-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1rem;
+  margin-bottom: 1.75rem;
+}
+
+/* `.filters` carries its own bottom margin for the pages it was written for;
+   in this row the row does the spacing. */
+.pulse-windows {
+  margin-bottom: 0;
+}
+
+.pulse-span {
+  font-size: var(--step--2);
+  font-variant-numeric: tabular-nums;
+}
+
+.pulse-refresh {
+  margin-left: auto;
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  color: var(--accent);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+}
+
+.pulse-refresh:hover {
+  color: var(--accent-hover);
+}
+
+.pulse-wait {
+  margin: 1rem 0 2rem;
+}
+
+.pulse-skeleton {
+  height: 340px;
+  border-radius: var(--r-lg);
+}
+
+/* ================================================================== ticker */
+
+.pulse-ticker {
+  position: relative;
+  overflow: hidden;
+  border-block: 1px solid var(--line);
+  padding: 0.7rem 0;
+  margin-bottom: 2rem;
+  /* Fade both ends rather than cutting a word in half at the edge. */
+  mask-image: linear-gradient(90deg, transparent, #000 4rem, #000 calc(100% - 4rem), transparent);
+}
+
+.pt-track {
+  display: flex;
+  width: max-content;
+  animation: pt-roll 90s linear infinite;
+}
+
+.pulse-ticker:hover .pt-track {
+  animation-play-state: paused;
+}
+
+.pt-run {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  padding-right: 2rem;
+}
+
+@keyframes pt-roll {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.pt-item {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  white-space: nowrap;
+  font-size: var(--step--1);
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.pt-item b {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.pt-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--r-pill);
+  align-self: center;
+  flex: none;
+}
+
+.pt-sale {
+  background: var(--up);
+}
+.pt-listed {
+  background: var(--accent);
+}
+.pt-offer {
+  background: var(--ink-3);
+}
+.pt-cancelled {
+  background: var(--ink-4);
+}
+
+/* ================================================================= figures */
+
+.pulse-figures {
+  list-style: none;
+  margin: 0 0 2rem;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: 1px;
+  background: var(--line);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+}
+
+.pulse-figures li {
+  background: var(--surface);
+  padding: 1.1rem 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.pulse-fig {
+  font-family: var(--display);
+  font-size: var(--step-2);
+  line-height: 1.1;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.pulse-cap {
+  font-size: var(--step--2);
+  color: var(--ink-3);
+}
+
+/* =================================================================== field */
+
+.pf {
+  position: relative;
+  min-height: 300px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  overflow: visible;
+}
+
+.pf-svg {
+  display: block;
+  /* Rounded with the frame, or a mark at the edge pokes out of the corner. */
+  border-radius: var(--r-lg);
+  /* `auto`, emphatically. The plot is as inert to a scroll as a photograph:
+     a flick anywhere over it moves the page, not the chart. Everything that
+     moves the chart lives on the two strips below. */
+  touch-action: auto;
+}
+
+/* ------------------------------------------------------- the axis handles */
+
+/* Transparent hit areas laid over the svg's own axis labels. `touch-action:
+   none` is the whole reason these are elements rather than zones tested inside
+   the svg — it is a property of an element, so only these two claim a finger
+   and the plot between them never does. */
+.pf-grab {
+  position: absolute;
+  touch-action: none;
+  background: transparent;
+}
+
+.pf-grab-x {
+  cursor: ew-resize;
+}
+
+.pf-grab-y {
+  cursor: ns-resize;
+}
+
+/* A hairline under the strip you are pointing at, so it is discoverable —
+   nothing else on the page says these two bands are controls. */
+.pf-grab-x:hover {
+  box-shadow: inset 0 2px 0 -1px var(--line-strong);
+}
+
+.pf-grab-y:hover {
+  box-shadow: inset -2px 0 0 -1px var(--line-strong);
+}
+
+.pf-grabbing {
+  cursor: grabbing;
+}
+
+.pf-grid line {
+  stroke: var(--line);
+  stroke-width: 1;
+  stroke-dasharray: 2 5;
+}
+
+/* The 2s and 5s inside a decade, which only appear on a zoom. Quieter than the
+   decade they sit between, or the ladder stops reading as a ladder. */
+.pf-minor line {
+  opacity: 0.55;
+}
+
+.pf-minor text {
+  opacity: 0.7;
+}
+
+.pf-grid text,
+.pf-times text {
+  fill: var(--ink-4);
+  font-family: var(--sans);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.pf-axis {
+  stroke: var(--line-strong);
+  stroke-width: 1;
+}
+
+/* The ask joined to the fill. Faint on purpose: it is the relationship that
+   matters, not the line, and at a hundred of them anything darker becomes a
+   net thrown over the data. */
+.pf-threads line {
+  stroke: var(--ink-4);
+  stroke-width: 1;
+  opacity: 0.35;
+}
+
+.pf-rug line {
+  stroke: var(--ink-4);
+  stroke-width: 1.5;
+  opacity: 0.5;
+}
+
+.pf-sale circle {
+  fill: var(--up);
+}
+
+.pf-halo {
+  opacity: 0.13;
+}
+
+.pf-listed {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 1.5;
+}
+
+.pf-offer {
+  fill: var(--ink-3);
+  opacity: 0.85;
+}
+
+.pf-ping {
+  fill: none;
+  stroke: var(--up);
+  stroke-width: 1.5;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: pf-ping 2.6s var(--ease) infinite;
+}
+
+@keyframes pf-ping {
+  0% {
+    transform: scale(0.7);
+    opacity: 0.9;
+  }
+  70%,
+  100% {
+    transform: scale(2.8);
+    opacity: 0;
+  }
+}
+
+/* Hover: a light ring, no crosshair. Following the pointer with two full-width
+   rules is restless, and hover is a preview of a pin rather than a pin. */
+.pf-near {
+  fill: none;
+  stroke: var(--ink-4);
+  stroke-width: 1.5;
+}
+
+/*
+ * Isolation.
+ *
+ * Everything that is not the pinned event, pushed back far enough that it is
+ * context rather than competition. A ring drawn around one dot among two
+ * hundred is not a selection anybody can find; this is. The pinned mark and
+ * the listing it filled are redrawn above in `.pf-keep`, because they are
+ * inside the group being faded.
+ */
+.pf-dim > g:not(.pf-keep),
+.pf-dim > .pf-threads {
+  opacity: 0.16;
+}
+
+.pf-keep-sale {
+  fill: var(--up);
+}
+
+.pf-keep-offer {
+  fill: var(--ink-3);
+}
+
+.pf-keep-listed {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 1.5;
+}
+
+/* Pinned: the crosshair earns its keep here, because the whole point of
+   pinning is to read this mark off both axes. */
+.pf-pin line {
+  stroke: var(--ink-3);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+}
+
+.pf-pin circle {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+
+/* The listing a pinned sale filled: its own ring, and the thread between them
+   lifted out of the faint crowd. */
+.pf-ask {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2;
+}
+
+.pf-thread-on {
+  stroke: var(--ink-3);
+  stroke-width: 1.5;
+}
+
+.pf-reset {
+  position: absolute;
+  top: 0.65rem;
+  right: 0.65rem;
+  padding: 0.3rem 0.7rem;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  color: var(--ink-2);
+  font-size: var(--step--2);
+  cursor: pointer;
+  transition: color var(--fast), border-color var(--fast);
+}
+
+.pf-reset:hover {
+  color: var(--ink);
+  border-color: var(--line-ink);
+}
+
+/* Inside the frame, bottom right, quiet. Outside it, this is another line of
+   chrome above the data; inside, it is a caption on the thing it describes. */
+.pf-hint {
+  position: absolute;
+  right: 1rem;
+  bottom: 0.5rem;
+  margin: 0;
+  font-size: var(--step--3);
+  color: var(--ink-4);
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pt-track {
+    animation: none;
+  }
+  .pulse-ticker {
+    overflow-x: auto;
+  }
+  .pf-ping {
+    animation: none;
+    opacity: 0.5;
+  }
+}
+
+/* ================================================================= tooltip */
+
+.pf-tip {
+  position: absolute;
+  z-index: 2;
+  transform: translate(-50%, calc(-100% - 16px));
+  pointer-events: none;
+  min-width: 10rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  /* A card inside a card: --surface is the field, so this needs the step up. */
+  background: var(--surface-2);
+  box-shadow: var(--shadow-md);
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+/* Near the top of the field there is no room above the mark, so it flips. */
+.pf-tip-below {
+  transform: translate(-50%, 16px);
+}
+
+.pf-tip .act-kind {
+  align-self: flex-start;
+}
+
+.pf-tip p {
+  margin: 0;
+  font-size: var(--step--2);
+  color: var(--ink-2);
+  line-height: 1.4;
+}
+
+.pf-tip-what {
+  color: var(--ink) !important;
+}
+
+.pf-tip-price {
+  font-size: var(--step-0) !important;
+  color: var(--ink) !important;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.pf-tip-who,
+.pf-tip-when {
+  color: var(--ink-3) !important;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ============================================================= pinned card */
+
+/*
+ * The pinned event, anchored to its own mark.
+ *
+ * Interactive, unlike the hover tip: it carries three links and a close, so it
+ * takes pointer events. Pinning dims the field behind it, which is what stops
+ * a card sitting over the data from being a card in the way.
+ */
+.pf-card {
+  position: absolute;
+  z-index: 3;
+  transform: translate(-50%, calc(-100% - 18px));
+  width: 17rem;
+  padding: 0.8rem 0.9rem;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-md);
+  /* A card inside a card: --surface is the field, so this needs the step up. */
+  background: var(--surface-2);
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+/* Near the top of the field there is no room above the mark. */
+.pf-card-below {
+  transform: translate(-50%, 18px);
+}
+
+.pf-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.pf-card-close {
+  background: none;
+  border: 0;
+  padding: 0 0.15rem;
+  font-size: var(--step-1);
+  line-height: 1;
+  color: var(--ink-3);
+  cursor: pointer;
+}
+
+.pf-card-close:hover {
+  color: var(--ink);
+}
+
+.pf-card-what {
+  color: var(--ink);
+  text-decoration: none;
+  font-size: var(--step--1);
+}
+
+.pf-card-what:hover {
+  color: var(--accent);
+}
+
+.pf-card-price {
+  margin: 0;
+  font-family: var(--display);
+  font-size: var(--step-2);
+  line-height: 1.1;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+/* --------------------------------------------------- seller to buyer ---- */
+
+/*
+ * The trade, as two faces and an arrow.
+ *
+ * `0x06bd…22D6 → 0x4AFC…6abF` is two pieces of punctuation with a mark between
+ * them; nobody reads it and nobody remembers it. Two generated discs are
+ * recognisable at a glance and tell you instantly when the same wallet is on
+ * both sides of a day's trading.
+ */
+.pf-flow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 0;
+  border-block: 1px solid var(--line);
+}
+
+.pf-party {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
+  text-decoration: none;
+}
+
+.pf-party span {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.pf-party b {
+  font-size: var(--step--2);
+  font-weight: 600;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.pf-party i {
+  font-style: normal;
+  font-size: var(--step--3);
+  color: var(--ink-3);
+}
+
+.pf-party:hover b {
+  color: var(--accent);
+}
+
+.pf-flow-arrow {
+  flex: none;
+  margin-inline: auto;
+  width: 24px;
+  color: var(--ink-4);
+}
+
+.pf-flow-arrow svg {
+  display: block;
+  width: 24px;
+  height: 10px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.pf-card-ask {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  font-size: var(--step--2);
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.pf-card-ask b {
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+/* Under the ask is the common case and not a bad one — it is what a seller
+   accepted. Coloured, but not alarmed. */
+.pf-down {
+  color: var(--down) !important;
+}
+
+.pf-up {
+  color: var(--up) !important;
+}
+
+.pf-card-block {
+  font-size: var(--step--3);
+  color: var(--ink-4);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ================================================================== legend */
+
+.pulse-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1.4rem;
+  padding: 0.9rem 0.25rem 0;
+  font-size: var(--step--2);
+  color: var(--ink-2);
+}
+
+.pl-key {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.pl-key i {
+  flex: none;
+}
+
+.pl-sale {
+  width: 9px;
+  height: 9px;
+  border-radius: var(--r-pill);
+  background: var(--up);
+}
+
+.pl-listed {
+  width: 9px;
+  height: 9px;
+  border-radius: var(--r-pill);
+  border: 1.5px solid var(--accent);
+}
+
+.pl-offer {
+  width: 8px;
+  height: 8px;
+  background: var(--ink-3);
+  transform: rotate(45deg);
+}
+
+.pl-thread {
+  width: 18px;
+  height: 1px;
+  background: var(--ink-4);
+}
+
+.pl-rug {
+  width: 1.5px;
+  height: 11px;
+  background: var(--ink-4);
+}
+
+.pl-note {
+  margin-left: auto;
+}
+
+/* ================================================================== panels */
+
+.pulse-split {
+  margin-top: 2.5rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+  gap: 1.25rem;
+}
+
+.pulse-panel {
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  padding: 1.25rem 1.35rem 1.1rem;
+}
+
+.pulse-panel-title {
+  margin: 0 0 1rem;
+  font-size: var(--step--2);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.pulse-movers {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.pulse-movers li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 5rem auto 2.75rem;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: var(--step--1);
+}
+
+.pm-name {
+  color: var(--ink);
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pm-name:hover {
+  color: var(--accent);
+}
+
+.pm-bar {
+  height: 6px;
+  border-radius: var(--r-pill);
+  background: var(--paper-3);
+  overflow: hidden;
+}
+
+.pm-bar i {
+  display: block;
+  height: 100%;
+  border-radius: var(--r-pill);
+  background: var(--up);
+}
+
+.pm-figure {
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+  justify-self: end;
+}
+
+.pm-events {
+  font-variant-numeric: tabular-nums;
+  justify-self: end;
+  font-size: var(--step--2);
+}
+
+.pulse-stream {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.pulse-stream li {
+  display: grid;
+  grid-template-columns: 4.6rem minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.45rem 0;
+  border-bottom: 1px solid var(--line);
+  font-size: var(--step--1);
+}
+
+.pulse-stream li:last-child {
+  border-bottom: 0;
+}
+
+.ps-what {
+  color: var(--ink-2);
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ps-what b {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.ps-what:hover {
+  color: var(--accent);
+}
+
+.ps-price {
+  font-variant-numeric: tabular-nums;
+  justify-self: end;
+}
+
+.ps-when {
+  font-size: var(--step--2);
+  font-variant-numeric: tabular-nums;
+  justify-self: end;
+  white-space: nowrap;
+}
+
+/* ================================================================= narrow */
+
+@media (max-width: 900px) {
+  .pulse-split {
+    grid-template-columns: 1fr;
+  }
+  .pl-note {
+    margin-left: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  /* Under the frame rather than inside it: at this width the hint and the
+     rightmost time label are the same pixels. */
+  .pf-hint {
+    position: static;
+    padding: 0 1rem 0.6rem;
+    text-align: right;
+  }
+  /* A card two thirds the width of a phone cannot also be anchored beside a
+     dot; it centres over the field instead and the dot keeps the crosshair. */
+  .pf-card {
+    left: 50% !important;
+    width: calc(100% - 2rem);
+    max-width: 20rem;
+  }
+
+  /* Two wallets side by side need about 330px and have 283px. Stacked, the
+     arrow turns to point down and nothing has to be truncated — an address
+     with its middle cut out is not an address. */
+  .pf-flow {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.4rem;
+  }
+
+  .pf-flow-arrow {
+    margin: 0 0 0 0.5rem;
+    transform: rotate(90deg);
+  }
+}
+
+@media (max-width: 560px) {
+  /* `minmax(0, 1fr)`, not `1fr`: a grid track's floor is its content, and
+     "settled through Seaport" is wide enough to take two thirds of the row
+     and leave the column beside it visibly narrower. */
+  .pulse-figures {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+  .pulse-movers li {
+    grid-template-columns: minmax(0, 1fr) auto 2.75rem;
+  }
+  .pm-bar {
+    display: none;
+  }
+  .pulse-stream li {
+    grid-template-columns: 4.6rem minmax(0, 1fr) auto;
+  }
+  .ps-when {
+    display: none;
+  }
+}

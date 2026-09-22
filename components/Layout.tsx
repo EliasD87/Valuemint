@@ -309,6 +309,12 @@ export function Layout({ children }: { children: ReactNode }) {
               <li>
                 <Link href="/market">Listings</Link>
               </li>
+              {/* Last in the column on purpose: the three above are places to
+                  go and buy something, and this is a way of looking at what
+                  they have been doing. */}
+              <li>
+                <Link href="/pulse">Pulse</Link>
+              </li>
             </ul>
           </div>
 
