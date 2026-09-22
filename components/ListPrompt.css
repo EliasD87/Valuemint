@@ -1,0 +1,195 @@
+/**
+ * The "you could be selling these" panel.
+ *
+ * A corner panel rather than a modal over the page. Somebody who has just
+ * arrived is trying to look at a marketplace; blocking that to ask whether they
+ * would like to sell something is the kind of prompt people learn to close
+ * without reading. This sits out of the way, says its piece, and takes one
+ * click to be rid of for good.
+ */
+.lp {
+  position: fixed;
+  right: 1rem;
+  /* Clears the phone's home indicator, and sits on the line everywhere else. */
+  bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+  z-index: 60;
+
+  width: min(22rem, calc(100vw - 2rem));
+  display: grid;
+  gap: 0.7rem;
+
+  /**
+   * Never taller than the screen it floats over.
+   *
+   * An opened pricing panel is most of a form, and on a short window the card
+   * ran off the top and the bottom at once — the price field reachable, the
+   * List button not. `dvh` rather than `vh` so a phone's shrinking address bar
+   * does not take the last row with it.
+   */
+  max-height: calc(100dvh - 2rem - env(safe-area-inset-bottom, 0px));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+
+  padding: 0.9rem 1rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  /* Lifted off the page it floats over — the one place a shadow earns its keep. */
+  box-shadow: 0 10px 30px -12px rgb(0 0 0 / 0.28);
+}
+
+/**
+ * Arrives rather than appears, but is readable either way.
+ *
+ * `backwards` fill with `opacity: 0` would make the visible state reachable
+ * only if the animation actually runs — and it does not, in a pane that never
+ * composites. So the resting state is the default and the animation only moves
+ * it.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  .lp {
+    animation: lp-in 220ms ease-out;
+  }
+}
+
+@keyframes lp-in {
+  from {
+    transform: translateY(0.6rem);
+    opacity: 0.4;
+  }
+}
+
+.lp-head {
+  display: flex;
+  align-items: start;
+  gap: 0.6rem;
+  justify-content: space-between;
+}
+
+.lp-title {
+  margin: 0;
+  font-size: var(--step--1);
+  line-height: 1.45;
+  color: var(--ink);
+}
+
+.lp-close {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 1.65rem;
+  height: 1.65rem;
+  margin: -0.2rem -0.3rem 0 0;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: none;
+  color: var(--ink-2);
+  cursor: pointer;
+}
+
+.lp-close:hover {
+  background: var(--surface-2);
+  color: var(--ink);
+}
+
+.lp-rows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.5rem;
+}
+
+/**
+ * The row is a grid rather than a flex with `space-between` on purpose: once
+ * `BulkList` is opened it replaces its button with a whole pricing panel, and a
+ * row that lets the second column grow keeps the name beside it instead of
+ * squeezing it to nothing.
+ */
+.lp-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: var(--step--1);
+  color: var(--ink-2);
+}
+
+.lp-row:has(.bulk) {
+  grid-template-columns: 1fr;
+  gap: 0.5rem;
+}
+
+/** Artwork and name travel together; only the control leaves the row. */
+.lp-piece {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  /* Without this the name refuses to shrink and pushes the button off the card. */
+  min-width: 0;
+}
+
+/**
+ * `position: relative` is load-bearing, not decoration.
+ *
+ * `Art` renders through next/image with `fill`, which is
+ * `position: absolute; inset: 0` — so it sizes against the nearest *positioned*
+ * ancestor. Without this it escapes the box entirely and stretches to the page.
+ * That is not hypothetical: it happened to the offer inbox, where one piece of
+ * artwork covered the whole portfolio. `overflow: hidden` does not save it —
+ * the child is not laid out inside this box at all.
+ */
+.lp-thumb {
+  position: relative;
+  display: block;
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--r-sm);
+  overflow: hidden;
+  background: var(--surface-2);
+}
+
+.lp-thumb img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.lp-thumb-empty {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--surface-2);
+}
+
+/** A long collection name shortens rather than shoving the button out of the card. */
+.lp-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lp-name strong {
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+/** The control sits at the end of its row, and fills the width once expanded. */
+.lp-row > :last-child {
+  justify-self: end;
+}
+
+.lp-row:has(.bulk) > :last-child {
+  justify-self: stretch;
+}
+
+@media (max-width: 480px) {
+  .lp {
+    right: 0.75rem;
+    left: 0.75rem;
+    width: auto;
+  }
+}

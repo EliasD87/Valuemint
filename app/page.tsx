@@ -8,6 +8,7 @@ import { useListingFeed } from "@/hooks/useListingFeed";
 import { Art } from "@/components/Art";
 import { FeaturedGrid } from "@/components/FeaturedGrid";
 import { WarmChain } from "@/components/WarmChain";
+import { ListPrompt } from "@/components/ListPrompt";
 import { formatCount, formatSoso } from "@/lib/format";
 import { stillUrl } from "@/lib/media";
 import { coverFor } from "@/config/covers";
@@ -181,6 +182,14 @@ export default function Home() {
           Measured: with that scan warm, a collection page reached its first
           image at 2,177 ms instead of 4,669 ms. */}
       <WarmChain />
+
+      {/*
+        Beside `WarmChain` for the same reason: it renders nothing until well
+        after paint, and nothing on this page waits for it. It is the one place
+        somebody is told they are holding pieces they could be selling —
+        `/portfolio` only says so to people who already went looking.
+      */}
+      <ListPrompt />
 
       <Hero deck={deck} />
 

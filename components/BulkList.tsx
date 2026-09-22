@@ -45,6 +45,31 @@ function priceOf(text: string): bigint | undefined {
 /** Tokens with no published level are one group, labelled plainly. */
 const NO_LEVEL = "Unsorted";
 
+/**
+ * What the box will accept, clamped as it is typed.
+ *
+ * `type="number"` with a `max` does not stop anybody typing past it — the
+ * attribute only drives the spinner and native form validation, neither of
+ * which is in play here. So the field happily showed "2" against one unlisted
+ * piece while the summary and the button underneath both said "1".
+ *
+ * Nothing unsafe came of that: `wanted` is clamped, the ids are sliced to it,
+ * and `planBulkListing` dedupes on top. But a field that displays a number the
+ * rest of the panel quietly overrules is a field asking to be misread, and
+ * somebody reasonably concludes they are about to list two.
+ *
+ * An empty box still means "all of them" — that is what the placeholder says.
+ */
+function clampCount(raw: string, max: number): string {
+  const digits = raw.replace(/[^0-9]/g, "");
+  if (digits === "") return "";
+
+  const n = Number.parseInt(digits, 10);
+  if (!Number.isFinite(n)) return "";
+
+  return String(Math.min(Math.max(n, 1), max));
+}
+
 export interface BulkListItem {
   id: bigint;
   tier?: string;
@@ -55,10 +80,39 @@ export function BulkList({
   collectionName,
   /** Tokens the wallet holds here that are not already listed. */
   items,
+  /**
+   * How many unlisted pieces make this control worth offering.
+   *
+   * Two on the portfolio, where every piece already has its own card with its
+   * own way in and a bulk button beside a single token is just clutter. One in
+   * the home page prompt, where there is no card and no other route — a holder
+   * told "you have 1 Cybereator not for sale" and given nothing to press has
+   * been told about a dead end.
+   *
+   * A parameter rather than a different component: listing is an approval, a
+   * per-level price, a batched `validate` and a gas price ValueChain's own
+   * suggestion is too low for, and a second implementation of that is a second
+   * place for a seller to lose a transaction.
+   */
+  minimum = 2,
+  /**
+   * Whether the panel is open, when the surface around it needs a say.
+   *
+   * Uncontrolled by default, which is what `/portfolio` wants: each collection
+   * has its own heading, its own room, and two open at once is fine there. The
+   * home page prompt is a fixed card in the corner, where two open panels stack
+   * into something taller than the screen with no way to reach either end — so
+   * it keeps one at a time and needs to be able to close the other.
+   */
+  open: controlledOpen,
+  onOpenChange,
 }: {
   collection: `0x${string}`;
   collectionName: string;
   items: readonly BulkListItem[];
+  minimum?: number;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }) {
   const { listMany, progress, error, perTransaction, reset } = useBulkList(collection);
 
@@ -69,7 +123,14 @@ export function BulkList({
    */
   const trade = useSeaportTrade(collection);
 
-  const [open, setOpen] = useState(false);
+  const [selfOpen, setSelfOpen] = useState(false);
+
+  /** Controlled when a caller supplies both, its own otherwise. */
+  const open = controlledOpen ?? selfOpen;
+  const setOpen = (next: boolean) => {
+    if (onOpenChange !== undefined) onOpenChange(next);
+    else setSelfOpen(next);
+  };
   const [level, setLevel] = useState<string | undefined>(undefined);
   const [count, setCount] = useState("");
   const [price, setPrice] = useState("");
@@ -113,7 +174,7 @@ export function BulkList({
     return net * BigInt(wanted);
   }, [priceWei, wanted]);
 
-  if (items.length < 2 || chosen === undefined) return null;
+  if (items.length < minimum || chosen === undefined) return null;
 
   if (!open) {
     /*
@@ -133,9 +194,11 @@ export function BulkList({
         className="bulk-open"
         onClick={() => setOpen(true)}
         title={
-          `List several at once — ${formatCount(BigInt(items.length))} unlisted` +
-          (groups.length > 1 ? ` across ${groups.length} levels` : "") +
-          ", one price per level"
+          items.length === 1
+            ? "Put this one up for sale"
+            : `List several at once — ${formatCount(BigInt(items.length))} unlisted` +
+              (groups.length > 1 ? ` across ${groups.length} levels` : "") +
+              ", one price per level"
         }
       >
         <span className="bulk-open-mark" aria-hidden="true">
@@ -200,7 +263,7 @@ export function BulkList({
             inputMode="numeric"
             placeholder={String(max)}
             value={count}
-            onChange={(e) => setCount(e.target.value)}
+            onChange={(e) => setCount(clampCount(e.target.value, max))}
             disabled={progress.busy}
           />
           <small>

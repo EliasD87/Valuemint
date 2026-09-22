@@ -7,6 +7,7 @@ import { SEAPORT, SeaportAbi } from "@/config/seaport";
 import { valuechain } from "@/config/chain";
 import { asOrder, planBulkListing, LISTINGS_PER_TX } from "@/lib/seaport";
 import { useVerifiedContracts } from "@/hooks/useVerifiedContracts";
+import { rememberValidatedOrders } from "@/lib/pendingOrders";
 
 /**
  * List many tokens at one price, in as few transactions as Seaport allows.
@@ -134,6 +135,28 @@ export function useBulkList(collection: Address | undefined) {
           if (receipt.status !== "success") {
             throw new Error(`Batch ${i + 1} of ${batches.length} was rejected on chain.`);
           }
+
+          /**
+           * Hold on to what this batch just validated.
+           *
+           * The single-listing path has always done this and the bulk path
+           * never did, which left a window of about thirty seconds — the order
+           * book reads six confirmations behind the head and polls — where the
+           * whole app still believed these tokens were unlisted. The portfolio
+           * offered to list them again, and so did the home page prompt sitting
+           * right under the button that had just done it.
+           *
+           * Pressing it again is not a no-op. `validate` takes a fresh salt, so
+           * the second press writes a *second* live order on the same token at
+           * whatever price is typed, and a buyer takes the cheaper of the two.
+           * Seen for real: SoDEXTreasureBox #43653, listed twice at 10 SOSO.
+           *
+           * `rememberValidatedOrders` reads every `OrderValidated` in the
+           * receipt — which is what its own comment says it is for, bulk
+           * included — and feeds them to the same store the single path uses,
+           * so every surface sees them at once.
+           */
+          rememberValidatedOrders(receipt);
 
           listed += batch.length;
           setProgress({
