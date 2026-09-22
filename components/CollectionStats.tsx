@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 import { useCollectionStats } from "@/hooks/useCollectionStats";
 import { Soso } from "@/components/Soso";
-import { FloorSpark } from "@/components/FloorSpark";
+import { PriceChange } from "@/components/PriceChange";
 import { formatSoso, formatCount } from "@/lib/format";
 import "./CollectionStats.css";
 
@@ -90,12 +90,13 @@ export function CollectionStats({
         {/*
           Where "Top offer" used to be, and it earns the slot better.
 
-          A best bid is one number that changes rarely; this is the direction
-          the floor has moved in a day, which is the figure somebody scanning a
-          collection page is actually looking for. It renders nothing at all
-          until the recorded series is a day long — see `FloorSpark`.
+          A best bid is one number that changes rarely; this is how much the
+          price people actually PAID moved in a day, which is the figure
+          somebody scanning a collection page is looking for. Not a listing
+          floor: an asking price nobody accepted moves that and should not move
+          this. See `PriceChange`.
         */}
-        <FloorSpark collection={collection} />
+        <PriceChange collection={collection} />
 
         <Cell label="Listed" note={listedShare}>
           <span className="cs-plain">{formatCount(BigInt(s.listed))}</span>

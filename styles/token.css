@@ -156,10 +156,10 @@
 /* ================================================================== panel */
 
 .token-panel {
-  padding: 1.25rem;
+  padding: 1rem;
   display: flex;
   flex-direction: column;
-  gap: 0.9rem;
+  gap: 0.75rem;
 }
 
 .token-panel-title {
@@ -189,10 +189,36 @@
   border-bottom: 1px solid var(--line);
 }
 
+/*
+ * The price, two steps down from where it was.
+ *
+ * It was `--step-3` — `clamp(1.6rem, 2.6vw, 2.25rem)`, which against this
+ * page's fluid root computes to about 40px. That is the size a page TITLE is
+ * set at, and it made the one card on the page shout at a reader who had
+ * already decided to look at it. `--step-2` is still unmistakably the largest
+ * figure in the panel without being a headline.
+ */
+/*
+ * The label above the price takes the same treatment as every other figure
+ * label on this page.
+ *
+ * It was inheriting `.dim` at 15px against a 21px price — close enough that
+ * the two read as one line of similar text rather than as a caption over a
+ * figure. The stats strip directly above uses 11px uppercase for exactly this
+ * job, and a page with two kinds of figure label has neither.
+ */
+.token-price-row .dim {
+  font-size: var(--step--3);
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
 .token-price {
   font-family: var(--display);
   font-optical-sizing: auto;
-  font-size: var(--step-3);
+  font-size: var(--step-2);
   font-weight: 700;
   letter-spacing: -0.035em;
   line-height: 1.1;
@@ -522,5 +548,5 @@
  * Left-aligned rather than centred, so it sits under the price it acts on.
  */
 .token-panel .btn-block {
-  max-width: 22rem;
+  max-width: 20rem;
 }

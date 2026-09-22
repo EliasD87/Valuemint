@@ -573,7 +573,7 @@ export function TokenView({
                   </button>
                 ) : isOwner ? null : (
                   <button
-                    className="btn btn-primary btn-lg btn-block"
+                    className="btn btn-primary btn-block"
                     disabled={busy || !active || address === undefined || blockedNow}
                     onClick={() => {
                       setLastAction("buy");
@@ -668,7 +668,7 @@ export function TokenView({
                   </>
                 ) : (
                   <button
-                    className="btn btn-primary btn-lg btn-block"
+                    className="btn btn-primary btn-block"
                     disabled={busy || preview.price <= 0n}
                     onClick={() => {
                       setLastAction("list");

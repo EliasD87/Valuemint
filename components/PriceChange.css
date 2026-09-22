@@ -1,4 +1,4 @@
-/* ============================================================== floor spark
+/* ============================================================== price change
  *
  * A percentage and a curve, sitting in the stats bar as one more cell. It
  * borrows `.cs-cell` and `.cs-label` from CollectionStats deliberately: it IS
@@ -6,14 +6,14 @@
  * look identical start to drift.
  * ========================================================================= */
 
-.fs-value {
+.chg-value {
   display: flex;
   align-items: center;
   gap: 0.45rem;
   min-width: 0;
 }
 
-.fs-pct {
+.chg-pct {
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
@@ -23,20 +23,20 @@
  * darkened once already to clear 4.5:1 on its own wash, so using it rather than
  * a literal is what keeps this legible on either ground.
  */
-.fs-up {
+.chg-up {
   color: var(--up);
 }
 
-.fs-down {
+.chg-down {
   color: var(--down);
 }
 
 /*
- * A floor that has not moved is not "up by nothing". At `--ink-2` it reads as a
+ * A price that has not moved is not "up by nothing". At `--ink-2` it reads as a
  * figure rather than as a colour-coded direction, which is the honest rendering
  * of no change.
  */
-.fs-flat {
+.chg-flat {
   color: var(--ink-2);
 }
 
@@ -45,7 +45,7 @@
  * `vector-effect` — without it a 96-unit viewBox drawn 60px wide renders a 2px
  * stroke at 1.25px and the line thins as the cell narrows.
  */
-.fs-spark {
+.chg-spark {
   flex: none;
   width: clamp(48px, 5vw, 72px);
   height: 22px;
@@ -53,7 +53,7 @@
   overflow: visible;
 }
 
-.fs-spark path {
+.chg-spark path {
   fill: none;
   stroke: currentColor;
   stroke-width: 1.75;
@@ -63,16 +63,16 @@
 }
 
 /*
- * The curve is quieter than the figure beside it. It is an interpolation —
- * the floor held and jumped, it did not slide — so it may suggest a direction
- * and must not compete with the number that states one.
+ * The curve is quieter than the figure beside it. It joins hourly means, and
+ * no price ever existed along the line between two of them — so it may suggest
+ * a direction and must not compete with the number that states one.
  */
-.fs-spark {
+.chg-spark {
   opacity: 0.75;
 }
 
 @media (max-width: 560px) {
-  .fs-spark {
+  .chg-spark {
     width: 44px;
     height: 20px;
   }
