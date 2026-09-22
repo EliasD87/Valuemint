@@ -152,9 +152,15 @@ export function ListPrompt() {
   return createPortal(
     <aside className="lp" role="region" aria-label="Pieces you could list">
       <div className="lp-head">
+        {/*
+          "Not listed", because that is what every card and every token page
+          already calls this state. "Not for sale" was a third phrase for the
+          same thing, and it reads as a fact about the pieces — that they are
+          unavailable — rather than as the offer this panel is making.
+        */}
         <p className="lp-title">
           You hold <strong>{formatCount(BigInt(total))}</strong>
-          {total === 1 ? " piece" : " pieces"} that {total === 1 ? "is" : "are"} not for sale
+          {total === 1 ? " piece that isn’t listed" : " pieces that aren’t listed"}
         </p>
         <button type="button" className="lp-close" onClick={close} aria-label="Dismiss">
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.8">
