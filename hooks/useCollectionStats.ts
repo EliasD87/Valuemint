@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useBlockNumber } from "wagmi";
 import { useActivity } from "@/hooks/useActivity";
-import { useBestListings, useCollectionOffers } from "@/hooks/useSeaportOrders";
+import { useBestListings } from "@/hooks/useSeaportOrders";
 import { deployment } from "@/config/contracts";
 import { BLOCKS_PER_DAY } from "@/config/chain";
 
@@ -36,8 +36,6 @@ export interface CollectionStats {
   floorWei?: bigint;
   /** How many pieces have a live listing. Distinct tokens, not orders. */
   listed: number;
-  /** The highest live bid anyone could accept, in wei of WSOSO. */
-  topOfferWei?: bigint;
   /** Settled through Seaport in the last day, in wei. */
   volumeDayWei: bigint;
   /** Settled through Seaport, ever. */
@@ -110,7 +108,6 @@ function useOwnerCount(collection: `0x${string}` | undefined) {
 
 export function useCollectionStats(collection: `0x${string}` | undefined): CollectionStats {
   const { best, isLoading: booking } = useBestListings(collection);
-  const { best: topOffer } = useCollectionOffers(collection);
   const { sales, volume, isLoading: reading, logsUnavailable } = useActivity(collection);
   const { data: head } = useBlockNumber({ watch: false });
   const owners = useOwnerCount(collection);
@@ -160,7 +157,6 @@ export function useCollectionStats(collection: `0x${string}` | undefined): Colle
   return {
     ...(floorWei === undefined ? {} : { floorWei }),
     listed,
-    ...(topOffer === undefined ? {} : { topOfferWei: topOffer.priceWei }),
     volumeDayWei: day.volumeDayWei,
     volumeTotalWei: volume,
     salesDay: day.salesDay,

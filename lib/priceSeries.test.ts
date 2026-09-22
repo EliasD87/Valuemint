@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { salesToPoints, extentOf, niceTicks, norm, type Sale } from "@/lib/priceSeries";
+import {
+  salesToPoints,
+  extentOf,
+  niceTicks,
+  norm,
+  changePercent,
+  smoothPath,
+  type Sale,
+} from "@/lib/priceSeries";
 
 /**
  * The chart's arithmetic. Every case here is one where the obvious
@@ -153,5 +161,79 @@ describe("norm", () => {
 
   it("clamps a value above the span", () => {
     expect(norm(40, 0, 10)).toBe(1);
+  });
+});
+
+describe("changePercent", () => {
+  it("measures a rise", () => {
+    expect(changePercent(100n, 120n)).toBeCloseTo(20, 5);
+  });
+
+  it("measures a fall as negative", () => {
+    expect(changePercent(100n, 80n)).toBeCloseTo(-20, 5);
+  });
+
+  it("is zero when nothing moved", () => {
+    expect(changePercent(5n * SOSO, 5n * SOSO)).toBe(0);
+  });
+
+  /**
+   * A floor that went from nothing to something has not risen by an infinite
+   * percentage — the question has no number as its answer, and rendering one
+   * would be a fabrication.
+   */
+  it("is undefined rather than infinite from a zero base", () => {
+    expect(changePercent(0n, 5n * SOSO)).toBeUndefined();
+  });
+
+  /**
+   * Both values are uint256. Doing this in floats first would collapse a 1%
+   * move between two eighteen-digit numbers to zero.
+   */
+  it("survives prices a float could not subtract", () => {
+    const from = 100_000_000_000_000_000_000n;
+    const to = 101_000_000_000_000_000_000n;
+    expect(changePercent(from, to)).toBeCloseTo(1, 5);
+  });
+});
+
+describe("smoothPath", () => {
+  it("draws nothing for an empty series", () => {
+    expect(smoothPath([])).toBe("");
+  });
+
+  it("is a bare move for a single point", () => {
+    expect(smoothPath([{ x: 3, y: 4 }])).toBe("M 3 4");
+  });
+
+  it("starts exactly on the first point", () => {
+    const d = smoothPath([{ x: 0, y: 10 }, { x: 5, y: 2 }, { x: 10, y: 8 }]);
+    expect(d.startsWith("M 0.00 10.00")).toBe(true);
+  });
+
+  it("ends exactly on the last point", () => {
+    const d = smoothPath([{ x: 0, y: 10 }, { x: 5, y: 2 }, { x: 10, y: 8 }]);
+    expect(d.trimEnd().endsWith("10.00 8.00")).toBe(true);
+  });
+
+  it("emits one curve per gap", () => {
+    const d = smoothPath([{ x: 0, y: 0 }, { x: 1, y: 1 }, { x: 2, y: 0 }, { x: 3, y: 1 }]);
+    expect(d.match(/C/g)).toHaveLength(3);
+  });
+
+  /**
+   * The ends have no neighbour to take a tangent from. Unclamped, the curve is
+   * computed from an undefined slope and flies off the drawing.
+   */
+  it("produces only finite coordinates", () => {
+    const d = smoothPath([{ x: 0, y: 5 }, { x: 10, y: 1 }, { x: 20, y: 9 }]);
+    const numbers = d.match(/-?\d+\.?\d*/g)!.map(Number);
+    expect(numbers.every(Number.isFinite)).toBe(true);
+  });
+
+  it("keeps a flat series flat", () => {
+    const d = smoothPath([{ x: 0, y: 5 }, { x: 5, y: 5 }, { x: 10, y: 5 }]);
+    const ys = d.match(/-?\d+\.\d\d(?=\s|,|$)/g)!.map(Number).filter((_, i) => i % 2 === 1);
+    expect(ys.every((y) => Math.abs(y - 5) < 0.01)).toBe(true);
   });
 });

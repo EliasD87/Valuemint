@@ -3,13 +3,14 @@
 import type { ReactNode } from "react";
 import { useCollectionStats } from "@/hooks/useCollectionStats";
 import { Soso } from "@/components/Soso";
+import { FloorSpark } from "@/components/FloorSpark";
 import { formatSoso, formatCount } from "@/lib/format";
 import "./CollectionStats.css";
 
 /**
  * The figures across a collection page.
  *
- * Six cells, each of which has to survive not being knowable. That is most of
+ * Five cells, each of which has to survive not being knowable. That is most of
  * the work here: a stats bar is where a marketplace is most tempted to print a
  * confident zero over a question it never asked, and every one of these has a
  * state where the honest answer is a dash.
@@ -86,21 +87,15 @@ export function CollectionStats({
           )}
         </Cell>
 
-        <Cell label="Top offer">
-          {s.topOfferWei === undefined ? (
-            <Dash />
-          ) : (
-            /*
-              WSOSO, not SOSO, and the label is not decoration. This
-              marketplace refuses native-currency bids outright — an offer is
-              always in the wrapped token — and a row that said "SOSO" would
-              have somebody expecting the wrong balance to move.
-            */
-            <Soso size={15} unit="WSOSO">
-              {formatSoso(s.topOfferWei)}
-            </Soso>
-          )}
-        </Cell>
+        {/*
+          Where "Top offer" used to be, and it earns the slot better.
+
+          A best bid is one number that changes rarely; this is the direction
+          the floor has moved in a day, which is the figure somebody scanning a
+          collection page is actually looking for. It renders nothing at all
+          until the recorded series is a day long — see `FloorSpark`.
+        */}
+        <FloorSpark collection={collection} />
 
         <Cell label="Listed" note={listedShare}>
           <span className="cs-plain">{formatCount(BigInt(s.listed))}</span>
@@ -138,23 +133,19 @@ export function CollectionStats({
       </dl>
 
       {/*
-        One line, and it changes with what went wrong.
+        Only when something went wrong.
 
-        A refused scan is not a quiet market, and the bar must not let the two
-        look alike — that is the same rule the activity panel follows, applied
-        to the figures above it.
+        The standing note explaining that volume counts what settled here was
+        removed — it sat under every collection page saying the same sentence
+        forever. This line is not that: a refused scan is not a quiet market,
+        and the bar must not let the two look alike.
       */}
       {s.unavailable ? (
         <p className="cs-foot cs-foot-warn">
           Trade history couldn&rsquo;t be read just now, so the volume figures are missing rather
           than zero.
         </p>
-      ) : (
-        <p className="cs-foot">
-          Volume counts what settled through this marketplace. A piece moved by a direct transfer
-          isn&rsquo;t in it.
-        </p>
-      )}
+      ) : null}
     </section>
   );
 }

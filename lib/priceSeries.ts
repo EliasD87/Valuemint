@@ -171,3 +171,67 @@ export function norm(value: number, min: number, max: number): number {
   const t = (value - min) / (max - min);
   return t < 0 ? 0 : t > 1 ? 1 : t;
 }
+
+/**
+ * Percentage change between two prices.
+ *
+ * `undefined` when the earlier price is zero, never `Infinity`. A collection
+ * whose floor went from nothing to something has not risen by an infinite
+ * percentage — the question simply does not have a number as its answer, and
+ * rendering one would be a fabrication.
+ *
+ * Computed in basis points as bigints before touching a float, so a pair of
+ * uint256 values cannot lose their difference to rounding on the way in.
+ */
+export function changePercent(fromWei: bigint, toWei: bigint): number | undefined {
+  if (fromWei === 0n) return undefined;
+  const bps = ((toWei - fromWei) * 10_000n) / fromWei;
+  return Number(bps) / 100;
+}
+
+/**
+ * A smooth path through a series, as SVG cubic beziers.
+ *
+ * Catmull-Rom control points converted to beziers, with the ends clamped to
+ * themselves so the curve starts and finishes exactly on the data rather than
+ * overshooting past it.
+ *
+ * **A curve is an interpolation and a sparkline is a shape, not a quote.** The
+ * prices between two recorded points were never real, so nothing may read a
+ * value off this path — it exists to show a direction at a glance, and the
+ * figure beside it is what states the change.
+ */
+export function smoothPath(
+  pts: ReadonlyArray<{ x: number; y: number }>,
+  tension = 1,
+): string {
+  if (pts.length === 0) return "";
+  const first = pts[0]!;
+  if (pts.length === 1) return `M ${first.x} ${first.y}`;
+
+  let d = `M ${first.x.toFixed(2)} ${first.y.toFixed(2)}`;
+
+  for (let i = 0; i < pts.length - 1; i++) {
+    /**
+     * At the ends there is no neighbour to take a tangent from, so the point
+     * stands in for its own. Without this the curve is computed from an
+     * undefined slope and flies off the drawing at the first and last segment.
+     */
+    const p0 = pts[i - 1] ?? pts[i]!;
+    const p1 = pts[i]!;
+    const p2 = pts[i + 1]!;
+    const p3 = pts[i + 2] ?? p2;
+
+    const c1x = p1.x + ((p2.x - p0.x) / 6) * tension;
+    const c1y = p1.y + ((p2.y - p0.y) / 6) * tension;
+    const c2x = p2.x - ((p3.x - p1.x) / 6) * tension;
+    const c2y = p2.y - ((p3.y - p1.y) / 6) * tension;
+
+    d +=
+      ` C ${c1x.toFixed(2)} ${c1y.toFixed(2)},` +
+      ` ${c2x.toFixed(2)} ${c2y.toFixed(2)},` +
+      ` ${p2.x.toFixed(2)} ${p2.y.toFixed(2)}`;
+  }
+
+  return d;
+}
