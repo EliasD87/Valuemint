@@ -345,3 +345,37 @@
     display: none;
   }
 }
+
+/**
+ * Wrapped SOSO in the wallet menu.
+ *
+ * Only rendered for somebody holding some, which is only somebody who has bid —
+ * so for most readers this section does not exist and the menu is unchanged.
+ */
+.wallet-wsoso {
+  display: grid;
+  gap: 0.5rem;
+  padding-top: 0.6rem;
+  margin-top: 0.1rem;
+  border-top: 1px solid var(--line);
+}
+
+/**
+ * Why part of the balance is not on offer.
+ *
+ * Load-bearing rather than decorative: WSOSO behind a live bid sits in the
+ * bidder's own wallet, so unwrapping it succeeds and the bids behind it simply
+ * stop being fillable, with nothing anywhere saying so. Naming the amount is
+ * what makes the missing button make sense.
+ */
+.wallet-wsoso-note {
+  margin: 0;
+  font-size: var(--step--2);
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+
+.wallet-wsoso-btn {
+  width: 100%;
+  justify-content: center;
+}

@@ -1,0 +1,198 @@
+/* ============================================================ unwrap dialog */
+
+/*
+ * Deliberately the same shell as the offer dialog rather than a new one. Two
+ * modals in one app that centre themselves differently, round their corners
+ * differently or scrim at different opacities read as two apps.
+ */
+
+.uw-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 58;
+  background: var(--scrim);
+}
+
+.uw {
+  position: fixed;
+  z-index: 59;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(94vw, 25rem);
+  max-height: min(86svh, 40rem);
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  box-shadow: 0 32px 70px -24px rgb(0 0 0 / 0.55);
+  overflow: hidden;
+}
+
+.uw-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1rem 0.9rem 1.25rem;
+  border-bottom: 1px solid var(--line);
+  flex: none;
+}
+
+.uw-kicker {
+  margin: 0 0 0.15rem;
+  font-size: var(--step--3);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.uw-head h2 {
+  margin: 0;
+  font-size: var(--step-0);
+  line-height: 1.25;
+}
+
+.uw-close {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: none;
+  color: var(--ink-2);
+  cursor: pointer;
+}
+
+.uw-close:hover {
+  background: var(--surface-2);
+  color: var(--ink);
+}
+
+.uw-close svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+}
+
+.uw-body {
+  padding: 1rem 1.25rem;
+  display: grid;
+  gap: 0.9rem;
+  overflow-y: auto;
+}
+
+/* Three figures that have to be read against each other, so they line up. */
+.uw-figures {
+  margin: 0;
+  display: grid;
+  gap: 0.4rem;
+}
+
+.uw-figures > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.uw-figures dt {
+  font-size: var(--step--1);
+  color: var(--ink-2);
+}
+
+.uw-figures dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The last row is the one the button acts on, so it carries the weight. */
+.uw-figures > div:last-child dt,
+.uw-figures > div:last-child dd {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.uw-note {
+  margin: 0;
+  padding: 0.7rem 0.8rem;
+  border-radius: var(--r-sm);
+  font-size: var(--step--2);
+  line-height: 1.55;
+  color: var(--ink-2);
+  background: var(--surface-2);
+}
+
+.uw-field {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.uw-field > span {
+  font-size: var(--step--2);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.uw-field small {
+  font-size: var(--step--2);
+  color: var(--ink-2);
+}
+
+.uw-input {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.uw-input input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.6rem 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--paper);
+  color: var(--ink);
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+}
+
+.uw-max {
+  flex: none;
+  padding: 0 0.85rem;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--step--1);
+  cursor: pointer;
+}
+
+.uw-max:hover:not(:disabled) {
+  background: var(--surface);
+}
+
+.uw-foot {
+  display: flex;
+  gap: 0.6rem;
+  padding: 0 1.25rem 1rem;
+  flex: none;
+}
+
+.uw-foot .btn {
+  flex: 1;
+  justify-content: center;
+}
+
+/* Empty until something has been sent, so it takes no room until it does. */
+.uw-result:not(:empty) {
+  padding: 0 1.25rem 1rem;
+}

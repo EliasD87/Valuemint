@@ -40,6 +40,7 @@ function WalletGlyph({ size }: { size: number }) {
   );
 }
 import { WalletPicker } from "./WalletPicker";
+import { WrappedBalance } from "@/components/WrappedBalance";
 import "./Wallet.css";
 import { Soso } from "@/components/Soso";
 
@@ -243,6 +244,18 @@ export function Wallet() {
                 <Soso size={13}>{formatSoso(balance?.value)}</Soso>
               </span>
             </div>
+
+            {/*
+              Wrapped SOSO, and the way back out of it — but only for somebody
+              who has any. Bidding is the only thing that wraps, so most people
+              never see this row at all.
+
+              A child component rather than markup here, because it reads the
+              order book to find what is already promised to standing bids, and
+              this pill is in the header of every page. Inside the menu it
+              mounts when the menu opens and not before.
+            */}
+            <WrappedBalance />
 
             <div className="wallet-menu-actions">
               {/*

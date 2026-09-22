@@ -96,6 +96,36 @@ export function useWsoso(needed: bigint, spender: Address = SEAPORT, alsoCover: 
   );
 
   /**
+   * Turn wrapped SOSO back into the real thing, 1:1.
+   *
+   * The missing half of the plumbing. Bids have to be in WSOSO — an offer must
+   * stand over time without the marketplace holding anyone's money, and native
+   * currency cannot be pulled — so anybody who has ever bid has wrapped. There
+   * was no way back: an offer expires or is withdrawn, and the SOSO behind it
+   * stays wrapped with nothing on this site offering to undo it. `withdraw` was
+   * in the ABI the whole time and nothing called it.
+   *
+   * **The caller must not offer more than is free.** WSOSO committed to
+   * standing bids is still in the bidder's own wallet — that is the point of
+   * the design — so the contract will happily unwrap it, and the bids behind it
+   * silently stop being fillable. `useOwnOfferExposure` is what that amount is;
+   * see how the wallet menu subtracts it before showing a figure.
+   */
+  const unwrap = useCallback(
+    (amountInSoso: string) => {
+      reset();
+      writeContract({
+        chainId: valuechain.id,
+        address: WSOSO,
+        abi: WsosoAbi,
+        functionName: "withdraw",
+        args: [parseEther(amountInSoso)],
+      });
+    },
+    [reset, writeContract],
+  );
+
+  /**
    * An exact allowance. This used to be `maxUint256`, and that was a mistake.
    *
    * The reasoning for unlimited was that Seaport "can only spend it against an
@@ -144,6 +174,7 @@ export function useWsoso(needed: bigint, spender: Address = SEAPORT, alsoCover: 
     allowanceNeeded,
     shortfall: needed > held ? needed - held : 0n,
     wrap,
+    unwrap,
     allow,
     refetch: () => {
       void refetchBalance();
