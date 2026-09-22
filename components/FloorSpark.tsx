@@ -6,14 +6,14 @@ import { changePercent, smoothPath, norm } from "@/lib/priceSeries";
 import "./FloorSpark.css";
 
 /**
- * A day of floor, as a shape and a number.
+ * How the floor has moved, as a shape and a number.
  *
  * ---
  *
  * **The number is the claim; the curve is only a shape.**
  *
- * The percentage compares two recorded hours — the newest, and the one nearest
- * twenty-four hours before it — and both are figures the sync actually wrote.
+ * The percentage compares two recorded hours — the newest, and the earliest
+ * inside the last day — and both are figures the sync actually wrote.
  * The curve between them is an interpolation: the floor did not slide smoothly
  * from one to the other, it held and jumped. So nothing may be read off the
  * line, and the whole cell is `aria-hidden` apart from the figure, which is
@@ -21,16 +21,19 @@ import "./FloorSpark.css";
  *
  * ---
  *
- * **It is empty for the first day and that is not a bug.**
+ * **The label names the window, so the cell works from its second hour.**
  *
  * A floor cannot be reconstructed backwards — it is the minimum over the orders
  * live at a moment, and fills, cancellations, expiries and counter increments
  * do not all leave a trace per order. An attempt would be wrong in a known
  * direction, because a stale cheap listing that nothing records as dead drags
- * it down, so every change measured against it would read more positive than
- * the truth. The series therefore starts when recording started, and until
- * there are two points a day apart this cell says nothing rather than
- * something false.
+ * it down. So the series genuinely starts when recording started.
+ *
+ * The first version refused to draw anything until two points sat a day apart,
+ * which left an empty slot in the stats bar for a whole day and read as broken.
+ * Naming the window instead is both honest and useful: "2h floor" over two
+ * recorded hours, "1d floor" once there is a day. The number is never measured
+ * over a window it does not say.
  */
 
 /** The drawing's own space. Width is arbitrary; CSS stretches it. */
@@ -38,9 +41,22 @@ const W = 96;
 const H = 26;
 const PAD = 3;
 
-/** How far from a true 24 hours a point may sit and still be the comparison. */
-const TOLERANCE_MS = 6 * 3600_000;
 const DAY_MS = 24 * 3600_000;
+
+/**
+ * The window a change is measured over, named by what it actually is.
+ *
+ * A day where a day exists, and less while the series is younger. Anything
+ * within an hour of 24 is called "1d" — the buckets are hourly, so a series
+ * that has just crossed a day lands at 23-point-something and calling that
+ * "23h" would be pedantry rather than precision.
+ */
+function windowLabel(ms: number): string {
+  const hours = ms / 3600_000;
+  if (hours >= 23) return "1d";
+  if (hours >= 1) return `${Math.round(hours)}h`;
+  return `${Math.max(1, Math.round(ms / 60_000))}m`;
+}
 
 export function FloorSpark({ collection }: { collection: `0x${string}` | undefined }) {
   /**
@@ -57,28 +73,27 @@ export function FloorSpark({ collection }: { collection: `0x${string}` | undefin
 
   const change = useMemo(() => {
     const latest = known.at(-1);
-    if (latest === undefined) return undefined;
+    if (latest === undefined || known.length < 2) return undefined;
 
     /**
-     * The reading nearest a day before the latest, not simply the oldest one
-     * held. With a series a few hours old the oldest point is a few hours old,
-     * and labelling that difference "1d" would be a lie about the window.
+     * The earliest reading inside the last day — so the window is a full day
+     * once one exists, and everything recorded so far before that.
+     *
+     * This used to demand a point within six hours of exactly 24 ago and
+     * render NOTHING otherwise, which meant a freshly created series showed an
+     * empty slot in the stats bar for its first day and looked broken. The
+     * window is now named by what it really is, which is both honest and
+     * visible: two hours of history reads "2h floor", and the same cell becomes
+     * "1d floor" the moment a day is behind it.
      */
-    const target = latest.at.getTime() - DAY_MS;
-    let best: (typeof known)[number] | undefined;
-    let bestGap = Number.POSITIVE_INFINITY;
+    const cutoff = latest.at.getTime() - DAY_MS;
+    const earliest = known.find((p) => p.at.getTime() >= cutoff) ?? known[0]!;
+    if (earliest === latest) return undefined;
 
-    for (const p of known) {
-      const gap = Math.abs(p.at.getTime() - target);
-      if (gap < bestGap) {
-        bestGap = gap;
-        best = p;
-      }
-    }
+    const percent = changePercent(earliest.floorWei, latest.floorWei);
+    if (percent === undefined) return undefined;
 
-    if (best === undefined || bestGap > TOLERANCE_MS || best === latest) return undefined;
-    const percent = changePercent(best.floorWei, latest.floorWei);
-    return percent === undefined ? undefined : { percent };
+    return { percent, spanMs: latest.at.getTime() - earliest.at.getTime() };
   }, [known]);
 
   const path = useMemo(() => {
@@ -122,7 +137,7 @@ export function FloorSpark({ collection }: { collection: `0x${string}` | undefin
 
   return (
     <div className="cs-cell">
-      <dt className="cs-label">1d floor</dt>
+      <dt className="cs-label">{windowLabel(change.spanMs)} floor</dt>
       <dd className="cs-value fs-value">
         <span className={`fs-pct fs-${tone}`}>
           {sign}
