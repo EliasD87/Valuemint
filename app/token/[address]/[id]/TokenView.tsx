@@ -24,9 +24,11 @@ import { formatSoso, resolveMediaUrl, shortAddress } from "@/lib/format";
 import { MovingArt } from "@/components/MovingArt";
 import { soleArtworkFor } from "@/config/covers";
 import { Wordmark } from "@/components/Wordmark";
+import { TokenStats } from "@/components/TokenStats";
+import { TokenTraits } from "@/components/TokenTraits";
 import { wordmarkSaying } from "@/config/wordmarks";
 import "@/styles/token.css";
-import { Activity, LastSale } from "@/components/Activity";
+import { Activity } from "@/components/Activity";
 import { Steps } from "@/components/Steps";
 
 
@@ -474,35 +476,45 @@ export function TokenView({
             </div>
           </div>
 
-          <dl className="token-facts">
-            <div>
-              <dt>Owner</dt>
-              <dd className="mono">
-                {owner === undefined ? "—" : isOwner ? "You" : shortAddress(owner as string, 6)}
-              </dd>
-            </div>
-            <div>
-              <dt>Token id</dt>
-              <dd className="mono">#{id}</dd>
-            </div>
-            <div>
-              <dt>Status</dt>
-              <dd>
-                {settling
-                  ? justListed
-                    ? "Listing…"
-                    : "Cancelling…"
-                  : listed
-                    ? active
-                      ? "For sale"
-                      : "Listed (stale)"
-                    : logsUnavailable
-                      ? "Unknown"
-                      : "Not listed"}
-              </dd>
-              <LastSale collection={collection} tokenId={tokenId} />
-            </div>
-          </dl>
+          {/*
+            Who holds it and what state it is in — one line, above the figures.
+
+            This was three cells of a definition list sharing a row with the
+            market data, which put "Token id #5381" (already the heading) and
+            "Owner" at the same weight as the price somebody is deciding on.
+            The id moved into the badges, and the two facts that change sit
+            here where they can be read in a glance.
+          */}
+          <div className="token-who">
+            <span className="token-who-owner">
+              Owned by{" "}
+              <b>{owner === undefined ? "—" : isOwner ? "you" : shortAddress(owner as string, 6)}</b>
+            </span>
+            <span className={`token-state${listed && active ? " is-live" : ""}`}>
+              {settling
+                ? justListed
+                  ? "Listing…"
+                  : "Cancelling…"
+                : listed
+                  ? active
+                    ? "For sale"
+                    : "Listed (stale)"
+                  : logsUnavailable
+                    ? "Listing unknown"
+                    : "Not listed"}
+            </span>
+          </div>
+
+          {/*
+            Best offer, last sale, collection floor and rarity.
+
+            Every one of them is composed from a hook this page already mounts,
+            so the strip is arithmetic rather than a second read — and rarity
+            comes out of the token's own `Editions Minted` attribute, which
+            means it costs nothing and is simply absent on a collection that
+            does not publish one. See `TokenStats`.
+          */}
+          <TokenStats collection={collection} tokenId={tokenId} metadata={metadata} />
 
           {/* --- the trading panel ------------------------------------- */}
           <div className="token-panel card">
@@ -720,19 +732,16 @@ export function TokenView({
             </>
           )}
 
-          {metadata?.attributes !== undefined ? (
-            <div className="token-traits">
-              <p className="eyebrow">Traits</p>
-              <div className="token-trait-grid">
-                {metadata.attributes.map((a) => (
-                  <div key={a.trait_type} className="token-trait">
-                    <dt>{a.trait_type}</dt>
-                    <dd>{String(a.value)}</dd>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : null}
+          {/*
+            Its own component now, and not only for tidiness.
+
+            This was `dt`/`dd` pairs inside a plain `div` with no `dl` anywhere
+            — invalid markup, and a screen reader gets no pairing from it. It
+            also printed `Editions Minted` as a trait, which is the figure the
+            Rarity cell above is computed from, so the same number appeared
+            twice on one page. See `TokenTraits`.
+          */}
+          <TokenTraits collection={collection} metadata={metadata} />
 
           <a
             className="token-explorer"

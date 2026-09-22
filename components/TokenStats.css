@@ -1,0 +1,96 @@
+/* =============================================================== token stats
+ *
+ * The figures between a piece's identity and its price. Same shape as the
+ * collection page's strip so the two read as one system, but scoped — this one
+ * sits inside a column roughly half the page wide, and cells that were
+ * comfortable at 1168px are not at 560.
+ * ========================================================================= */
+
+.ts-row {
+  display: grid;
+  /*
+   * A narrower floor than the collection strip's 7.5rem, because this lives in
+   * the detail column rather than across the page. At 7.5 the four cells could
+   * not fit two to a row on a phone and each took a line of its own, which
+   * turns a comparison strip into a list.
+   */
+  grid-template-columns: repeat(auto-fit, minmax(6.5rem, 1fr));
+  gap: 0.8rem 1rem;
+  margin: 0 0 1.1rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface);
+}
+
+.ts-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.ts-label {
+  font-size: var(--step--3);
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  white-space: nowrap;
+  /*
+   * "Collection floor" does not fit a 6.5rem cell at this tracking. Ellipsis
+   * rather than wrap: a label on two lines pushes its own figure out of line
+   * with the three beside it, and the figures are the part being compared.
+   */
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ts-value {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.1rem 0.35rem;
+  font-size: var(--step-0);
+  font-weight: 600;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.25;
+  min-width: 0;
+}
+
+.ts-plain {
+  white-space: nowrap;
+}
+
+/*
+ * The qualifier under a figure — the share of the collection, in rarity's case.
+ * Quiet and deliberately not a second figure: it answers "out of what" for the
+ * number above it, and at the same weight the two compete.
+ */
+.ts-note {
+  font-size: var(--step--3);
+  font-weight: 500;
+  color: var(--ink-3);
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+
+/*
+ * Not knowable, drawn as not knowable — and on the label tier, not the
+ * decoration tier. `--ink-4` is documented in tokens.css as decoration only and
+ * measured under 4.5:1 on a card like this; a dash standing where a price would
+ * be is the cell's whole answer, not an ornament.
+ */
+.ts-dash {
+  color: var(--ink-3);
+}
+
+@media (max-width: 560px) {
+  .ts-row {
+    grid-template-columns: repeat(auto-fit, minmax(5.75rem, 1fr));
+    padding: 0.75rem 0.85rem;
+    gap: 0.7rem 0.85rem;
+  }
+}

@@ -409,3 +409,46 @@
   color: var(--ink-2);
   line-height: 1.55;
 }
+
+/* ------------------------------------------------- who holds it, and its state
+ *
+ * Replaces three cells of a definition list that put "Token id" and "Owner" at
+ * the same weight as the price. The id is in the badges now; these are the two
+ * facts that actually change.
+ */
+.token-who {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.9rem;
+  margin-bottom: 0.9rem;
+  font-size: var(--step--1);
+  color: var(--ink-3);
+}
+
+.token-who-owner b {
+  color: var(--ink);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/*
+ * The state, drawn as a badge only when it is live.
+ *
+ * "For sale" is the one value a reader acts on, so it is the one that gets
+ * colour. Giving every state a coloured pill — including "Not listed", which is
+ * most pieces most of the time — would put a badge on every token page saying
+ * nothing, and the one that matters would stop standing out.
+ */
+.token-state {
+  font-size: var(--step--2);
+  color: var(--ink-3);
+}
+
+.token-state.is-live {
+  padding: 0.1rem 0.45rem;
+  border-radius: var(--r-pill);
+  background: color-mix(in srgb, var(--up) 15%, transparent);
+  color: var(--up);
+  font-weight: 600;
+}
