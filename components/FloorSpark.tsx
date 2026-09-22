@@ -21,7 +21,7 @@ import "./FloorSpark.css";
  *
  * ---
  *
- * **The label names the window, so the cell works from its second hour.**
+ * **The label is always 24h; the note says when the data is younger.**
  *
  * A floor cannot be reconstructed backwards — it is the minimum over the orders
  * live at a moment, and fills, cancellations, expiries and counter increments
@@ -31,9 +31,10 @@ import "./FloorSpark.css";
  *
  * The first version refused to draw anything until two points sat a day apart,
  * which left an empty slot in the stats bar for a whole day and read as broken.
- * Naming the window instead is both honest and useful: "2h floor" over two
- * recorded hours, "1d floor" once there is a day. The number is never measured
- * over a window it does not say.
+ * 24 hours is the reference somebody opens a collection page for, so that is
+ * what the cell says — and while the recorded series is shorter than that, the
+ * cell carries a `title` stating exactly what it does cover. The headline is
+ * the reference; the hover is the precision.
  */
 
 /** The drawing's own space. Width is arbitrary; CSS stretches it. */
@@ -44,18 +45,29 @@ const PAD = 3;
 const DAY_MS = 24 * 3600_000;
 
 /**
- * The window a change is measured over, named by what it actually is.
+ * How long the figure actually covers, in words.
  *
- * A day where a day exists, and less while the series is younger. Anything
- * within an hour of 24 is called "1d" — the buckets are hourly, so a series
- * that has just crossed a day lands at 23-point-something and calling that
- * "23h" would be pedantry rather than precision.
+ * The cell is always labelled "24h" because that is the reference somebody
+ * reads a collection page for. While the recorded series is younger than a
+ * day the number necessarily covers less, and this is what says so — on the
+ * cell's `title`, so the headline stays the reference and the precise truth is
+ * one hover away rather than absent.
+ *
+ * Anything within an hour of 24 needs no note at all: the buckets are hourly,
+ * so a series that has just crossed a day lands at 23-point-something.
  */
-function windowLabel(ms: number): string {
+function spanNote(ms: number): string | undefined {
   const hours = ms / 3600_000;
-  if (hours >= 23) return "1d";
-  if (hours >= 1) return `${Math.round(hours)}h`;
-  return `${Math.max(1, Math.round(ms / 60_000))}m`;
+  if (hours >= 23) return undefined;
+  const span =
+    hours >= 1
+      ? `${Math.round(hours)} ${Math.round(hours) === 1 ? "hour" : "hours"}`
+      : `${Math.max(1, Math.round(ms / 60_000))} minutes`;
+  return (
+    `Covers the ${span} recorded so far. The floor is written hourly and ` +
+    `cannot be reconstructed from before recording started, so this reaches a ` +
+    `full 24 hours once a day has been logged.`
+  );
 }
 
 export function FloorSpark({ collection }: { collection: `0x${string}` | undefined }) {
@@ -135,9 +147,16 @@ export function FloorSpark({ collection }: { collection: `0x${string}` | undefin
   const tone = change.percent > 0 ? "up" : change.percent < 0 ? "down" : "flat";
   const sign = change.percent > 0 ? "+" : "";
 
+  const note = spanNote(change.spanMs);
+
   return (
-    <div className="cs-cell">
-      <dt className="cs-label">{windowLabel(change.spanMs)} floor</dt>
+    /*
+      `title` on the cell rather than the figure, so a hover anywhere over it
+      explains the window. Only present while the series is short of a day —
+      a permanent tooltip on a figure that is exactly what it says is noise.
+    */
+    <div className="cs-cell" {...(note === undefined ? {} : { title: note })}>
+      <dt className="cs-label">24h floor</dt>
       <dd className="cs-value fs-value">
         <span className={`fs-pct fs-${tone}`}>
           {sign}
