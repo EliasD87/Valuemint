@@ -844,36 +844,14 @@
   }
 }
 
-@media (max-width: 640px) {
-  /* Under the frame rather than inside it: at this width the hint and the
-     rightmost time label are the same pixels. */
-  .pf-hint {
-    position: static;
-    padding: 0 1rem 0.6rem;
-    text-align: right;
-  }
-  /* A card two thirds the width of a phone cannot also be anchored beside a
-     dot; it centres over the field instead and the dot keeps the crosshair. */
-  .pf-card {
-    left: 50% !important;
-    width: calc(100% - 2rem);
-    max-width: 20rem;
-  }
-
-  /* Two wallets side by side need about 330px and have 283px. Stacked, the
-     arrow turns to point down and nothing has to be truncated — an address
-     with its middle cut out is not an address. */
-  .pf-flow {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.4rem;
-  }
-
-  .pf-flow-arrow {
-    margin: 0 0 0 0.5rem;
-    transform: rotate(90deg);
-  }
-}
+/*
+ * There is no narrow-screen styling for the field, and there should not be.
+ *
+ * Below 700px `/pulse` does not render the plot at all — see `FIELD_MIN` in
+ * the page — so every rule that once lived here, shrinking the card and
+ * stacking the seller above the buyer to fit a phone, was styling an element
+ * that cannot exist at that width.
+ */
 
 @media (max-width: 560px) {
   /* `minmax(0, 1fr)`, not `1fr`: a grid track's floor is its content, and

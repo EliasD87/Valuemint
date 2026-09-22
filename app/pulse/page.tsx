@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useBlockNumber } from "wagmi";
 import { useActivity, type ActivityRow } from "@/hooks/useActivity";
 import { useAllCollections } from "@/hooks/useAllCollections";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { PulseField, type PulseSelection } from "@/components/PulseField";
 import { Sortie } from "@/components/Sortie";
 import { Soso } from "@/components/Soso";
@@ -72,6 +73,18 @@ const STREAM = 18;
 const MOVERS = 6;
 
 /**
+ * The narrowest frame the plot is worth drawing in.
+ *
+ * Above it the field is an instrument; below it there is no wheel to zoom
+ * with, a fingertip covers a dozen overlapping marks, and the axis strips are
+ * the only way to move — which is navigation without a destination. 700px puts
+ * the cut above every phone and below every laptop, and a desktop window
+ * dragged narrower loses it too, which is the honest behaviour rather than a
+ * special case for a device.
+ */
+const FIELD_MIN = "(min-width: 700px)";
+
+/**
  * How far back to look.
  *
  * Trading here is bursty — quiet days and then forty events in an evening — so
@@ -95,6 +108,8 @@ export default function PulsePage() {
 
   const [hours, setHours] = useState<number | undefined>(undefined);
   const [pinned, setPinned] = useState<PulseSelection | undefined>(undefined);
+
+  const field = useMediaQuery(FIELD_MIN);
 
   /* Escape lets go, the way it does of every other transient thing on the site.
      Clicking empty field does too — this is for whoever reaches for the key. */
@@ -301,38 +316,59 @@ export default function PulsePage() {
             </li>
           </ul>
 
-          {/* The pinned event's detail is drawn inside the field, anchored to
-              its own mark. It used to be a strip under the chart, which on a
-              laptop is below the fold — so a click appeared to do nothing. */}
-          <PulseField
-            rows={rows}
-            head={head}
-            nameFor={nameFor}
-            selected={pinned}
-            onSelect={setPinned}
-          />
+          {/*
+            The field is a desktop instrument, and below `FIELD_MIN` it is not
+            offered at all.
 
-          <div className="pulse-legend">
-            <span className="pl-key">
-              <i className="pl-sale" /> Sold
-            </span>
-            <span className="pl-key">
-              <i className="pl-listed" /> Listed
-            </span>
-            <span className="pl-key">
-              <i className="pl-offer" /> Offer
-            </span>
-            <span className="pl-key">
-              <i className="pl-thread" /> Listing &rarr; sale
-            </span>
-            <span className="pl-key">
-              <i className="pl-rug" /> Delisted
-            </span>
-            {/* Two words, not the sentence that used to explain the decades.
-                The axis labels already read 10k, 1k, 100 — this only has to
-                name what they are. */}
-            <span className="pl-note dim">Log scale</span>
-          </div>
+            Not hidden with CSS — not rendered. Two hundred marks in a 333px
+            frame overlap into a smear, there is no wheel to zoom them apart,
+            and picking one of them with a fingertip is a coin toss. What is
+            left after that is a picture that cannot be read and cannot be
+            interrogated, and building it costs a phone a few hundred SVG
+            nodes, a ResizeObserver and a pointer pipeline to produce it.
+
+            The page is complete without it: the ticker, the figures, the
+            movers and the stream all carry the same window, and the legend
+            goes with the field because a key to marks nobody can see is
+            noise.
+          */}
+          {field ? (
+            <>
+              {/* The pinned event's detail is drawn inside the field, anchored
+                  to its own mark. It used to be a strip under the chart, which
+                  on a laptop is below the fold — so a click appeared to do
+                  nothing. */}
+              <PulseField
+                rows={rows}
+                head={head}
+                nameFor={nameFor}
+                selected={pinned}
+                onSelect={setPinned}
+              />
+
+              <div className="pulse-legend">
+                <span className="pl-key">
+                  <i className="pl-sale" /> Sold
+                </span>
+                <span className="pl-key">
+                  <i className="pl-listed" /> Listed
+                </span>
+                <span className="pl-key">
+                  <i className="pl-offer" /> Offer
+                </span>
+                <span className="pl-key">
+                  <i className="pl-thread" /> Listing &rarr; sale
+                </span>
+                <span className="pl-key">
+                  <i className="pl-rug" /> Delisted
+                </span>
+                {/* Two words, not the sentence that used to explain the
+                    decades. The axis labels already read 10k, 1k, 100 — this
+                    only has to name what they are. */}
+                <span className="pl-note dim">Log scale</span>
+              </div>
+            </>
+          ) : null}
 
           <div className="pulse-split">
             <div className="pulse-panel">
