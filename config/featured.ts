@@ -349,6 +349,21 @@ export const MARKET_CHIPPED: ReadonlyArray<{ address: `0x${string}`; tone?: stri
     /** A rainbow ring, so it reads as itself rather than as a rung. */
     tone: "rainbow",
   },
+  {
+    /*
+      ValueChain Genesis — the first collection on the chain, and until now it
+      was swallowed by "Others" alongside everything unnamed.
+
+      No `tone`, deliberately. Every colour on this row currently means a TIER —
+      brown for Common, blue for Rare — except Cybereator's rainbow, which marks
+      it as a collection rather than a rung. Giving Genesis the blue it wears on
+      its verification mark would put it beside "Rare box" in the same blue and
+      read as a rarity, which is the one thing it is not. A colour can be added
+      here whenever there is one that means "collection" and is not already
+      spoken for.
+    */
+    address: "0x5Fadc59297e86aceA20Bff519aea0f9651Cdc90B",
+  },
 ];
 
 export const WARM_COLLECTIONS: ReadonlyArray<`0x${string}`> = [
