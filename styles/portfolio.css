@@ -78,182 +78,289 @@
   scroll-margin-top: calc(var(--header-h, 72px) + 1rem);
 }
 
-/* ========================================================= portfolio summary
+/* ========================================================= portfolio header
  *
- * A figure with one word under it, five times, and a rule before the balance.
- * See `components/PortfolioSummary.tsx` for why the balance is set apart.
+ * Whose portfolio, what it is worth, and what that is made of. See
+ * `components/PortfolioHeader.tsx`.
  *
  * These styles live here rather than beside the component because this page
  * already imports this file at module level, so they load even in the
- * disconnected state — the only state renderable without a funded wallet, and
- * therefore the only state the geometry can be measured in.
+ * disconnected state.
+ *
+ * One card on `--surface`. Inside it nothing is a card: the four cells are
+ * divided by hairlines, not boxed, because boxes inside a box was the thing
+ * the tables on this site were rebuilt to get away from.
  * ========================================================================= */
 
-.ps {
-  display: flex;
-  align-items: flex-start;
-  flex-wrap: wrap;
-  gap: 0.9rem 1.9rem;
-  margin-bottom: 1.5rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid var(--line);
+/*
+ * Half the page, not all of it. Stretched across 1,168px the card was mostly
+ * empty surface around a handful of figures. Half the measure keeps it a
+ * header rather than a banner; `clamp` holds a floor of 34rem so a mid-size
+ * window does not squeeze it, and a phone gets the full width.
+ */
+.ph {
+  width: clamp(min(100%, 34rem), 50%, 100%);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1.15rem;
+  margin-bottom: 2rem;
+  padding: 1.3rem 1.5rem 0;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  /* The cells run edge to edge; the card's corners clip their rules. */
+  overflow: hidden;
 }
 
-.ps-group {
-  display: grid;
-  gap: 0.1rem;
+/* ------------------------------------------------------------ identity */
+
+.ph-id {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
   min-width: 0;
 }
 
-/*
- * Set apart by a rule, not by being thrown to the far edge.
- *
- * `margin-inline-start: auto` was tried and measured badly: at 1167px it left
- * 735px of nothing between "asking" and the balance, which does not read as
- * separation — it reads as a row that failed to load, and the figures stop
- * being one object. A hairline says the same thing in the space the content
- * occupies.
- */
-.ps-group-wallet {
-  padding-inline-start: 1.9rem;
-  border-inline-start: 1px solid var(--line);
+.ph-who {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
 }
 
-/*
- * Small. The figures are a glance on the way to the pieces, not the subject of
- * the page — the pieces are, and they are directly underneath. An earlier pass
- * set these at `--step-2` and it read as a dashboard announcing itself.
- *
- * `tabular-nums` so the column does not shuffle its own width as a balance
- * changes, and one size for all five: scaling the first would claim a
- * hierarchy of importance this page is not in a position to assert.
- */
-.ps-figure {
+.ph-title {
   margin: 0;
-  font-size: var(--step-0);
-  line-height: 1.15;
-  font-weight: 650;
-  letter-spacing: -0.01em;
-  color: var(--ink);
-  font-variant-numeric: tabular-nums;
-}
-
-/* The glyph sits with the digits rather than above them. */
-.ps-figure-soso {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-}
-
-.ps-label {
-  margin: 0;
-  font-size: var(--step--3);
-  font-weight: 600;
-  letter-spacing: 0.07em;
+  font-size: var(--step--2);
+  font-weight: 700;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--ink-3);
 }
 
-/* -------------------------------------------------------------- balance */
+.ph-addr {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  min-width: 0;
+}
 
-/*
- * The balance as a token: amount in a filled pill, the currency in a darker
- * inset chip, dollars beside it in plain ink.
- *
- * The accent and its own ink, which is 6.2:1 on it in light and 7.4:1 in dark,
- * so the pill needs no colour of its own. The chip is the accent darkened with
- * that same ink rather than a new orange, so it moves with the theme.
- *
- * The pill is taller than a line of figures. A negative block margin gives
- * that back, so "balance" sits on the same line as the other four labels
- * instead of a few pixels under them.
- */
-.ps-balance {
+.ph-addr-text {
+  margin-right: 0.3rem;
+  font-size: var(--step-0);
+  font-weight: 650;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* Two small square buttons, the same size whether a link or a button. */
+.ph-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--ink-3);
+  cursor: pointer;
+  transition:
+    background var(--fast),
+    color var(--fast);
+}
+
+.ph-icon svg {
+  width: 15px;
+  height: 15px;
+}
+
+.ph-icon:hover {
+  background: var(--paper-hover);
+  color: var(--ink);
+}
+
+.ph-icon:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.ph-icon.is-done {
+  color: var(--up);
+}
+
+/* --------------------------------------------------------------- worth */
+
+.ph-worth {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.ph-label {
+  margin: 0;
+  font-size: var(--step--2);
+  font-weight: 600;
+  color: var(--ink-3);
+}
+
+.ph-total {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.3rem 0.7rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.ph-total-amount {
+  font-family: var(--display);
+  /* Sized to the half-width card, not the page: `--step-4` was 56px here. */
+  font-size: clamp(2rem, 3.2vw, 2.75rem);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+
+/* The currency as a chip beside the figure, logo leading the word. */
+.ph-total-unit {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  align-self: center;
+  padding: 0.25rem 0.6rem 0.25rem 0.3rem;
+  border-radius: var(--r-pill);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  font-size: var(--step--1);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--ink);
+}
+
+.ph-total-usd {
+  font-size: var(--step-1);
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+/* Held at the figure's height, so nothing moves when the count lands. */
+.ph-total-wait {
+  display: block;
+  width: min(14rem, 70%);
+  height: clamp(2rem, 3.2vw, 2.75rem);
+}
+
+/* WSOSO, when there is any: one quiet line under the balance. */
+.ph-wrapped {
   margin: 0;
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 0.35rem 0.6rem;
-  /* The figures' own line height, or the dollars' taller line pushes the
-     label 3px below its neighbours (measured). */
-  line-height: 1.15;
+  gap: 0.3rem;
+  font-size: var(--step--1);
+  color: var(--ink-3);
   font-variant-numeric: tabular-nums;
 }
 
-.ps-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  margin-block: -4px;
-  padding: 3px 3px 3px 0.7rem;
-  border-radius: var(--r-pill);
-  background: var(--accent);
-  color: var(--accent-ink);
-  line-height: 1;
-  white-space: nowrap;
-}
-
-.ps-pill-amount {
-  font-size: var(--step-0);
-  font-weight: 750;
-  letter-spacing: -0.01em;
-}
-
-.ps-pill-unit {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  padding: 0.22rem 0.55rem 0.22rem 0.25rem;
-  border-radius: var(--r-pill);
-  background: color-mix(in srgb, var(--accent-ink) 14%, var(--accent));
-  font-size: var(--step--2);
-  font-weight: 700;
-  letter-spacing: 0.02em;
-}
-
-.ps-usd {
-  font-size: var(--step--1);
-  font-weight: 550;
+.ph-wrapped .soso {
   color: var(--ink-2);
-  white-space: nowrap;
+  font-weight: 600;
 }
 
-/* ------------------------------------------------------------------ bar */
+/* --------------------------------------------------------------- cells */
 
 /*
- * Two pixels, not three. At the smaller figure size a 3px bar was the heaviest
- * mark in the row — louder than the numbers it describes.
+ * Three across, hairlines between, running to the card's edges. The rules are
+ * the grid's own gap showing the line colour behind it, so they meet without
+ * a single border being drawn twice.
  */
-.ps-bar {
-  margin-top: 0.3rem;
-  width: 100%;
-  min-width: 3.5rem;
-  height: 2px;
-  border-radius: 999px;
+.ph-cells {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  margin: 0 -1.5rem;
+  border-top: 1px solid var(--line);
   background: var(--line);
-  overflow: hidden;
 }
 
-.ps-bar-fill {
+.ph-cell {
+  display: grid;
+  align-content: start;
+  gap: 0.2rem;
+  min-width: 0;
+  padding: 0.8rem 1.1rem 0.9rem;
+  background: var(--surface);
+}
+
+/* The outer cells line up with the card's own padding above them. */
+.ph-cell:first-child {
+  padding-left: 1.5rem;
+}
+
+.ph-cell:last-child {
+  padding-right: 1.5rem;
+}
+
+.ph-cell dt {
+  font-size: var(--step--2);
+  font-weight: 600;
+  color: var(--ink-3);
+}
+
+.ph-cell dd {
+  margin: 0;
+  min-width: 0;
+}
+
+.ph-fig {
+  font-size: var(--step-1);
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ph-fig-wait {
   display: block;
-  height: 100%;
-  border-radius: inherit;
-  background: var(--accent);
+  width: 6rem;
+  height: 1.2em;
+}
+
+.ph-sub {
+  font-size: var(--step--2);
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* -------------------------------------------------------------- phones */
 
-@media (max-width: 620px) {
-  .ps {
-    gap: 0.85rem 1.4rem;
+@media (max-width: 720px) {
+  .ph {
+    padding: 1.2rem 1.1rem 0;
+    gap: 1.1rem;
   }
 
-  /*
-   * The rule goes when the row wraps. A vertical hairline at the START of a
-   * line points at nothing — it reads as a rule that lost its column.
-   */
-  .ps-group-wallet {
-    padding-inline-start: 0;
-    border-inline-start: 0;
+  /* Two across, and the floor cell takes the full second row: an odd third
+     cell in a two-column grid leaves an empty slot showing the rule colour
+     behind it as a grey block. */
+  .ph-cells {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin: 0 -1.1rem;
+  }
+
+  .ph-cell,
+  .ph-cell:first-child,
+  .ph-cell:last-child {
+    padding: 0.8rem 1.1rem 0.9rem;
+  }
+
+  .ph-cell:last-child {
+    grid-column: 1 / -1;
   }
 }

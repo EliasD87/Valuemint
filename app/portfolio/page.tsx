@@ -2,7 +2,8 @@
 
 import { useMemo, useRef, useState } from "react";
 import { holdingsAnchor } from "@/lib/anchors";
-import { PortfolioSummary } from "@/components/PortfolioSummary";
+import { PortfolioHeader } from "@/components/PortfolioHeader";
+import { valueAtFloor } from "@/lib/portfolioValue";
 import Link from "next/link";
 import { useAccount, useBalance } from "wagmi";
 import { useQueryClient } from "@tanstack/react-query";
@@ -42,7 +43,7 @@ export default function Portfolio() {
    * Query collapses the identical key against the order book this page already
    * reads for its own listings.
    */
-  const { floorFor, tierFloorsFor, tierRowsFor } = useFloors();
+  const { floorFor, tierFloorsFor, tierRowsFor, isLoading: floorsLoading } = useFloors();
 
   /**
    * There is no "waiting for you" balance any more, and there is nothing to
@@ -68,6 +69,20 @@ export default function Portfolio() {
 
   const listed = mine.filter((t) => t.listing !== undefined);
   const asking = listed.reduce((sum, t) => sum + (t.listing?.price ?? 0n), 0n);
+
+  /**
+   * Every piece at its floor, by the same rule its card uses.
+   *
+   * Withheld until the floors and the first holdings have landed: a total
+   * summed from half-loaded data is a number that is confidently wrong for a
+   * second and then jumps, and a placeholder says "counting" honestly.
+   */
+  const nfts =
+    floorsLoading || (isLoading && mine.length === 0)
+      ? undefined
+      : valueAtFloor(mine, (t) =>
+          floorForTier(t.tier, tierRowsFor(t.collection), floorFor(t.collection)),
+        );
 
   /** Group holdings by collection, so a portfolio reads as collections not a wall. */
   const byCollection = useMemo(() => {
@@ -97,26 +112,18 @@ export default function Portfolio() {
 
   return (
     <section className="page section">
-      <div className="head">
-        <div>
-          {/* The label is the heading; see `.head h2.eyebrow` in global.css. */}
-          <h2 className="eyebrow">Portfolio</h2>
-        </div>
-      </div>
-
-      {/*
-        `.stats-row` is shared with the public /address page, so this is its own
-        component rather than a restyling of that one — the two pages show
-        different things to different readers and had no business being locked
-        to one layout.
-      */}
-      <PortfolioSummary
-        pieces={mine.length}
-        collections={byCollection.length}
-        listed={listed.length}
-        asking={asking}
-        {...(balance?.value === undefined ? {} : { balance: balance.value })}
-      />
+      {/* The page's heading lives inside the header, beside whose it is. */}
+      {address === undefined ? null : (
+        <PortfolioHeader
+          address={address}
+          pieces={mine.length}
+          collections={byCollection.length}
+          listed={listed.length}
+          asking={asking}
+          {...(balance?.value === undefined ? {} : { balance: balance.value })}
+          {...(nfts === undefined ? {} : { nfts })}
+        />
+      )}
 
       {/*
         Above the grid on purpose: it is the only thing on this page that is
