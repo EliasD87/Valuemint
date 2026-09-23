@@ -1,0 +1,535 @@
+/**
+ * The welcome guide: a corner pill, its stepped panel, and `/guide`.
+ *
+ * Only tokens, as everywhere. Nothing here introduces a colour — the pill
+ * borrows the accent the rest of the site uses for live state, and the panel
+ * is an ordinary dialog on `--surface`.
+ */
+
+/* =================================================================== pill */
+
+/*
+ * Bottom left, and that is not arbitrary. `ListPrompt` holds the bottom right
+ * at `z-index: 60`; this sits opposite it at 50, so on the rare screen showing
+ * both, the one aimed at somebody who already owns pieces wins.
+ */
+.gp {
+  position: fixed;
+  left: 1rem;
+  /* Clears a phone's home indicator, sits on the line everywhere else. */
+  bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+  z-index: 50;
+
+  display: flex;
+  align-items: stretch;
+  max-width: calc(100vw - 2rem);
+
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
+}
+
+.gp-open {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 0.9rem;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: var(--step--1);
+  color: var(--ink);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.gp-open:hover {
+  background: var(--paper-3);
+}
+
+.gp-mark {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: var(--r-pill);
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: var(--step--2);
+  font-weight: 700;
+}
+
+.gp-dismiss {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 2.2rem;
+  border: 0;
+  border-left: 1px solid var(--line);
+  background: none;
+  color: var(--ink-3);
+  cursor: pointer;
+}
+
+.gp-dismiss:hover {
+  color: var(--ink);
+  background: var(--paper-3);
+}
+
+.gp-dismiss svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+/* ================================================================== panel */
+
+.gd-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  background: var(--scrim);
+}
+
+.gd {
+  position: fixed;
+  z-index: 71;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+
+  width: min(30rem, calc(100vw - 2rem));
+  max-height: calc(100dvh - 2rem);
+  overflow-y: auto;
+
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-lg);
+}
+
+.gd-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.9rem 1rem 0;
+}
+
+.gd-count {
+  margin: 0;
+  font-size: var(--step--2);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-3);
+}
+
+.gd-close {
+  display: grid;
+  place-items: center;
+  width: 1.9rem;
+  height: 1.9rem;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: none;
+  color: var(--ink-3);
+  cursor: pointer;
+}
+
+.gd-close:hover {
+  color: var(--ink);
+  background: var(--paper-3);
+}
+
+.gd-close svg {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.gd-body {
+  padding: 0.5rem 1.25rem 1.25rem;
+}
+
+.gd-art {
+  padding: 0.85rem;
+  margin-bottom: 1.1rem;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  /* `--sunken` for the reason spelled out on `.guide-art`: `--paper-2` is
+     the same colour as `--surface` in dark. */
+  background: var(--sunken);
+}
+
+.gd-clip {
+  display: block;
+  width: 100%;
+  /* Reserved before the file loads, so opening a step does not shunt the text
+     down when the poster arrives. */
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+  margin-bottom: 1rem;
+}
+
+.gd-title {
+  margin: 0 0 0.5rem;
+  font-size: var(--step-2);
+  line-height: 1.2;
+}
+
+.gd-text {
+  margin: 0;
+  color: var(--ink-2);
+  line-height: 1.6;
+}
+
+.gd-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.9rem 1.25rem;
+  border-top: 1px solid var(--line);
+}
+
+.gd-dots {
+  display: inline-flex;
+  gap: 0.35rem;
+}
+
+.gd-dots i {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--r-pill);
+  background: var(--line-strong);
+  transition: background var(--fast);
+}
+
+.gd-dots i.is-at {
+  background: var(--accent);
+}
+
+.gd-acts {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.gd-back {
+  border: 0;
+  background: none;
+  padding: 0.45rem 0.6rem;
+  font: inherit;
+  font-size: var(--step--1);
+  color: var(--ink-3);
+  cursor: pointer;
+  border-radius: var(--r-sm);
+}
+
+.gd-back:hover {
+  color: var(--ink);
+}
+
+.gd-next {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.45rem 1rem;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: var(--ink);
+  color: var(--paper);
+  font: inherit;
+  font-size: var(--step--1);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.gd-next:hover {
+  background: var(--ink-hover);
+  color: var(--paper);
+}
+
+/* ==================================================================== art */
+
+/*
+ * The step drawings. Every colour is a token, so the set is drawn twice — once
+ * per theme — from one file. See `components/GuideArt.tsx`.
+ */
+.ga {
+  display: block;
+  width: 100%;
+  height: auto;
+  font-family: var(--sans);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* A card, a wallet, a panel: the hairline-on-surface shape the whole site is
+   built from. */
+.ga-panel {
+  fill: var(--surface);
+  stroke: var(--line-strong);
+  stroke-width: 1;
+}
+
+/* Something inside a panel — artwork standing in for itself. */
+.ga-fill {
+  fill: var(--paper-3);
+}
+
+.ga-dim-fill {
+  fill: var(--line-strong);
+}
+
+/* The one thing in each drawing that is being pointed at. */
+.ga-mark {
+  fill: var(--accent-wash);
+  stroke: var(--accent-line);
+  stroke-width: 1;
+}
+
+.ga-mark-stroke {
+  fill: var(--accent-wash);
+  stroke: var(--accent);
+  stroke-width: 1.5;
+}
+
+.ga-solid {
+  fill: var(--ink);
+}
+
+.ga-on-solid {
+  fill: var(--paper);
+  font-weight: 600;
+}
+
+.ga-ink {
+  fill: var(--ink);
+  font-weight: 600;
+}
+
+.ga-dim {
+  fill: var(--ink-3);
+}
+
+.ga-accent {
+  fill: var(--accent);
+  font-weight: 600;
+}
+
+.ga-accent-fill {
+  fill: var(--accent);
+}
+
+.ga-accent-stroke {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+}
+
+.ga-arrow line {
+  stroke: var(--ink-4);
+  stroke-width: 1.5;
+}
+
+.ga-arrow path {
+  fill: var(--ink-4);
+}
+
+/* An allowance is not a transfer, and the line says so before the label does. */
+.ga-dashed line {
+  stroke-dasharray: 4 4;
+}
+
+/* =================================================================== page */
+
+.guide {
+  max-width: 64rem;
+}
+
+.guide-intro {
+  max-width: 34rem;
+  margin: -0.5rem 0 1.75rem;
+  font-size: var(--step-1);
+  line-height: 1.6;
+  color: var(--ink-2);
+}
+
+/* A row of five, wrapping. Short enough that a list would be more furniture
+   than it is worth. */
+.guide-toc {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 3rem;
+}
+
+.guide-toc a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.4rem 0.85rem 0.4rem 0.4rem;
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  color: var(--ink-2);
+  font-size: var(--step--1);
+  text-decoration: none;
+  transition: color var(--fast), border-color var(--fast);
+}
+
+.guide-toc a span {
+  display: grid;
+  place-items: center;
+  width: 1.4rem;
+  height: 1.4rem;
+  border-radius: var(--r-pill);
+  background: var(--paper-3);
+  font-size: var(--step--3);
+  font-variant-numeric: tabular-nums;
+}
+
+.guide-toc a:hover {
+  color: var(--ink);
+  border-color: var(--line-ink);
+}
+
+.guide-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4rem;
+}
+
+/*
+ * Picture beside words, and the side alternates.
+ *
+ * Five identical rows read as a form; alternating them makes the page a
+ * sequence of scenes instead. The drawing is first in the source, so a narrow
+ * screen stacks it above its own text rather than below the previous step's.
+ */
+.guide-steps li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 2.5rem;
+  /* A step is a link target, so it must not land under the sticky header. */
+  scroll-margin-top: calc(var(--header-h) + 1.5rem);
+}
+
+.guide-steps li:nth-child(even) .guide-art {
+  order: 2;
+}
+
+.guide-art {
+  padding: 1.5rem;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  /*
+   * `--sunken`, and it has to be. The drawings are made of `--surface` cards,
+   * so the ground behind them must not be `--surface` or every card in them is
+   * held by its hairline alone. `--paper-2` was the first choice and is wrong:
+   * it equals `--surface` exactly in dark (#131316), which this file's own
+   * note warned about and then walked into. `--sunken` differs in both themes.
+   */
+  background: var(--sunken);
+}
+
+.guide-n {
+  margin: 0 0 0.5rem;
+  font-size: var(--step--2);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.guide-step h3 {
+  margin: 0 0 0.75rem;
+  font-size: var(--step-3);
+  line-height: 1.15;
+}
+
+.guide-lead {
+  margin: 0;
+  font-size: var(--step-1);
+  line-height: 1.6;
+  color: var(--ink);
+}
+
+.guide-more {
+  margin: 0.9rem 0 0;
+  line-height: 1.7;
+  color: var(--ink-2);
+}
+
+.guide-clip {
+  display: block;
+  width: 100%;
+  margin-top: 1rem;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+}
+
+/*
+ * The way out: a row of links under a rule.
+ *
+ * It was a filled card holding a summary paragraph, which restated the four
+ * steps directly beneath the four steps. What is left is the only part that
+ * was doing work.
+ */
+.guide-end {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.5rem;
+  margin-top: 3.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--line);
+  font-size: var(--step--1);
+}
+
+.guide-end a {
+  color: var(--ink-2);
+  text-decoration: none;
+  transition: color var(--fast);
+}
+
+.guide-end a:hover {
+  color: var(--accent);
+}
+
+@media (max-width: 820px) {
+  .guide-steps li {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1.5rem;
+  }
+  /* The alternation is a two-column idea; stacked, it would only ever put the
+     picture under its own heading, which is worse than above it. */
+  .guide-steps li:nth-child(even) .guide-art {
+    order: 0;
+  }
+  .guide-steps {
+    gap: 3rem;
+  }
+  .guide-art {
+    padding: 1.1rem;
+  }
+}

@@ -9,6 +9,7 @@ import { ThemeToggle } from "./ThemeToggle";
 import { FocusLine } from "./FocusLine";
 import { Search } from "./Search";
 import { SodexLogo } from "./SodexLogo";
+import { GuidePill } from "./GuidePill";
 import { deployment } from "@/config/contracts";
 import { SEAPORT } from "@/config/seaport";
 import "./Layout.css";
@@ -259,6 +260,11 @@ export function Layout({ children }: { children: ReactNode }) {
 
       <main id="main">{children}</main>
 
+      {/* Fixed to a corner and deferred, so it costs the page nothing and
+          covers none of it. Mounted here rather than per-page because "new
+          here?" is true wherever somebody lands. */}
+      <GuidePill />
+
       <footer
         className="footer"
         /*
@@ -314,6 +320,12 @@ export function Layout({ children }: { children: ReactNode }) {
                   they have been doing. */}
               <li>
                 <Link href="/pulse">Pulse</Link>
+              </li>
+              {/* The way back in. The pill that offers this is dismissed for
+                  good on the first click, so without a standing link the guide
+                  would be unreachable to anyone who closed it. */}
+              <li>
+                <Link href="/guide">Getting started</Link>
               </li>
             </ul>
           </div>
