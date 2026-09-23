@@ -2,6 +2,7 @@
 
 import { useMemo, useRef, useState } from "react";
 import { holdingsAnchor } from "@/lib/anchors";
+import { PortfolioSummary } from "@/components/PortfolioSummary";
 import Link from "next/link";
 import { useAccount, useBalance } from "wagmi";
 import { useQueryClient } from "@tanstack/react-query";
@@ -103,29 +104,19 @@ export default function Portfolio() {
         </div>
       </div>
 
-      <div className="stats-row">
-        <span className="strip-item">
-          <b>{mine.length}</b> pieces
-        </span>
-        <span className="strip-item">
-          <b>{byCollection.length}</b> collections
-        </span>
-        <span className="strip-item">
-          <b>{listed.length}</b> listed
-        </span>
-        <span className="strip-item">
-          <Soso size={16}>
-            <b>{formatSoso(asking)}</b>
-          </Soso>{" "}
-          asking
-        </span>
-        <span className="strip-item">
-          <Soso size={16}>
-            <b>{formatSoso(balance?.value)}</b>
-          </Soso>{" "}
-          balance
-        </span>
-      </div>
+      {/*
+        `.stats-row` is shared with the public /address page, so this is its own
+        component rather than a restyling of that one — the two pages show
+        different things to different readers and had no business being locked
+        to one layout.
+      */}
+      <PortfolioSummary
+        pieces={mine.length}
+        collections={byCollection.length}
+        listed={listed.length}
+        asking={asking}
+        {...(balance?.value === undefined ? {} : { balance: balance.value })}
+      />
 
       {/*
         Above the grid on purpose: it is the only thing on this page that is
