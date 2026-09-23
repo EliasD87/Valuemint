@@ -1,7 +1,9 @@
 "use client";
 
-import { Soso } from "@/components/Soso";
+import { Soso, SosoMark } from "@/components/Soso";
+import { useSosoPrice } from "@/hooks/useSosoPrice";
 import { formatCount, formatSoso } from "@/lib/format";
+import { formatUsd, sosoToUsd } from "@/lib/usd";
 
 /**
  * The figures at the top of a portfolio.
@@ -43,6 +45,11 @@ export function PortfolioSummary({
    */
   const listedShare = pieces > 0 ? Math.min(100, (listed / pieces) * 100) : 0;
 
+  /* Dollars only once both halves are known; a price with no balance, or the
+     reverse, has nothing honest to print. */
+  const price = useSosoPrice();
+  const usd = balance === undefined || price === undefined ? undefined : sosoToUsd(balance, price);
+
   return (
     <section className="ps" aria-label="Portfolio summary">
       <div className="ps-group">
@@ -71,9 +78,23 @@ export function PortfolioSummary({
         <p className="ps-label">asking</p>
       </div>
 
+      {/* The balance is the one figure here that is money in hand, so it is
+          the one set as a token: the amount in a filled pill with its currency
+          in an inset chip, and what it is worth in dollars beside it. */}
       <div className="ps-group ps-group-wallet">
-        <p className="ps-figure ps-figure-soso">
-          <Soso size={13} markAt="unit">{formatSoso(balance)}</Soso>
+        <p className="ps-balance">
+          <span className="ps-pill">
+            <b className="ps-pill-amount">{formatSoso(balance)}</b>
+            <span className="ps-pill-unit">
+              <SosoMark size={13} />
+              SOSO
+            </span>
+          </span>
+          {usd === undefined ? null : (
+            <span className="ps-usd" title="At CoinGecko's current SOSO price">
+              {formatUsd(usd)}
+            </span>
+          )}
         </p>
         <p className="ps-label">balance</p>
       </div>
