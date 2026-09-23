@@ -48,6 +48,9 @@ const GAP = 2;
 /** Rounding on a column's data end; the baseline end stays square. */
 const RADIUS = 4;
 
+/** The least a column with any sales is drawn, in px. */
+const MIN_STUB = 2;
+
 const SERIES_CLASS = ["pv-s0", "pv-s1", "pv-s2", "pv-s3"];
 
 /** Wei to a float SOSO for placement only. Every printed figure is `formatSoso`. */
@@ -219,7 +222,10 @@ export function PulseVolume({
   buckets.forEach((bucket, i) => {
     const text = axisLabel(bucket, grain);
     if (text === undefined) return;
-    const x = xOf(i) + barW / 2;
+    /* A quarter-day label names the whole day, so it is centred on the day's
+       four columns rather than under the first. Under midnight it sat beside
+       the afternoon's columns and they read as belonging to the next day. */
+    const x = grain === "sixHours" ? PAD.left + (i + 2) * slot : xOf(i) + barW / 2;
     /* 60px holds "Wed 23" or "11 PM" with air; the right edge keeps a
        centred label from being cut by the frame. */
     if (x - lastLabelX < 60 || x + 22 > width) return;
@@ -332,6 +338,29 @@ export function PulseVolume({
                 {buckets.map((bucket, i) => {
                   if (bucket.total === 0n) return null;
                   const x = xOf(i);
+                  /* A column that rounds to nothing still had sales. Two
+                     cents beside a 2,500 SOSO column is a hundredth of a
+                     pixel, and drawing that honestly draws it the same as an
+                     idle period. So it gets a 2px stub in the colour of
+                     whatever dominated it: marked as busy, still flat enough
+                     that nobody reads a quantity into it. */
+                  if ((toSoso(bucket.total) / top) * plotH < MIN_STUB) {
+                    const main = bucket.parts.reduce<number>(
+                      (at, p, s) => (p > bucket.parts[at]! ? s : at),
+                      0,
+                    );
+                    return (
+                      <g key={bucket.start} className={i === focus ? "is-active" : undefined}>
+                        <rect
+                          className={SERIES_CLASS[main]}
+                          x={x}
+                          y={baseline - MIN_STUB}
+                          width={barW}
+                          height={MIN_STUB}
+                        />
+                      </g>
+                    );
+                  }
                   let cursor = baseline;
                   /* The topmost drawn segment is the one that gets the rounded
                      end, so find it before drawing. */
