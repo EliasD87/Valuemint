@@ -364,8 +364,16 @@ export default function StatsPage() {
                 aria-label={showAll ? "Every event in this window" : undefined}
               >
                 <ul className="pulse-stream">
-                  {(showAll ? rows : rows.slice(0, STREAM)).map((row) => (
-                    <li key={`${row.blockNumber}-${row.logIndex}-${row.kind}-${row.tokenId}`}>
+                  {/* Every row is rendered, and the ones past the newest few
+                      are folded rather than left out. The columns size to
+                      their widest entry, and older rows carry longer numbers
+                      and bigger prices; sizing from 18 rows and then from 397
+                      made every column jump sideways on "Show all". */}
+                  {rows.map((row, i) => (
+                    <li
+                      key={`${row.blockNumber}-${row.logIndex}-${row.kind}-${row.tokenId}`}
+                      className={!showAll && i >= STREAM ? "is-folded" : undefined}
+                    >
                       <span className={`act-kind act-kind-${row.kind}`}>{LABEL[row.kind]}</span>
                       {/* Collection and token in columns of their own, so the
                           numbers line up down the list instead of trailing

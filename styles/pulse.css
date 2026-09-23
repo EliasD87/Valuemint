@@ -394,17 +394,39 @@
   color: var(--accent);
 }
 
-/* Every event in the window, scrolling inside the panel. A fixed height rather
-   than the page growing by four hundred rows: the panel beside it and the
-   chart above stay where they were. */
-.ps-scroll.is-open {
-  max-height: 30rem;
+/*
+ * Every event in the window, scrolling inside the panel. A fixed height rather
+ * than the page growing by four hundred rows: the panel beside it and the
+ * chart above stay where they were.
+ *
+ * The scroll box is the same width open or shut. `scrollbar-gutter: stable`
+ * keeps the scrollbar's room reserved even while there is nothing to scroll,
+ * and the box reaches into the panel's own padding by about that much, so the
+ * reserved strip sits in the margin rather than taking it from the columns.
+ * Before, opening the list took 20px from the rows at the moment they filled.
+ */
+.ps-scroll {
   overflow-y: auto;
-  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
   scrollbar-width: thin;
   scrollbar-color: var(--line-strong) transparent;
-  /* Room for the scrollbar, so it does not sit on the time column. */
-  padding-right: 0.6rem;
+  margin-right: -0.7rem;
+}
+
+.ps-scroll.is-open {
+  max-height: 30rem;
+  overscroll-behavior: contain;
+}
+
+/* Past the newest few while the list is shut: still laid out, so the columns
+   are sized by every row in the window and do not move on opening, but with
+   no height, and hidden from sight, focus and screen readers. */
+.pulse-stream li.is-folded {
+  height: 0;
+  padding-block: 0;
+  border: 0;
+  overflow: hidden;
+  visibility: hidden;
 }
 
 .ps-scroll.is-open:focus-visible {
@@ -527,9 +549,10 @@
     -webkit-line-clamp: 2;
     line-height: 1.25;
   }
-  /* Phone scrollbars float over the content and take no width. */
-  .ps-scroll.is-open {
-    padding-right: 0;
+  /* Phone scrollbars float over the content and take no width, so there is
+     no gutter to tuck into the margin. */
+  .ps-scroll {
+    margin-right: 0;
   }
   .ps-when {
     display: none;
