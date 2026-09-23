@@ -355,19 +355,24 @@
   font-size: var(--step--2);
 }
 
+/* Kind, collection, number, price, time. Subgrid for the same reason as the
+   movers above: with a grid per row, each row's `auto` columns sized to that
+   row's own number, so "#1551" and "#54010" started the price at different
+   places. The tracks live on the list and every row shares them. */
 .pulse-stream {
   list-style: none;
   margin: 0;
   padding: 0;
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: 4.6rem minmax(0, 1fr) auto auto auto;
+  column-gap: 0.75rem;
 }
 
 .pulse-stream li {
   display: grid;
-  grid-template-columns: 4.6rem minmax(0, 1fr) auto auto;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
   align-items: center;
-  gap: 0.6rem;
   padding: 0.45rem 0;
   border-bottom: 1px solid var(--line);
   font-size: var(--step--1);
@@ -385,12 +390,19 @@
   white-space: nowrap;
 }
 
-.ps-what b {
-  color: var(--ink);
-  font-weight: 600;
+.ps-what:hover {
+  color: var(--accent);
 }
 
-.ps-what:hover {
+.ps-id {
+  color: var(--ink);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.ps-id:hover {
   color: var(--accent);
 }
 
@@ -429,8 +441,15 @@
   .pm-bar {
     display: none;
   }
-  .pulse-stream li {
-    grid-template-columns: 4.6rem minmax(0, 1fr) auto;
+  /* The time goes on a phone; the list drops its track and the rows follow.
+     The word "SOSO" goes too, leaving its logo: with it, the name column was
+     squeezed to 52px and cut "Cybereator" short. */
+  .pulse-stream {
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+    column-gap: 0.55rem;
+  }
+  .pulse-stream .soso-unit {
+    display: none;
   }
   .ps-when {
     display: none;

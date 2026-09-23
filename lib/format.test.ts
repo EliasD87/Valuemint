@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatSoso, shortAddress, tinyAddress } from "@/lib/format";
+import { formatSoso, formatSosoFixed, shortAddress, tinyAddress } from "@/lib/format";
 
 /**
  * Two abbreviations, and the difference between them is two characters that
@@ -81,5 +81,31 @@ describe("formatSoso", () => {
     expect(formatSoso(1n)).toBe("<0.0001");
     expect(formatSoso(0n)).toBe("0");
     expect(formatSoso(undefined)).toBe("—");
+  });
+});
+
+describe("formatSosoFixed", () => {
+  const SOSO = 10n ** 18n;
+
+  /** The /stats movers column, as it was reported: five different shapes. */
+  it("gives every figure in a column the same two places", () => {
+    expect(formatSosoFixed(5400n * SOSO)).toBe("5400.00");
+    expect(formatSosoFixed(25_050_001n * SOSO / 10_000n)).toBe("2505.00");
+    expect(formatSosoFixed(78_399n * SOSO / 100n)).toBe("783.99");
+    expect(formatSosoFixed(1n * SOSO)).toBe("1.00");
+    expect(formatSosoFixed(22n * SOSO / 1000n)).toBe("0.02");
+    expect(formatSosoFixed(105n * SOSO / 10_000n)).toBe("0.01");
+  });
+
+  it("never prints a real amount as zero", () => {
+    expect(formatSosoFixed(1n * SOSO / 10_000n)).toBe("<0.01");
+    expect(formatSosoFixed(1n)).toBe("<0.01");
+    expect(formatSosoFixed(0n)).toBe("0.00");
+    expect(formatSosoFixed(undefined)).toBe("—");
+  });
+
+  it("takes other precisions", () => {
+    expect(formatSosoFixed(15n * SOSO / 10n, 0)).toBe("2");
+    expect(formatSosoFixed(1n * SOSO / 10_000n, 3)).toBe("<0.001");
   });
 });

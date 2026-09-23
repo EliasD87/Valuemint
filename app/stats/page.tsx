@@ -9,7 +9,7 @@ import { PulseVolume } from "@/components/PulseVolume";
 import { Select } from "@/components/Select";
 import { Soso } from "@/components/Soso";
 import { isHidden } from "@/config/hidden";
-import { formatSoso, shortAddress, timeAgo } from "@/lib/format";
+import { formatSoso, formatSosoFixed, shortAddress, timeAgo } from "@/lib/format";
 /* `.page`, `.section` and `.dim` live in `home.css`, the same way /market,
    /mint and /portfolio reach them. */
 import "@/styles/home.css";
@@ -327,10 +327,10 @@ export default function StatsPage() {
                       />
                     </span>
                     <span className="pm-figure">
-                      {/* Default precision, not whole SOSO. Rounding a
-                          collection that settled 0.0002 down to "0" reads as
-                          "nothing sold here", which is the opposite of true. */}
-                      <Soso size={14}>{formatSoso(m.volume)}</Soso>
+                      {/* Two fixed places, so the column has one decimal point
+                          to read down. Dust says "<0.01" rather than "0.00",
+                          which would read as "nothing sold here". */}
+                      <Soso size={14}>{formatSosoFixed(m.volume)}</Soso>
                     </span>
                     {/* The footnote that explained this column is gone; the
                         column explains itself on hover instead. */}
@@ -349,15 +349,21 @@ export default function StatsPage() {
                 {rows.slice(0, STREAM).map((row) => (
                   <li key={`${row.blockNumber}-${row.logIndex}-${row.kind}-${row.tokenId}`}>
                     <span className={`act-kind act-kind-${row.kind}`}>{LABEL[row.kind]}</span>
-                    <Link className="ps-what" href={`/token/${row.collection}/${row.tokenId}`}>
-                      {nameFor(row.collection) ?? shortAddress(row.collection)}{" "}
-                      <b>#{row.tokenId.toString()}</b>
+                    {/* Collection and token in columns of their own, so the
+                        numbers line up down the list instead of trailing
+                        names of every length. The name goes to the
+                        collection, the number to the piece. */}
+                    <Link className="ps-what" href={`/collection/${row.collection}`}>
+                      {nameFor(row.collection) ?? shortAddress(row.collection)}
+                    </Link>
+                    <Link className="ps-id" href={`/token/${row.collection}/${row.tokenId}`}>
+                      #{row.tokenId.toString()}
                     </Link>
                     <span className="ps-price">
                       {row.price === undefined ? (
                         <span className="dim">&mdash;</span>
                       ) : (
-                        <Soso size={14}>{formatSoso(row.price)}</Soso>
+                        <Soso size={14}>{formatSosoFixed(row.price)}</Soso>
                       )}
                     </span>
                     <span className="ps-when dim">{when(row.blockNumber)}</span>

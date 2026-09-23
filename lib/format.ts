@@ -48,6 +48,23 @@ export function formatSoso(wei: bigint | undefined, maxDecimals = 4): string {
   return trimmed === "" ? "0" : trimmed;
 }
 
+/**
+ * SOSO to exactly `decimals` places, for a column of figures.
+ *
+ * `formatSoso` keeps significance, which is right for one amount on its own and
+ * wrong for a column: "5400", "2505.0001" and "0.022" side by side have no
+ * shared decimal point to read down. Fixed places give every row the same
+ * shape. A non-zero amount that would print as all zeros says "<0.01" instead,
+ * because "0.00" in a volume column reads as "nothing sold", which is false.
+ */
+export function formatSosoFixed(wei: bigint | undefined, decimals = 2): string {
+  if (wei === undefined) return "—";
+  const asNumber = Number(formatEther(wei));
+  const step = 10 ** -decimals;
+  if (asNumber > 0 && asNumber < step / 2) return `<${step.toFixed(decimals)}`;
+  return asNumber.toFixed(decimals);
+}
+
 export function formatSosoWithSymbol(wei: bigint | undefined, maxDecimals = 4): string {
   return `${formatSoso(wei, maxDecimals)} SOSO`;
 }
