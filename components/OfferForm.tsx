@@ -162,8 +162,27 @@ export function OfferForm({
         </div>
       </div>
 
+      {/*
+        The balance, and what is already spoken for.
+
+        "You hold 12.00001 WSOSO" beside an amount box reading 3 was read as
+        this offer being twelve — reported from the live site on a fourth bid
+        of 3. The figure is right and was doing nothing to explain itself: with
+        bids standing, most of a bidder's balance is committed to them, because
+        every standing bid needs its own money at the same time.
+
+        So the sentence names the part that is committed. A bidder with no
+        standing bids sees the short version, unchanged.
+      */}
       <p className="offers-balance">
         You hold <b className="mono">{formatEther(wsoso.balance)}</b> WSOSO
+        {standing > 0n ? (
+          <>
+            {" — "}
+            <b className="mono">{formatEther(standing)}</b> of it is committed to offers
+            you already have standing
+          </>
+        ) : null}
       </p>
 
       {/**
@@ -213,9 +232,33 @@ export function OfferForm({
             wsoso.allow();
           }}
         >
-          {wsoso.busy ? "Approving…" : `Allow exactly ${formatEther(wsoso.allowanceNeeded)} WSOSO`}
+          {wsoso.busy ? "Approving…" : `Allow ${formatEther(wsoso.allowanceNeeded)} WSOSO`}
         </button>
-      ) : (
+      ) : null}
+
+      {/*
+        Why the button says a bigger number than the amount box.
+
+        The allowance has to cover every bid at once — approving only the one
+        being placed would revoke the cover for the ones already on chain — so
+        on a fourth offer of 3 the button reads 12. Without this line that is
+        indistinguishable from the form having got the amount wrong, and the
+        obvious reading is that it is about to offer four times what was typed.
+
+        Shown for the allowance step only. There is nothing to reconcile on the
+        first bid, and the wrap button already names the difference it is
+        making rather than a total.
+      */}
+      {wanted > 0n && !wsoso.needsWrap && wsoso.needsAllowance && standing > 0n ? (
+        <p className="offers-note">
+          That total is this <b className="mono">{formatEther(wanted)}</b> WSOSO offer plus
+          the <b className="mono">{formatEther(standing)}</b> already committed to your
+          standing offers — not the size of this one. Approving less would leave those
+          uncovered.
+        </p>
+      ) : null}
+
+      {wanted > 0n && (wsoso.needsWrap || wsoso.needsAllowance) ? null : (
         <button
           type="button"
           className="btn btn-primary btn-block"
