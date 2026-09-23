@@ -41,6 +41,7 @@ export function Soso({
   children,
   unit = "SOSO",
   size,
+  markAt = "start",
 }: {
   children: React.ReactNode;
   /** WSOSO wherever an offer is shown — the marketplace refuses native ones. */
@@ -55,7 +56,29 @@ export function Soso({
    */
   unit?: string;
   size?: number;
+  /**
+   * Where the mark sits: leading the figure (the default, and what every card
+   * and token page uses), or beside the unit it stands for.
+   *
+   * `"unit"` reads as "250 ⬡ SOSO" — the logo is the currency's, so it goes
+   * with the currency's name rather than in front of a number that is not the
+   * currency. Opt-in, so adding it moved nothing that already existed.
+   */
+  markAt?: "start" | "unit";
 }) {
+  if (markAt === "unit") {
+    return (
+      <span className="soso">
+        <span className="soso-amount">{children}</span>
+        {/* Mark and name travel together, tighter than the gap before them. */}
+        <span className="soso-denom">
+          <SosoMark size={size} />
+          <span className="soso-unit">{unit}</span>
+        </span>
+      </span>
+    );
+  }
+
   return (
     <span className="soso">
       <SosoMark size={size} />

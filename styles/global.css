@@ -1117,6 +1117,14 @@ textarea {
   font-variant-numeric: tabular-nums;
 }
 
+/* The mark beside its unit ("250 ⬡ SOSO"): the two are one thing, so they sit
+   closer together than the figure sits to them. See `markAt` in Soso.tsx. */
+.soso-denom {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.22em;
+}
+
 /* The unit is context, not the value — one step down so the figure leads. */
 .soso-unit {
   font-size: 0.86em;
