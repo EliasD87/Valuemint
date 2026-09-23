@@ -41,6 +41,23 @@ import { PageTabs, type TabDef } from "@/components/PageTabs";
 const PAGE = 60;
 
 /**
+ * A collection at or under this size is drawn whole, with no "Load more".
+ *
+ * The page cap exists because every visitor's own browser walks the collection
+ * — ids, then a `tokenURI` each, then a metadata document each — so a
+ * thousand-piece contract would otherwise fire a thousand reads at anyone who
+ * opened it. That reasoning is about big collections and was being applied to
+ * every collection: ValueChain Genesis can never exceed 100 pieces, and its
+ * holders were being asked to press a button to see the last nineteen of a
+ * collection small enough to have been drawn in one go all along.
+ *
+ * A hundred rather than an address. Naming the collection here is the mistake
+ * this page has made more than once, and a ceiling answers the actual question
+ * — is this small enough to draw whole — for every collection rather than one.
+ */
+const WHOLE_COLLECTION_MAX = 100;
+
+/**
  * The sections of a collection, as tabs rather than a stack.
  *
  * Activity and holders used to live in the sidebar beside the grid, in a panel
@@ -85,11 +102,29 @@ export function CollectionView({ params }: { params: Promise<{ address: string }
    * It is a starting point now, and the line under the grid says what is left.
    */
   const [limit, setLimit] = useState(PAGE);
+
+  /**
+   * How many to actually ask for: the pressed limit, or the whole collection
+   * when it is small enough to draw in one go.
+   *
+   * Derived rather than pushed into state with an effect, because `supply`
+   * arrives a round trip after the first render — setting state when it lands
+   * would render the page once at sixty and again at the full size, which is
+   * the grid growing under somebody who has started reading it.
+   *
+   * `Math.max` so a press is never undone: on a big collection the reader can
+   * still climb past the ceiling a page at a time.
+   */
+  const effectiveLimit =
+    supply !== undefined && Number(supply) <= WHOLE_COLLECTION_MAX
+      ? Math.max(limit, Number(supply))
+      : limit;
+
   const {
     ids,
     isLoading: findingIds,
     isFetching: loadingMore,
-  } = useTokenIds(collection, supply, limit);
+  } = useTokenIds(collection, supply, effectiveLimit);
 
   /**
    * Listings for this collection, from the shared Seaport scan.
@@ -501,7 +536,7 @@ export function CollectionView({ params }: { params: Promise<{ address: string }
                       </>
                     )}
                   </p>
-                  {ids.length >= limit ? (
+                  {ids.length >= effectiveLimit ? (
                     <button
                       type="button"
                       className="btn"
