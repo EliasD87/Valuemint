@@ -8,6 +8,7 @@ import { useAllCollections } from "@/hooks/useAllCollections";
 import { deployment } from "@/config/contracts";
 import { formatSosoFixed, shortAddress, timeAgo, timeAgoShort, tinyAddress } from "@/lib/format";
 import { Soso } from "@/components/Soso";
+import { ArrowRight } from "@/components/Arrows";
 import "@/styles/activity.css";
 
 /**
@@ -250,8 +251,9 @@ export function MyTrades({
       )}
 
       {!full && rows.length > shown.length ? (
-        <Link className="act-all" href="/activity?wallet=me">
-          See all {rows.length} events &rarr;
+        <Link className="btn btn-sm btn-block act-all" href="/activity?wallet=me">
+          See all {rows.length} events
+          <ArrowRight />
         </Link>
       ) : null}
     </>

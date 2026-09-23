@@ -445,6 +445,30 @@ textarea {
   width: 100%;
 }
 
+/* A drawn arrow inside a button (`components/Arrows.tsx`), which leans a
+   couple of pixels the way it points on hover — the one bit of motion that
+   says "this goes somewhere" without saying it in words. */
+.btn-arrow {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  transition: transform var(--fast) var(--ease);
+}
+
+.btn:hover:not(:disabled) .btn-arrow {
+  transform: translateX(2px);
+}
+
+.btn:hover:not(:disabled) .btn-arrow-back {
+  transform: translateX(-2px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn-arrow {
+    transition: none;
+  }
+}
+
 /**
  * The dark band.
  *

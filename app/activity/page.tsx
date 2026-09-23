@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { useAccount } from "wagmi";
 import { Activity } from "@/components/Activity";
 import { MyTrades } from "@/components/MyTrades";
+import { ArrowLeft } from "@/components/Arrows";
 import "@/styles/activity.css";
 
 /**
@@ -80,8 +81,11 @@ function ActivityView() {
           <p className="eyebrow">Activity</p>
           <h2>{heading}</h2>
         </div>
-        <Link className="head-link" href={back.href}>
-          {back.label} &rarr;
+        {/* A button, and pointing back: it was a text link with a forward
+            arrow, which said "onward" about a way back. */}
+        <Link className="btn btn-sm act-back" href={back.href}>
+          <ArrowLeft />
+          {back.label}
         </Link>
       </div>
 

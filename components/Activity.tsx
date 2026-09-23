@@ -6,6 +6,7 @@ import { useActivity, type ActivityRow } from "@/hooks/useActivity";
 import { useBurnedListedTokens } from "@/hooks/useSeaportOrders";
 import { deployment } from "@/config/contracts";
 import { Soso } from "@/components/Soso";
+import { ArrowRight } from "@/components/Arrows";
 import { formatSoso, shortAddress, timeAgo } from "@/lib/format";
 import "@/styles/activity.css";
 
@@ -258,8 +259,9 @@ export function Activity({
       ) : null}
 
       {!full && rows.length > shown.length ? (
-        <Link className="act-all" href={allHref}>
-          See all {rows.length} events &rarr;
+        <Link className="btn btn-sm btn-block act-all" href={allHref}>
+          See all {rows.length} events
+          <ArrowRight />
         </Link>
       ) : null}
     </div>
