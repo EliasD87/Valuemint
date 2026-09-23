@@ -426,3 +426,53 @@
   flex: 0 0 auto;
   fill: currentColor;
 }
+
+/* ===================================================== a standing offer row
+ *
+ * The same grid as a history row, carrying a control where a history row
+ * carries a timestamp or a counterparty. `MyOffers` is the one user of this
+ * table whose rows can still be acted on; everything else here is a record.
+ * ======================================================================== */
+
+/* Wide: the expiry closes up against its button rather than drifting to the
+   far side of the flexible column. */
+.act-row-offer .act-when {
+  justify-self: end;
+  white-space: nowrap;
+}
+
+.act-withdraw {
+  justify-self: end;
+}
+
+/* A collection-wide bid names no piece, so there is nothing to link to. */
+.act-token-any {
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+
+/*
+ * Narrow: the panel's own container query turns every row into two lines, and
+ * this row has one more cell than the layout was written for. Placed by hand,
+ * the control takes the position the counterparty holds on a history row —
+ * line two, hard right — which is where the eye already goes for the thing at
+ * the end of a row.
+ *
+ * Measured in the portfolio's 21rem column, which is the width this panel
+ * actually renders at and well inside the 28rem the query fires below. Without
+ * these two rules the button fell outside the three declared columns and the
+ * row grew to 73px with cells overlapping.
+ */
+@container act (max-width: 28rem) {
+  .act-row-offer .act-when {
+    grid-row: 2;
+    grid-column: 1;
+    justify-self: start;
+  }
+
+  .act-row-offer .act-withdraw {
+    grid-row: 2;
+    grid-column: 2 / -1;
+    justify-self: end;
+  }
+}
