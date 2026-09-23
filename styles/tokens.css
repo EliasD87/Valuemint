@@ -363,26 +363,18 @@
 }
 
 /**
- * Cross-fade on a theme switch.
+ * Cross-fade on a theme switch, as a view transition.
  *
- * Flipping the palette instantly is jarring across a whole page of surfaces.
- * The flag is set by the toggle for the length of the switch and then removed,
- * rather than living permanently on every element - a standing colour
- * transition makes ordinary hovers feel like they lag behind the pointer.
- *
- * Only colour transitions here. Sweeping `transition: all` across the document
- * would also animate layout properties mid-switch.
+ * The toggle wraps the palette flip in `document.startViewTransition`, and the
+ * browser fades a snapshot of the old page into the new one on the
+ * compositor. This only sets the timing. It replaces a colour transition that
+ * was switched onto every element for the length of the switch, which on
+ * /stats started 5,508 animations and froze the page for over a second.
  */
-:root[data-theme-transition] *,
-:root[data-theme-transition] *::before,
-:root[data-theme-transition] *::after {
-  transition:
-    background-color 220ms var(--ease),
-    border-color 220ms var(--ease),
-    color 220ms var(--ease),
-    fill 220ms var(--ease),
-    box-shadow 220ms var(--ease) !important;
-  transition-delay: 0s !important;
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 220ms;
+  animation-timing-function: var(--ease);
 }
 
 /* The tab bar appears at the same width the header's nav collapses. Kept with

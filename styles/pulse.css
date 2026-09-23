@@ -418,10 +418,10 @@
   overscroll-behavior: contain;
 }
 
-/* Past the newest few while the list is shut: still laid out, so the columns
-   are sized by every row in the window and do not move on opening, but with
-   no height, and hidden from sight, focus and screen readers. */
-.pulse-stream li.is-folded {
+/* The sizing rows (see `sizers` in the page): laid out, so every column is as
+   wide as the widest value it will ever show and does not move on opening,
+   but with no height, and hidden from sight, focus and screen readers. */
+.pulse-stream li.is-sizer {
   height: 0;
   padding-block: 0;
   border: 0;

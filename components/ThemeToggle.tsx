@@ -50,17 +50,35 @@ export function ThemeToggle() {
     const next: Choice = theme === "dark" ? "light" : "dark";
     const root = document.documentElement;
 
-    // Cross-fade the palette instead of snapping it. The flag is temporary and
-    // opt-in per switch, because leaving a colour transition on every element
-    // permanently makes ordinary hovers feel laggy.
+    const apply = () => {
+      root.dataset.theme = next;
+    };
+
+    /*
+     * Cross-fade as two pictures, not as every element.
+     *
+     * The fade used to be a colour transition switched onto `*` for the
+     * length of the switch. That is one animation per element per property:
+     * measured on /stats, one click started 5,508 of them, and the main
+     * thread was blocked for 1,130ms before the first frame — the lag people
+     * felt. The palette flip itself costs about 60ms.
+     *
+     * A view transition snapshots the page before and after and fades the two
+     * images on the compositor, so the cost is the one flip however large the
+     * page. Where the API is missing, or motion is reduced, the palette simply
+     * switches — instant beats a stutter.
+     */
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (!reduced) {
-      root.dataset.themeTransition = "";
-      window.setTimeout(() => delete root.dataset.themeTransition, 260);
+    const withTransition = document as Document & {
+      startViewTransition?: (update: () => void) => unknown;
+    };
+    if (!reduced && typeof withTransition.startViewTransition === "function") {
+      withTransition.startViewTransition(apply);
+    } else {
+      apply();
     }
 
     setTheme(next);
-    root.dataset.theme = next;
     try {
       localStorage.setItem(KEY, next);
     } catch {
