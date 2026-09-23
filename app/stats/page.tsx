@@ -6,13 +6,12 @@ import { useBlockNumber } from "wagmi";
 import { useActivity, type ActivityRow } from "@/hooks/useActivity";
 import { useAllCollections } from "@/hooks/useAllCollections";
 import { PulseVolume } from "@/components/PulseVolume";
-import { Sortie } from "@/components/Sortie";
+import { Select } from "@/components/Select";
 import { Soso } from "@/components/Soso";
 import { isHidden } from "@/config/hidden";
 import { formatSoso, shortAddress, timeAgo } from "@/lib/format";
-/* `.filters` and `.filt` — the window toggles below — live in `home.css`, the
-   same way /market, /mint and /portfolio reach them. Sharing the stylesheet is
-   the established convention here; a second copy of the pill would drift. */
+/* `.page`, `.section` and `.dim` live in `home.css`, the same way /market,
+   /mint and /portfolio reach them. */
 import "@/styles/home.css";
 import "@/styles/pulse.css";
 
@@ -79,11 +78,13 @@ const MOVERS = 6;
  * and the busy evening is a smear at one edge, narrow enough to spread that
  * evening out and the history is gone. This is a filter over rows already in
  * memory, so switching costs nothing and fetches nothing.
+ *
+ * `value` is the dropdown's key; "all" stands for no limit.
  */
-const WINDOWS: { label: string; hours?: number }[] = [
-  { label: "24 hours", hours: 24 },
-  { label: "7 days", hours: 24 * 7 },
-  { label: "Everything" },
+const WINDOWS: { value: string; label: string; hours?: number }[] = [
+  { value: "24", label: "Last 24 hours", hours: 24 },
+  { value: "168", label: "Last 7 days", hours: 24 * 7 },
+  { value: "all", label: "All time" },
 ];
 
 export default function StatsPage() {
@@ -211,16 +212,17 @@ export default function StatsPage() {
 
       {logsUnavailable ? null : (
         <div className="pulse-controls">
-          {/* `Sortie` rather than three buttons of this page's own: it is the
-              control the market and collection pages already use, and it is
-              shared precisely so a copy cannot drift and lose `aria-pressed`. */}
-          <div className="filters pulse-windows" role="group" aria-label="How far back to look">
-            {WINDOWS.map((w) => (
-              <Sortie key={w.label} active={hours === w.hours} onClick={() => setHours(w.hours)}>
-                {w.label}
-              </Sortie>
-            ))}
-          </div>
+          {/* The site's own dropdown, the one /market sorts with, rather than a
+              row of three pills: the window is a setting you change now and
+              then, not the thing the page is about, and three chips at full
+              size were the loudest element above the data. */}
+          <Select
+            className="pulse-window"
+            label="Time range"
+            value={WINDOWS.find((w) => w.hours === hours)?.value ?? "all"}
+            onChange={(v) => setHours(WINDOWS.find((w) => w.value === v)?.hours)}
+            options={WINDOWS.map(({ value, label }) => ({ value, label }))}
+          />
 
           {/* The controls are up before the data, so the page has its shape
               from the first paint and nothing jumps when the rows land. The

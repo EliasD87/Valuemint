@@ -28,10 +28,33 @@
   margin-bottom: 1.75rem;
 }
 
-/* `.filters` carries its own bottom margin for the pages it was written for;
-   in this row the row does the spacing. */
-.pulse-windows {
-  margin-bottom: 0;
+/*
+ * The time range, as a compact dropdown.
+ *
+ * The shared trigger is 44px tall with room for a trait name; here it holds
+ * "Last 7 days" and sits beside a line of small grey text, so it is slimmed
+ * to match: 32px under a mouse. On touch screens it keeps 40px, because a
+ * fingertip still has to land on it.
+ */
+.pulse-window .sel-trigger {
+  /* As wide as "Last 24 hours" (119px measured), so switching the range does
+     not nudge the count beside it. */
+  min-width: 7.75rem;
+  min-height: 32px;
+  padding: 0.3rem 0.7rem;
+  gap: 0.45rem;
+  font-size: var(--step--2);
+}
+
+.pulse-window .sel-caret {
+  width: 10px;
+  height: 10px;
+}
+
+@media (pointer: coarse) {
+  .pulse-window .sel-trigger {
+    min-height: 40px;
+  }
 }
 
 .pulse-span {
