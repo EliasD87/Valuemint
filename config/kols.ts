@@ -50,6 +50,7 @@ export const KOLS: Kol[] = [
   { n: 14, name: "Vault", image: "QmR3mn5oGzragL4EkMsJE3hp5soTPMX2DLLh61pUxeh6Si" },
   { n: 15, name: "Stephen", image: "QmVdG9ZbGHfNEkGe1QPqZfHBuJF7QduoUUoxQhBQiTLP3w" },
   { n: 16, name: "NFTrader-Crypto", image: "QmeQ23pxiPzEWuW1ZebqEqmBbYdz39KvRBNTrfQZeSwZp7" },
+  { n: 17, name: "Ralmix", image: "Qmc5UYEsvfcstnjDdsFYbVmijwEh62P1sgN68pfo2Dd6nC" },
 ];
 
 /** The collection's slug, matching the metadata route and the contract baseURI. */
