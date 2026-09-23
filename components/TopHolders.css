@@ -1,8 +1,24 @@
 /* ============================================================== top holders */
 
 /*
- * Rows sit inside `.act-list`, which already draws the hairlines and the
- * rounded ends. Only the column layout differs, so only that is restated.
+ * Rows sit inside `.act-list`, which already draws the hairlines. Only the
+ * column layout differs, so only that is restated.
+ *
+ * ## Why these are `.act-list .th-row` and not `.th-row`
+ *
+ * Every row here is ALSO an `.act-row`, and `.act-row` sets its own five-column
+ * template. At one class each the two rules tie, and a tie in CSS goes to
+ * whichever stylesheet was applied last — which on this site depends on the
+ * route a reader took to get here, because each page's CSS is added as they
+ * navigate. Load the collection page directly and this file won; arrive another
+ * way and the activity sheet did, every row sized its own columns
+ * (`84px 83px 40px 205px 0px`, measured), the bars shrank to 40px and started
+ * wherever each address happened to end — six rows, six left edges. Reported
+ * from the live site with a screenshot of exactly that.
+ *
+ * Two classes deep outranks one in any order, so the load order stops
+ * mattering. The same goes for the narrow rule below, which ties with the
+ * activity sheet's own container query the same way.
  *
  * ## Why the bar and the count are fixed widths
  *
@@ -16,7 +32,7 @@
  * Fixed widths for both is the whole fix: only the name flexes now, so the bar
  * occupies the same pixels in every row whatever the name or the number does.
  */
-.th-row {
+.act-list .th-row {
   grid-template-columns: 1.5rem minmax(0, 1fr) 8rem 6.5rem;
 }
 
@@ -128,7 +144,7 @@
 @container act (max-width: 26rem) {
   /* Still fixed, not `auto`: the bar is gone here but the counts are read down
      the column just the same, and `auto` would make them ragged again. */
-  .th-row {
+  .act-list .th-row {
     grid-template-columns: 1.5rem minmax(0, 1fr) 6.5rem;
   }
 
