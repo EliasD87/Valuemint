@@ -5,8 +5,7 @@ import Link from "next/link";
 import { useBlockNumber } from "wagmi";
 import { useActivity, type ActivityRow } from "@/hooks/useActivity";
 import { useAllCollections } from "@/hooks/useAllCollections";
-import { useMediaQuery } from "@/hooks/useMediaQuery";
-import { PulseField, type PulseSelection } from "@/components/PulseField";
+import { PulseVolume } from "@/components/PulseVolume";
 import { Sortie } from "@/components/Sortie";
 import { Soso } from "@/components/Soso";
 import { isHidden } from "@/config/hidden";
@@ -56,7 +55,7 @@ import "@/styles/pulse.css";
  * work, not a constant to raise.
  */
 
-/** ValueChain's block time, measured. Shared with `Activity` and `PulseField`. */
+/** ValueChain's block time, measured. Shared with `Activity` and `PulseVolume`. */
 const SECONDS_PER_BLOCK = 2.065;
 
 const LABEL: Record<ActivityRow["kind"], string> = {
@@ -71,18 +70,6 @@ const STREAM = 18;
 
 /** How many collections the movers table names before it stops. */
 const MOVERS = 6;
-
-/**
- * The narrowest frame the plot is worth drawing in.
- *
- * Above it the field is an instrument; below it there is no wheel to zoom
- * with, a fingertip covers a dozen overlapping marks, and the axis strips are
- * the only way to move — which is navigation without a destination. 700px puts
- * the cut above every phone and below every laptop, and a desktop window
- * dragged narrower loses it too, which is the honest behaviour rather than a
- * special case for a device.
- */
-const FIELD_MIN = "(min-width: 700px)";
 
 /**
  * How far back to look.
@@ -107,20 +94,6 @@ export default function PulsePage() {
   const { data: head } = useBlockNumber({ query: { staleTime: 12_000 } });
 
   const [hours, setHours] = useState<number | undefined>(undefined);
-  const [pinned, setPinned] = useState<PulseSelection | undefined>(undefined);
-
-  const field = useMediaQuery(FIELD_MIN);
-
-  /* Escape lets go, the way it does of every other transient thing on the site.
-     Clicking empty field does too — this is for whoever reaches for the key. */
-  useEffect(() => {
-    if (pinned === undefined) return;
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setPinned(undefined);
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [pinned]);
 
   /**
    * Hidden collections are hidden here too.
@@ -145,7 +118,7 @@ export default function PulsePage() {
    * The chosen window, or everything.
    *
    * Every figure on the page reads from this rather than from `visible`, so the
-   * counts, the movers and the field always describe the same span. A stat row
+   * counts, the movers and the chart always describe the same span. A stat row
    * that quietly stayed all-time under a 24-hour chart would be the worst of
    * both.
    */
@@ -156,10 +129,6 @@ export default function PulsePage() {
     const floor = head - back;
     return visible.filter((r) => r.blockNumber >= floor);
   }, [visible, hours, head]);
-
-  /* A pin that is no longer in the window is a card describing something the
-     field is not drawing. */
-  useEffect(() => setPinned(undefined), [hours]);
 
   const nameFor = useMemo(() => {
     const names = new Map<string, string>();
@@ -277,7 +246,7 @@ export default function PulsePage() {
       )}
 
       {loading ? (
-        <Waiting field={field} />
+        <Waiting />
       ) : logsUnavailable ? (
         /* "Nothing traded" and "we could not read what traded" are different
            statements, and only the second is ever true after a refused scan. */
@@ -331,59 +300,10 @@ export default function PulsePage() {
             </li>
           </ul>
 
-          {/*
-            The field is a desktop instrument, and below `FIELD_MIN` it is not
-            offered at all.
-
-            Not hidden with CSS — not rendered. Two hundred marks in a 333px
-            frame overlap into a smear, there is no wheel to zoom them apart,
-            and picking one of them with a fingertip is a coin toss. What is
-            left after that is a picture that cannot be read and cannot be
-            interrogated, and building it costs a phone a few hundred SVG
-            nodes, a ResizeObserver and a pointer pipeline to produce it.
-
-            The page is complete without it: the ticker, the figures, the
-            movers and the stream all carry the same window, and the legend
-            goes with the field because a key to marks nobody can see is
-            noise.
-          */}
-          {field ? (
-            <>
-              {/* The pinned event's detail is drawn inside the field, anchored
-                  to its own mark. It used to be a strip under the chart, which
-                  on a laptop is below the fold — so a click appeared to do
-                  nothing. */}
-              <PulseField
-                rows={rows}
-                head={head}
-                nameFor={nameFor}
-                selected={pinned}
-                onSelect={setPinned}
-              />
-
-              <div className="pulse-legend">
-                <span className="pl-key">
-                  <i className="pl-sale" /> Sold
-                </span>
-                <span className="pl-key">
-                  <i className="pl-listed" /> Listed
-                </span>
-                <span className="pl-key">
-                  <i className="pl-offer" /> Offer
-                </span>
-                <span className="pl-key">
-                  <i className="pl-thread" /> Listing &rarr; sale
-                </span>
-                <span className="pl-key">
-                  <i className="pl-rug" /> Delisted
-                </span>
-                {/* Two words, not the sentence that used to explain the
-                    decades. The axis labels already read 10k, 1k, 100 — this
-                    only has to name what they are. */}
-                <span className="pl-note dim">Log scale</span>
-              </div>
-            </>
-          ) : null}
+          {/* Series come from `visible`, not `rows`: a collection keeps its
+              colour when the window changes, rather than being repainted
+              because a quieter one ranked higher this week. */}
+          <PulseVolume rows={rows} all={visible} head={head} hours={hours} nameFor={nameFor} />
 
           <div className="pulse-split">
             <div className="pulse-panel">
@@ -422,9 +342,7 @@ export default function PulsePage() {
 
             <div className="pulse-panel">
               <p className="pulse-panel-title">As it happened</p>
-              {/* The readable counterpart of the field above: the same events,
-                  in the accessibility tree, in order. The chart is aria-hidden
-                  because of this list, not instead of it. */}
+              {/* The same events in the accessibility tree, in order. */}
               <ul className="pulse-stream">
                 {rows.slice(0, STREAM).map((row) => (
                   <li key={`${row.blockNumber}-${row.logIndex}-${row.kind}-${row.tokenId}`}>
@@ -466,7 +384,7 @@ export default function PulsePage() {
  *
  * Built from the real classes, so the shimmer occupies the geometry the data
  * will occupy: the same six-tile grid, the same two panels, the same frame for
- * the field. A skeleton that is merely a grey rectangle buys nothing — the
+ * the chart. A skeleton that is merely a grey rectangle buys nothing — the
  * page still jumps when the rows land, which is the cost this exists to avoid.
  *
  * The wait is real and worth naming. `useActivity` holds itself back 900ms so
@@ -479,14 +397,12 @@ export default function PulsePage() {
  * invents them is a lie told with an animation — these name the parts of one
  * job that is genuinely in flight.
  */
-function Waiting({ field }: { field: boolean }) {
+function Waiting() {
   const stages = [
     "Reading Seaport's logs",
     "Decoding orders",
     "Counting wallets and collections",
-    /* On a phone there is no field to plot, and saying so would be the one
-       false note in a sequence that is otherwise all true. */
-    field ? "Plotting the field" : "Sorting the feed",
+    "Adding up the volume",
   ];
 
   /*
@@ -535,7 +451,7 @@ function Waiting({ field }: { field: boolean }) {
         ))}
       </ul>
 
-      {field ? <div className="pf pf-wait" aria-hidden="true" /> : null}
+      <div className="pv pv-wait skeleton" aria-hidden="true" />
 
       <div className="pulse-split" aria-hidden="true">
         {[0, 1].map((panel) => (

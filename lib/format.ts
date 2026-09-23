@@ -42,7 +42,9 @@ export function formatSoso(wei: bigint | undefined, maxDecimals = 4): string {
     return "<0.0001";
   }
 
-  const trimmed = asNumber.toFixed(maxDecimals).replace(/\.?0+$/, "");
+  /* Trim zeros from the fraction only. Anchored on the point: the unanchored
+     `/\.?0+$/` also ate a whole number's own zeros, so `(2500, 0)` read "25". */
+  const trimmed = asNumber.toFixed(maxDecimals).replace(/\.(\d*?)0+$/, ".$1").replace(/\.$/, "");
   return trimmed === "" ? "0" : trimmed;
 }
 

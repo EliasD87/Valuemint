@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { shortAddress, tinyAddress } from "@/lib/format";
+import { formatSoso, shortAddress, tinyAddress } from "@/lib/format";
 
 /**
  * Two abbreviations, and the difference between them is two characters that
@@ -52,5 +52,34 @@ describe("tinyAddress", () => {
   it("returns a too-short string untouched rather than mangling it", () => {
     expect(tinyAddress("0x1234")).toBe("0x1234");
     expect(tinyAddress(undefined)).toBe("");
+  });
+});
+
+describe("formatSoso", () => {
+  const SOSO = 10n ** 18n;
+
+  /** The /pulse chart's peak label read "25" for a 2,500 SOSO column. */
+  it("never trims a whole number's own zeros", () => {
+    expect(formatSoso(2500n * SOSO, 0)).toBe("2500");
+    expect(formatSoso(10n * SOSO, 0)).toBe("10");
+    expect(formatSoso(100n * SOSO)).toBe("100");
+    expect(formatSoso(100n * SOSO, 2)).toBe("100");
+  });
+
+  it("trims trailing zeros from the fraction, and a bare point with them", () => {
+    expect(formatSoso(15n * SOSO / 10n)).toBe("1.5");
+    expect(formatSoso(1050n * SOSO / 1000n, 2)).toBe("1.05");
+    expect(formatSoso(2n * SOSO, 4)).toBe("2");
+  });
+
+  it("rounds to the precision asked for", () => {
+    expect(formatSoso(783_987n * SOSO / 1000n, 2)).toBe("783.99");
+    expect(formatSoso(2_505_4n * SOSO / 10n, 0)).toBe("2505");
+  });
+
+  it("says a dust amount is non-zero rather than rounding it away", () => {
+    expect(formatSoso(1n)).toBe("<0.0001");
+    expect(formatSoso(0n)).toBe("0");
+    expect(formatSoso(undefined)).toBe("—");
   });
 });

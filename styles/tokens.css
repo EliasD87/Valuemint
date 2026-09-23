@@ -235,6 +235,28 @@
 
   --sodex-accent: #FF7637;
 
+  /*
+   * Chart series — collections on /pulse's volume chart.
+   *
+   * NOT the tier colours. Those already mean a rung (brown Common, blue Rare);
+   * reusing them here would make a collection read as a rarity. These are the
+   * first three slots of a validated categorical palette, in fixed order, plus
+   * a grey for everything folded into "Other".
+   *
+   * Checked with the palette validator against `--surface`, in the stack order
+   * the chart draws (Other at the base, then 1, 2, 3):
+   *   worst adjacent colour-blind separation   9.2   (target 8)
+   *   worst adjacent normal-vision separation 16.2   (floor 15)
+   * The order is the validator's, not a preference: Other on TOP puts it beside
+   * slot 3, and that pair measured 5.8 for deuteranopes — below the hard floor.
+   * Slot 3 is 2.82:1 on white, under the 3:1 a mark wants, which is why the
+   * chart ships a table view.
+   */
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+  --series-3: #1baf7a;
+  --series-other: #8b8b96;
+
 }
 
 /* ==========================================================================
@@ -325,6 +347,18 @@
   /* SoDEX dark-ground variant. */
   --sodex-ink: #ffffff;
   --sodex-accent: #FF4F20;
+
+  /*
+   * Chart series, stepped for the dark ground — the same hues, validated
+   * against this `--surface`: colour-blind 9.4, normal-vision 18.5, every
+   * mark at least 3:1. The grey sits darker than its light counterpart on
+   * purpose: at the light grey's lightness it measured 15.0 from slot 1 for
+   * full colour vision, on the floor.
+   */
+  --series-1: #3987e5;
+  --series-2: #d95926;
+  --series-3: #199e70;
+  --series-other: #65656f;
 
 }
 
