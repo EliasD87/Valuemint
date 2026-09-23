@@ -12,6 +12,7 @@ import { useSeaportListings } from "@/hooks/useSeaportOrders";
 import type { TokenMetadata } from "@/hooks/useCollection";
 import type { ChainToken } from "@/hooks/useEverything";
 import { tierOf, traitOf } from "@/lib/tokenMetadata";
+import { oneListingPerToken } from "@/lib/oneListingPerToken";
 
 
 
@@ -105,7 +106,12 @@ export function useListingFeed() {
   });
 
   return {
-    tokens,
+    /**
+     * One row per piece, not per order. A token listed twice is two orders and
+     * one thing for sale, and two rows became two cards sharing a React key —
+     * see `lib/oneListingPerToken.ts` for what that did to the market's filters.
+     */
+    tokens: oneListingPerToken(tokens),
     collections,
     isLoading: loadingCollections || loadingOrders || loadingState || loadingMeta,
     logsUnavailable,
