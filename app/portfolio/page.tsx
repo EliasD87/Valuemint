@@ -112,6 +112,17 @@ export default function Portfolio() {
 
   return (
     <section className="page section">
+      {/*
+        Two columns from the very top.
+
+        What you traded used to sit at the very bottom, under every card in
+        every collection — so a wallet holding fifty pieces had to scroll past
+        all fifty to reach it, and nobody did. It is a panel beside the pieces
+        now, and it starts level with the portfolio header rather than under
+        it: the header shares the top row with it instead of spanning the page.
+      */}
+      <div className="pf-layout">
+        <div className="pf-main">
       {/* The page's heading lives inside the header, beside whose it is. */}
       {address === undefined ? null : (
         <PortfolioHeader
@@ -144,17 +155,6 @@ export default function Portfolio() {
         </p>
       ) : null}
 
-      {/*
-        Two columns from here down.
-
-        What you traded used to sit at the very bottom, under every card in
-        every collection — so a wallet holding fifty pieces had to scroll past
-        all fifty to reach it, and nobody did. It is a panel of ten rows beside
-        the pieces now, visible without scrolling at all, in the same place the
-        collection page keeps its own history.
-      */}
-      <div className="pf-layout">
-        <div className="pf-main">
       {isLoading && mine.length === 0 ? (
         <div className="grid-tokens">
           {Array.from({ length: 6 }, (_, i) => (

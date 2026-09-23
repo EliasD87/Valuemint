@@ -37,6 +37,14 @@
   min-width: 0;
 }
 
+/* `.act-panel-standalone` brings a 48px top margin for the collection page,
+   where the panel follows a grid of cards. First in this column it would sit
+   that far below the portfolio header it is meant to line up with; the
+   layout's own gap separates it when the columns stack on a phone. */
+.pf-side > .act-panel:first-child {
+  margin-top: 0;
+}
+
 /* The history's own stylesheet handles this column now — `.act-panel` measures
    itself, so the narrow layout follows the panel rather than the viewport. See
    the container query in styles/activity.css. */
@@ -93,13 +101,12 @@
  * ========================================================================= */
 
 /*
- * Half the page, not all of it. Stretched across 1,168px the card was mostly
- * empty surface around a handful of figures. Half the measure keeps it a
- * header rather than a banner; `clamp` holds a floor of 34rem so a mid-size
- * window does not squeeze it, and a phone gets the full width.
+ * The main column's width, with the trades panel beside it. Stretched across
+ * the whole page the card was mostly empty surface around a handful of
+ * figures; sharing the top row with the panel keeps it a header rather than a
+ * banner, and the two tops line up.
  */
 .ph {
-  width: clamp(min(100%, 34rem), 50%, 100%);
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: 1.15rem;
@@ -127,13 +134,19 @@
   min-width: 0;
 }
 
+/* The page's heading, for screen readers and the outline only. On screen the
+   address beside the wallet's own mark says whose portfolio this is, and a
+   caption above it saying "Portfolio" was one more word to read. */
 .ph-title {
-  margin: 0;
-  font-size: var(--step--2);
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--ink-3);
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
 }
 
 .ph-addr {
@@ -327,15 +340,6 @@
   display: block;
   width: 6rem;
   height: 1.2em;
-}
-
-.ph-sub {
-  font-size: var(--step--2);
-  color: var(--ink-3);
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 /* -------------------------------------------------------------- phones */

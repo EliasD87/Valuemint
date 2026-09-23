@@ -93,7 +93,9 @@ export function PortfolioHeader({
           <span className="skeleton ph-total-wait" aria-label="Loading balance" role="status" />
         ) : (
           <p className="ph-total">
-            <span className="ph-total-amount">{formatSoso(balance)}</span>
+            <span className="ph-total-amount" title={`${formatSoso(balance, 18)} SOSO`}>
+              {formatSosoFixed(balance)}
+            </span>
             <span className="ph-total-unit">
               <SosoMark size={20} />
               SOSO
@@ -110,27 +112,36 @@ export function PortfolioHeader({
             bidder needs to see how much of it they have. */}
         {wsoso > 0n ? (
           <p className="ph-wrapped">
-            + <Soso size={12} markAt="unit" unit="WSOSO">{formatSoso(wsoso)}</Soso> for offers
+            + <Soso size={12} markAt="unit" unit="WSOSO">{formatSosoFixed(wsoso)}</Soso>
           </p>
         ) : null}
       </div>
 
+      {/* A label and a figure each, nothing under them. The detail that used
+          to sit on a third line — collections, the asking total, the pieces
+          without a floor — is one hover away in the title instead. */}
       <dl className="ph-cells">
-        <div className="ph-cell">
+        <div
+          className="ph-cell"
+          title={`${formatCount(BigInt(collections))} ${collections === 1 ? "collection" : "collections"}`}
+        >
           <dt>Pieces</dt>
           <dd className="ph-fig">{formatCount(BigInt(pieces))}</dd>
-          <dd className="ph-sub">
-            {formatCount(BigInt(collections))} {collections === 1 ? "collection" : "collections"}
-          </dd>
         </div>
 
-        <div className="ph-cell">
+        <div className="ph-cell" title={`${formatSosoFixed(asking)} SOSO asking`}>
           <dt>Listed</dt>
           <dd className="ph-fig">{formatCount(BigInt(listed))}</dd>
-          <dd className="ph-sub">{formatSosoFixed(asking)} SOSO asking</dd>
         </div>
 
-        <div className="ph-cell">
+        <div
+          className="ph-cell"
+          title={
+            nfts !== undefined && nfts.unpriced > 0
+              ? `Cheapest asks; ${nfts.unpriced} without a floor are not counted`
+              : "Cheapest asks"
+          }
+        >
           <dt>At floor</dt>
           <dd className="ph-fig">
             {nfts === undefined ? (
@@ -140,11 +151,6 @@ export function PortfolioHeader({
                 {formatSosoFixed(nfts.total)}
               </Soso>
             )}
-          </dd>
-          <dd className="ph-sub">
-            {nfts !== undefined && nfts.unpriced > 0
-              ? `${nfts.unpriced} without a floor`
-              : "cheapest asks"}
           </dd>
         </div>
       </dl>
