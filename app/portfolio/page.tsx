@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
+import { holdingsAnchor } from "@/lib/anchors";
 import Link from "next/link";
 import { useAccount, useBalance } from "wagmi";
 import { useQueryClient } from "@tanstack/react-query";
@@ -301,7 +302,15 @@ function Holdings({
   const tierRows = tierRowsFor(group.address);
 
   return (
-    <div>
+    /*
+      Named so the listing prompt can send somebody straight here.
+
+      `scroll-margin-top` is what makes the anchor land correctly rather than
+      under the sticky header — without it the browser scrolls the heading to
+      y=0, which is behind the 72px bar, and the reader arrives at a collection
+      whose name they cannot see. See `.holdings-anchor` in portfolio's styles.
+    */
+    <div id={holdingsAnchor(group.address)} className="holdings-anchor">
       <div className="head head-sub">
         <div>
           {/* The collection's floor beside the count, so the group says what it

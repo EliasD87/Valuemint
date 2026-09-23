@@ -5,7 +5,9 @@ import { createPortal } from "react-dom";
 import { useAccount } from "wagmi";
 import { useDeferred } from "@/hooks/useDeferred";
 import { useHoldings } from "@/hooks/useHoldings";
-import { BulkList, type BulkListItem } from "@/components/BulkList";
+import Link from "next/link";
+import type { BulkListItem } from "@/components/BulkList";
+import { holdingsAnchor } from "@/lib/anchors";
 import { formatCount } from "@/lib/format";
 import { Art } from "@/components/Art";
 import { soleArtworkFor } from "@/config/covers";
@@ -21,12 +23,12 @@ import "./ListPrompt.css";
  * that is a place to give up, and none of it tells you there was anything to
  * sell in the first place. Most holders never learn they can.
  *
- * So the prompt goes where people land, and carries the same `BulkList` the
- * portfolio uses rather than a second listing form. That matters more than the
- * duplication it saves: listing is an approval, a per-level price, a batched
- * `validate`, and a gas price that ValueChain's own suggestion is too low for.
- * A second implementation of that would be a second place for a seller to lose
- * a transaction.
+ * So the prompt goes where people land. What it does NOT do is sell anything
+ * itself: it names what could be sold and links to the page built for selling
+ * it. Listing is an approval, a per-level price, a batched `validate` and a
+ * confirmation per piece, and running that inside a panel pinned to the corner
+ * of whatever page somebody was reading is how a seller loses a transaction.
+ * One implementation of that flow, in one place, reached deliberately.
  */
 
 /** One collection's unlisted holdings. */
@@ -89,14 +91,6 @@ export function ListPrompt() {
   const { tokens, isLoading } = useHoldings(ready ? address : undefined);
   const [dismissed, setDismissed] = useState(false);
 
-  /**
-   * Which row's panel is open — at most one.
-   *
-   * Left to themselves, two panels stack into a card taller than the viewport
-   * with neither end reachable. On the portfolio that cannot happen; each
-   * collection has its own room. Here they share a corner.
-   */
-  const [openRow, setOpenRow] = useState<string | undefined>(undefined);
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
@@ -232,20 +226,28 @@ export function ListPrompt() {
               </span>
             </span>
             {/*
-              The portfolio's own control, unchanged. It knows about approval,
-              about pricing each level separately, and about batching — none of
-              which is worth rebuilding here, and all of which is worth getting
-              right in one place.
+              A door, not the room.
+
+              This used to open `BulkList` inline, which put the whole listing
+              flow — a tier picker, a quantity, a price, a wallet approval and
+              then one confirmation per piece — inside a panel pinned to the
+              corner of whatever page somebody happened to be reading. A
+              multi-step flow that spends real money belongs somewhere it has
+              room and somewhere the reader chose to be.
+
+              So the panel keeps the job it is good at, which is telling
+              somebody they hold things they could sell, and hands off to the
+              page built for the rest. The link lands on that collection's own
+              group rather than the top of the portfolio, so the thing they
+              pressed for is what they are looking at when they arrive.
             */}
-            <BulkList
-              collection={g.address}
-              collectionName={g.name}
-              items={g.items}
-              /* One is enough here: there is no card beside it offering another way. */
-              minimum={1}
-              open={openRow === g.address}
-              onOpenChange={(next) => setOpenRow(next ? g.address : undefined)}
-            />
+            <Link
+              className="lp-go"
+              href={`/portfolio#${holdingsAnchor(g.address)}`}
+              onClick={close}
+            >
+              List {formatCount(BigInt(g.items.length))}
+            </Link>
           </li>
         ))}
       </ul>

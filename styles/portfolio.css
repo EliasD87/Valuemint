@@ -64,3 +64,16 @@
     min-height: 44px;
   }
 }
+
+/*
+ * A collection's holdings, as a link target.
+ *
+ * The listing prompt sends people straight to one collection's group, and the
+ * header is sticky — without this the browser puts the heading at y=0, which is
+ * behind the bar, and the reader lands on a collection whose name they cannot
+ * see. The extra rem is breathing room, so the group starts below the header
+ * rather than flush against it.
+ */
+.holdings-anchor {
+  scroll-margin-top: calc(var(--header-h, 72px) + 1rem);
+}

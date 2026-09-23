@@ -153,10 +153,7 @@
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--verified) 45%, transparent);
 }
 
-.lp-row:has(.bulk) {
-  grid-template-columns: 1fr;
-  gap: 0.5rem;
-}
+
 
 /** Artwork and name travel together; only the control leaves the row. */
 .lp-piece {
@@ -234,13 +231,37 @@
   font-variant-numeric: tabular-nums;
 }
 
-/** The control sits at the end of its row, and fills the width once expanded. */
+/** The control sits at the end of its row. */
 .lp-row > :last-child {
   justify-self: end;
 }
 
-.lp-row:has(.bulk) > :last-child {
-  justify-self: stretch;
+/*
+ * The way through to the listing page.
+ *
+ * Drawn as the outlined button it replaced, because it does the same job from
+ * the reader's side — press this to sell these — and a link styled as a link
+ * would read as a footnote rather than as the row's action.
+ */
+.lp-go {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.65rem;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: var(--step--1);
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.lp-go:hover {
+  background: var(--surface-2);
+  border-color: var(--ink-3);
 }
 
 @media (max-width: 480px) {
