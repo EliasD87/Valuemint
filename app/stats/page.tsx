@@ -13,6 +13,11 @@ import { formatSoso, formatSosoFixed, shortAddress, timeAgo } from "@/lib/format
 /* `.page`, `.section` and `.dim` live in `home.css`, the same way /market,
    /mint and /portfolio reach them. */
 import "@/styles/home.css";
+/* `.act-kind` — the coloured dot and word on every event — and `.act-note`.
+   Imported here, not borrowed: without it the dots appeared only after
+   visiting a page that happened to load this sheet first, and a direct visit
+   or a refresh showed the words with no colour at all. */
+import "@/styles/activity.css";
 import "@/styles/pulse.css";
 
 /**
@@ -95,6 +100,9 @@ export default function StatsPage() {
   const { data: head } = useBlockNumber({ query: { staleTime: 12_000 } });
 
   const [hours, setHours] = useState<number | undefined>(undefined);
+
+  /** Whether the event list shows every row in the window, in place. */
+  const [showAll, setShowAll] = useState(false);
 
   /**
    * Hidden collections are hidden here too.
@@ -344,35 +352,69 @@ export default function StatsPage() {
 
             <div className="pulse-panel">
               <p className="pulse-panel-title">As it happened</p>
-              {/* The same events in the accessibility tree, in order. */}
-              <ul className="pulse-stream">
-                {rows.slice(0, STREAM).map((row) => (
-                  <li key={`${row.blockNumber}-${row.logIndex}-${row.kind}-${row.tokenId}`}>
-                    <span className={`act-kind act-kind-${row.kind}`}>{LABEL[row.kind]}</span>
-                    {/* Collection and token in columns of their own, so the
-                        numbers line up down the list instead of trailing
-                        names of every length. The name goes to the
-                        collection, the number to the piece. */}
-                    <Link className="ps-what" href={`/collection/${row.collection}`}>
-                      {nameFor(row.collection) ?? shortAddress(row.collection)}
-                    </Link>
-                    <Link className="ps-id" href={`/token/${row.collection}/${row.tokenId}`}>
-                      #{row.tokenId.toString()}
-                    </Link>
-                    <span className="ps-price">
-                      {row.price === undefined ? (
-                        <span className="dim">&mdash;</span>
-                      ) : (
-                        <Soso size={14}>{formatSosoFixed(row.price)}</Soso>
-                      )}
-                    </span>
-                    <span className="ps-when dim">{when(row.blockNumber)}</span>
-                  </li>
-                ))}
-              </ul>
-              <Link className="act-all" href="/activity">
-                See the full record &rarr;
-              </Link>
+              {/* The newest few, or — one click — every event in the window,
+                  here in the same columns, scrolling inside the panel rather
+                  than sending anyone off to another page to read the rest.
+                  Focusable when it scrolls, so a keyboard can scroll it too. */}
+              <div
+                id="ps-list"
+                className={`ps-scroll${showAll ? " is-open" : ""}`}
+                tabIndex={showAll ? 0 : undefined}
+                role={showAll ? "region" : undefined}
+                aria-label={showAll ? "Every event in this window" : undefined}
+              >
+                <ul className="pulse-stream">
+                  {(showAll ? rows : rows.slice(0, STREAM)).map((row) => (
+                    <li key={`${row.blockNumber}-${row.logIndex}-${row.kind}-${row.tokenId}`}>
+                      <span className={`act-kind act-kind-${row.kind}`}>{LABEL[row.kind]}</span>
+                      {/* Collection and token in columns of their own, so the
+                          numbers line up down the list instead of trailing
+                          names of every length. The name goes to the
+                          collection, the number to the piece. */}
+                      <Link className="ps-what" href={`/collection/${row.collection}`}>
+                        {nameFor(row.collection) ?? shortAddress(row.collection)}
+                      </Link>
+                      <Link className="ps-id" href={`/token/${row.collection}/${row.tokenId}`}>
+                        #{row.tokenId.toString()}
+                      </Link>
+                      <span className="ps-price">
+                        {row.price === undefined ? (
+                          <span className="dim">&mdash;</span>
+                        ) : (
+                          <Soso size={14}>{formatSosoFixed(row.price)}</Soso>
+                        )}
+                      </span>
+                      <span className="ps-when dim">{when(row.blockNumber)}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              {rows.length > STREAM ? (
+                <button
+                  type="button"
+                  className="ps-more"
+                  aria-expanded={showAll}
+                  aria-controls="ps-list"
+                  onClick={() => {
+                    /* Collapsing from deep in the list would otherwise leave
+                       the box scrolled past the rows it keeps. */
+                    if (showAll) document.getElementById("ps-list")?.scrollTo({ top: 0 });
+                    setShowAll((open) => !open);
+                  }}
+                >
+                  {showAll ? "Show less" : `Show all ${rows.length} events`}
+                  <svg viewBox="0 0 12 12" aria-hidden="true" focusable="false">
+                    <path
+                      d="M2.5 4.5 6 8l3.5-3.5"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.6"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </button>
+              ) : null}
             </div>
           </div>
 

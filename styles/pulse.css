@@ -394,6 +394,70 @@
   color: var(--accent);
 }
 
+/* Every event in the window, scrolling inside the panel. A fixed height rather
+   than the page growing by four hundred rows: the panel beside it and the
+   chart above stay where they were. */
+.ps-scroll.is-open {
+  max-height: 30rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) transparent;
+  /* Room for the scrollbar, so it does not sit on the time column. */
+  padding-right: 0.6rem;
+}
+
+.ps-scroll.is-open:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+  border-radius: var(--r-sm);
+}
+
+.ps-more {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  width: 100%;
+  min-height: 34px;
+  margin-top: 0.85rem;
+  padding: 0.35rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--ink-2);
+  font: inherit;
+  font-size: var(--step--2);
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    border-color var(--fast),
+    background var(--fast),
+    color var(--fast);
+}
+
+.ps-more:hover {
+  border-color: var(--line-strong);
+  background: var(--paper-hover);
+  color: var(--ink);
+}
+
+.ps-more:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.ps-more svg {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  transition: transform var(--fast) var(--ease);
+}
+
+.ps-more[aria-expanded="true"] svg {
+  transform: rotate(180deg);
+}
+
 .ps-id {
   color: var(--ink);
   font-weight: 600;
@@ -450,6 +514,22 @@
   }
   .pulse-stream .soso-unit {
     display: none;
+  }
+  /* The full list reaches prices up to "10000.00", which leaves a name about
+     70px. Two lines instead of an ellipsis, so "Orange Companions" is read
+     rather than guessed; `anywhere` only for a single word longer than the
+     column, which otherwise would be cut with no mark at all. */
+  .ps-what {
+    white-space: normal;
+    overflow-wrap: anywhere;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-height: 1.25;
+  }
+  /* Phone scrollbars float over the content and take no width. */
+  .ps-scroll.is-open {
+    padding-right: 0;
   }
   .ps-when {
     display: none;
