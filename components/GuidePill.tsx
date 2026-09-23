@@ -193,9 +193,24 @@ function GuidePanel({ onClose }: { onClose: () => void }) {
             )}
 
             {last ? (
-              <Link className="gd-next" href="/guide" onClick={onClose}>
-                Read the rest &rarr;
-              </Link>
+              /*
+                The last step needs a way to simply be finished with.
+                
+                It used to offer Back and "Read the rest" and nothing else, so
+                somebody who had read all four steps and wanted none of the
+                long version had to go hunting for the close cross. Finishing
+                is the likelier intent by then, so it takes the primary slot
+                and the page is demoted to the link beside it — it is an offer,
+                not the only way out.
+              */
+              <>
+                <Link className="gd-aside" href="/guide" onClick={onClose}>
+                  Full guide &rarr;
+                </Link>
+                <button type="button" className="gd-next" onClick={onClose}>
+                  Done
+                </button>
+              </>
             ) : (
               <button type="button" className="gd-next" onClick={() => setStep(step + 1)}>
                 Next
