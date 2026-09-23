@@ -3,9 +3,21 @@
 /*
  * Rows sit inside `.act-list`, which already draws the hairlines and the
  * rounded ends. Only the column layout differs, so only that is restated.
+ *
+ * ## Why the bar and the count are fixed widths
+ *
+ * `.act-row` is `display: grid` on each `<li>`, so **every row is its own
+ * grid** and sizes its own columns. With the count column `auto` and the bar
+ * `minmax(3rem, 8rem)`, a row reading "42  53.2%" computed a wider count than
+ * one reading "1  1.3%", and the flexible bar absorbed the difference — so the
+ * bars began and ended at a different place on every row, and the column that
+ * exists to be compared down the page could not be.
+ *
+ * Fixed widths for both is the whole fix: only the name flexes now, so the bar
+ * occupies the same pixels in every row whatever the name or the number does.
  */
 .th-row {
-  grid-template-columns: 1.5rem minmax(0, 1fr) minmax(3rem, 8rem) auto;
+  grid-template-columns: 1.5rem minmax(0, 1fr) 8rem 6.5rem;
 }
 
 /* A leaderboard is read down the numbers, so they line up and stay quiet. */
@@ -75,17 +87,36 @@
   height: 100%;
   border-radius: inherit;
   background: var(--ink-3);
+  /*
+   * A holder of one piece in eighty is 1.3%, which is 1.7px of an 8rem track —
+   * a bar indistinguishable from no bar at all. The floor keeps the smallest
+   * holding visible as a holding. It costs the scale nothing that matters:
+   * anything this size is already "almost none" at a glance.
+   */
+  min-width: 3px;
 }
 
 .th-row.is-mine .th-bar-fill {
   background: var(--accent);
 }
 
+/*
+ * Two columns, each right-aligned, rather than one right-aligned group.
+ *
+ * Flexed together, "42 53.2%" and "6 7.6%" only agreed on their right edge —
+ * the digits started wherever the percentage let them, so the one column a
+ * leaderboard is actually read down was ragged. Given a track of its own, the
+ * counts line up on their units and the percentages line up on their sign.
+ *
+ * The count is a bare text node in the markup, which grid treats as an
+ * anonymous item and places in the first column exactly as if it were wrapped.
+ */
 .th-count {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 2.9rem;
   align-items: baseline;
   gap: 0.4rem;
-  justify-content: end;
+  text-align: right;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
@@ -97,8 +128,10 @@
 
 /* The bar is the first thing to go: the count carries the same fact exactly. */
 @container act (max-width: 26rem) {
+  /* Still fixed, not `auto`: the bar is gone here but the counts are read down
+     the column just the same, and `auto` would make them ragged again. */
   .th-row {
-    grid-template-columns: 1.5rem minmax(0, 1fr) auto;
+    grid-template-columns: 1.5rem minmax(0, 1fr) 6.5rem;
   }
 
   .th-bar {
