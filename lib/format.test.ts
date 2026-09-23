@@ -58,7 +58,7 @@ describe("tinyAddress", () => {
 describe("formatSoso", () => {
   const SOSO = 10n ** 18n;
 
-  /** The /pulse chart's peak label read "25" for a 2,500 SOSO column. */
+  /** The /stats chart's peak label read "25" for a 2,500 SOSO column. */
   it("never trims a whole number's own zeros", () => {
     expect(formatSoso(2500n * SOSO, 0)).toBe("2500");
     expect(formatSoso(10n * SOSO, 0)).toBe("10");

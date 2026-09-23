@@ -15,7 +15,7 @@ import "@/styles/pulse.css";
  * each listing, sale, offer and delisting on price against time, on a log axis
  * eight decades tall. It was faithful and it was hard to read: 218 listing
  * rings drowned 67 sales, bulk listings stacked seventeen deep on one pixel,
- * and the question most people bring to a page called Pulse — is this market
+ * and the question most people bring to a stats page — is this market
  * busy, and who is busy in it — was answerable only by squinting at density.
  * This answers it directly: one column per stretch of time, as tall as the
  * SOSO that settled in it, split by the collections that settled it.

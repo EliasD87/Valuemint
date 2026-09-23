@@ -236,7 +236,7 @@
   --sodex-accent: #FF7637;
 
   /*
-   * Chart series — collections on /pulse's volume chart.
+   * Chart series — collections on /stats's volume chart.
    *
    * NOT the tier colours. Those already mean a rung (brown Common, blue Rare);
    * reusing them here would make a collection read as a rarity. These are the

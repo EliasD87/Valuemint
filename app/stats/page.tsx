@@ -86,7 +86,7 @@ const WINDOWS: { label: string; hours?: number }[] = [
   { label: "Everything" },
 ];
 
-export default function PulsePage() {
+export default function StatsPage() {
   const { rows: all, isLoading, logsUnavailable, logsPartial, refetch } = useActivity(undefined);
   const { collections } = useAllCollections();
 
@@ -206,7 +206,7 @@ export default function PulsePage() {
   return (
     <section className="page section pulse">
       <div className="head">
-        <h2 className="pulse-title">ValueMint Pulse</h2>
+        <h2 className="pulse-title">ValueMint Stats</h2>
       </div>
 
       {logsUnavailable ? null : (

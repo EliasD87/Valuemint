@@ -100,7 +100,7 @@ export default function GuidePage() {
       <nav className="guide-end" aria-label="Where to go next">
         <Link href="/market">Listings</Link>
         <Link href="/collections">Collections</Link>
-        <Link href="/pulse">Pulse</Link>
+        <Link href="/stats">Stats</Link>
         <Link href="/activity">Activity</Link>
         <a href={deployment.explorer} target="_blank" rel="noreferrer noopener">
           Block explorer

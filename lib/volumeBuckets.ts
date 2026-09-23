@@ -1,7 +1,7 @@
 /**
  * The market's traded volume, bucketed by time and split by collection.
  *
- * What `/pulse`'s volume chart draws, kept out of the component so the
+ * What `/stats`'s volume chart draws, kept out of the component so the
  * arithmetic can be tested without a DOM: which events count, how time is cut
  * into columns, and which collections get a colour of their own.
  *

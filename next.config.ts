@@ -154,6 +154,11 @@ const nextConfig: NextConfig = {
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },
+  /* The stats page was called Pulse and lived at /pulse. Permanent, so shared
+     links and anything a search engine indexed land on the page they meant. */
+  async redirects() {
+    return [{ source: "/pulse", destination: "/stats", permanent: true }];
+  },
   images: {
     remotePatterns: OPTIMISED_IMAGE_HOSTS.map((hostname) => ({
       protocol: "https" as const,

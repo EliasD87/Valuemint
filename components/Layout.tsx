@@ -319,7 +319,7 @@ export function Layout({ children }: { children: ReactNode }) {
                   go and buy something, and this is a way of looking at what
                   they have been doing. */}
               <li>
-                <Link href="/pulse">Pulse</Link>
+                <Link href="/stats">Stats</Link>
               </li>
               {/* The way back in. The pill that offers this is dismissed for
                   good on the first click, so without a standing link the guide
