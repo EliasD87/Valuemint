@@ -8,6 +8,7 @@ import { deployment } from "@/config/contracts";
 import { WsosoAbi } from "@/config/wsoso";
 import { SEAPORT } from "@/config/seaport";
 import { valuechain } from "@/config/chain";
+import { wsosoNeeds } from "@/lib/wsosoNeeds";
 
 const WSOSO = deployment.wsoso;
 
@@ -30,11 +31,10 @@ const WSOSO = deployment.wsoso;
  */
 export function useWsoso(needed: bigint, spender: Address = SEAPORT, alsoCover: bigint = 0n) {
   /**
-   * The allowance must cover this action *and* everything already standing.
-   *
-   * `needed` alone drives the balance check — you only have to hold the money
-   * for the bid you are placing now. The allowance is different: setting it to
-   * just this bid would revoke the cover for bids already on chain.
+   * Both the balance and the allowance must cover this action *and* everything
+   * already standing. See `lib/wsosoNeeds.ts` for why — briefly, this used to
+   * fund only the newest bid, so a wallet with three live 10 WSOSO offers held
+   * 10 and could settle exactly one of them.
    */
   const allowanceNeeded = needed + alsoCover;
   const { address } = useAccount();
@@ -164,15 +164,16 @@ export function useWsoso(needed: bigint, spender: Address = SEAPORT, alsoCover: 
 
   const held = (balance as bigint | undefined) ?? 0n;
   const approved = (allowance as bigint | undefined) ?? 0n;
+  const needs = wsosoNeeds({ needed, alsoCover, held, approved });
 
   return {
     balance: held,
     allowance: approved,
-    needsWrap: needed > 0n && held < needed,
-    needsAllowance: allowanceNeeded > 0n && approved < allowanceNeeded,
+    needsWrap: needs.needsWrap,
+    needsAllowance: needs.needsAllowance,
     /** Exactly what `allow()` would set, so the UI can show the figure. */
     allowanceNeeded,
-    shortfall: needed > held ? needed - held : 0n,
+    shortfall: needs.shortfall,
     wrap,
     unwrap,
     allow,
