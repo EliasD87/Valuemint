@@ -219,8 +219,8 @@
    * a different rainbow rather than the same one lit differently.
    *
    * It repeats its first hue at the end so it can be scrolled without a seam.
-   * Nothing reads text off it — see `.filt-rainbow`, which keeps it to the
-   * ring and leaves the fill to the ordinary tokens.
+   * Nothing reads text off it. It is drawn as the dot on Cybereator's market
+   * chip — see the chip look in styles/market.css.
    */
   --rainbow: linear-gradient(
     90deg,

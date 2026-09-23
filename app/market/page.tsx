@@ -11,7 +11,6 @@ import { TokenCard, TokenCardSkeleton } from "@/components/TokenCard";
 import { formatSoso } from "@/lib/format";
 import "@/styles/home.css";
 import "@/styles/market.css";
-import { Soso } from "@/components/Soso";
 import { useFloors } from "@/hooks/useFloors";
 import { Select } from "@/components/Select";
 
@@ -79,10 +78,8 @@ export default function Market() {
    * when a single collection is most of the book, because they are all the
    * same chip.
    *
-   * Each chip owns its own predicate, so the grid filter, the count and the
-   * floor all come from one definition and cannot drift apart. The floor is
-   * the cheapest of *this chip's* rows rather than a lookup — which is both
-   * simpler and the only figure that is true of what the chip shows.
+   * Each chip owns its own predicate, so the grid filter and the count come
+   * from one definition and cannot drift apart.
    */
   const chips = useMemo(() => {
     const boxAt = MARKET_TIERED.address.toLowerCase();
@@ -130,14 +127,7 @@ export default function Market() {
       ];
 
     return defs
-      .map((d) => {
-        const rows = listed.filter(d.match);
-        const floor = rows.reduce<bigint | undefined>(
-          (least, r) => (least === undefined || r.listing!.price < least ? r.listing!.price : least),
-          undefined,
-        );
-        return { ...d, count: rows.length, floor };
-      })
+      .map((d) => ({ ...d, count: listed.filter(d.match).length }))
       /* A button with nothing behind it takes itself off the row rather than
          sitting there dead. */
       .filter((d) => d.count > 0);
@@ -218,10 +208,10 @@ export default function Market() {
    * on screen. Relabelling it "lowest ask" made it honest and still left a
    * number nobody has a use for, so it is gone.
    *
-   * The floors live where they mean something instead - per collection on
-   * the filter chips, and per tier below them once a collection is chosen,
-   * because a collection with an Epic and a Common edition has two floors
-   * and quoting the lower one misleads anyone shopping for the other.
+   * The floors live where they mean something instead — per tier, below the
+   * chips once a collection is chosen, because a collection with an Epic and a
+   * Common edition has two floors and quoting the lower one misleads anyone
+   * shopping for the other. The chips themselves carry a count and no price.
    */
 
   return (
@@ -261,28 +251,17 @@ export default function Market() {
               aria-pressed={filterTo === chip.key}
               onClick={() => setFilterTo(chip.key)}
             >
-              {chip.label} <em>{chip.count}</em>
               {/*
-                The cheapest thing behind this button.
+                A label and a count, and no floor.
 
-                It carries the SOSO mark, and it is fenced off by a rule in the
-                stylesheet, because it did neither and was misread — "8" then
-                "from 50" at the same weight, a hand's width apart, was reported
-                as "8 out of 50", which is what a supply looks like. Two bare
-                figures side by side in one pill will always read as a fraction;
-                only the currency says otherwise.
+                The floor rode here for a while, fenced off with a rule and a
+                SOSO mark because two bare figures in one pill read as a
+                fraction — "8 from 50" was once reported as "8 out of 50". It
+                was cut on the owner's call: a filter row says what there is to
+                look at, and every card below already carries its own price.
+                With one figure per pill there is nothing left to misread.
               */}
-              {chip.floor !== undefined ? (
-                <span className="filt-floor">
-                  {/* No "from". The mark already says this is money and the
-                      rule already says it is a different figure to the count;
-                      the word was a third device doing the same job, and six
-                      of them across a row is most of its width. */}
-                  <Soso size={13} unit="">
-                    {formatSoso(chip.floor)}
-                  </Soso>
-                </span>
-              ) : null}
+              {chip.label} <em>{chip.count}</em>
             </button>
           ))}
         </div>

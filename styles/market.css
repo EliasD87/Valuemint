@@ -160,9 +160,9 @@
  * same five fit with room, which is width that goes to the market growing
  * rather than to the type.
  *
- * The count and the floor drop a step further. They are figures attached to a
- * label, not labels themselves, and at the same size as the collection name
- * all three read as one run of text.
+ * The count drops a step further. It is a figure attached to a label, not a
+ * label itself, and at the same size as the collection name the two read as
+ * one run of text.
  */
 .mk-filters .filt {
   font-size: var(--step--2);
@@ -173,6 +173,98 @@
   font-size: var(--step--3);
 }
 
-.mk-filters .filt-floor {
-  font-size: var(--step--3);
+/* ------------------------------------------------------------ chip look ---
+ *
+ * Quiet at rest, one unmistakable pressed state, and colour as a DOT.
+ *
+ * The row used to fill each tier chip with its tier's wash — brown Common,
+ * green Uncommon, blue Rare — and ring Cybereator in an animated rainbow. That
+ * was four competing treatments on one line, and it had a functional cost the
+ * busyness hid: a chip FILLED with colour reads as a chip that is ON. Every
+ * tier chip looked pressed whether it was or not, and a real report of
+ * "Commons under the Uncommon filter" began with nobody, the reporter or us,
+ * being sure which chip was actually selected.
+ *
+ * So there is now exactly one filled chip on the row at any moment, and it is
+ * the pressed one — inverted ink, the same for every chip. Everything else is
+ * a hairline pill in the page's own ink.
+ *
+ * What the colour was FOR is kept, and moved somewhere it cannot be mistaken
+ * for state: a 7px dot before the label. The ladder still reads Common →
+ * Uncommon → Rare → Super Rare in the same palette the cards and ribbons wear,
+ * and Cybereator keeps its gradient as a dot — identity, not a light that is
+ * on. The dot is also why the rainbow could stop animating: a 7px spot needs
+ * no motion to be noticed, and the infinite animation was the only thing on
+ * the page moving without being asked to.
+ *
+ * Scoped to `.mk-filters`, because `.filt` is shared — the collection page's
+ * Clear button is one — and only this row has tones. Two classes deep, so it
+ * outranks the shared one-class `.filt` rules wherever the bundler puts them.
+ * -------------------------------------------------------------------------- */
+
+.mk-filters .filt {
+  gap: 0.45rem;
+  border-width: 1px;
+  border-color: var(--line);
+  background: transparent;
+  color: var(--ink-2);
+  font-weight: 550;
+  animation: none;
+}
+
+.mk-filters .filt:hover {
+  border-color: var(--line-strong);
+  color: var(--ink);
+  background: var(--surface);
+}
+
+/* The one filled chip on the row. */
+.mk-filters .filt[aria-pressed="true"] {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--paper);
+}
+
+/*
+ * The count recedes, so the LABEL is what the eye reads first and the figure is
+ * there when it looks for it. No floor beside it any more — see the chip markup
+ * in app/market/page.tsx — so the count is the only figure in the pill and
+ * there is nothing left for it to be misread against.
+ */
+.mk-filters .filt em {
+  font-weight: 500;
+  /* 84%, measured. 62% looked right and was 2.96:1 in the light theme — under
+     the 4.5 an 11px figure needs. This is the lowest that clears it in both
+     themes, composited over the page rather than read off the raw colour. */
+  color: color-mix(in srgb, currentColor 84%, transparent);
+}
+
+/* ---------------------------------------------------------------- dots */
+
+.mk-filters .filt-common::before,
+.mk-filters .filt-uncommon::before,
+.mk-filters .filt-rare::before,
+.mk-filters .filt-superrare::before,
+.mk-filters .filt-rainbow::before {
+  content: "";
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+
+.mk-filters .filt-common::before { background: var(--common); }
+.mk-filters .filt-uncommon::before { background: var(--uncommon); }
+.mk-filters .filt-rare::before { background: var(--rare); }
+.mk-filters .filt-superrare::before { background: var(--superrare); }
+.mk-filters .filt-rainbow::before { background: var(--rainbow); }
+
+/*
+ * On the inverted pill the dot sits on `--ink`, which is near-white in the dark
+ * theme and near-black in the light one. A hairline of the pill's own ink
+ * around it keeps a pale tier (Common's tan, on white) from dissolving into the
+ * fill it now sits on.
+ */
+.mk-filters .filt[aria-pressed="true"]::before {
+  box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--paper) 55%, transparent);
 }
