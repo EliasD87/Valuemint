@@ -1,0 +1,119 @@
+/* ============================================================== unrevealed
+ *
+ * The tease a holder gets before their piece has a published design.
+ * Four lines total: a title, one sentence, the pot, and a proof link.
+ * ======================================================================== */
+
+.ur {
+  margin-top: 1.25rem;
+}
+
+.ur-card {
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: 0.9rem 1rem;
+  display: grid;
+  gap: 0.6rem;
+}
+
+.ur-title {
+  margin: 0;
+  font-size: var(--step-0);
+  line-height: 1.2;
+  color: var(--ink);
+}
+
+.ur-lead {
+  margin: 0;
+  font-size: var(--step--1);
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+
+.ur-lead strong {
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ------------------------------------------------------------- the pot */
+
+/*
+ * Wraps rather than scrolls. Four chips fit one line on a desktop and two on a
+ * phone, and a row this short is not worth a scroll affordance nobody would
+ * see.
+ */
+.ur-pot {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+/*
+ * Count first, and bigger than the name.
+ *
+ * The number is the point — "1" next to "Legendary" is the entire pitch — so
+ * it leads and the label follows it quietly. Reversed, the eye reads four tier
+ * names and has to hunt for the figures.
+ *
+ * `--tier` is set per chip below and drives both the ink and its wash, so a
+ * chip is one colour decision rather than two that can drift apart.
+ */
+.ur-chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.3rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--r-sm);
+  background: var(--tier-wash, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--tier, var(--ink-3)) 28%, transparent);
+  white-space: nowrap;
+}
+
+.ur-chip-count {
+  font-size: var(--step--1);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--tier, var(--ink));
+}
+
+.ur-chip-name {
+  font-size: var(--step--3);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--tier, var(--ink-3));
+}
+
+/*
+ * The same tokens the filter chips and the cards use, so a reader who has
+ * learned that blue means Rare elsewhere does not learn it again here.
+ */
+.ur-chip-common { --tier: var(--common); --tier-wash: var(--common-wash); }
+.ur-chip-uncommon { --tier: var(--uncommon); --tier-wash: var(--uncommon-wash); }
+.ur-chip-rare { --tier: var(--rare); --tier-wash: var(--rare-wash); }
+.ur-chip-superrare { --tier: var(--superrare); --tier-wash: var(--superrare-wash); }
+.ur-chip-epic { --tier: var(--epic); --tier-wash: var(--epic-wash); }
+.ur-chip-legendary { --tier: var(--legendary); --tier-wash: var(--legendary-wash); }
+
+/* ----------------------------------------------------------- the proof */
+
+/*
+ * One link where a paragraph used to be. The argument is still there for
+ * anybody who follows it; it is no longer in the way of everybody who does not.
+ */
+.ur-proof {
+  font-size: var(--step--2);
+  color: var(--ink-3);
+  text-decoration: none;
+  justify-self: start;
+}
+
+.ur-proof:hover {
+  color: var(--ink-2);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}

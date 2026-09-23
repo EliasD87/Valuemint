@@ -9,6 +9,8 @@ import type { LoadedToken } from "@/hooks/useTokens";
 import type { Listing } from "@/lib/seaport";
 import { formatSoso } from "@/lib/format";
 import { tierClass } from "@/lib/tokenMetadata";
+import { heldBackFor } from "@/config/reveal";
+import { revealShort } from "@/lib/unrevealed";
 import { Art } from "@/components/Art";
 import { Wordmark } from "@/components/Wordmark";
 import { wordmarkSaying } from "@/config/wordmarks";
@@ -104,6 +106,27 @@ export function TokenCard({
     viewerAddress !== undefined &&
     owner.toLowerCase() === viewerAddress.toLowerCase();
   const tier = tierClass(token.tier) ?? "common";
+
+  /**
+   * The held-back tail this piece belongs to, or nothing.
+   *
+   * Read from `tier` and `edition`, NOT from `design`, and that is not a
+   * preference — `design` cannot answer this question. `useGenericTokens`,
+   * which is what feeds the collection page, derives it as
+   * `traitOf("Design") ?? metadata.name ?? "#id"`, so a held-back piece comes
+   * back with the design "ValueChain Genesis #78": never undefined, and the
+   * first version of this gate silently never fired. `tier` and `edition` are
+   * read from traits alone and are absent exactly when the design is withheld.
+   *
+   * `heldBackFor` is the other half. Absent traits alone describe half the
+   * contracts on the chain, and telling a stranger's holder that their piece
+   * is awaiting a reveal would be a claim about somebody else's collection.
+   */
+  const heldBack = heldBackFor(collection);
+  const awaitingReveal =
+    heldBack !== undefined && token.tier === undefined && token.edition === undefined
+      ? heldBack
+      : undefined;
 
   /**
    * The contract answered, and its answer was nothing.
@@ -265,10 +288,26 @@ export function TokenCard({
         </div>
 
         <dl className="tcard-foot">
-          <div className="tcard-cell">
-            <dt>Edition</dt>
-            <dd>{token.edition ?? "—"}</dd>
-          </div>
+          {/*
+            A held-back piece has no edition to print, so the cell said "—".
+            The date it becomes public is the one fact about it that exists,
+            and it is a better use of the same space than a dash.
+
+            Both conditions again: the document naming no design is not enough,
+            because a third-party contract that publishes none would then
+            advertise a reveal it never promised.
+          */}
+          {awaitingReveal !== undefined ? (
+            <div className="tcard-cell">
+              <dt>Reveals</dt>
+              <dd className="tcard-reveal">{revealShort(awaitingReveal)}</dd>
+            </div>
+          ) : (
+            <div className="tcard-cell">
+              <dt>Edition</dt>
+              <dd>{token.edition ?? "—"}</dd>
+            </div>
+          )}
           <div className="tcard-cell tcard-cell-end">
             <dt>
               {vouched === false ? (

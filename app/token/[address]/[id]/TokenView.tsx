@@ -26,6 +26,9 @@ import { soleArtworkFor } from "@/config/covers";
 import { Wordmark } from "@/components/Wordmark";
 import { TokenStats } from "@/components/TokenStats";
 import { TokenTraits } from "@/components/TokenTraits";
+import { Unrevealed } from "@/components/Unrevealed";
+import { heldBackFor } from "@/config/reveal";
+import { isUnrevealed } from "@/lib/unrevealed";
 import { wordmarkSaying } from "@/config/wordmarks";
 import "@/styles/token.css";
 import { Activity } from "@/components/Activity";
@@ -741,7 +744,21 @@ export function TokenView({
             Rarity cell above is computed from, so the same number appeared
             twice on one page. See `TokenTraits`.
           */}
-          <TokenTraits collection={collection} metadata={metadata} />
+          {/*
+            A held-back piece gets the explanation instead of the trait grid.
+
+            Both conditions are needed and neither is enough. `isUnrevealed`
+            only says the document names no design — which is also true of any
+            third-party contract that publishes other traits — and `heldBackFor`
+            only says this collection has a tail, which says nothing about the
+            piece being looked at. Together they mean "this collection holds
+            pieces back, and this is one of them".
+          */}
+          {isUnrevealed(metadata) && heldBackFor(collection) !== undefined ? (
+            <Unrevealed collection={collection} />
+          ) : (
+            <TokenTraits collection={collection} metadata={metadata} />
+          )}
 
           <a
             className="token-explorer"

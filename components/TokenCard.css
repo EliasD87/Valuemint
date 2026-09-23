@@ -531,3 +531,16 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+/*
+ * The reveal date, where the edition would be.
+ *
+ * Reads as a fact rather than a state: the same weight as an edition number,
+ * not a badge. A card in a grid of eighty should not shout about the two that
+ * are waiting — somebody scanning for their piece finds it by number, and the
+ * date is what they read once they have.
+ */
+.tcard-reveal {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
