@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatSoso, formatSosoFixed, shortAddress, tinyAddress } from "@/lib/format";
+import { formatSoso, formatSosoFixed, shortAddress, timeAgoShort, tinyAddress } from "@/lib/format";
 
 /**
  * Two abbreviations, and the difference between them is two characters that
@@ -81,6 +81,27 @@ describe("formatSoso", () => {
     expect(formatSoso(1n)).toBe("<0.0001");
     expect(formatSoso(0n)).toBe("0");
     expect(formatSoso(undefined)).toBe("—");
+  });
+});
+
+describe("timeAgoShort", () => {
+  const NOW = 1_800_000_000;
+  const ago = (s: number) => timeAgoShort(NOW - s, NOW);
+
+  it("says how long ago in one short unit", () => {
+    expect(ago(5)).toBe("now");
+    expect(ago(90)).toBe("1m");
+    expect(ago(59 * 60)).toBe("59m");
+    expect(ago(23 * 3600 + 1800)).toBe("23h");
+    expect(ago(33 * 3600)).toBe("1d");
+    expect(ago(29 * 86_400)).toBe("29d");
+    expect(ago(45 * 86_400)).toBe("1mo");
+    expect(ago(400 * 86_400)).toBe("1y");
+  });
+
+  /** A block dated a moment ahead of the local clock is not "in the future". */
+  it("treats a timestamp slightly ahead of now as now", () => {
+    expect(ago(-30)).toBe("now");
   });
 });
 

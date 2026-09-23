@@ -4,8 +4,9 @@ import { useMemo } from "react";
 import Link from "next/link";
 import { useBlockNumber } from "wagmi";
 import { useActivity, type ActivityRow } from "@/hooks/useActivity";
+import { useAllCollections } from "@/hooks/useAllCollections";
 import { deployment } from "@/config/contracts";
-import { formatSoso, shortAddress, timeAgo } from "@/lib/format";
+import { formatSosoFixed, shortAddress, timeAgo, timeAgoShort, tinyAddress } from "@/lib/format";
 import { Soso } from "@/components/Soso";
 import "@/styles/activity.css";
 
@@ -76,6 +77,15 @@ export function MyTrades({
 
   const { data: head } = useBlockNumber({ query: { staleTime: 12_000 } });
 
+  /* The same cached registry every page mounts; only used to name a row's
+     collection, and a short address stands in until it answers. */
+  const { collections } = useAllCollections();
+  const nameFor = useMemo(() => {
+    const names = new Map<string, string>();
+    for (const c of collections) names.set(c.address.toLowerCase(), c.name);
+    return (a: string) => names.get(a.toLowerCase()) ?? shortAddress(a as `0x${string}`, 4);
+  }, [collections]);
+
   const me = address?.toLowerCase() ?? "";
 
   /**
@@ -129,69 +139,114 @@ export function MyTrades({
           here, read straight from the chain.
         </p>
       ) : (
-        <ul className="act-list">
-          {shown.map((r) => {
-            const { label, tone } = describe(r, me);
-            const other = r.from?.toLowerCase() === me ? r.to : r.from;
+        /*
+         * A real table, two lines to a row.
+         *
+         * Each row used to be a grid of its own that wrapped wherever it ran
+         * out of room — the time under the kind on one row, the counterparty
+         * floating right on the next — so no two rows put anything in the same
+         * place. A table sizes every column to its widest cell across ALL rows,
+         * so the columns hold; and the 21rem this lives in is too narrow for
+         * six of them, so each column carries two related facts, one above the
+         * other, and every row has the same shape:
+         *
+         *   Item                    Price   From / To
+         *   ● Sold  #12           2500.00   You
+         *     ValueChain Genesis   1d ago   0x15…34A7
+         *
+         * The event shares the item's column rather than having its own: a
+         * fourth column left the item 40px, which cut every collection name
+         * to three letters.
+         */
+        <div className="tr-scroll">
+          <table className="tr-table tr-trades">
+            <thead>
+              <tr>
+                <th scope="col">Item</th>
+                <th scope="col" className="tr-num">
+                  Price
+                </th>
+                <th scope="col">From / To</th>
+              </tr>
+            </thead>
+            <tbody>
+              {shown.map((r) => {
+                const { label, tone } = describe(r, me);
+                const at =
+                  head === undefined
+                    ? undefined
+                    : Math.floor(Date.now() / 1000) -
+                      Number(head - r.blockNumber) * SECONDS_PER_BLOCK;
+                const ago = at === undefined ? undefined : timeAgoShort(at);
 
-            return (
-              <li
-                key={`${r.blockNumber}-${r.logIndex}-${r.kind}-${r.tokenId}`}
-                className="act-row"
-              >
-                {/* A settled trade takes its side (in/out); everything else
-                    takes its own kind, so Listed, Offered and Cancelled each
-                    get their own dot rather than sharing one "flat" grey. */}
-                <span className={`act-kind act-kind-${r.kind === "sale" ? tone : r.kind}`}>
-                  {label}
-                </span>
+                return (
+                  <tr key={`${r.blockNumber}-${r.logIndex}-${r.kind}-${r.tokenId}`}>
+                    <td className="tr-item">
+                      <span className="tr-l1">
+                        {/* A settled trade takes its side (in/out); everything
+                            else takes its own kind, so Listed, Offered and
+                            Cancelled each get their own dot. */}
+                        <span className={`act-kind act-kind-${r.kind === "sale" ? tone : r.kind}`}>
+                          {label}
+                        </span>
+                        <Link
+                          className="tr-piece"
+                          href={`/token/${r.collection}/${r.tokenId}`}
+                          title={nameFor(r.collection)}
+                        >
+                          #{r.tokenId.toString()}
+                        </Link>
+                      </span>
+                      <span className="tr-l2 tr-coll" title={nameFor(r.collection)}>
+                        {nameFor(r.collection)}
+                      </span>
+                    </td>
 
-                <Link className="act-token" href={`/token/${r.collection}/${r.tokenId}`}>
-                  #{r.tokenId.toString()}
-                </Link>
+                    {/* Price over when. The time sat beside the collection and
+                        cut "ValueChain Genesis" to "ValueCha…"; under the
+                        price it has a line to itself. */}
+                    <td className="tr-num">
+                      <span className="tr-l1 tr-l1-end">
+                        {r.price === undefined ? (
+                          <span className="dim">&mdash;</span>
+                        ) : (
+                          <span className="tr-price">
+                            <Soso size={13}>{formatSosoFixed(r.price)}</Soso>
+                          </span>
+                        )}
+                        {r.amount > 1n ? (
+                          <span className="act-amount">&times;{r.amount.toString()}</span>
+                        ) : null}
+                      </span>
+                      <a
+                        className="tr-l2 tr-when"
+                        href={`${deployment.explorer}/block/${r.blockNumber.toString()}`}
+                        target="_blank"
+                        rel="noreferrer noopener"
+                        title={`${at === undefined ? "" : `${timeAgo(at)} · `}block #${r.blockNumber.toString()}`}
+                      >
+                        {ago === undefined
+                          ? `#${r.blockNumber.toString()}`
+                          : ago === "now"
+                            ? "just now"
+                            : `${ago} ago`}
+                      </a>
+                    </td>
 
-                <span className="act-price">
-                  {r.price === undefined ? (
-                    <span className="dim">&mdash;</span>
-                  ) : (
-                    <>
-                      <Soso size={15}>{formatSoso(r.price)}</Soso>
-                      {r.amount > 1n ? (
-                        <span className="act-amount">&times;{r.amount.toString()}</span>
-                      ) : null}
-                    </>
-                  )}
-                </span>
-
-                <span className="act-who">
-                  {/* Only a counterparty when there was one. A listing you made
-                      and later cancelled has nobody on the other side. */}
-                  {r.kind === "sale" && other !== undefined ? (
-                    <>
-                      {r.from?.toLowerCase() === me ? "to " : "from "}
-                      {shortAddress(other)}
-                    </>
-                  ) : null}
-                </span>
-
-                <a
-                  className="act-when"
-                  href={`${deployment.explorer}/block/${r.blockNumber.toString()}`}
-                  target="_blank"
-                  rel="noreferrer noopener"
-                  title={`Block #${r.blockNumber.toString()}`}
-                >
-                  {head === undefined
-                    ? `#${r.blockNumber.toString()}`
-                    : timeAgo(
-                        Math.floor(Date.now() / 1000) -
-                          Number(head - r.blockNumber) * SECONDS_PER_BLOCK,
-                      )}
-                </a>
-              </li>
-            );
-          })}
-        </ul>
+                    <td className="tr-parties">
+                      <span className="tr-l1">
+                        <Party address={r.from} me={me} />
+                      </span>
+                      <span className="tr-l2">
+                        <Party address={r.to} me={me} />
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       )}
 
       {!full && rows.length > shown.length ? (
@@ -227,5 +282,23 @@ export function MyTrades({
       </div>
       {body}
     </div>
+  );
+}
+
+/**
+ * One side of an event: "You", the other wallet, or nobody.
+ *
+ * "You" rather than your own address, because on your own history every row
+ * has you on one side and a column of your own address repeated is noise
+ * that hides the other party. Nobody is a dash: a listing has a maker and no
+ * taker until it sells.
+ */
+function Party({ address, me }: { address: `0x${string}` | undefined; me: string }) {
+  if (address === undefined) return <span className="dim">&mdash;</span>;
+  if (address.toLowerCase() === me) return <span className="tr-you">You</span>;
+  return (
+    <Link className="tr-addr" href={`/address/${address}`} title={address}>
+      {tinyAddress(address)}
+    </Link>
   );
 }

@@ -62,7 +62,6 @@
   .pf-layout {
     grid-template-columns: 1fr;
   }
-
 }
 
 @media (pointer: coarse) {

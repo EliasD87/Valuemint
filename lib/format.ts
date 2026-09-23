@@ -153,6 +153,23 @@ export function resolveMediaUrl(raw: string | undefined): string | undefined {
 }
 
 /** "3 minutes ago", for activity feeds. */
+/**
+ * "23h", "4d": how long ago, for a table column.
+ *
+ * `timeAgo` spells it out, which is right in a sentence and wrong in a narrow
+ * column, where "23 hours ago" is the widest thing in the row and pushes the
+ * figures that matter out of line. The full wording goes in the cell's title.
+ */
+export function timeAgoShort(timestamp: number, now = Math.floor(Date.now() / 1000)): string {
+  const seconds = Math.max(0, now - timestamp);
+  if (seconds < 60) return "now";
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}m`;
+  if (seconds < 86_400) return `${Math.floor(seconds / 3600)}h`;
+  if (seconds < 30 * 86_400) return `${Math.floor(seconds / 86_400)}d`;
+  if (seconds < 365 * 86_400) return `${Math.floor(seconds / (30 * 86_400))}mo`;
+  return `${Math.floor(seconds / (365 * 86_400))}y`;
+}
+
 export function timeAgo(timestamp: number): string {
   const seconds = Math.floor(Date.now() / 1000) - timestamp;
   if (seconds < 60) return "just now";

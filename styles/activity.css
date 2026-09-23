@@ -584,3 +584,206 @@
   color: var(--ink-3);
   font-variant-numeric: tabular-nums;
 }
+
+/* ============================================================ the tables
+ *
+ * The portfolio's Trades and Offers, as real tables with two lines to a row.
+ *
+ * `table-layout: auto` sizes each column to its widest cell across every row,
+ * which is the whole point: a grid per row sized each row to itself, and no two
+ * rows put the price in the same place. The column is 21rem, too narrow for a
+ * column per fact, so each cell stacks two related ones — the kind over when,
+ * the number over its collection, from over to — and every row has the same
+ * two lines.
+ *
+ * The item column takes whatever is left (`width: 100%` with `max-width: 0`,
+ * the one reliable way to make a table cell truncate), so a long collection
+ * name gives way with an ellipsis and nothing else in the row moves.
+ */
+
+.tr-scroll {
+  overflow-x: auto;
+  min-width: 0;
+}
+
+.tr-table {
+  width: 100%;
+  /* Below this it scrolls in its own box rather than crushing the columns. */
+  min-width: 17rem;
+  border-collapse: collapse;
+  font-size: var(--step--1);
+  font-variant-numeric: tabular-nums;
+}
+
+.tr-table th {
+  padding: 0 0.45rem 0.5rem;
+  border-bottom: 1px solid var(--line);
+  font-size: var(--step--2);
+  font-weight: 600;
+  color: var(--ink-3);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.tr-table td {
+  padding: 0.6rem 0.45rem;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+  vertical-align: top;
+  line-height: 1.3;
+}
+
+.tr-table tbody tr:last-child td {
+  border-bottom: 0;
+  padding-bottom: 0.2rem;
+}
+
+/* The table's edges sit on the panel's padding, not inside another gutter. */
+.tr-table :is(th, td):first-child {
+  padding-left: 0;
+}
+
+.tr-table :is(th, td):last-child {
+  padding-right: 0;
+}
+
+.tr-table .tr-num {
+  text-align: right;
+}
+
+/* The second line of any cell: smaller, quieter, directly under the first. */
+.tr-l2 {
+  display: block;
+  margin-top: 0.15rem;
+  font-size: var(--step--2);
+  font-weight: 400;
+  color: var(--ink-3);
+}
+
+/* ---------------------------------------------------------------- item */
+
+.tr-item {
+  width: 100%;
+  max-width: 0;
+}
+
+/* Trades: the event and the piece side by side on the first line. */
+.tr-l1 {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.tr-piece {
+  font-weight: 650;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.tr-piece:hover {
+  color: var(--accent);
+}
+
+/* A first line in a right-aligned column ends at the column's edge. */
+.tr-l1-end {
+  justify-content: flex-end;
+}
+
+/* Offers: the piece over its collection, one link. */
+.tr-stack {
+  display: block;
+  min-width: 0;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.tr-stack b {
+  font-weight: 650;
+}
+
+a.tr-stack:hover b {
+  color: var(--accent);
+}
+
+.tr-coll {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* --------------------------------------------------------------- price */
+
+.tr-price {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-weight: 650;
+  color: var(--ink);
+}
+
+/* In the trades' price column the logo says SOSO; the word would only widen
+   it. Trades only: an offer's currency is WSOSO, read from the order itself,
+   and naming it is how a counterfeit token is told from the real one. */
+.tr-trades .tr-price .soso-unit {
+  display: none;
+}
+
+/* ------------------------------------------------------------- parties */
+
+.tr-you {
+  font-weight: 650;
+  color: var(--ink);
+}
+
+.tr-addr {
+  color: var(--ink-2);
+  text-decoration: none;
+}
+
+.tr-addr:hover {
+  color: var(--accent);
+}
+
+/* From over to, both at the second line's size so an address fits the
+   column, and both in their own ink: they are facts, not captions. */
+.tr-parties {
+  font-size: var(--step--2);
+}
+
+.tr-parties .tr-l2 {
+  color: inherit;
+}
+
+/* ---------------------------------------------------------------- when */
+
+.tr-when {
+  color: var(--ink-3);
+  text-decoration: none;
+}
+
+/* Under the event's word, not under its dot: the dot's 6px and the gap. */
+.tr-trades td:first-child .tr-l2 {
+  padding-left: calc(6px + 0.42rem);
+}
+
+.tr-when:hover {
+  color: var(--ink);
+}
+
+/* The Withdraw button's column: as narrow as the button, and centred on the
+   two lines beside it rather than riding the first. */
+.tr-act {
+  width: 1%;
+  text-align: right;
+  vertical-align: middle !important;
+}
+
+.tr-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

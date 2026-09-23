@@ -4,8 +4,9 @@ import Link from "next/link";
 import { useMemo } from "react";
 import { useOrdersBy } from "@/hooks/useSeaportOrders";
 import { useSeaportTrade } from "@/hooks/useSeaportTrade";
+import { useAllCollections } from "@/hooks/useAllCollections";
 import type { SeaportOrder } from "@/hooks/useSeaportOrders";
-import { formatSoso } from "@/lib/format";
+import { formatSosoFixed, shortAddress } from "@/lib/format";
 import { whenExpires } from "@/components/Offers";
 import { Soso } from "@/components/Soso";
 import "@/styles/activity.css";
@@ -57,6 +58,13 @@ export function MyOffers({
     [offers],
   );
 
+  const { collections } = useAllCollections();
+  const nameFor = useMemo(() => {
+    const names = new Map<string, string>();
+    for (const c of collections) names.set(c.address.toLowerCase(), c.name);
+    return (a: string) => names.get(a.toLowerCase()) ?? shortAddress(a as `0x${string}`, 4);
+  }, [collections]);
+
   if (address === undefined) return null;
 
   if (offers.length === 0) {
@@ -73,25 +81,36 @@ export function MyOffers({
   const summary = (
     <>
       <Soso size={12} unit="WSOSO" markAt="unit">
-        {formatSoso(committed)}
+        {formatSosoFixed(committed)}
       </Soso>{" "}
       committed
     </>
   );
 
+  /* The same table as the trades beside it, so switching tabs changes the
+     rows and not the shape. The sentence that used to follow it explained
+     what "Withdraw" does; the button and the committed total say it. */
   const body = (
-    <>
-      <ul className="act-list">
-        {offers.map((o) => (
-          <OfferRow key={o.hash} order={o} />
-        ))}
-      </ul>
-
-      <p className="act-note">
-        Withdrawing frees the WSOSO behind a bid. Until then it stays in your wallet but
-        cannot be spent twice.
-      </p>
-    </>
+    <div className="tr-scroll">
+      <table className="tr-table">
+        <thead>
+          <tr>
+            <th scope="col">Item</th>
+            <th scope="col" className="tr-num">
+              Offer
+            </th>
+            <th scope="col">
+              <span className="tr-sr">Action</span>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {offers.map((o) => (
+            <OfferRow key={o.hash} order={o} name={nameFor(o.collection)} />
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 
   if (bare) {
@@ -121,41 +140,55 @@ export function MyOffers({
  * wallet can hold bids across several — a hook cannot be called in a loop, so
  * the loop calls a component instead.
  */
-function OfferRow({ order }: { order: SeaportOrder }) {
+function OfferRow({ order, name }: { order: SeaportOrder; name: string }) {
   const trade = useSeaportTrade(order.collection);
 
   /** A collection-wide bid names no token; it is an offer on any piece. */
   const piece =
     order.tokenId === undefined ? "Any piece" : `#${order.tokenId.toString()}`;
 
+  /* Two lines, the same shape as a trade row: the piece over its collection,
+     the amount over how long it has left. */
+  const item = (
+    <>
+      <b>{piece}</b>
+      <span className="tr-l2 tr-coll">{name}</span>
+    </>
+  );
+
   return (
-    <li className="act-row act-row-offer">
-      <span className="act-kind act-kind-flat">Offered</span>
+    <tr>
+      <td className="tr-item">
+        {order.tokenId === undefined ? (
+          <span className="tr-stack" title={name}>
+            {item}
+          </span>
+        ) : (
+          <Link className="tr-stack" href={`/token/${order.collection}/${order.tokenId}`} title={name}>
+            {item}
+          </Link>
+        )}
+      </td>
 
-      {order.tokenId === undefined ? (
-        <span className="act-token act-token-any">{piece}</span>
-      ) : (
-        <Link className="act-token" href={`/token/${order.collection}/${order.tokenId}`}>
-          {piece}
-        </Link>
-      )}
+      <td className="tr-num">
+        <span className="tr-price">
+          <Soso size={13} unit="WSOSO">
+            {formatSosoFixed(order.priceWei)}
+          </Soso>
+        </span>
+        <span className="tr-l2">{whenExpires(order.endTime)}</span>
+      </td>
 
-      <span className="act-price">
-        <Soso size={15} unit="WSOSO">
-          {formatSoso(order.priceWei)}
-        </Soso>
-      </span>
-
-      <span className="act-when">{whenExpires(order.endTime)}</span>
-
-      <button
-        type="button"
-        className="btn btn-sm act-withdraw"
-        disabled={trade.busy}
-        onClick={() => trade.cancelOrder(order)}
-      >
-        {trade.busy ? "Withdrawing…" : "Withdraw"}
-      </button>
-    </li>
+      <td className="tr-act">
+        <button
+          type="button"
+          className="btn btn-sm act-withdraw"
+          disabled={trade.busy}
+          onClick={() => trade.cancelOrder(order)}
+        >
+          {trade.busy ? "Withdrawing…" : "Withdraw"}
+        </button>
+      </td>
+    </tr>
   );
 }
