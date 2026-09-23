@@ -36,7 +36,20 @@ import "@/styles/activity.css";
  *
  * Renders nothing when there are no standing bids.
  */
-export function MyOffers({ address }: { address: `0x${string}` | undefined }) {
+export function MyOffers({
+  address,
+  bare = false,
+}: {
+  address: `0x${string}` | undefined;
+  /**
+   * Render only the list, for a panel that owns the frame and the title.
+   *
+   * Standalone, an empty list renders nothing — there is nothing to say and no
+   * reason to take up the column. Inside a switch it has to answer: the reader
+   * pressed "Offers" and is owed "you have none", not a blank.
+   */
+  bare?: boolean;
+}) {
   const { offers, isLoading } = useOrdersBy(address);
 
   const committed = useMemo(
@@ -45,21 +58,29 @@ export function MyOffers({ address }: { address: `0x${string}` | undefined }) {
   );
 
   if (address === undefined) return null;
-  if (isLoading && offers.length === 0) return null;
-  if (offers.length === 0) return null;
 
-  return (
-    <div className="act-panel act-panel-standalone">
-      <div className="act-head">
-        <p className="act-title">Your offers</p>
-        <span className="act-count">
-          <Soso size={12} unit="WSOSO">
-            {formatSoso(committed)}
-          </Soso>{" "}
-          committed
-        </span>
-      </div>
+  if (offers.length === 0) {
+    if (!bare) return null;
+    return (
+      <p className="act-note">
+        {isLoading
+          ? "Reading your offers from the chain…"
+          : "No standing offers. Anything you bid on shows here until it is taken, expires or you withdraw it."}
+      </p>
+    );
+  }
 
+  const summary = (
+    <>
+      <Soso size={12} unit="WSOSO" markAt="unit">
+        {formatSoso(committed)}
+      </Soso>{" "}
+      committed
+    </>
+  );
+
+  const body = (
+    <>
       <ul className="act-list">
         {offers.map((o) => (
           <OfferRow key={o.hash} order={o} />
@@ -70,6 +91,25 @@ export function MyOffers({ address }: { address: `0x${string}` | undefined }) {
         Withdrawing frees the WSOSO behind a bid. Until then it stays in your wallet but
         cannot be spent twice.
       </p>
+    </>
+  );
+
+  if (bare) {
+    return (
+      <>
+        <p className="act-summary">{summary}</p>
+        {body}
+      </>
+    );
+  }
+
+  return (
+    <div className="act-panel act-panel-standalone">
+      <div className="act-head">
+        <p className="act-title">Your offers</p>
+        <span className="act-count">{summary}</span>
+      </div>
+      {body}
     </div>
   );
 }

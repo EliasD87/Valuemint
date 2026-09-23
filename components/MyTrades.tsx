@@ -61,11 +61,14 @@ export function MyTrades({
   /** True on `/activity` itself: every row, and no link back to itself. */
   full = false,
   title = "Your trades",
+  bare = false,
 }: {
   address: `0x${string}` | undefined;
   limit?: number;
   full?: boolean;
   title?: string;
+  /** Render only the list, for a panel that owns the frame and the title. */
+  bare?: boolean;
 }) {
   const { rows, isLoading, logsUnavailable } = useActivity(undefined, undefined, {
     wallet: address,
@@ -99,17 +102,15 @@ export function MyTrades({
   const shown = full ? rows : rows.slice(0, limit);
   const settled = totals.bought + totals.sold;
 
-  return (
-    <div className="act-panel act-panel-standalone">
-      <div className="act-head">
-        <p className="act-title">{title}</p>
-        {settled > 0 ? (
-          <span className="act-count">
-            {totals.bought} bought &middot; {totals.sold} sold
-          </span>
-        ) : null}
-      </div>
+  const summary =
+    settled > 0 ? (
+      <>
+        {totals.bought} bought &middot; {totals.sold} sold
+      </>
+    ) : null;
 
+  const body = (
+    <>
       {isLoading && rows.length === 0 ? (
         <div className="act-list">
           {Array.from({ length: 3 }, (_, i) => (
@@ -138,7 +139,12 @@ export function MyTrades({
                 key={`${r.blockNumber}-${r.logIndex}-${r.kind}-${r.tokenId}`}
                 className="act-row"
               >
-                <span className={`act-kind act-kind-${tone}`}>{label}</span>
+                {/* A settled trade takes its side (in/out); everything else
+                    takes its own kind, so Listed, Offered and Cancelled each
+                    get their own dot rather than sharing one "flat" grey. */}
+                <span className={`act-kind act-kind-${r.kind === "sale" ? tone : r.kind}`}>
+                  {label}
+                </span>
 
                 <Link className="act-token" href={`/token/${r.collection}/${r.tokenId}`}>
                   #{r.tokenId.toString()}
@@ -193,6 +199,33 @@ export function MyTrades({
           See all {rows.length} events &rarr;
         </Link>
       ) : null}
+    </>
+  );
+
+  /**
+   * Inside somebody else's panel: no frame and no title of its own.
+   *
+   * The portfolio shows this and the standing offers in ONE panel with a switch
+   * between them, and a panel inside a panel is the card-in-a-card the tables
+   * on this site were being rebuilt to get rid of. The summary still shows,
+   * because it is the one figure this view has that the other does not.
+   */
+  if (bare) {
+    return (
+      <>
+        {summary === null ? null : <p className="act-summary">{summary}</p>}
+        {body}
+      </>
+    );
+  }
+
+  return (
+    <div className="act-panel act-panel-standalone">
+      <div className="act-head">
+        <p className="act-title">{title}</p>
+        {summary === null ? null : <span className="act-count">{summary}</span>}
+      </div>
+      {body}
     </div>
   );
 }

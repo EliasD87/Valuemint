@@ -73,19 +73,29 @@
 
 /* --------------------------------------------------------------- the list */
 
-/* Hairlines drawn by the gap rather than per-row borders: one rule, no
-   last-child exception, and the ends stay inside the rounded corner. */
+/*
+ * ONE surface, not three.
+ *
+ * This list used to be a second bordered, rounded box inside the panel's own
+ * card, with every row painting a third surface of its own — and the notes
+ * below it a fourth. Cards inside cards inside cards: each border said "this is
+ * a separate object" about something that was not, and the panel spent its
+ * width on frames. Reported as the tables across the site looking like cards in
+ * cards, which is exactly what they were.
+ *
+ * The panel is the only surface now. The list is just rows, and a hairline
+ * between each pair is the only line in it.
+ */
 .act-list {
   list-style: none;
   margin: 0;
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 1px;
-  background: var(--line);
-  border: 1px solid var(--line);
-  border-radius: var(--r-sm);
-  overflow: hidden;
+}
+
+.act-list > * + * {
+  border-top: 1px solid var(--line);
 }
 
 /*
@@ -110,8 +120,10 @@
   grid-template-columns: 5.25rem minmax(2.5rem, auto) minmax(2.5rem, auto) minmax(0, 1fr) auto;
   align-items: center;
   gap: 0.65rem;
-  padding: 0.55rem 0.8rem;
-  background: var(--surface);
+  /* No side padding: the rows sit on the panel's own content edge, so the
+     first column lines up with the title above it instead of being indented
+     inside a frame that is no longer there. */
+  padding: 0.62rem 0;
   font-size: var(--step--1);
 }
 
@@ -125,52 +137,77 @@
   grid-template-columns: 5.25rem minmax(2.5rem, auto) minmax(0, 1fr) auto;
 }
 
-/* The verb, as a badge. Sales are what people scan for, so they get the only
-   saturated treatment; intentions and withdrawals stay quiet. */
+/*
+ * The verb, as a word with a dot — not a badge.
+ *
+ * These were uppercase pills on tinted fills: SOLD, LISTED, OFFERED,
+ * CANCELLED, a filled box on every row of every table. Ten rows was ten little
+ * buttons down the left edge, none of them pressable, all of them louder than
+ * the price beside them — which is the thing a reader came to compare. The
+ * word is now set as a word, in sentence case, and the colour moved into a 6px
+ * dot: the same device the market's filter row uses for a tier, so the site
+ * has one way of saying "this is a kind of thing" rather than two.
+ *
+ * The dots encode the event, not a judgement of it:
+ *
+ *   ● settled    a trade happened — sold, bought, a sale in the history
+ *   ● listed     an ask went on the book
+ *   ● offered    a bid went on the book
+ *   ○ cancelled  hollow, because it is the one row where nothing happened
+ *
+ * Sold and bought share the settled dot on purpose. It used to be green for
+ * money in and red for money out, and red reads as a loss — which a purchase is
+ * not. The word already says which side you were on.
+ */
 .act-kind {
-  font-size: var(--step--3);
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  text-align: center;
-  padding: 0.14rem 0.4rem;
-  border-radius: var(--r-sm);
-  color: var(--ink-3);
-  background: var(--surface-2);
-}
-
-.act-kind-sale {
-  color: var(--up);
-  background: var(--up-wash);
-}
-
-.act-kind-listed {
-  color: var(--accent);
-  background: var(--accent-wash);
-}
-
-.act-kind-offer {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.42rem;
+  font-size: var(--step--2);
+  font-weight: 550;
   color: var(--ink-2);
-  background: var(--paper-3);
+  white-space: nowrap;
 }
 
-/* A withdrawn listing is the one row that says nothing happened, so it is the
-   one row that recedes. */
+.act-kind::before {
+  content: "";
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ink-3);
+}
+
+/* Settled trades are what people scan a history for, so their word is the one
+   set in full ink. */
+.act-kind-sale,
+.act-kind-in,
+.act-kind-out {
+  color: var(--ink);
+}
+
+.act-kind-sale::before,
+.act-kind-in::before,
+.act-kind-out::before {
+  background: var(--up);
+}
+
+.act-kind-listed::before {
+  background: var(--accent);
+}
+
+.act-kind-offer::before,
+.act-kind-flat::before {
+  background: var(--ink-2);
+}
+
 .act-kind-cancelled {
   color: var(--ink-3);
+}
+
+.act-kind-cancelled::before {
   background: transparent;
-  box-shadow: inset 0 0 0 1px var(--line);
-}
-
-/* Money in and money out, not good and bad — a purchase is not a loss. */
-.act-kind-in {
-  color: var(--up);
-  background: var(--up-wash);
-}
-
-.act-kind-out {
-  color: var(--down);
-  background: color-mix(in srgb, var(--down) 12%, transparent);
+  box-shadow: inset 0 0 0 1.5px var(--ink-3);
 }
 
 .act-token {
@@ -235,13 +272,12 @@
   border-radius: 0;
 }
 
+/* Plain text. This was a filled box inside the panel — one more card in a card
+   — around what is a single sentence. */
 .act-note {
   font-size: var(--step--2);
   line-height: 1.55;
-  color: var(--ink-2);
-  background: var(--surface-2);
-  border-radius: var(--r-sm);
-  padding: 0.7rem 0.8rem;
+  color: var(--ink-3);
   margin: 0;
 }
 
@@ -318,7 +354,7 @@
        elastic on the right so the price and the counterparty absorb the rest. */
     grid-template-columns: auto auto minmax(0, 1fr);
     gap: 0.15rem 0.5rem;
-    padding: 0.5rem 0.7rem;
+    padding: 0.55rem 0;
   }
 
   /* A token's own page repeats "#67" on every row, so that column still goes. */
@@ -389,28 +425,16 @@
 .act-gone {
   display: inline-flex;
   align-items: center;
-  /*
-    The gap and the side padding come down together to pay for the glyph. It
-    adds about 13px, and the whole point of the last pass was that this mark
-    must not out-measure the LISTED badge it annotates.
-  */
   gap: 0.18rem;
-  padding: 0.08rem 0.26rem;
-  border-radius: var(--r-sm);
-  background: var(--danger-wash);
-  color: var(--danger);
   /*
-    Below `--step--3`, which is the smallest step the scale has — and that step
-    is already spoken for by `.act-kind`, the badge this one annotates.
-    Measured in the panel at its real width of 336px, BURNED came out 61px
-    against LISTED's 59: the note on the event was wider than the event. Ten
-    pixels with tighter padding and tracking puts it back under the label,
-    which is where it belongs in the reading order.
+    A word in the danger colour, not a filled box. It was an uppercase pill on
+    a red wash — the loudest mark in the table, beside a price it was only
+    annotating. The colour alone says "this ended badly"; the box was saying it
+    a second time.
   */
-  font-size: 0.625rem;
+  color: var(--danger);
+  font-size: var(--step--3);
   font-weight: 600;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
   white-space: nowrap;
   /* The figure beside it may clip on a narrow row; this must not. A price that
      loses a digit is still readable as a price — a mark that loses its letters
@@ -475,4 +499,88 @@
     grid-column: 2 / -1;
     justify-self: end;
   }
+}
+
+/* =============================================================== the switch
+ *
+ * A segmented control in a panel's heading: two or three views of one thing,
+ * one showing at a time. Used by the portfolio to put trades and standing
+ * offers in one panel rather than two stacked ones.
+ *
+ * The track is a well (`--surface-2`, the token this file's rules reserve for
+ * something nested in a card), and the chosen segment is lifted back to the
+ * panel's own `--surface` with a hairline — so it reads as the one pressed
+ * down, not as a coloured chip competing with the rows underneath.
+ * ======================================================================== */
+
+.act-switch {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: var(--r-pill);
+  background: var(--surface-2);
+}
+
+.act-switch [role="tab"] {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.34rem 0.85rem;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: transparent;
+  color: var(--ink-3);
+  font: inherit;
+  font-size: var(--step--1);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.act-switch [role="tab"]:hover {
+  color: var(--ink);
+}
+
+.act-switch [role="tab"][aria-selected="true"] {
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow:
+    0 0 0 1px var(--line),
+    0 1px 2px rgb(0 0 0 / 0.08);
+}
+
+.act-switch [role="tab"]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/*
+ * The count on a tab: a figure, not a badge, and in INK rather than the accent.
+ *
+ * It was `--accent` and measured 2.89:1 on the light track — the orange is too
+ * pale to carry small text on a pale ground, and there is no darker accent for
+ * text (`--accent-ink` is the near-black that goes ON the accent). Weight does
+ * the job instead: the only bold figure in the switch is the one worth seeing.
+ */
+.act-switch em {
+  font-style: normal;
+  font-size: var(--step--2);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
+.act-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  min-width: 0;
+}
+
+/* The one figure a view has that the other does not — "3 bought · 10 sold",
+   or the WSOSO a wallet has committed. A line under the switch, not a box. */
+.act-summary {
+  margin: 0;
+  font-size: var(--step--2);
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
 }

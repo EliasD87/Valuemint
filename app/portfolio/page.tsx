@@ -9,8 +9,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useHoldings } from "@/hooks/useHoldings";
 import type { ChainToken } from "@/hooks/useEverything";
 import { OfferInbox } from "@/components/OfferInbox";
-import { MyTrades } from "@/components/MyTrades";
-import { MyOffers } from "@/components/MyOffers";
+import { PortfolioActivity } from "@/components/PortfolioActivity";
 import { BulkList } from "@/components/BulkList";
 import { TokenCard, TokenCardSkeleton } from "@/components/TokenCard";
 import { useGridColumns } from "@/hooks/useGridColumns";
@@ -229,13 +228,9 @@ export default function Portfolio() {
             activity scan is global and already running for the market, so this
             is the same rows filtered to one address. */}
         <aside className="pf-side">
-          {/*
-            Above the history, because these can still be acted on and those
-            cannot. It renders nothing when no bid is standing, so a wallet
-            that has never offered sees the column exactly as before.
-          */}
-          <MyOffers address={address} />
-          <MyTrades address={address} />
+          {/* Trades and standing offers in one panel with a switch, rather than
+              two stacked ones. See `PortfolioActivity`. */}
+          <PortfolioActivity address={address} />
         </aside>
       </div>
     </section>

@@ -55,15 +55,13 @@
  * A bridge, a vault or an escrow can hold more than anybody and it would be
  * misleading to draw it identically to a person who bought them.
  */
+/* A quiet word after the address, not a bordered uppercase tag — the same
+   reason the activity labels lost their pills. It qualifies the name; it is not
+   a second name beside it. */
 .th-tag {
   flex: none;
-  padding: 0.05rem 0.35rem;
-  border: 1px solid var(--line);
-  border-radius: var(--r-sm);
   font-size: var(--step--3);
   color: var(--ink-3);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
 }
 
 /*
