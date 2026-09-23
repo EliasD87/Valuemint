@@ -222,11 +222,10 @@
  * here before.
  */
 .offers-approve-note {
-  margin: 0;
+  /* Plain text, not a filled box inside the panel — a sentence does not need a
+     frame to be read, and a box around it inside a card is one more card. */
+  margin: 0 0 0.6rem;
   font-size: var(--step--2);
   line-height: 1.55;
   color: var(--ink-2);
-  background: var(--surface-2);
-  border-radius: var(--r-sm);
-  padding: 0.7rem 0.8rem;
 }

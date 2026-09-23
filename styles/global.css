@@ -1200,15 +1200,49 @@ textarea {
   margin-bottom: 0;
 }
 
+/*
+ * A line of text, not a row of pills.
+ *
+ * Each floor was a bordered pill holding a SECOND pill — the tier, coloured and
+ * in capitals — so the row read as a set of controls beside the real ones
+ * above it, none of them pressable. It is the pressed collection chip's second
+ * line, and it is information, so it is set as a run of entries separated by
+ * space, each led by the tier's dot.
+ */
 .tier-floor {
   display: inline-flex;
-  align-items: center;
+  align-items: baseline;
   gap: 0.45rem;
-  padding: 0.35rem 0.6rem 0.35rem 0.4rem;
-  border: 1px solid var(--line);
-  border-radius: var(--r-pill);
-  background: var(--surface);
 }
+
+.tier-floors {
+  column-gap: 1.4rem;
+}
+
+.tier-floor-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: var(--step--2);
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.tier-floor-name::before {
+  content: "";
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--ink-3);
+}
+
+.tier-dot-common::before { background: var(--common); }
+.tier-dot-uncommon::before { background: var(--uncommon); }
+.tier-dot-rare::before { background: var(--rare); }
+.tier-dot-superrare::before { background: var(--superrare); }
+.tier-dot-epic::before { background: var(--epic); }
+.tier-dot-legendary::before { background: var(--legendary); }
 
 .tier-floor-price {
   font-size: var(--step--2);

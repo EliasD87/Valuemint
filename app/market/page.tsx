@@ -304,7 +304,13 @@ export default function Market() {
         <div className="tier-floors">
           {tierFloors.map((t) => (
             <span key={t.tier} className="tier-floor">
-              <b className={`chip chip-${t.tier.toLowerCase()}`}>{t.tier}</b>
+              {/* The tier as a dot and a word — the same device as the chips
+                  above, where this row used to nest a coloured uppercase chip
+                  inside a bordered pill. `tierClass` so "Super Rare" and
+                  "SuperRare" find the same colour. */}
+              <span className={`tier-floor-name tier-dot-${tierClass(t.tier) ?? "none"}`}>
+                {t.tier}
+              </span>
               <span className="tier-floor-price">
                 from {formatSoso(t.price)} SOSO
               </span>
