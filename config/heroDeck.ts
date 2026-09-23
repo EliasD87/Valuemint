@@ -36,11 +36,13 @@
  * makes them the best answer this page has to "why would I come here", which
  * is the hero's whole job.
  *
- * The four boxes are a rarity ladder and keep that order outward from the
- * centre - common and uncommon on the left, rare and super rare on the right -
- * so the fan still reads left to right the way the tiers do. The Cybereator
- * takes the middle slot, which is the front of the fan, because it is the only
- * animated card and the other four are stills of the same object.
+ * The fan used to be four tiers of one box collection around the Cybereator,
+ * which meant four of five cards led to the same page. The two boxes that
+ * remain sit either side of the centre and keep their order; the outermost
+ * card on each side is ValueChain Genesis, so the deck now shows three
+ * collections rather than one contract four times. The Cybereator keeps the
+ * middle slot, which is the front of the fan, because it is the only animated
+ * card.
  */
 
 export interface HeroCard {
@@ -91,8 +93,8 @@ export interface HeroCard {
  * — and Cybereator is live too, so five pictures of things people can actually
  * open were the one part of the front page that went nowhere.
  *
- * The four boxes all point at the same collection, which is right: they are
- * four tiers of one contract, not four collections.
+ * The two boxes point at the same collection, which is right: they are two
+ * tiers of one contract, not two collections.
  */
 /*
   The real boxes, not the test ones.
@@ -113,14 +115,31 @@ export interface HeroCard {
 */
 const TREASURE_BOX = "0x371c4F7F68bE3e558b89cC1f0fB113851C76E750" as const;
 const CYBEREATOR = "0xCD30D4bCaa99E556B70A2C4bDFC4050D26E48D30" as const;
+/* Verified before linking, the way the box address above was: `name()` on this
+   contract answers "ValueChain Genesis". */
+const GENESIS = "0x5Fadc59297e86aceA20Bff519aea0f9651Cdc90B" as const;
 
 export const HERO_DECK: HeroCard[] = [
+  /*
+    The two ends of the fan are a second collection, not two more tiers of the
+    first.
+
+    Four of the five cards pointed at `TREASURE_BOX`, so a deck whose job is to
+    say "here is what this marketplace holds" said one thing four times and
+    sent every click to the same page. The outermost card on each side now
+    carries different artwork and goes somewhere else, which is also the pair
+    of slots where it costs least: the fan tilts them furthest and clips them
+    most, so the two cards seen least completely are the two that are no longer
+    the same object as their neighbours.
+
+    Both are ValueChain Genesis, so both link there. Two cards from one
+    collection is the same arrangement the boxes have either side of the
+    centre — a deck of five slots showing three collections rather than one.
+  */
   {
-    name: "Common box",
-    address: TREASURE_BOX,
-    image: "/boxes/common.webp",
-    caption: "Treasure Box",
-    brand: "sodex",
+    name: "ValueChain Genesis",
+    address: GENESIS,
+    image: "/hero/genesis-red.webp",
   },
   {
     name: "Uncommon box",
@@ -135,15 +154,13 @@ export const HERO_DECK: HeroCard[] = [
      *
      * `axis` is `(deck.length - 1) / 2`, so on five cards index 2 sits at slot
      * 0: no tilt, no offset, on top of the other four. It is the one card
-     * anybody looks at first, and it is the only animated one - the other four
-     * are stills of the same object in four materials and would waste the
-     * position.
+     * anybody looks at first, and it is the only animated one.
      *
-     * Animated, and the only card here that is. Converted from the 1,053 KB
-     * source GIF to a 324 KB animated WebP - all 33 frames, a 69% saving. It is
-     * still the heaviest thing in the deck by far (the next is 55 KB), which
-     * matters because every card is above the fold and fetched at high
-     * priority. Worth it for the front card; do not add a second.
+     * Converted from the 1,053 KB source GIF to a 324 KB animated WebP - all
+     * 33 frames, a 69% saving. It is still the heaviest thing in the deck by
+     * far (the next is 41 KB), which matters because every card is above the
+     * fold and fetched at high priority. Worth it for the front card; do not
+     * add a second.
      */
     name: "Cybereator",
     address: CYBEREATOR,
@@ -158,10 +175,8 @@ export const HERO_DECK: HeroCard[] = [
     brand: "sodex",
   },
   {
-    name: "Super rare box",
-    address: TREASURE_BOX,
-    image: "/boxes/superrare.webp",
-    caption: "Treasure Box",
-    brand: "sodex",
+    name: "ValueChain Genesis",
+    address: GENESIS,
+    image: "/hero/genesis-mono.webp",
   },
 ];
