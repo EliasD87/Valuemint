@@ -41,6 +41,22 @@ export interface HeroArt {
   background: string;
 
   /**
+   * Where the band's crop sits in the background, as CSS `object-position` —
+   * `"center 10%"` keeps the top of the picture and gives up the bottom.
+   *
+   * Optional, and centred when left out. The band is ~5:1 on a desktop, so a
+   * banner drawn at ~2.7:1 loses nearly half its height, and centred it loses
+   * the top quarter and the bottom quarter. That is right for art composed
+   * around its middle (the boxes, Genesis) and wrong for art that puts its
+   * title in the top band — which is exactly where a banner usually puts it.
+   * Set this from a rendered crop, not a guess: see the Larpers entry.
+   *
+   * It only moves the crop vertically. `cover` scales a band this wide by its
+   * WIDTH, so there is no horizontal slack to position.
+   */
+  position?: string;
+
+  /**
    * A cutout with transparency, standing on the band's floor at the right.
    *
    * Optional. Where a collection has only a background this is omitted and the
@@ -100,6 +116,25 @@ export const COLLECTION_HEROES: Record<string, HeroArt> = {
   */
   "0x5fadc59297e86acea20bff519aea0f9651cdc90b": {
     background: "/heroes/genesis.webp",
+  },
+
+  /*
+    SoDex Larpers — supplied by the owner, 2026-09-23. A composed banner like
+    the boxes, so no foreground.
+
+    2056x765 PNG (2.2 MB) re-encoded to 1600 wide as WebP: 135 KB.
+
+    CROPPED AT 10%, NOT CENTRED, and that was measured rather than chosen. The
+    art is ~2.7:1 and the desktop band ~4.9:1, so the band shows about 55% of
+    its height. Centred, that window is rows 133-462 of 595 — and the "SoDEX"
+    half of the wordmark sits above row 133, so the band showed "LARPERS" under
+    the sheared-off feet of the letters above it. At 10% the window is rows
+    26-355: the whole wordmark and its crown, the helicopter, and the
+    character's face. Both crops were rendered and looked at before choosing.
+  */
+  "0x0273df41b56e3480886fe8f0451349bec0f8edf6": {
+    background: "/heroes/larpers.webp",
+    position: "center 10%",
   },
 
   /** TestCybereator — the same artwork, from the same two files. */

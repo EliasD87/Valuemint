@@ -64,7 +64,16 @@ export function CollectionHero({
         {hero !== undefined ? (
           <>
             {/* eslint-disable-next-line @next/next/no-img-element -- local, pre-sized, fills a fixed box */}
-            <img className="ch-bg" src={hero.background} alt="" aria-hidden="true" decoding="async" />
+            <img
+              className="ch-bg"
+              src={hero.background}
+              alt=""
+              aria-hidden="true"
+              decoding="async"
+              /* Per-banner crop, where the art needs one — see `position` in
+                 config/heroes.ts. Absent, the stylesheet's centre applies. */
+              {...(hero.position === undefined ? {} : { style: { objectPosition: hero.position } })}
+            />
             {hero.foreground === undefined ? null : (
               /*
                 Named rather than hidden, unlike the background.
