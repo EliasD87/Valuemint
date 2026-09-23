@@ -137,6 +137,48 @@ export const COLLECTION_HEROES: Record<string, HeroArt> = {
     position: "center 10%",
   },
 
+  /*
+    The Oracle, Hypno Plush and Orange Companions — supplied by the owner,
+    2026-09-23, all ~2056x765 composed banners re-encoded to 1600 wide as WebP.
+
+    Each crop was chosen by rendering the band at its real desktop size across
+    several positions and looking at them, for the reason in the Larpers entry:
+    the band shows ~55% of the picture's height, and centred it cut something
+    that mattered in all three.
+
+    The Oracle, 15%. Centred cut the bust off at the eyes — the laurel and the
+    top of the head gone. 15% keeps the whole head with the wordmark sitting at
+    mid-height; 5% was more sky than statue.
+  */
+  "0xc486e7aa1c971a61c2a9c6b8ccf671acb0ffd064": {
+    background: "/heroes/the-oracle.webp",
+    position: "center 15%",
+  },
+
+  /*
+    Hypno Plush, 30%. Centred kept the wordmark but clipped the big bear's ears
+    at the top edge; 30% has the whole head, its swirl eyes and the full
+    "HYPNO PLUSH" with the spiral beside it.
+  */
+  "0x01c28095bfffc9973da4c4e8a34e9d5b6649c988": {
+    background: "/heroes/hypno-plush.webp",
+    position: "center 30%",
+  },
+
+  /*
+    Orange Companions, 22%, and this one has the least room. Centred sliced
+    "ORANGE" through the middle, exactly as it did the Larpers wordmark. 15%
+    kept the title but dropped the characters' faces off the bottom; 30%
+    clipped the top of the title again. 22% is the setting with a margin above
+    the letters AND every face below them — the title and the characters are
+    close to the band's full height between them, so there is not much slack
+    either way.
+  */
+  "0xfe7b74f5dbaeea6a0ef0385f572d60083fefe0c0": {
+    background: "/heroes/orange-companions.webp",
+    position: "center 22%",
+  },
+
   /** TestCybereator — the same artwork, from the same two files. */
   "0x412d8af16b7ff3fe75e1cd380bd86ef33dd8ad0f": {
     background: "/heroes/cybereator-bg.webp",
