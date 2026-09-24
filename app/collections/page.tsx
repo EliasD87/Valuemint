@@ -181,10 +181,13 @@ export default function Collections() {
                         ? ` / ${formatCount(s.maxSupply)}`
                         : ""),
                   },
-                  {
-                    label: "Mint price",
-                    value: s.mintPrice === undefined ? "—" : `${formatSoso(s.mintPrice)} SOSO`,
-                  },
+                  /* Only where there is one. A collection minted elsewhere
+                     has no price this marketplace can read, and a column of
+                     dashes under "Mint price" said nothing on every card
+                     that had it. The row closes up around the gap. */
+                  ...(s.mintPrice === undefined
+                    ? []
+                    : [{ label: "Mint price", value: `${formatSoso(s.mintPrice)} SOSO` }]),
                   {
                     label: "Floor",
                     /**
