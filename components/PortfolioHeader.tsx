@@ -113,7 +113,7 @@ export function PortfolioHeader({
             bidder needs to see how much of it they have. */}
         {wsoso > 0n ? (
           <p className="ph-wrapped">
-            + <Soso size={12} markAt="unit" unit="WSOSO">{formatSosoFixed(wsoso)}</Soso>
+            + <Soso size={12} unit="WSOSO">{formatSosoFixed(wsoso)}</Soso>
           </p>
         ) : null}
         {/* Only while the balance reads 0.00: the question an empty wallet
@@ -151,7 +151,7 @@ export function PortfolioHeader({
             {nfts === undefined ? (
               <span className="skeleton ph-fig-wait" />
             ) : (
-              <Soso size={13} markAt="unit">
+              <Soso size={13}>
                 {formatSosoFixed(nfts.total)}
               </Soso>
             )}

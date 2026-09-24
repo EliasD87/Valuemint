@@ -80,7 +80,7 @@ export function MyOffers({
 
   const summary = (
     <>
-      <Soso size={12} unit="WSOSO" markAt="unit">
+      <Soso size={12} unit="WSOSO">
         {formatSosoFixed(committed)}
       </Soso>{" "}
       committed
