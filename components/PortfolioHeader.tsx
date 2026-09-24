@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { WalletMark } from "@/components/WalletMark";
 import { Soso, SosoMark } from "@/components/Soso";
+import { WhereIsMySoso } from "@/components/SosoHelp";
 import { useSosoPrice } from "@/hooks/useSosoPrice";
 import { useWsoso } from "@/hooks/useWsoso";
 import { deployment } from "@/config/contracts";
@@ -115,6 +116,9 @@ export function PortfolioHeader({
             + <Soso size={12} markAt="unit" unit="WSOSO">{formatSosoFixed(wsoso)}</Soso>
           </p>
         ) : null}
+        {/* Only while the balance reads 0.00: the question an empty wallet
+            raises, answered where it is raised. */}
+        <WhereIsMySoso balance={balance} />
       </div>
 
       {/* A label and a figure each, nothing under them. The detail that used

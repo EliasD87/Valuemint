@@ -547,6 +547,59 @@
   color: var(--accent);
 }
 
+/*
+ * "Where is my SOSO?" — a small pill beside an empty balance.
+ *
+ * In the accent's wash so it reads as help being offered, not as an error:
+ * an empty wallet is where everybody starts. Ink on the wash is the page's
+ * own text pair in both themes.
+ */
+.soso-help {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  width: fit-content;
+  min-height: 26px;
+  padding: 0.2rem 0.65rem 0.2rem 0.45rem;
+  border: 1px solid var(--accent-line);
+  border-radius: var(--r-pill);
+  background: var(--accent-wash);
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--step--2);
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    border-color var(--fast),
+    background var(--fast);
+}
+
+.soso-help svg {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  color: var(--accent);
+}
+
+.soso-help:hover {
+  border-color: var(--accent);
+}
+
+.soso-help:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* The caveat under the steps, a step quieter than them. */
+.soso-help-note {
+  margin: 0.9rem 0 0;
+  font-size: var(--step--1);
+  line-height: 1.6;
+  color: var(--ink-3);
+}
+
 /* The panel's way to the numbered version of a step it can only summarise. */
 .gd-howto-link {
   display: inline-block;

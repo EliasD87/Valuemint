@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { GUIDE_STEPS } from "@/config/guide";
 import { GuideArt } from "@/components/GuideArt";
+import { GuideHowTo } from "@/components/GuideHowTo";
 import { deployment } from "@/config/contracts";
 import "@/styles/guide.css";
 
@@ -75,26 +76,7 @@ export default function GuidePage() {
               <p className="guide-n">Step {i + 1}</p>
               <h3>{s.title}</h3>
               <p className="guide-lead">{s.body}</p>
-              {/* Numbered, because it happens on another site: someone
-                  following it has that tab open and needs to find their place
-                  again on coming back to this one. */}
-              {s.howTo === undefined ? null : (
-                <ol className="guide-howto">
-                  {s.howTo.map((a) => (
-                    <li key={a.text}>
-                      {a.text}
-                      {a.link === undefined ? null : (
-                        <>
-                          {" "}
-                          <a href={a.link.href} target="_blank" rel="noreferrer noopener">
-                            {a.link.label}&nbsp;&#8599;
-                          </a>
-                        </>
-                      )}
-                    </li>
-                  ))}
-                </ol>
-              )}
+              {s.howTo === undefined ? null : <GuideHowTo actions={s.howTo} />}
               {s.more === undefined ? null : <p className="guide-more">{s.more}</p>}
               {s.clip === undefined ? null : (
                 <video

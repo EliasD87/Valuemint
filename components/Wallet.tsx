@@ -41,6 +41,7 @@ function WalletGlyph({ size }: { size: number }) {
 }
 import { WalletPicker } from "./WalletPicker";
 import { WrappedBalance } from "@/components/WrappedBalance";
+import { WhereIsMySoso } from "@/components/SosoHelp";
 import "./Wallet.css";
 import { Soso } from "@/components/Soso";
 
@@ -244,6 +245,10 @@ export function Wallet() {
                 <Soso size={13}>{formatSoso(balance?.value)}</Soso>
               </span>
             </div>
+
+            {/* Nothing unless the balance is empty; then, the way to fill it.
+                Its dialog portals to the body, clear of this menu. */}
+            <WhereIsMySoso balance={balance?.value} />
 
             {/*
               Wrapped SOSO, and the way back out of it — but only for somebody
