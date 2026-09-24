@@ -65,6 +65,17 @@ export function formatSosoFixed(wei: bigint | undefined, decimals = 2): string {
   return asNumber.toFixed(decimals);
 }
 
+/**
+ * SOSO as a whole number with separators ("3,694"), for headline totals where
+ * the fraction is noise. A non-zero amount under one still says "<1", not "0".
+ */
+export function formatSosoWhole(wei: bigint | undefined): string {
+  if (wei === undefined) return "—";
+  const asNumber = Number(formatEther(wei));
+  if (asNumber > 0 && asNumber < 0.5) return "<1";
+  return Math.round(asNumber).toLocaleString("en-US");
+}
+
 export function formatSosoWithSymbol(wei: bigint | undefined, maxDecimals = 4): string {
   return `${formatSoso(wei, maxDecimals)} SOSO`;
 }

@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { useCollectionStats } from "@/hooks/useCollectionStats";
 import { Soso } from "@/components/Soso";
 import { PriceChange } from "@/components/PriceChange";
-import { formatSoso, formatCount } from "@/lib/format";
+import { formatSoso, formatSosoWhole, formatCount } from "@/lib/format";
 import "./CollectionStats.css";
 
 /**
@@ -125,11 +125,11 @@ export function CollectionStats({
           for, in a strip whose job is six figures read at a glance.
         */}
         <Cell label="24h volume">
-          {s.unavailable ? <Dash /> : <Soso size={15}>{formatSoso(s.volumeDayWei)}</Soso>}
+          {s.unavailable ? <Dash /> : <Soso size={15}>{formatSosoWhole(s.volumeDayWei)}</Soso>}
         </Cell>
 
         <Cell label="Total volume">
-          {s.unavailable ? <Dash /> : <Soso size={15}>{formatSoso(s.volumeTotalWei)}</Soso>}
+          {s.unavailable ? <Dash /> : <Soso size={15}>{formatSosoWhole(s.volumeTotalWei)}</Soso>}
         </Cell>
       </dl>
 
