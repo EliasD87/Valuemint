@@ -4,6 +4,7 @@ import Link from "next/link";
 import { coverFor } from "@/config/covers";
 import { heroFor } from "@/config/heroes";
 import { wordmarkFor } from "@/config/wordmarks";
+import { xAccountFor } from "@/config/socials";
 import { Wordmark } from "@/components/Wordmark";
 import { ShareLink } from "@/components/ShareLink";
 import { VerifiedMark } from "@/components/VerifiedMark";
@@ -48,6 +49,7 @@ export function CollectionHero({
   const hero = heroFor(address);
   const covers = coverFor(address);
   const mark = wordmarkFor(address);
+  const x = xAccountFor(address);
 
   /**
    * The avatar is the collection's own thumbnail, never the banner.
@@ -205,6 +207,23 @@ export function CollectionHero({
             >
               {shortAddress(address, 4)}
             </a>
+            {x === undefined ? null : (
+              <a
+                className="ch-chip ch-chip-link ch-chip-icon"
+                href={x.url}
+                target="_blank"
+                rel="noreferrer noopener"
+                aria-label={`${name ?? "This collection"} on X (@${x.handle})`}
+                title={`@${x.handle} on X`}
+              >
+                <svg viewBox="0 0 24 24" width="12" height="12" aria-hidden="true" focusable="false">
+                  <path
+                    fill="currentColor"
+                    d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"
+                  />
+                </svg>
+              </a>
+            )}
           </div>
         </div>
       </div>

@@ -285,6 +285,12 @@
   border-color: var(--line-strong);
 }
 
+/* The X mark: square, and as tall as the text chips beside it. */
+.ch-chip-icon {
+  align-self: stretch;
+  padding: 0 0.4rem;
+}
+
 /*
  * Name left, actions right, on one line, below the band.
  *
