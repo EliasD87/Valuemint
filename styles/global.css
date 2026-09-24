@@ -1215,27 +1215,34 @@ textarea {
   opacity: 0.72;
 }
 
+/* The hexagon is its own ground: no disc, no ring. It fills the box — the
+   drawings are cropped to the hexagon, so at 12-16px every pixel is logo. */
 .soso-mark {
   flex: 0 0 auto;
   display: inline-grid;
   place-items: center;
   width: var(--mark, 16px);
   height: var(--mark, 16px);
-  border-radius: 50%;
-  /* Absolute, not a token. This is the mark's ground and must not flip with
-     the theme; the ring is what stops it dissolving into a white card. */
-  background: #ffffff;
-  box-shadow: inset 0 0 0 1px rgba(15, 15, 20, 0.12);
-  overflow: hidden;
 }
 
-/* 84%, not the ~70% a token chip usually gets. The mark is an isometric cube
-   with a cut-out counter, and below about 13 rendered pixels it stops being a
-   logo and becomes a smudge - measured at 10px, where it was unreadable. */
 .soso-mark img {
-  width: 84%;
-  height: 84%;
+  width: 100%;
+  height: 100%;
   object-fit: contain;
+  display: block;
+}
+
+/* One drawing per theme: the dark hexagon on the light page, the white one
+   on the dark. The site is light unless the root says otherwise. */
+.soso-mark .is-dark {
+  display: none;
+}
+
+:root[data-theme="dark"] .soso-mark .is-light {
+  display: none;
+}
+
+:root[data-theme="dark"] .soso-mark .is-dark {
   display: block;
 }
 

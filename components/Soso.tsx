@@ -1,20 +1,21 @@
 /**
  * The SOSO mark, for anywhere a figure is denominated in the chain's currency.
  *
- * The asset is SoSoValue's own logo, black-on-transparent. That matters: drawn
- * bare it is invisible on a dark surface, and every price on this site appears
- * on `--surface`, which is near-black in the dark theme. Recolouring is not an
- * option either — it is someone else's mark, and `filter: invert()` would take
- * the orange face to cyan.
+ * Two drawings of the same hexagon, one per theme: a dark hexagon with a
+ * white S on the light theme, a white hexagon with the S cut out on the dark
+ * one. The hexagon is its own ground, so it needs no disc behind it — the old
+ * mark was black-on-transparent and had to sit on a fixed white circle to be
+ * seen at all on a dark card. Recolouring one file was never an option: it is
+ * someone else's mark, and `filter: invert()` takes the orange face to cyan.
  *
- * So it sits on a fixed light disc, the way an exchange draws a token icon. The
- * disc is stated in absolute colour rather than a token, deliberately: it is
- * the mark's own ground, not part of our palette, and it must not flip with the
- * theme. A faint ring keeps it from dissolving into a white card in light mode.
+ * Both are in the markup and CSS shows the one for the current theme. The
+ * theme is an attribute on the root (`data-theme`), which a `<picture>`
+ * media query cannot see; two tiny images, one hidden, can. They are ~3-4 KB
+ * each and the browser caches both.
  *
- * A plain <img>, not next/image, and deliberately.
+ * Plain <img>s, not next/image, and deliberately.
  *
- * The asset is 3 KB, served from our own origin at a fixed 96px, so the
+ * The assets are a few KB, served from our own origin at a fixed 128px, so the
  * optimiser has nothing to do — and `next/image` brought its own bug: even with
  * `unoptimized`, its lazy loader never fired for these. Measured on the market
  * page, every mark sat at `complete: false` with an empty `currentSrc` while a
@@ -25,7 +26,9 @@ export function SosoMark({ size = 18 }: { size?: number }) {
   return (
     <span className="soso-mark" style={{ ["--mark" as string]: `${size}px` }} aria-hidden="true">
       {/* eslint-disable-next-line @next/next/no-img-element -- see above */}
-      <img src="/soso.png" alt="" width={96} height={96} decoding="async" />
+      <img className="is-light" src="/soso-light.png" alt="" width={128} height={128} decoding="async" />
+      {/* eslint-disable-next-line @next/next/no-img-element -- see above */}
+      <img className="is-dark" src="/soso-dark.png" alt="" width={128} height={128} decoding="async" />
     </span>
   );
 }
