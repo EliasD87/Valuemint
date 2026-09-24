@@ -510,6 +510,128 @@
   outline-offset: 2px;
 }
 
+/*
+ * The same question, unasked: a bubble hung from the wallet button while the
+ * wallet is empty. The accent and its own ink (6.2:1 light, 7.4:1 dark), so it
+ * is the one thing in the header that asks to be pressed.
+ *
+ * Inside the header's stacking context, above its own contents and below the
+ * wallet menu (50) and every dialog (70+).
+ *
+ * Motion is transform only. An opacity entrance is the trap this project has
+ * already fallen into once — content reachable only if the animation runs —
+ * so the bubble is fully visible at rest and merely moves when it can.
+ */
+.soso-callout {
+  position: absolute;
+  top: calc(100% + 12px);
+  right: 0;
+  z-index: 45;
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0.25rem;
+  border-radius: var(--r-pill);
+  background: var(--accent);
+  color: var(--accent-ink);
+  box-shadow: var(--shadow-md);
+  white-space: nowrap;
+  animation:
+    soso-drop 380ms var(--ease),
+    soso-float 2.6s ease-in-out 380ms infinite alternate;
+}
+
+/* The pointer up to the button it belongs to. */
+.soso-callout::before {
+  content: "";
+  position: absolute;
+  top: -5px;
+  right: 1.6rem;
+  width: 11px;
+  height: 11px;
+  border-radius: 2px;
+  background: var(--accent);
+  transform: rotate(45deg);
+}
+
+.soso-callout-main {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.55rem;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: var(--step--1);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.soso-callout-main svg {
+  flex: none;
+  width: 15px;
+  height: 15px;
+}
+
+.soso-callout-main:hover,
+.soso-callout-close:hover {
+  background: color-mix(in srgb, var(--accent-ink) 12%, transparent);
+}
+
+.soso-callout-close {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+.soso-callout-close svg {
+  width: 12px;
+  height: 12px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+}
+
+.soso-callout button:focus-visible {
+  outline: 2px solid var(--accent-ink);
+  outline-offset: 1px;
+}
+
+@keyframes soso-drop {
+  from {
+    transform: translateY(-10px);
+  }
+  to {
+    transform: none;
+  }
+}
+
+@keyframes soso-float {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(3px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .soso-callout {
+    animation: none;
+  }
+}
+
 /* The caveat under the steps, a step quieter than them. */
 .soso-help-note {
   margin: 0.9rem 0 0;

@@ -52,6 +52,80 @@ export function WhereIsMySoso({ balance }: { balance: bigint | undefined }) {
   );
 }
 
+/** Closed for this visit; it comes back next time while the wallet is still empty. */
+const CALLOUT_KEY = "valuemint:soso-callout-closed";
+
+/**
+ * The same question, offered unasked: a bubble that drops from the wallet
+ * button in the header and floats there while the wallet holds no SOSO.
+ *
+ * The pill in the wallet menu and the portfolio only helps somebody who opens
+ * the menu or visits the portfolio, and the person with an empty wallet is
+ * usually doing neither — they are on a listing, wondering why Buy will not
+ * work. This meets them wherever they are, as soon as the balance reads 0.00.
+ *
+ * It goes the moment SOSO arrives, and closing it lasts for the visit: an
+ * empty wallet next time is worth asking about again.
+ *
+ * The motion is transform only — a short drop, then a slow float — so the
+ * bubble is fully visible even where animations never run, and still under
+ * `prefers-reduced-motion`.
+ */
+export function SosoCallout({ balance }: { balance: bigint | undefined }) {
+  const [closed, setClosed] = useState(false);
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    try {
+      if (window.sessionStorage.getItem(CALLOUT_KEY) === "1") setClosed(true);
+    } catch {
+      /* Blocked storage: it shows until closed, and closing still works. */
+    }
+  }, []);
+
+  const dialog = open ? <SosoGuideDialog onClose={() => setOpen(false)} /> : null;
+  if (!needsSoso(balance) || closed) return dialog;
+
+  return (
+    <>
+      <div className="soso-callout" role="status">
+        <button type="button" className="soso-callout-main" onClick={() => setOpen(true)}>
+          <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+            <circle cx="8" cy="8" r="6.25" fill="none" stroke="currentColor" strokeWidth="1.4" />
+            <path
+              d="M6.3 6.4a1.8 1.8 0 1 1 2.5 1.65c-.5.22-.8.6-.8 1.1v.25"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.4"
+              strokeLinecap="round"
+            />
+            <circle cx="8" cy="11.4" r=".85" fill="currentColor" />
+          </svg>
+          Where is my SOSO?
+        </button>
+        <button
+          type="button"
+          className="soso-callout-close"
+          aria-label="Close"
+          onClick={() => {
+            setClosed(true);
+            try {
+              window.sessionStorage.setItem(CALLOUT_KEY, "1");
+            } catch {
+              /* Then it returns on reload, which is survivable. */
+            }
+          }}
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M6 6l12 12M18 6L6 18" />
+          </svg>
+        </button>
+      </div>
+      {dialog}
+    </>
+  );
+}
+
 /**
  * The "Get SOSO onto ValueChain" step on its own, as a dialog.
  *

@@ -41,7 +41,7 @@ function WalletGlyph({ size }: { size: number }) {
 }
 import { WalletPicker } from "./WalletPicker";
 import { WrappedBalance } from "@/components/WrappedBalance";
-import { WhereIsMySoso } from "@/components/SosoHelp";
+import { SosoCallout, WhereIsMySoso } from "@/components/SosoHelp";
 import "./Wallet.css";
 import { Soso } from "@/components/Soso";
 
@@ -183,6 +183,11 @@ export function Wallet() {
           </Soso>
         </span>
       </button>
+
+      {/* Drops from this button by itself while the wallet is empty. Not while
+          the menu is open: the menu carries the same question in its own
+          balance row, and two of it stacked would be one too many. */}
+      {open ? null : <SosoCallout balance={balance?.value} />}
 
       {open ? (
         <>
