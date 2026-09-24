@@ -9,7 +9,7 @@ import { ThemeToggle } from "./ThemeToggle";
 import { FocusLine } from "./FocusLine";
 import { Search } from "./Search";
 import { SodexLogo } from "./SodexLogo";
-import { GuidePill } from "./GuidePill";
+import { GuideWelcome } from "./GuideWelcome";
 import { deployment } from "@/config/contracts";
 import { SEAPORT } from "@/config/seaport";
 import "./Layout.css";
@@ -260,10 +260,10 @@ export function Layout({ children }: { children: ReactNode }) {
 
       <main id="main">{children}</main>
 
-      {/* Fixed to a corner and deferred, so it costs the page nothing and
-          covers none of it. Mounted here rather than per-page because "new
-          here?" is true wherever somebody lands. */}
-      <GuidePill />
+      {/* Opens the guide once, on a first visit, a moment after the page has
+          painted. Mounted here rather than per-page because a newcomer can
+          land anywhere. */}
+      <GuideWelcome />
 
       <footer
         className="footer"

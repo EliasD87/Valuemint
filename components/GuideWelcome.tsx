@@ -1,37 +1,39 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useDeferred } from "@/hooks/useDeferred";
 import { GUIDE_STEPS } from "@/config/guide";
 import { GuideArt } from "@/components/GuideArt";
 import "@/styles/guide.css";
 
 /**
- * A way in to the guide, for people who want one.
+ * The guide, opened for a first visit.
  *
- * Not a modal on arrival. Somebody landing here is trying to look at a
- * marketplace, and covering it to explain it is backwards — the artwork and
- * the prices are the pitch. `ListPrompt` reached the same conclusion for the
- * same reason and sits in the other corner; this one yields to it, because a
- * prompt about selling what you already hold is aimed at somebody further
- * along than a prompt about how any of this works.
+ * It used to wait as a pill in the bottom-left corner — "New to ValueMint?" —
+ * on the reasoning that covering a marketplace to explain it is backwards.
+ * In practice newcomers never pressed it, and then could not work out how to
+ * get SOSO onto ValueChain or why offers need WSOSO: the pill was the one
+ * thing on the page they skipped. So a first visit now opens the guide
+ * itself, once, and it is gone the moment it is closed.
  *
- * So: a pill that waits, says one thing, and opens a panel only if asked.
- * Closing it is permanent, and `/guide` stays in the footer for afterwards.
+ * Once means once. Any way out — Skip, Done, the cross, Escape, the scrim, a
+ * link out of it — is remembered, and the pill's old dismissal counts too:
+ * somebody who closed that has already said they are not new. Arriving on
+ * `/guide` counts as well; that reader has found it.
  */
 
-/** Dismissed for good. There is a footer link; nobody needs asking twice. */
+/** Seen for good. There is a footer link; nobody needs showing twice. */
 const STORE_KEY = "valuemint:guide-dismissed";
 
-function alreadyDismissed(): boolean {
+function alreadySeen(): boolean {
   try {
     return window.localStorage.getItem(STORE_KEY) === "1";
   } catch {
-    /* Private windows and blocked storage both land here. Showing the pill to
-       somebody who has seen it is a far smaller failure than hiding it from
-       somebody who has not. */
+    /* Private windows and blocked storage both land here. The in-memory flag
+       below still stops it reopening within the visit. */
     return false;
   }
 }
@@ -40,60 +42,41 @@ function remember(): void {
   try {
     window.localStorage.setItem(STORE_KEY, "1");
   } catch {
-    /* Then it comes back next visit, which is survivable. */
+    /* Then it opens again next visit, which is survivable. */
   }
 }
 
-export function GuidePill() {
+export function GuideWelcome() {
   /**
-   * After the page, not with it.
-   *
-   * The same reasoning as `WarmChain` and `ListPrompt`: nothing here is what
-   * anybody is waiting for, and a pill animating in over a half-painted home
-   * page is the kind of thing people close without reading.
+   * After the page, not with it: the first thing a stranger sees should be
+   * the marketplace, with the guide arriving over it a beat later, rather
+   * than a dialog over a half-painted page.
    */
-  const ready = useDeferred(1800);
-
-  const [dismissed, setDismissed] = useState(true);
+  const ready = useDeferred(1200);
+  const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  /* This visit, independent of storage — the layout outlives navigation, and
+     blocked storage must not turn every page change into a reopening. */
+  const shown = useRef(false);
 
-  /* Read after mount, never during render: the server has no localStorage, so
-     any other default would be a guess React then has to reconcile. Starting
-     dismissed means the pill can only ever appear, never flash and vanish. */
-  useEffect(() => setDismissed(alreadyDismissed()), []);
+  useEffect(() => {
+    if (shown.current) return;
+    if (pathname?.startsWith("/guide")) {
+      shown.current = true;
+      remember();
+      return;
+    }
+    if (!ready) return;
+    shown.current = true;
+    if (!alreadySeen()) setOpen(true);
+  }, [ready, pathname]);
 
   const close = () => {
     setOpen(false);
-    setDismissed(true);
     remember();
   };
 
-  if (dismissed || !ready) return null;
-
-  return (
-    <>
-      {open ? <GuidePanel onClose={close} /> : null}
-
-      <div className="gp">
-        <button type="button" className="gp-open" onClick={() => setOpen(true)}>
-          <span className="gp-mark" aria-hidden="true">
-            ?
-          </span>
-          New to ValueMint?
-        </button>
-        <button
-          type="button"
-          className="gp-dismiss"
-          aria-label="Dismiss the guide"
-          onClick={close}
-        >
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M6 6l12 12M18 6L6 18" />
-          </svg>
-        </button>
-      </div>
-    </>
-  );
+  return open ? <GuidePanel onClose={close} /> : null;
 }
 
 /**
@@ -132,7 +115,9 @@ function GuidePanel({ onClose }: { onClose: () => void }) {
       <div className="gd-scrim" onClick={onClose} aria-hidden="true" />
       <div className="gd" role="dialog" aria-modal="true" aria-label="Getting started on ValueMint">
         <div className="gd-head">
+          {/* It opens unasked now, so the first page says what it is. */}
           <p className="gd-count">
+            {step === 0 ? "Welcome to ValueMint · " : ""}
             {step + 1} of {GUIDE_STEPS.length}
           </p>
           <button type="button" className="gd-close" aria-label="Close" onClick={onClose}>

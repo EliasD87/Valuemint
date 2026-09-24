@@ -12,7 +12,7 @@ import "@/styles/guide.css";
  * A page rather than only a dialog, and deliberately. A dialog can be opened
  * once and never again; a page can be linked in a reply to somebody who is
  * stuck, read on a second device, indexed, and kept open in a tab beside the
- * thing it describes. The pill's panel is the short version of this, built
+ * thing it describes. The welcome panel is the short version of this, built
  * from the same `GUIDE_STEPS` and the same drawings, so the two cannot drift.
  *
  * Every step leads with its picture. Most of what confuses a newcomer here is

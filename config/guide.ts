@@ -1,7 +1,8 @@
 /**
  * What a new arrival actually needs to be told.
  *
- * One source for both the pill's panel and `/guide`, so the short version and
+ * One source for both the welcome panel a first visit opens with and `/guide`,
+ * and the "Where is my SOSO?" dialog, so the short version and
  * the long version cannot drift into saying different things.
  *
  * These are deliberately not a tour of the navigation. "Here is Explore, here

@@ -1,92 +1,10 @@
 /**
- * The welcome guide: a corner pill, its stepped panel, and `/guide`.
+ * The welcome guide: the stepped panel a first visit opens with, and `/guide`.
  *
- * Only tokens, as everywhere. Nothing here introduces a colour — the pill
- * borrows the accent the rest of the site uses for live state, and the panel
- * is an ordinary dialog on `--surface`.
+ * Only tokens, as everywhere. Nothing here introduces a colour — the panel is
+ * an ordinary dialog on `--surface`, and the accent is the one the rest of
+ * the site uses for live state.
  */
-
-/* =================================================================== pill */
-
-/*
- * Bottom left, and that is not arbitrary. `ListPrompt` holds the bottom right
- * at `z-index: 60`; this sits opposite it at 50, so on the rare screen showing
- * both, the one aimed at somebody who already owns pieces wins.
- */
-.gp {
-  position: fixed;
-  left: 1rem;
-  /* Clears a phone's home indicator, sits on the line everywhere else. */
-  bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
-  z-index: 50;
-
-  display: flex;
-  align-items: stretch;
-  max-width: calc(100vw - 2rem);
-
-  border: 1px solid var(--line-strong);
-  border-radius: var(--r-pill);
-  background: var(--surface);
-  box-shadow: var(--shadow-md);
-  overflow: hidden;
-}
-
-.gp-open {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.55rem 0.9rem;
-  border: 0;
-  background: none;
-  font: inherit;
-  font-size: var(--step--1);
-  color: var(--ink);
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.gp-open:hover {
-  background: var(--paper-3);
-}
-
-.gp-mark {
-  flex: none;
-  display: grid;
-  place-items: center;
-  width: 20px;
-  height: 20px;
-  border-radius: var(--r-pill);
-  background: var(--accent);
-  color: var(--accent-ink);
-  font-size: var(--step--2);
-  font-weight: 700;
-}
-
-.gp-dismiss {
-  flex: none;
-  display: grid;
-  place-items: center;
-  width: 2.2rem;
-  border: 0;
-  border-left: 1px solid var(--line);
-  background: none;
-  color: var(--ink-3);
-  cursor: pointer;
-}
-
-.gp-dismiss:hover {
-  color: var(--ink);
-  background: var(--paper-3);
-}
-
-.gp-dismiss svg {
-  width: 14px;
-  height: 14px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 2;
-  stroke-linecap: round;
-}
 
 /* ================================================================== panel */
 
