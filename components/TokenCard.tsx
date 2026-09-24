@@ -351,11 +351,27 @@ export function TokenCard({
             )}
           </span>
 
-          {isConnected && !isYours ? (
-            <button type="button" className="tcard-offer-btn" onClick={() => setOffering(true)}>
-              Offer
-            </button>
-          ) : null}
+          {/*
+            Buy beside Offer on anything listed that is not yours. The whole
+            card already opens the piece, but nothing said "you can buy this
+            here": a listed card and an unlisted one offered the same single
+            button. Buy goes to the piece's page, where the purchase itself
+            happens — with the stale-listing check, the price-moved warning and
+            the wallet prompt that live there — rather than buying from a card.
+            Shown connected or not: that page asks for the wallet.
+          */}
+          <span className="tcard-acts">
+            {listing !== undefined && !isYours ? (
+              <Link className="tcard-buy-btn" href={`/token/${collection}/${token.id}`}>
+                Buy
+              </Link>
+            ) : null}
+            {isConnected && !isYours ? (
+              <button type="button" className="tcard-offer-btn" onClick={() => setOffering(true)}>
+                Offer
+              </button>
+            ) : null}
+          </span>
         </div>
       </div>
 
