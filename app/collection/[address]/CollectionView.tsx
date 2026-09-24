@@ -191,7 +191,10 @@ export function CollectionView({ params }: { params: Promise<{ address: string }
    * Design, an external one may have neither - and a hardcoded set would
    * show empty filters for half of them.
    */
-  const [sort, setSort] = useState<"id-desc" | "id-asc" | "price-asc" | "price-desc">("id-desc");
+  /* Cheapest first by default: on a marketplace the first question is "what
+     can I buy, and for how little". Unlisted pieces follow, newest first, so
+     a collection with nothing for sale reads exactly as it did before. */
+  const [sort, setSort] = useState<"id-desc" | "id-asc" | "price-asc" | "price-desc">("price-asc");
   const [traitFilter, setTraitFilter] = useState<Record<string, string>>({});
 
   const listings = new Map<string, Listing>();
