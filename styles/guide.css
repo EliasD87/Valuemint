@@ -452,6 +452,11 @@
   font-variant-numeric: tabular-nums;
 }
 
+.guide-howto-title {
+  color: var(--ink);
+  font-weight: 650;
+}
+
 .guide-howto a {
   color: var(--ink);
   font-weight: 600;
@@ -632,12 +637,245 @@
   }
 }
 
-/* The caveat under the steps, a step quieter than them. */
-.soso-help-note {
-  margin: 0.9rem 0 0;
-  font-size: var(--step--1);
+/* ======================================================= the SOSO dialog
+ *
+ * "Get SOSO onto ValueChain" on its own, wide: the idea and its drawing on
+ * top, the five moves as a row of cards, and the one warning under them.
+ * On the guide panel's scrim and z-order, so it layers exactly as it does.
+ */
+.sg {
+  position: fixed;
+  z-index: 71;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(58rem, calc(100vw - 2rem));
+  max-height: calc(100dvh - 2rem);
+  overflow-y: auto;
+  display: grid;
+  gap: 1.5rem;
+  padding: 1.75rem 1.75rem 1.5rem;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-lg);
+}
+
+.sg-close {
+  position: absolute;
+  top: 0.85rem;
+  right: 0.85rem;
+}
+
+.sg-top {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 22rem);
+  align-items: center;
+  gap: 1.75rem;
+}
+
+.sg-kicker {
+  margin: 0 0 0.45rem;
+  font-size: var(--step--2);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.sg-title {
+  margin: 0 0 0.6rem;
+  font-size: var(--step-3);
+  line-height: 1.15;
+  text-wrap: balance;
+}
+
+.sg-lead {
+  margin: 0;
+  max-width: 34rem;
   line-height: 1.6;
-  color: var(--ink-3);
+  color: var(--ink-2);
+}
+
+/* `--sunken` behind the drawing, for the reason noted on `.guide-art`. */
+.sg-art {
+  padding: 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--sunken);
+}
+
+.sg-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.9rem;
+}
+
+/* A well inside the dialog's card, so `--surface-2`, not another surface. */
+.sg-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding: 0.95rem 0.9rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+}
+
+/* A chevron in the gap to the next card: the row is an order, not a set. */
+.sg-card:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  top: 1.45rem;
+  right: calc(-0.45rem - 5px);
+  width: 7px;
+  height: 7px;
+  border-top: 1.6px solid var(--ink-3);
+  border-right: 1.6px solid var(--ink-3);
+  transform: rotate(45deg);
+}
+
+.sg-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.2rem;
+}
+
+/* The accent and its own ink: 6.2:1 in light, 7.4:1 in dark. */
+.sg-num {
+  display: grid;
+  place-items: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: var(--r-pill);
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: var(--step--2);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.sg-icon {
+  width: 26px;
+  height: 26px;
+  color: var(--ink-2);
+}
+
+.sg-card-title {
+  margin: 0;
+  font-size: var(--step-0);
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.sg-card-text {
+  margin: 0;
+  font-size: var(--step--1);
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+
+/* Pushed to the card's foot, so every link in the row sits on one line. */
+.sg-card-link {
+  margin-top: auto;
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.3rem 0.75rem;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: var(--step--2);
+  font-weight: 650;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: border-color var(--fast);
+}
+
+.sg-card-link:hover {
+  border-color: var(--ink);
+}
+
+.sg-card-link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* The way on to the full guide, on its own at the foot. */
+.sg-foot {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.sg-full {
+  text-decoration: none;
+}
+
+/* Narrower than five fit in a row: the drawing under the words, and the
+   cards three to a row. The chevrons go — they only mean anything in one. */
+@media (max-width: 900px) {
+  .sg {
+    padding: 1.4rem 1.15rem 1.2rem;
+    gap: 1.2rem;
+  }
+
+  .sg-top {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1.1rem;
+  }
+
+  .sg-art {
+    max-width: 24rem;
+  }
+
+  .sg-steps {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.7rem;
+  }
+
+  .sg-card:not(:last-child)::after {
+    display: none;
+  }
+
+  .sg-title {
+    padding-right: 2rem;
+  }
+}
+
+/* A phone: one card per row, laid sideways — number and picture on the
+   left, the words beside them — so five of them do not make a tower. */
+@media (max-width: 600px) {
+  .sg-steps {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.6rem;
+  }
+
+  .sg-card {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    column-gap: 0.85rem;
+    row-gap: 0.3rem;
+    align-items: start;
+  }
+
+  .sg-card-top {
+    grid-row: 1 / span 3;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin: 0;
+  }
+
+  .sg-card-link {
+    margin-top: 0.2rem;
+  }
 }
 
 /* The panel's way to the numbered version of a step it can only summarise. */

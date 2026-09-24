@@ -42,8 +42,15 @@ export interface GuideClip {
   alt: string;
 }
 
+/** The picture on an instruction's card. See `ActionIcon` in `SosoHelp`. */
+export type GuideIcon = "login" | "deposit" | "buy" | "transfer" | "connect";
+
 /** One numbered instruction in a step's how-to, with an optional way there. */
 export interface GuideAction {
+  icon: GuideIcon;
+  /** Two or three words: what the card is called, and what `/guide` bolds. */
+  title: string;
+  /** One or two short sentences. They sit on a narrow card. */
   text: string;
   /** An outside page the instruction happens on. Opens in a new tab. */
   link?: { href: string; label: string };
@@ -96,30 +103,35 @@ export const GUIDE_STEPS: GuideStep[] = [
       "lands in the same wallet on ValueChain, ready to spend here.",
     howTo: [
       {
+        icon: "login",
+        title: "Log in to SoDEX",
         text:
-          "Open SoDEX and log in with the same wallet you use on ValueMint: Connect Wallet, " +
-          "pick your wallet, then sign Enable Trading. Signing is free.",
+          "Connect the same wallet you use on ValueMint, then sign Enable Trading. Signing " +
+          "is free.",
         link: { href: "https://sodex.com", label: "Open SoDEX" },
       },
       {
+        icon: "deposit",
+        title: "Deposit USDC",
         text:
-          "Press Deposit and send USDC on Base or Ethereum into your Spot account. Check " +
-          "SoDEX's minimum first — a deposit under it is lost. Already hold SOSO on Base or " +
-          "Ethereum? Deposit that instead and skip the next step.",
+          "Press Deposit and send USDC on Base or Ethereum. Check the minimum first — " +
+          "less is lost. Hold SOSO on Base or Ethereum? Deposit it and skip step 3.",
       },
       {
-        text: "Open the SOSO/USDC market, choose Buy, then Market, enter an amount and press Buy.",
+        icon: "buy",
+        title: "Buy SOSO",
+        text: "On the SOSO/USDC market: Buy, Market, enter an amount, then Buy.",
         link: { href: "https://sodex.com/trade/spot/SOSO_USDC", label: "SOSO/USDC" },
       },
       {
-        text:
-          "Press Transfer and move your SOSO from Spot to your EVM wallet. That is your " +
-          "wallet on ValueChain.",
+        icon: "transfer",
+        title: "Transfer to EVM",
+        text: "Press Transfer and move SOSO from Spot to your EVM wallet — your wallet on ValueChain.",
       },
       {
-        text:
-          "Come back here and connect the same wallet. Your SOSO is there — keep a little " +
-          "back for gas.",
+        icon: "connect",
+        title: "Connect here",
+        text: "Connect that same wallet on ValueMint. Keep a little SOSO back for gas.",
       },
     ],
     more:

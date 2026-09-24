@@ -3,9 +3,9 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { GUIDE_STEPS } from "@/config/guide";
+import { GUIDE_STEPS, type GuideIcon } from "@/config/guide";
 import { GuideArt } from "@/components/GuideArt";
-import { GuideHowTo } from "@/components/GuideHowTo";
+import { ArrowRight } from "@/components/Arrows";
 import { needsSoso } from "@/lib/needsSoso";
 import "@/styles/guide.css";
 
@@ -127,13 +127,19 @@ export function SosoCallout({ balance }: { balance: bigint | undefined }) {
 }
 
 /**
- * The "Get SOSO onto ValueChain" step on its own, as a dialog.
+ * The "Get SOSO onto ValueChain" step on its own, as a wide dialog.
  *
- * Built from the same `GUIDE_STEPS` entry as `/guide` and the guide panel —
- * the same drawing, the same numbered steps — so the three cannot come to say
- * different things. Portalled to the body: it opens from inside the header's
- * wallet menu, and the header's `backdrop-filter` would otherwise make it
- * centre itself in a 72px bar.
+ * Wide and laid out as a journey rather than a column of paragraphs: the
+ * idea and its drawing across the top, then the five moves as a row of cards,
+ * each with its number, a picture, two or three words and one line, and the
+ * way on to the full guide. It was
+ * the guide panel's 30rem column first, and five sentences down a narrow
+ * scroller read as homework rather than as five quick things to do.
+ *
+ * Built from the same `GUIDE_STEPS` entry as `/guide` and the welcome panel,
+ * so the three cannot come to say different things. Portalled to the body: it
+ * opens from inside the header, whose `backdrop-filter` would otherwise make
+ * it centre itself in a 72px bar.
  */
 function SosoGuideDialog({ onClose }: { onClose: () => void }) {
   const step = GUIDE_STEPS.find((s) => s.id === "soso");
@@ -165,30 +171,111 @@ function SosoGuideDialog({ onClose }: { onClose: () => void }) {
   return createPortal(
     <>
       <div className="gd-scrim" onClick={onClose} aria-hidden="true" />
-      <div className="gd" role="dialog" aria-modal="true" aria-label={step.title}>
-        <div className="gd-head">
-          <p className="gd-count">Your balance is empty</p>
-          <button ref={close} type="button" className="gd-close" aria-label="Close" onClick={onClose}>
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M6 6l12 12M18 6L6 18" />
-            </svg>
-          </button>
-        </div>
+      <div className="sg" role="dialog" aria-modal="true" aria-labelledby="sg-title">
+        <button ref={close} type="button" className="gd-close sg-close" aria-label="Close" onClick={onClose}>
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M6 6l12 12M18 6L6 18" />
+          </svg>
+        </button>
 
-        <div className="gd-body">
-          <div className="gd-art">
+        <div className="sg-top">
+          <div className="sg-intro">
+            <p className="sg-kicker">Your balance is empty</p>
+            <h2 id="sg-title" className="sg-title">
+              {step.title}
+            </h2>
+            <p className="sg-lead">{step.body}</p>
+          </div>
+          <div className="sg-art">
             <GuideArt id={step.id} />
           </div>
-          <h2 className="gd-title">{step.title}</h2>
-          <p className="gd-text">{step.body}</p>
-          {step.howTo === undefined ? null : <GuideHowTo actions={step.howTo} />}
-          {step.more === undefined ? null : <p className="soso-help-note">{step.more}</p>}
-          <Link className="gd-howto-link" href={`/guide#${step.id}`} onClick={onClose}>
-            Open the full guide
+        </div>
+
+        {step.howTo === undefined ? null : (
+          <ol className="sg-steps">
+            {step.howTo.map((a, i) => (
+              <li key={a.title} className="sg-card">
+                <div className="sg-card-top">
+                  <span className="sg-num" aria-hidden="true">
+                    {i + 1}
+                  </span>
+                  <ActionIcon icon={a.icon} />
+                </div>
+                <h3 className="sg-card-title">{a.title}</h3>
+                <p className="sg-card-text">{a.text}</p>
+                {a.link === undefined ? null : (
+                  <a className="sg-card-link" href={a.link.href} target="_blank" rel="noreferrer noopener">
+                    {a.link.label}
+                    <span aria-hidden="true">&#8599;</span>
+                  </a>
+                )}
+              </li>
+            ))}
+          </ol>
+        )}
+
+        {/* The step's longer caveat is left to `/guide`, by request: the
+            dialog is the five moves and the way to the rest. */}
+        <div className="sg-foot">
+          <Link className="btn btn-sm sg-full" href={`/guide#${step.id}`} onClick={onClose}>
+            Full guide
+            <ArrowRight />
           </Link>
         </div>
       </div>
     </>,
     document.body,
+  );
+}
+
+/**
+ * The picture on each instruction card: one line-drawn glyph per move, in the
+ * text's own colour, so it reads in both themes without a colour of its own.
+ */
+function ActionIcon({ icon }: { icon: GuideIcon }) {
+  const common = {
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 1.6,
+    strokeLinecap: "round" as const,
+    strokeLinejoin: "round" as const,
+  };
+  return (
+    <svg className="sg-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      {icon === "login" ? (
+        /* A wallet: what logs you in. */
+        <>
+          <rect x="3" y="6" width="18" height="13" rx="2.5" {...common} />
+          <path d="M3 9.5h13.5a2 2 0 0 1 2 2v1a2 2 0 0 1-2 2H14" {...common} />
+          <circle cx="15.5" cy="12" r="1" fill="currentColor" />
+          <path d="M6 6V5a2 2 0 0 1 2-2h8" {...common} />
+        </>
+      ) : icon === "deposit" ? (
+        /* Down into a tray. */
+        <>
+          <path d="M12 3v11M7.5 9.5 12 14l4.5-4.5" {...common} />
+          <path d="M4 14v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4" {...common} />
+        </>
+      ) : icon === "buy" ? (
+        /* One thing for another. */
+        <>
+          <path d="M4 8h14M14.5 4.5 18 8l-3.5 3.5" {...common} />
+          <path d="M20 16H6M9.5 12.5 6 16l3.5 3.5" {...common} />
+        </>
+      ) : icon === "transfer" ? (
+        /* From one box to the other. */
+        <>
+          <rect x="2.5" y="7" width="7" height="10" rx="1.8" {...common} />
+          <rect x="14.5" y="7" width="7" height="10" rx="1.8" {...common} />
+          <path d="M10 12h3.5M11.8 10.2 13.6 12l-1.8 1.8" {...common} />
+        </>
+      ) : (
+        /* Done: connected and ready. */
+        <>
+          <circle cx="12" cy="12" r="8.5" {...common} />
+          <path d="m8.2 12.2 2.6 2.6 5-5.2" {...common} />
+        </>
+      )}
+    </svg>
   );
 }
