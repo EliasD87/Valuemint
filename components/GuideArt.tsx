@@ -79,6 +79,56 @@ function Chain() {
   );
 }
 
+/*
+ * Where SOSO comes from: bought into a SoDEX Spot account, then moved to the
+ * EVM wallet — which is the reader's own wallet on ValueChain. The one idea
+ * is that the two boxes are the same wallet; the Transfer is the only move.
+ */
+function Soso() {
+  return (
+    <svg className="ga" viewBox={BOX} aria-hidden="true" focusable="false">
+      <rect className="ga-panel" x="12" y="30" width="116" height="100" rx="10" />
+      <text className="ga-ink" x="70" y="52" textAnchor="middle">
+        SoDEX
+      </text>
+      <rect className="ga-mark" x="24" y="64" width="92" height="28" rx="7" />
+      <text className="ga-dim" x="34" y="82">
+        Spot
+      </text>
+      <text className="ga-accent" x="106" y="82" textAnchor="end">
+        SOSO
+      </text>
+      <text className="ga-dim" x="70" y="116" textAnchor="middle">
+        bought here
+      </text>
+
+      <text className="ga-dim" x="160" y="70" textAnchor="middle">
+        Transfer
+      </text>
+      <Arrow x1={134} x2={186} y={80} />
+
+      <rect className="ga-panel" x="192" y="30" width="116" height="100" rx="10" />
+      <text className="ga-ink" x="250" y="52" textAnchor="middle">
+        Your wallet
+      </text>
+      <rect className="ga-mark" x="204" y="64" width="92" height="28" rx="7" />
+      <text className="ga-dim" x="214" y="82">
+        EVM
+      </text>
+      <text className="ga-accent" x="286" y="82" textAnchor="end">
+        SOSO
+      </text>
+      <text className="ga-dim" x="250" y="116" textAnchor="middle">
+        on ValueChain
+      </text>
+
+      <text className="ga-dim" x="160" y="156" textAnchor="middle">
+        then connect that wallet here
+      </text>
+    </svg>
+  );
+}
+
 function Buy() {
   return (
     <svg className="ga" viewBox={BOX} aria-hidden="true" focusable="false">
@@ -178,6 +228,7 @@ function Sell() {
 
 const ART: Record<GuideStep["id"], () => React.ReactElement> = {
   chain: Chain,
+  soso: Soso,
   buy: Buy,
   offer: Offer,
   sell: Sell,

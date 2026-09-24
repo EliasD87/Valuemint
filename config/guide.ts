@@ -41,11 +41,27 @@ export interface GuideClip {
   alt: string;
 }
 
+/** One numbered instruction in a step's how-to, with an optional way there. */
+export interface GuideAction {
+  text: string;
+  /** An outside page the instruction happens on. Opens in a new tab. */
+  link?: { href: string; label: string };
+}
+
 export interface GuideStep {
   id: string;
   title: string;
   /** The whole point, said once. Short enough for the panel. */
   body: string;
+  /**
+   * Numbered instructions, for the one step that happens somewhere else.
+   *
+   * Every other step here is an idea — an allowance, an approval — and reads
+   * as a paragraph. Getting SOSO is a sequence of screens on another site,
+   * and a sequence written as a paragraph is one nobody can follow with the
+   * other tab open. Only `/guide` shows these; the panel links to them.
+   */
+  howTo?: GuideAction[];
   /** The part that does not fit in a panel. Only `/guide` shows it. */
   more?: string;
   clip?: GuideClip;
@@ -61,7 +77,54 @@ export const GUIDE_STEPS: GuideStep[] = [
     more:
       "SOSO is the chain's own coin, so it is both what pieces are priced in and what pays " +
       "the gas for every transaction. You need a little of it in your wallet before you can " +
-      "buy, list or make an offer.",
+      "buy, list or make an offer — the next step is how to get it.",
+  },
+  {
+    /*
+     * Written from SoDEX's own documentation and its live trading page,
+     * checked 2026-09-24: the SOSO/USDC spot market, the Deposit / Transfer /
+     * Withdraw buttons under its order form, and its account model, where a
+     * Spot → EVM transfer credits the ValueChain wallet at the same address.
+     * SoDEX asks for a login before it shows the Transfer screen, so that
+     * step is named in its docs' terms rather than read off the dialog.
+     */
+    id: "soso",
+    title: "Get SOSO onto ValueChain",
+    body:
+      "Buy SOSO on SoDEX, then transfer it from your Spot account to your EVM wallet. It " +
+      "lands in the same wallet on ValueChain, ready to spend here.",
+    howTo: [
+      {
+        text:
+          "Open SoDEX and log in with the same wallet you use on ValueMint: Connect Wallet, " +
+          "pick your wallet, then sign Enable Trading. Signing is free.",
+        link: { href: "https://sodex.com", label: "Open SoDEX" },
+      },
+      {
+        text:
+          "Press Deposit and send USDC on Base or Ethereum into your Spot account. Check " +
+          "SoDEX's minimum first — a deposit under it is lost. Already hold SOSO on Base or " +
+          "Ethereum? Deposit that instead and skip the next step.",
+      },
+      {
+        text: "Open the SOSO/USDC market, choose Buy, then Market, enter an amount and press Buy.",
+        link: { href: "https://sodex.com/trade/spot/SOSO_USDC", label: "SOSO/USDC" },
+      },
+      {
+        text:
+          "Press Transfer and move your SOSO from Spot to your EVM wallet. That is your " +
+          "wallet on ValueChain.",
+      },
+      {
+        text:
+          "Come back here and connect the same wallet. Your SOSO is there — keep a little " +
+          "back for gas.",
+      },
+    ],
+    more:
+      "Log in to SoDEX with your wallet, not your email. An email login makes SoDEX create a " +
+      "new address for you, so SOSO moved to its EVM wallet would not be in the wallet you " +
+      "connect here.",
   },
   {
     id: "buy",

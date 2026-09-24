@@ -170,6 +170,13 @@ function GuidePanel({ onClose }: { onClose: () => void }) {
 
           <h2 className="gd-title">{current.title}</h2>
           <p className="gd-text">{current.body}</p>
+          {/* A step that happens on another site has numbered instructions the
+              panel has no room for; this is the way to them. */}
+          {current.howTo === undefined ? null : (
+            <Link className="gd-howto-link" href={`/guide#${current.id}`} onClick={onClose}>
+              Show me step by step
+            </Link>
+          )}
         </div>
 
         <div className="gd-foot">
