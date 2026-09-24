@@ -355,7 +355,7 @@
  * sequence of scenes instead. The drawing is first in the source, so a narrow
  * screen stacks it above its own text rather than below the previous step's.
  */
-.guide-steps li {
+.guide-steps > li {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   align-items: center;
@@ -364,7 +364,7 @@
   scroll-margin-top: calc(var(--header-h) + 1.5rem);
 }
 
-.guide-steps li:nth-child(even) .guide-art {
+.guide-steps > li:nth-child(even) .guide-art {
   order: 2;
 }
 
@@ -933,13 +933,13 @@
 }
 
 @media (max-width: 820px) {
-  .guide-steps li {
+  .guide-steps > li {
     grid-template-columns: minmax(0, 1fr);
     gap: 1.5rem;
   }
   /* The alternation is a two-column idea; stacked, it would only ever put the
      picture under its own heading, which is worse than above it. */
-  .guide-steps li:nth-child(even) .guide-art {
+  .guide-steps > li:nth-child(even) .guide-art {
     order: 0;
   }
   .guide-steps {
