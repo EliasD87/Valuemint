@@ -1033,10 +1033,18 @@ textarea {
     font-size: var(--step--2);
   }
 
-  .tcard-num,
-  .tcard-foot dt,
-  .tcard-foot dd {
+  .tcard-num {
     font-size: var(--step--3);
+  }
+
+  .tcard-amount.tcard-amount {
+    font-size: var(--step-0);
+  }
+
+  /* Three classes: it must beat both `.tcard-amount.is-none` and the doubled
+     rule above whichever order the two stylesheets arrive in. */
+  .tcard-amount.tcard-amount.is-none {
+    font-size: var(--step--1);
   }
 
   /* Two badges side by side do not fit across a half-width card. */

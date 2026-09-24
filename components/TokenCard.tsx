@@ -240,22 +240,6 @@ export function TokenCard({
         <div className="tcard-badges">
           {isYours && markOwned ? <span className="chip chip-up">Yours</span> : null}
         </div>
-
-        {/*
-          The money, plated over the foot of the artwork.
-
-          Labelled, and that label is load-bearing: a floor is SOMEBODY ELSE'S
-          price, and a bare figure here would read as this piece's own. The
-          same distinction the foot used to carry, kept.
-        */}
-        {listing !== undefined || floor !== undefined ? (
-          <span className={`tcard-plate${listing === undefined ? " is-floor" : ""}`}>
-            <span className="tcard-plate-label">{listing !== undefined ? "Price" : "Floor"}</span>
-            <Soso size={14}>
-              {formatSoso(listing !== undefined ? listing.price : floor)}
-            </Soso>
-          </span>
-        ) : null}
       </div>
 
       <div className="tcard-body">
@@ -287,58 +271,30 @@ export function TokenCard({
           <span className="tcard-num">#{token.id.toString()}</span>
         </div>
 
-        <dl className="tcard-foot">
-          {/*
-            A held-back piece has no edition to print, so the cell said "—".
-            The date it becomes public is the one fact about it that exists,
-            and it is a better use of the same space than a dash.
+        {/*
+          The price, under the art and in the largest type on the card.
 
-            Both conditions again: the document naming no design is not enough,
-            because a third-party contract that publishes none would then
-            advertise a reveal it never promised.
-          */}
-          {awaitingReveal !== undefined ? (
-            <div className="tcard-cell">
-              <dt>Reveals</dt>
-              <dd className="tcard-reveal">{revealShort(awaitingReveal)}</dd>
-            </div>
+          It used to be plated over the foot of the artwork in small capitals,
+          and people reported it hard to find: a figure on a picture reads as
+          part of the picture. Marketplaces people already know put it here,
+          under the image, as the one number on the card, and the eye goes
+          looking for it here first.
+
+          Everything else that is true goes on the bottom line with the offers
+          and the Offer button, rather than a line of its own that stood empty
+          on every card of a collection with no editions.
+        */}
+        <div className="tcard-money">
+          {listing !== undefined ? (
+            <span className="tcard-amount">
+              <Soso size={15} markAt="unit">
+                {formatSoso(listing.price)}
+              </Soso>
+            </span>
           ) : (
-            <div className="tcard-cell">
-              <dt>Edition</dt>
-              <dd>{token.edition ?? "—"}</dd>
-            </div>
+            <span className="tcard-amount is-none">Not listed</span>
           )}
-          <div className="tcard-cell tcard-cell-end">
-            <dt>
-              {vouched === false ? (
-                <span
-                  className="tcard-unverified"
-                  title="Not created through ValueMint. Check the contract address before buying — anyone can deploy a collection using someone else's name and artwork."
-                >
-                  Unverified
-                </span>
-              ) : null}
-              Status
-            </dt>
-            {/*
-              Three states, and the middle one is the new one.
-
-              Listed: the seller's own asking price. Unlisted with a floor: what
-              the cheapest comparable piece is going for, which is the honest
-              answer to "what is this worth" that "Not listed" never gave.
-              Unlisted with nothing to compare against: still "Not listed",
-              because inventing a number would be worse than admitting there
-              isn't one.
-
-              Styled `tcard-floor` rather than `tcard-price` deliberately. A
-              floor is somebody else's price, and making it look like this
-              piece's own would be a quiet lie on a page about what you own.
-            */}
-            <dd className={listing !== undefined ? "tcard-listed" : "tcard-none"}>
-              {listing !== undefined ? "Listed" : "Not listed"}
-            </dd>
-          </div>
-        </dl>
+        </div>
 
         {/*
           Offers matter most on tokens that are *not* listed, where buying is
@@ -346,16 +302,54 @@ export function TokenCard({
           into the token page, which nobody discovers. Owners see the standing
           bid rather than a button: they accept on the token page, where the
           slippage guard and the full list of bidders live.
+
+          Beside them, whatever else applies, and only that: a warning, a
+          floor for an unlisted piece, the edition or a reveal date. A floor
+          is always labelled — it is somebody ELSE'S price, and a bare figure
+          would read as this piece's own. "No offers" only when nothing else
+          is there to say.
         */}
         <div className="tcard-offer-row">
-          {offer !== undefined ? (
-            <span className="tcard-offer-best">
-              {offer.count > 1 ? `${offer.count} offers · ` : ""}
-              best <b className="mono">{formatSoso(offer.best)}</b>
-            </span>
-          ) : (
-            <span className="tcard-offer-none">No offers</span>
-          )}
+          <span className="tcard-meta">
+            {vouched === false ? (
+              <span
+                className="tcard-unverified"
+                title="Not created through ValueMint. Check the contract address before buying — anyone can deploy a collection using someone else's name and artwork."
+              >
+                Unverified
+              </span>
+            ) : null}
+            {listing === undefined && floor !== undefined ? (
+              <span className="tcard-floor">
+                Floor{" "}
+                <Soso size={12} markAt="unit">
+                  {formatSoso(floor)}
+                </Soso>
+              </span>
+            ) : null}
+            {/*
+              A held-back piece has no edition, and the date it becomes public
+              is the one fact about it that exists. Both conditions, as ever: a
+              document naming no design is not enough, or a third-party
+              contract that publishes none would advertise a reveal it never
+              promised.
+            */}
+            {awaitingReveal !== undefined ? (
+              <span className="tcard-reveal">Reveals {revealShort(awaitingReveal)}</span>
+            ) : token.edition !== undefined ? (
+              <span>Ed. {token.edition}</span>
+            ) : null}
+            {offer !== undefined ? (
+              <span className="tcard-offer-best">
+                {offer.count > 1 ? `${offer.count} offers · ` : ""}
+                best <b>{formatSoso(offer.best)}</b>
+              </span>
+            ) : (listing === undefined && floor !== undefined) ||
+              awaitingReveal !== undefined ||
+              token.edition !== undefined ? null : (
+              <span className="tcard-offer-none">No offers</span>
+            )}
+          </span>
 
           {isConnected && !isYours ? (
             <button type="button" className="tcard-offer-btn" onClick={() => setOffering(true)}>
@@ -385,7 +379,8 @@ export function TokenCardSkeleton() {
       </div>
       <div className="tcard-body">
         <div className="skeleton" style={{ height: "1rem", width: "58%" }} />
-        <div className="skeleton" style={{ height: "1.4rem", width: "100%" }} />
+        <div className="skeleton" style={{ height: "1.3rem", width: "46%" }} />
+        <div className="skeleton" style={{ height: "0.8rem", width: "70%" }} />
       </div>
     </div>
   );

@@ -233,61 +233,6 @@
 .tcard-ribbon.chip-uncommon { background: var(--uncommon); }
 .tcard-ribbon.chip-superrare { background: var(--superrare); }
 
-/*
- * The money, plated over the foot of the artwork.
- *
- * On the art rather than under it, so the card layers instead of stacking and
- * the figure lands where the eye already is. The scrim is its own background
- * and reaches the bottom edge — the same mistake the hero deck made, where a
- * lifted gradient left bare artwork under the text it was meant to carry.
- *
- * Literal blacks and a literal white, deliberately: this sits on ARTWORK, not
- * on a surface, so it must not follow the theme. Every other plate on the site
- * that lies over a picture does the same.
- */
-.tcard-plate {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.4rem;
-  padding: 1.5rem 0.6rem 0.5rem;
-  background: linear-gradient(
-    to top,
-    rgba(0, 0, 0, 0.8) 0%,
-    rgba(0, 0, 0, 0.52) 42%,
-    rgba(0, 0, 0, 0) 100%
-  );
-  color: #fff;
-  font-size: var(--step--1);
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  pointer-events: none;
-}
-
-/*
- * The label is what stops a floor reading as this piece's own price. It is
- * quieter than the figure but never hidden — a floor is somebody else's price,
- * and an unlabelled number here would be a quiet lie on a page about what you
- * own.
- */
-.tcard-plate-label {
-  font-size: var(--step--3);
-  font-weight: 600;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-  opacity: 0.72;
-}
-
-/* A floor is a softer claim than an asking price, and looks it. */
-.tcard-plate.is-floor {
-  font-weight: 650;
-}
-
 .tcard-badges {
   position: absolute;
   inset: 0.55rem 0.55rem auto;
@@ -337,70 +282,88 @@
   color: var(--ink-3);
 }
 
-.tcard-foot {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 0.75rem;
-  margin: 0;
-  padding-top: 0.6rem;
-  border-top: 1px solid var(--line);
-}
+/* ------------------------------------------------------------------ money */
 
-.tcard-cell {
+/*
+ * The price under the art: one large figure.
+ *
+ * A fixed height, not a minimum, whatever it holds: "299 SOSO" with its mark
+ * and "Not listed" set a step smaller measured a pixel apart, and in a grid
+ * that pixel is every card below a listed one sitting out of line.
+ */
+.tcard-money {
   display: flex;
-  flex-direction: column;
-  gap: 0.1rem;
   min-width: 0;
 }
 
-.tcard-cell-end {
-  align-items: flex-end;
-  text-align: right;
-}
-
-.tcard-cell dt {
-  font-size: var(--step--3);
-  color: var(--ink-3);
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  line-height: 1.4;
-}
-
-.tcard-cell dd {
-  margin: 0;
-  font-variant-numeric: tabular-nums;
-  font-size: var(--step--1);
-  font-weight: 600;
-  line-height: 1.35;
-}
-
-.tcard-price {
-  font-size: var(--step-0);
-  font-weight: 700;
+.tcard-amount {
+  display: flex;
+  align-items: center;
+  height: 1.5rem;
+  font-size: var(--step-1);
+  font-weight: 750;
   letter-spacing: -0.02em;
+  line-height: 1.2;
   color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
-/* The absence of a price is not a price. It reads back a step. */
-.tcard-none {
+/* The currency reads a step down from the figure, as it does everywhere the
+   amount is the point. */
+.tcard-amount .soso-unit {
+  font-size: var(--step--1);
+  font-weight: 650;
+  letter-spacing: 0.01em;
+  color: var(--ink-2);
+}
+
+/* The absence of a price is not a price. It sits in the same place, a step
+   back, so the eye still finds the answer where it looks for one. */
+.tcard-amount.is-none {
+  font-size: var(--step-0);
+  font-weight: 600;
+  letter-spacing: -0.01em;
   color: var(--ink-3);
-  font-weight: 500;
+}
+
+/* Warning, floor, edition and offers, on the bottom line beside the Offer
+   button, dot-separated. It gives way before the button does. */
+.tcard-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex: 1 1 auto;
+  min-width: 0;
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+/* A dot between facts, but not after the warning chip, which is its own
+   boxed thing. */
+.tcard-meta > :not(.tcard-unverified) + *::before {
+  content: "·";
+  margin-right: 0.4rem;
+  color: var(--ink-4);
 }
 
 /*
- * A floor is somebody ELSE'S price, and must not be mistaken for this piece's.
- *
- * Same size, so the column still lines up, but a step back in weight and
- * colour — enough that a glance down a grid separates "this is for sale at
- * X" from "the cheapest comparable one is X". The `Floor` label above it does
- * the rest; this only has to stop the two reading as the same kind of number.
+ * A floor is somebody ELSE'S price. It is labelled and it is small, so a
+ * glance down a grid separates "this is for sale at X" from "the cheapest
+ * comparable one is X".
  */
 .tcard-floor {
-  font-size: var(--step-0);
-  font-weight: 600;
-  letter-spacing: -0.02em;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
   color: var(--ink-2);
+}
+
+.tcard-floor .soso-amount {
+  font-weight: 650;
+  color: var(--ink);
 }
 
 
