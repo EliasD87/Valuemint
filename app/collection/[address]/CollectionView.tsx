@@ -354,17 +354,18 @@ export function CollectionView({ params }: { params: Promise<{ address: string }
           {(supply ?? 2n) > 1n ? (
             <div className="coll-controls">
               <div className="wrap-row">
-                <Sortie active={sort === "id-desc"} onClick={() => setSort("id-desc")}>
-                  Newest
-                </Sortie>
-                <Sortie active={sort === "id-asc"} onClick={() => setSort("id-asc")}>
-                  Oldest
-                </Sortie>
+                {/* The default first, so the selected pill leads the row. */}
                 <Sortie active={sort === "price-asc"} onClick={() => setSort("price-asc")}>
                   Price low
                 </Sortie>
                 <Sortie active={sort === "price-desc"} onClick={() => setSort("price-desc")}>
                   Price high
+                </Sortie>
+                <Sortie active={sort === "id-desc"} onClick={() => setSort("id-desc")}>
+                  Newest
+                </Sortie>
+                <Sortie active={sort === "id-asc"} onClick={() => setSort("id-asc")}>
+                  Oldest
                 </Sortie>
               </div>
 
