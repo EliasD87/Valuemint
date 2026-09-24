@@ -98,34 +98,34 @@ export function TokenStats({
 
   return (
     <dl className="ts-row" aria-label="Token figures">
-      <Cell label="Best offer">
-        {bestOffer === undefined ? (
-          <Dash />
-        ) : (
-          /*
+      {/*
+        Best offer and last sale are left out entirely until there is a figure
+        to show. Most pieces have neither, and two dashed cells ahead of the
+        floor were the first thing on the page telling a buyer nothing, while
+        squeezing the one cell that did answer into "COLLECTION FL…".
+      */}
+      {bestOffer === undefined ? null : (
+        <Cell label="Best offer">
+          {/*
             WSOSO, and the unit is not decoration. This marketplace refuses
             native-currency bids outright, so a row saying "SOSO" would have
             somebody expecting the wrong balance to move.
-          */
+          */}
           <Soso size={15} unit="WSOSO">
             {formatSoso(bestOffer.priceWei)}
           </Soso>
-        )}
-      </Cell>
+        </Cell>
+      )}
 
-      <Cell label="Last sale">
-        {/*
-          A dash when the history could not be read, and a dash when nothing
-          has ever sold — the same mark for two different facts, which is
-          acceptable here only because neither is a claim. What matters is that
-          NEITHER shows a price.
-        */}
-        {lastSale?.price === undefined || logsUnavailable ? (
-          <Dash />
-        ) : (
+      {/*
+        Absent both when nothing has sold and when the history could not be
+        read. Neither is a claim, and what matters is that NEITHER shows a price.
+      */}
+      {lastSale?.price === undefined || logsUnavailable ? null : (
+        <Cell label="Last sale">
           <Soso size={15}>{formatSoso(lastSale.price)}</Soso>
-        )}
-      </Cell>
+        </Cell>
+      )}
 
       <Cell label="Collection floor">
         {floorWei === undefined ? <Dash /> : <Soso size={15}>{formatSoso(floorWei)}</Soso>}

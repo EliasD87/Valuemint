@@ -752,6 +752,12 @@
   .hx {
     display: flex;
     flex-direction: column;
+    /*
+     * The desktop section has no bottom padding because the deck is its floor.
+     * With the deck moved to the top, the buttons became the floor, and they
+     * sat flush on the section's edge. This gives them room to stand on.
+     */
+    padding-bottom: 2rem;
   }
 
   .hx-deck {

@@ -316,7 +316,7 @@ export function CollectionView({ params }: { params: Promise<{ address: string }
   ];
 
   return (
-    <section className="page section">
+    <section className="page section page-compact">
       <CollectionHero
         address={raw as `0x${string}`}
         {...(name === undefined ? {} : { name })}

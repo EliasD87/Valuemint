@@ -403,7 +403,7 @@ export function TokenView({
   };
 
   return (
-    <section className="page section">
+    <section className="page section page-compact">
       <div className="token-grid">
         <figure className="token-figure">
           {image !== undefined ? (
