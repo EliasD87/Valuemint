@@ -207,6 +207,23 @@ export const COLLECTION_HEROES: Record<string, HeroArt> = {
     position: "center 22%",
   },
 
+  /*
+    The Trenches — supplied by the owner, 2026-09-25: all ten depths in one
+    2048x768 cut-out, Halo (#1) at the centre, on a transparent ground.
+
+    This band is that PNG with its alpha channel dropped rather than
+    flattened: the colour under the transparent pixels is a dark ground with
+    each figure's glow in it, which is what a band wants. 1600 wide as WebP,
+    3.0 MB to 206 KB. /trenches uses the cut-out itself, transparency kept
+    (`trenches-cutout*.webp`), standing on its paper.
+
+    Centred: the figures stand across the middle of the picture, hoods at
+    roughly a third of its height, and the band's window keeps every hood.
+  */
+  "0xaab0dc8f2835ed903b35d2f52ff17c4bc92bec19": {
+    background: "/heroes/trenches.webp",
+  },
+
   /** TestCybereator — the same artwork, from the same two files. */
   "0x412d8af16b7ff3fe75e1cd380bd86ef33dd8ad0f": {
     background: "/heroes/cybereator-bg.webp",

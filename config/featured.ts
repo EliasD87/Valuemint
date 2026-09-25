@@ -168,7 +168,7 @@ export const FEATURED: FeaturedPiece[] = [
   {
     collection: "0xaAb0dC8f2835Ed903b35d2f52FF17c4bc92Bec19",
     collectionName: "The Trenches",
-    name: "Scout",
+    name: "Halo",
     tokenId: "1000001",
     note: "Depth 1",
     /* Kept in step with `config/tiers.ts` by hand, because this file is a
@@ -176,7 +176,7 @@ export const FEATURED: FeaturedPiece[] = [
        changed when the collection was re-cut; leaving either behind would have
        put a retired picture on the front page under a name that no longer
        exists. */
-    image: "/featured/the-trenches-scout.webp",
+    image: "/featured/the-trenches-halo.webp",
   },
 
   // ── row two ────────────────────────────────────────────────────────────
@@ -234,10 +234,10 @@ export const FEATURED: FeaturedPiece[] = [
   {
     collection: "0xaAb0dC8f2835Ed903b35d2f52FF17c4bc92Bec19",
     collectionName: "The Trenches",
-    name: "Architect",
+    name: "Verdant",
     tokenId: "4000001",
     note: "Depth 4",
-    image: "/featured/the-trenches-architect.webp",
+    image: "/featured/the-trenches-verdant.webp",
   },
 ];
 

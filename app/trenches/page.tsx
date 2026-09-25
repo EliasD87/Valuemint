@@ -1,29 +1,41 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { useAccount } from "wagmi";
+import { useAccount, useReadContracts } from "wagmi";
 import { Art } from "@/components/Art";
+import { ArrowRight } from "@/components/Arrows";
+import { ConnectButton } from "@/components/ConnectButton";
+import { DepthScene } from "@/components/DepthScene";
 import { SodexLogo } from "@/components/SodexLogo";
+import { TxResult } from "@/components/TxResult";
+import { useTrenchesClaim } from "@/hooks/useTrenchesClaim";
 import { TIERS, formatVolume, tierImage, type Tier } from "@/config/tiers";
+import { TIER_STRIDE, TRENCHES_ABI, TRENCHES_ADDRESS } from "@/config/trenches";
+import "@/styles/home.css";
+import "@/components/TokenCard.css";
 import "@/styles/trenches.css";
 
 /**
  * The Trenches — a free NFT for SoDEX traders, one per depth they've reached.
  *
  * A wallet claims each tier once, so the set is collected over time rather than
- * won in a single shot: reach Deep and you can take the seven below it, then
- * come back for Trench when your volume gets there.
+ * won in a single shot: reach Warlord and you can take the six below it, then
+ * come back for Sakura when your volume gets there.
  *
  * The tier is decided by /api/eligibility, never here. A tier computed in the
  * browser would be a tier the claimant could edit.
+ *
+ * Built from the rest of the site's parts on purpose — `.page section`, the
+ * `.head` eyebrow-and-heading, `.grid-tokens` and the token card, `.chip` — so
+ * it reads as one more page of the marketplace rather than a microsite. The
+ * one thing of its own is the group picture, kept small at the side and drawn
+ * with depth.
  */
 
-interface Eligibility {
-  address: string;
+/** What /api/eligibility returns. Volume itself is deliberately not in it. */
+interface Standing {
   found: boolean;
-  volumeUsd: number;
-  rank: number | null;
   tier: { n: number; name: string; min: number } | null;
   next: { n: number; name: string; min: number; needed: number } | null;
 }
@@ -31,22 +43,37 @@ interface Eligibility {
 type State =
   | { kind: "idle" }
   | { kind: "checking" }
-  | { kind: "done"; data: Eligibility }
+  | { kind: "done"; data: Standing }
   | { kind: "error"; message: string };
 
+type Status = "claimed" | "here" | "earned" | "locked";
+
+const deployed = TRENCHES_ADDRESS !== "";
+const contract = { address: TRENCHES_ADDRESS as `0x${string}`, abi: TRENCHES_ABI } as const;
+const two = (n: number) => String(n).padStart(2, "0");
+
 /**
- * Claiming is not open yet, so this page answers a question instead of taking
- * an action: paste an address, see what it would be owed.
- *
- * A wallet connection is the wrong price of entry for that. Nothing here signs
- * or spends, the eligibility route already takes an address in its path, and
- * asking someone to connect before they can read a number is friction in
- * exchange for nothing. The connected wallet is still used as a default, so a
- * visitor who has one does not have to type their own address.
+ * `formatVolume`, rounded down instead of to nearest. A wallet $1 short of
+ * $150M must not read "$150M traded" beside a bar that says it is not there.
  */
+function formatTraded(usd: number): string {
+  for (const [size, suffix] of [
+    [1_000_000_000, "B"],
+    [1_000_000, "M"],
+    [1_000, "K"],
+  ] as const) {
+    if (usd >= size) {
+      const v = usd / size;
+      const digits = v >= 100 ? 0 : v >= 10 ? 1 : 2;
+      const floored = Math.floor(v * 10 ** digits) / 10 ** digits;
+      return `$${Number.isInteger(floored) ? floored : floored.toFixed(digits)}${suffix}`;
+    }
+  }
+  return `$${Math.floor(usd)}`;
+}
+
 export default function Trenches() {
   const { address } = useAccount();
-  const [looked, setLooked] = useState<string | undefined>(undefined);
   const [state, setState] = useState<State>({ kind: "idle" });
 
   const check = useCallback(async (who: string, signal?: { cancelled: boolean }) => {
@@ -56,208 +83,392 @@ export default function Trenches() {
       const body = await res.json();
       if (signal?.cancelled === true) return;
       if (!res.ok) {
-        setState({ kind: "error", message: body.error ?? "Could not check this wallet." });
+        setState({ kind: "error", message: body.error ?? "Could not read this wallet's depth." });
         return;
       }
-      setState({ kind: "done", data: body as Eligibility });
+      setState({ kind: "done", data: body as Standing });
     } catch {
       if (signal?.cancelled !== true) {
-        setState({ kind: "error", message: "Could not reach the check." });
+        setState({ kind: "error", message: "Could not reach SoDEX just now." });
       }
     }
   }, []);
 
-  /**
-   * The connected wallet looks itself up, once, and nothing else does.
-   *
-   * The box that let anyone paste an address is gone — it asked a visitor to
-   * type one in to be told a number they cannot act on until claiming opens.
-   * This remains because it costs nothing and it is what lights the ladder
-   * below: a wallet that has earned six depths sees six of them unlocked
-   * without asking for anything.
-   */
+  /** The connected wallet looks itself up; switching wallets looks up the new one. */
   useEffect(() => {
-    if (address === undefined || looked !== undefined) return;
-    setLooked(address);
+    if (address === undefined) {
+      setState({ kind: "idle" });
+      return;
+    }
     const signal = { cancelled: false };
     void check(address, signal);
     return () => {
       signal.cancelled = true;
     };
-  }, [address, looked, check]);
+  }, [address, check]);
 
-  const reached = state.kind === "done" ? (state.data.tier?.n ?? 0) : 0;
+  /**
+   * One multicall: how many of each depth exist, and — for a connected wallet —
+   * which it has claimed.
+   */
+  const { data: reads, refetch: refetchReads } = useReadContracts({
+    contracts: [
+      ...TIERS.map((t) => ({ ...contract, functionName: "mintedPerTier", args: [t.n] }) as const),
+      ...(address === undefined
+        ? []
+        : TIERS.map((t) => ({ ...contract, functionName: "claimed", args: [address, t.n] }) as const)),
+    ],
+    query: { enabled: deployed, refetchInterval: 60_000 },
+  });
+
+  const minted = useMemo(
+    () =>
+      TIERS.map((_, i) => {
+        const r = reads?.[i];
+        return r?.status === "success" ? Number(r.result) : undefined;
+      }),
+    [reads],
+  );
+  const claimed = useMemo(
+    () =>
+      TIERS.map((_, i) => {
+        const r = reads?.[TIERS.length + i];
+        return r?.status === "success" && r.result === true;
+      }),
+    [reads],
+  );
+  /** Every token is one depth's, so the ten counts are the whole supply. */
+  const supply = minted.every((m) => m !== undefined)
+    ? minted.reduce<number>((a, m) => a + (m ?? 0), 0)
+    : undefined;
+
+  const standing = state.kind === "done" ? state.data : undefined;
+  const reached = standing?.tier?.n ?? 0;
+
+  const statusOf = (t: Tier, i: number): Status | undefined => {
+    if (claimed[i]) return "claimed";
+    if (standing === undefined) return undefined;
+    if (reached === t.n) return "here";
+    return reached > t.n ? "earned" : "locked";
+  };
 
   return (
-    <div className="tr">
-      <section className="tr-hero">
-        <div className="tr-deep" aria-hidden="true" />
-        <Arcs />
-        <div className="tr-glow" aria-hidden="true" />
+    <>
+      <section className="page section trx-intro">
+        <div className="trx-intro-copy">
+          <p className="eyebrow">The Trenches</p>
+          <h1 className="trx-title">How deep have you traded?</h1>
+          <p className="trx-lede">
+            Ten free NFTs for SoDEX traders, one for every depth of all-time volume you pass. Free to
+            claim, gas only, one per depth.
+          </p>
+          <div className="trx-actions">
+            <a className="btn btn-primary btn-lg" href="#depths">
+              See the ten depths
+              <ArrowRight />
+            </a>
+            {deployed ? (
+              <Link className="btn btn-lg" href={`/collection/${TRENCHES_ADDRESS}`}>
+                Trade them
+              </Link>
+            ) : null}
+          </div>
 
-        <div className="page tr-hero-inner">
-          <Seal />
+          <YourDepth
+            state={state}
+            connected={address !== undefined}
+            onRetry={() => address && void check(address)}
+            onClaimed={() => void refetchReads()}
+          />
+        </div>
 
-          <p className="tr-eyebrow">
-            <SodexLogo variant="full" className="tr-eyebrow-logo" title="SoDEX" />
+        <figure className="trx-art">
+          <DepthScene
+            className="trx-scene"
+            src="/heroes/trenches-cutout.webp"
+            srcSet="/heroes/trenches-cutout-900.webp 900w, /heroes/trenches-cutout.webp 1600w"
+            sizes="(max-width: 860px) 100vw, 34rem"
+            small="/heroes/trenches-cutout-900.webp"
+            depth="/heroes/trenches-depth.png"
+            width={1600}
+            height={663}
+            alt="The ten spirits of The Trenches side by side, Halo at the centre"
+          />
+          <figcaption className="trx-lockup">
+            <SodexLogo variant="full" className="trx-lockup-logo" title="SoDEX" />
             <span aria-hidden="true">×</span>
             <span>ValueMint</span>
-          </p>
-          <h1 className="tr-title">How deep have you traded?</h1>
+          </figcaption>
+        </figure>
+      </section>
 
-        </div>
-
-        <Fan reached={reached} />
-
-        <div className="page tr-check">
-          {/*
-            A status and a way onward, and nothing to fill in.
-
-            This was a wallet-address box with a "Find the depth" button, which
-            asked a visitor to type an address to be told a number they cannot
-            act on yet — claiming is not open. Until it is, the honest version
-            of this section is the date-less fact and a link to the ladder.
-          */}
-          <div className="tr-claim">
-            <p className="tr-soon">
-              <span className="tr-soon-dot" aria-hidden="true" />
-              Claiming opens soon
-            </p>
-
-            <a className="btn btn-lg tr-btn-ghost" href="#ladder">
-              See the ten depths
-            </a>
+      <section className="page section" id="depths">
+        <div className="head">
+          <div>
+            <p className="eyebrow">The ladder</p>
+            <h2>Ten depths</h2>
           </div>
-        </div>
-    </section>
-
-    <section className="section" id="ladder">
-      <div className="page head">
-        <div>
-          <p className="eyebrow">The ladder</p>
-          <h2>Ten depths</h2>
-        </div>
+          <p className="trx-head-note">
+            {supply === undefined ? null : (
+              <>
+                <b>{supply.toLocaleString()}</b> claimed so far
+              </>
+            )}
+          </p>
         </div>
 
-        {/* Full bleed, running off both edges: the set should feel like it
-            continues past the screen rather than being a tidy grid of ten. */}
-        <div className="tr-rail">
-          {TIERS.map((t) => (
-            <TierCard key={t.n} tier={t} unlocked={reached >= t.n} isCurrent={reached === t.n} />
+        <div className="grid-tokens trx-grid">
+          {TIERS.map((t, i) => (
+            <DepthCard key={t.n} tier={t} minted={minted[i]} status={statusOf(t, i)} />
           ))}
         </div>
-
       </section>
-    </div>
+    </>
   );
 }
 
 /* ------------------------------------------------------------------ pieces */
 
-function TierCard({ tier, unlocked, isCurrent }: { tier: Tier; unlocked: boolean; isCurrent: boolean }) {
+/**
+ * The answer to the headline: the wallet's depth, and a progress bar of its
+ * all-time volume from that depth's mark to the next one's.
+ *
+ * The volume is worked out, not read: /api/eligibility deliberately returns
+ * no `volumeUsd`, only how much the next depth still needs, and the mark
+ * minus that is the volume to the dollar (checked against SoDEX's own
+ * leaderboard for two wallets, 2026-09-25). At the deepest depth there is no
+ * next mark, so there is nothing to derive it from — the bar is simply full.
+ *
+ * The bar spans one gap, not the whole ladder: the gaps run from $1K to
+ * $100M, so a single scale would put five depths in its first sliver and
+ * never visibly move for most wallets.
+ */
+function YourDepth({
+  state,
+  connected,
+  onRetry,
+  onClaimed,
+}: {
+  state: State;
+  connected: boolean;
+  onRetry: () => void;
+  /** Re-read the cards' claimed state once a claim confirms. */
+  onClaimed: () => void;
+}) {
+  const data = state.kind === "done" ? state.data : undefined;
+  const tier = data?.tier == null ? undefined : TIERS.find((t) => t.n === data.tier!.n);
+  const next = data?.next == null ? undefined : TIERS.find((t) => t.n === data.next!.n);
+
+  const volume = data?.next != null ? Math.max(data.next.min - data.next.needed, 0) : undefined;
+  const from = tier?.min ?? 0;
+  const to = next?.min;
+  const progress =
+    tier !== undefined && next === undefined
+      ? 1
+      : volume !== undefined && to !== undefined && to > from
+        ? Math.min(Math.max((volume - from) / (to - from), 0), 1)
+        : 0;
+  const percent = Math.floor(progress * 100);
+
+  let reading: React.ReactNode;
+  if (!connected) {
+    reading = <span className="muted">Connect a wallet to see how deep it has traded.</span>;
+  } else if (state.kind === "checking" || state.kind === "idle") {
+    reading = <span className="muted">Reading SoDEX…</span>;
+  } else if (state.kind === "error") {
+    reading = <span className="muted">{state.message}</span>;
+  } else if (tier === undefined) {
+    reading = <span>No SoDEX trades yet. Any trade reaches Halo.</span>;
+  } else {
+    reading = (
+      <>
+        <b>{tier.name}</b>
+        <span className="muted">
+          {" "}
+          · Depth {tier.n} of {TIERS.length}
+        </span>
+      </>
+    );
+  }
+
+  const showBar = connected && (state.kind === "checking" || (state.kind === "done" && tier !== undefined));
+
+  /**
+   * Claiming, from the hook the page had all along. It asks the chain which of
+   * the depths this wallet has earned it still holds unclaimed, so the button
+   * never offers a piece the signature will not mint — and one transaction
+   * takes all of them.
+   */
+  const claim = useTrenchesClaim(tier?.n ?? 0);
+  const claimDone = claim.phase.kind === "done";
+  /* A ref, so a parent re-render (a fresh callback) cannot re-fire the refetch. */
+  const onClaimedRef = useRef(onClaimed);
+  onClaimedRef.current = onClaimed;
+  useEffect(() => {
+    if (claimDone) onClaimedRef.current();
+  }, [claimDone]);
+
   return (
-    <article
-      className={`tr-tile${unlocked ? " is-unlocked" : ""}${isCurrent ? " is-current" : ""}`}
-      style={{ ["--tier" as string]: tier.colour }}
-    >
-      <div className="tr-tile-art">
-        <Art src={tierImage(tier)} alt={tier.name} sizes="(max-width: 700px) 50vw, 260px" />
-        <span className="tr-tile-n">{String(tier.n).padStart(2, "0")}</span>
-        {isCurrent ? <span className="tr-tile-flag">You&rsquo;re here</span> : null}
+    <div className="card trx-you" aria-live="polite">
+      <div className="trx-you-top">
+        <span className="eyebrow">Your depth</span>
+        {claim.open === true ? (
+          <span className="chip chip-up">Claiming open</span>
+        ) : claim.open === false ? (
+          <span className="chip">Claiming paused</span>
+        ) : null}
       </div>
-      <div className="tr-tile-body">
-        <h3>{tier.name}</h3>
-        <p>{tier.blurb}</p>
+      <p className="trx-you-reading">{reading}</p>
+
+      {showBar ? (
+        <div className="trx-progress" style={{ ["--from" as string]: tier?.colour ?? "var(--line-strong)", ["--to" as string]: next?.colour ?? tier?.colour ?? "var(--line-strong)" }}>
+          <div className="trx-progress-figures">
+            <span>
+              {volume !== undefined ? (
+                <>
+                  <b>{formatTraded(volume)}</b> traded
+                </>
+              ) : state.kind === "checking" ? (
+                "\u00a0"
+              ) : (
+                <b>{formatVolume(from)}+ traded</b>
+              )}
+            </span>
+            <span>
+              {data?.next != null && next !== undefined ? (
+                <>
+                  <b>{formatVolume(data.next.needed)}</b> to {next.name}
+                </>
+              ) : tier !== undefined ? (
+                "Deepest reached"
+              ) : null}
+            </span>
+          </div>
+          <div
+            className={`trx-progress-track${state.kind === "checking" ? " is-loading" : ""}`}
+            role="progressbar"
+            aria-label={next === undefined ? "Volume" : `Volume toward ${next.name}`}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={percent}
+          >
+            <span className="trx-progress-fill" style={{ width: `${progress * 100}%` }} />
+          </div>
+          <div className="trx-progress-ends">
+            <span>{tier === undefined ? "" : `${tier.name} · ${tier.min === 0 ? "any trade" : formatVolume(tier.min)}`}</span>
+            <span>
+              {next !== undefined ? `${next.name} · ${formatVolume(next.min)}` : tier !== undefined ? `${percent}%` : ""}
+            </span>
+          </div>
+        </div>
+      ) : null}
+
+      {!connected ? (
+        <ConnectButton className="btn btn-primary btn-block">Connect wallet to claim</ConnectButton>
+      ) : state.kind === "error" ? (
+        <button type="button" className="btn btn-sm" onClick={onRetry}>
+          Try again
+        </button>
+      ) : tier !== undefined && claim.deployed ? (
+        <ClaimAction claim={claim} />
+      ) : null}
+    </div>
+  );
+}
+
+/**
+ * The claim button and what it says at each step.
+ *
+ * The server re-reads the wallet's volume and signs a ceiling, the wallet
+ * sends one transaction, and the contract mints every earned depth this
+ * wallet does not hold yet — so the count on the button is read from the
+ * chain, not worked out here.
+ */
+function ClaimAction({ claim }: { claim: ReturnType<typeof useTrenchesClaim> }) {
+  const { phase, owedCount, open } = claim;
+
+  if (phase.kind === "confirming" || phase.kind === "done") {
+    return (
+      <TxResult
+        hash={claim.hash}
+        confirming={phase.kind === "confirming"}
+        success={phase.kind === "done"}
+        error={null}
+        successLabel="Claimed. They are in your wallet"
+      />
+    );
+  }
+
+  if (open === false) {
+    return <p className="trx-claim-note">Claiming is paused for now.</p>;
+  }
+  if (open === undefined || owedCount === undefined) {
+    return (
+      <button type="button" className="btn btn-primary btn-block" disabled>
+        Checking what you can claim…
+      </button>
+    );
+  }
+  if (owedCount === 0) {
+    return <p className="trx-claim-note">Every depth you have reached is claimed.</p>;
+  }
+
+  const busy = phase.kind === "authorising" || phase.kind === "signing";
+  return (
+    <>
+      <button type="button" className="btn btn-primary btn-block" disabled={busy} onClick={() => void claim.claim()}>
+        {phase.kind === "authorising"
+          ? "Checking your volume…"
+          : phase.kind === "signing"
+            ? "Confirm in your wallet…"
+            : `Claim ${owedCount} ${owedCount === 1 ? "piece" : "pieces"}, free`}
+      </button>
+      {phase.kind === "error" ? <p className="txr txr-bad">{phase.message}</p> : null}
+    </>
+  );
+}
+
+/** A depth, as the token card draws a piece everywhere else on the site. */
+function DepthCard({ tier, minted, status }: { tier: Tier; minted: number | undefined; status: Status | undefined }) {
+  /** The first of this depth ever claimed, to show the piece as it trades. */
+  const href =
+    deployed && minted !== undefined && minted > 0
+      ? `/token/${TRENCHES_ADDRESS}/${tier.n * TIER_STRIDE + 1}`
+      : undefined;
+
+  return (
+    <article className={`tcard trx-card${status === "locked" ? " is-locked" : ""}`}>
+      {href !== undefined ? <Link href={href} className="tcard-hit" aria-label={`${tier.name}, depth ${tier.n}`} /> : null}
+      <div className="tcard-media">
+        <Art src={tierImage(tier)} alt={tier.name} sizes="(max-width: 999px) 50vw, 240px" />
+        {status !== undefined ? (
+          <div className="tcard-badges">
+            <Chip status={status} />
+          </div>
+        ) : null}
       </div>
-      {/* One bar, two facts: what it costs on the left, what it is on the
-          right — the shape the reference uses for price and collection. */}
-      <div className="tr-tile-foot">
-        <span className="mono">{tier.min === 0 ? "Any trade" : formatVolume(tier.min)}</span>
-        <span className="tr-tile-state">{unlocked ? "Earned" : "Locked"}</span>
+      <div className="tcard-body">
+        <div className="tcard-head">
+          <span className="tcard-title">{tier.name}</span>
+          <span className="tcard-num">Depth {two(tier.n)}</span>
+        </div>
+        <div className="tcard-money">
+          <span className="tcard-amount">
+            {tier.min === 0 ? "Any trade" : formatVolume(tier.min)}
+            {tier.min === 0 ? null : <span className="soso-unit">&nbsp;volume</span>}
+          </span>
+        </div>
+        <div className="tcard-meta">
+          <span>{minted === undefined ? "—" : minted === 0 ? "None claimed yet" : `${minted.toLocaleString()} claimed`}</span>
+        </div>
       </div>
     </article>
   );
 }
 
-function Fan({ reached }: { reached: number }) {
-  const [centre, setCentre] = useState(0);
-
-  useEffect(() => {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const t = window.setInterval(() => setCentre((c) => (c + 1) % TIERS.length), 4200);
-    return () => window.clearInterval(t);
-  }, []);
-
-  return (
-    <div className="tr-fan" aria-hidden="true">
-      {TIERS.map((t, i) => {
-        let slot = i - centre;
-        if (slot > TIERS.length / 2) slot -= TIERS.length;
-        if (slot < -TIERS.length / 2) slot += TIERS.length;
-        const parked = Math.abs(slot) > 2;
-
-        return (
-          <div
-            key={t.n}
-            className={`tr-card${reached >= t.n ? " is-lit" : ""}${slot === 0 ? " is-centre" : ""}${parked ? " is-parked" : ""}`}
-            style={{ ["--slot" as string]: slot, ["--abs" as string]: Math.abs(slot), ["--tier" as string]: t.colour, zIndex: 10 - Math.abs(slot) }}
-          >
-            <div className="tr-card-art">
-              <Art src={tierImage(t)} sizes="(max-width: 900px) 60vw, 380px" />
-            </div>
-            <div className="tr-card-bar">
-              <div>
-                <b>{t.name}</b>
-                <span>Depth {String(t.n).padStart(2, "0")}</span>
-              </div>
-              <span className="tr-card-min mono">
-                {t.min === 0 ? "Any trade" : formatVolume(t.min)}
-              </span>
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-/** The rim-lettered seal, as in the reference's rotating badge. */
-function Seal() {
-  return (
-    <div className="tr-seal" aria-hidden="true">
-      <svg viewBox="0 0 120 120">
-        <defs>
-          <path id="tr-seal-arc" d="M60,60 m-42,0 a42,42 0 1,1 84,0 a42,42 0 1,1 -84,0" />
-        </defs>
-        <text>
-          <textPath href="#tr-seal-arc">
-            {"SODEX · THE TRENCHES · VALUEMINT · TEN DEPTHS · "}
-          </textPath>
-        </text>
-      </svg>
-    </div>
-  );
-}
-
-/** Thin arcs sweeping the ground, as in the reference's line texture. */
-function Arcs() {
-  return (
-    <div className="tr-arcs" aria-hidden="true">
-      <svg viewBox="0 0 1400 800" preserveAspectRatio="xMidYMid slice">
-        {Array.from({ length: 16 }, (_, i) => (
-          <ellipse
-            key={i}
-            cx="700"
-            cy={880 + i * 6}
-            rx={520 + i * 56}
-            ry={300 + i * 30}
-            fill="none"
-            stroke="#ffffff"
-            strokeOpacity={0.05 - i * 0.0022}
-            strokeWidth="1"
-          />
-        ))}
-      </svg>
-    </div>
-  );
+function Chip({ status }: { status: Status }) {
+  if (status === "claimed") return <span className="chip chip-accent">Claimed</span>;
+  if (status === "here") return <span className="chip chip-up">You&rsquo;re here</span>;
+  if (status === "earned") return <span className="chip chip-up">Earned</span>;
+  return <span className="chip">Locked</span>;
 }

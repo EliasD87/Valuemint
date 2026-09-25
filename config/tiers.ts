@@ -18,28 +18,19 @@ export interface Tier {
   /** Minimum all-time volume in USD. Tier 1 is any trade at all. */
   min: number;
   /**
-   * The tier's accent, used for its glow, name and unlocked state.
+   * The tier's accent, used for its glow, rule and progress fill.
    *
-   * Sampled from each tier's own artwork, so the card is the colour of the
-   * picture on it rather than a colour assigned to its rank.
+   * Sampled from each tier's own artwork: every piece in the 2026-09-25 re-cut
+   * is one hooded figure in one element on a white ground, so the dominant
+   * saturated hue IS the piece - Hellion's red, Riptide's teal, Eclipse's
+   * violet. Saturation and lightness were then lifted into a band that reads
+   * on the page's dark surfaces: 4.8:1 (Hellion) to 10.6:1 (Halo) against
+   * #111114.
    *
-   * Not the most COMMON colour — that is the sepia wash all ten share, and
-   * picking it gave ten browns within a few percent of each other. Each hue is
-   * scored by how far it exceeds the baseline the whole set has in common, so
-   * what surfaces is what makes a piece different: Architect's teal, Oracle's
-   * violet, Leviathan's cosmic blue. Saturation and lightness are then clamped
-   * to a usable band, because a colour lifted straight out of a wash is often
-   * too dark or too weak to carry a border.
-   *
-   * The honest consequence: seven of the ten really are warm, because the art
-   * really is ink and wash. That is faithful to the pictures and it does mean
-   * the ladder reads less as a progression than a designed ramp would. If the
-   * progression matters more than the likeness, this column is the only thing
-   * to change.
-   *
-   * All ten are checked against the card's own ground (#17171c) at 4.42:1 to
-   * 8.46:1. The Trenches page is dark in both themes, so they are never asked
-   * to hold up on white.
+   * On the paper most of these are under 3:1, so the page never lets one
+   * stand alone: `styles/trenches.css` draws every swatch and meter segment
+   * inside an ink outline, and always next to the tier's name. Text is never
+   * set in a tier colour in either theme.
    */
   colour: string;
   /** IPFS CID of this tier's artwork, stored on Filebase. */
@@ -47,17 +38,23 @@ export interface Tier {
   blurb: string;
 }
 
+/**
+ * Re-cut 2026-09-25: ten hooded spirits, one per element, supplied as
+ * 1.png..10.png with the file number as the tier - the owner's call, and #10
+ * (the stone and crystal piece) is the best of them. Names follow the art.
+ * CIDs from `metadata/scripts/pin-trenches-tiers.mjs`.
+ */
 export const TIERS: Tier[] = [
-  { n: 1,  name: "Scout",     min: 0,           colour: "#c08859", image: "Qmduq6Jncodso95dfBu85GySMYrLNt1TVQhjGsawUTupRa", blurb: "You showed up and traded." },
-  { n: 2,  name: "Trader",    min: 1_000,       colour: "#c89f6e", image: "QmZ7KknaVYGsDv4X59JEWj8h8ELwvHchCutiog35oqD1xF", blurb: "Enough volume to be doing this on purpose." },
-  { n: 3,  name: "Operator",  min: 10_000,      colour: "#cf844a", image: "QmYWKeeNfDRnAkRjmc6WXBAegrPqvmDnTpFd4Vrtvc7jQF", blurb: "You know the routes and you run them." },
-  { n: 4,  name: "Architect", min: 50_000,      colour: "#59b5c0", image: "QmP8f2gWdK893BLUgt5G4rAYUMcNNPxPLBcoQT28EYUckx", blurb: "Building a position, not just taking one." },
-  { n: 5,  name: "Oracle",    min: 250_000,     colour: "#b389d2", image: "Qmd96VjHD7JcGcfP6X6RrZk2eWiUNeYetK3AkpFyQEBmYC", blurb: "You see it before the book does." },
-  { n: 6,  name: "Titan",     min: 1_000_000,   colour: "#c16658", image: "QmV4vL48iWiNtcTYVLeAGfTh3XetpWXHD9ANKjcY9MZiAs", blurb: "Seven figures through your hands." },
-  { n: 7,  name: "Magnate",   min: 5_000_000,   colour: "#c89857", image: "QmUZXQ4sSjJjGbFHA7McUvCxGnh1FMUqGRQwR93ujY1mCf", blurb: "Size that moves other people's prices." },
-  { n: 8,  name: "Overlord",  min: 15_000_000,  colour: "#c36255", image: "QmZKA6qZZWh1Ak3Kx2DZHUCpeCj3kTsyYfohLThiV5rLi5", blurb: "The market makes room for you." },
-  { n: 9,  name: "Sovereign", min: 50_000_000,  colour: "#cfad80", image: "QmaEcsV4dSA3j3eaY2QEKiaZFqtcDLm3XgtakmrCWGMLs6", blurb: "You do not follow the flow. It follows you." },
-  { n: 10, name: "Leviathan", min: 150_000_000, colour: "#5982c0", image: "QmfTus5xh3ZnNvFjsCv5TFpQofPgf57cc7NGjVCzonQgAg", blurb: "The thing the depth is famous for." },
+  { n: 1,  name: "Halo",     min: 0,           colour: "#e3bd6d", image: "Qmbig99tsfT5WMHzuxDBQFyNtWAJLxHRNmTLQdwAiKiC5B", blurb: "Your first trade. Everyone starts in the light." },
+  { n: 2,  name: "Hellion",  min: 1_000,       colour: "#e5484d", image: "QmSBBnkA8BevukNwsMgZDUutm2veo2SpWz2QUZbbXrrfRN", blurb: "A thousand through the book, and a taste for it." },
+  { n: 3,  name: "Lunaris",  min: 10_000,      colour: "#6f9cf0", image: "QmbEttxMchgavsjEg8HEtBgRyifrtCQseVkMcbkEHyKQh2", blurb: "Five figures, most of them after dark." },
+  { n: 4,  name: "Verdant",  min: 50_000,      colour: "#9fc24c", image: "QmQ56C28wBWRiZvUeN3MJPn8bFZXSHNWvnex3pkWiGGWCa", blurb: "Positions that put down roots." },
+  { n: 5,  name: "Inferno",  min: 250_000,     colour: "#f0823a", image: "QmecFkpcLVtEVTSAJjjG5GD9Bc5Xch3RvCMmnzBQsQ7kCt", blurb: "A quarter of a million, through the fire." },
+  { n: 6,  name: "Eclipse",  min: 1_000_000,   colour: "#ad7cf0", image: "QmdCnduEn74Cnwog6rL4g4xqJmLha4cQxaieacRc2JaqhJ", blurb: "Seven figures through your hands." },
+  { n: 7,  name: "Warlord",  min: 5_000_000,   colour: "#dca13c", image: "QmSvdrqnyTYyjcLwrYBFoWGinVdRZKYqkUUWpeCRwDkeV8", blurb: "Size that moves other people's prices." },
+  { n: 8,  name: "Sakura",   min: 15_000_000,  colour: "#ef8aa6", image: "QmdeN1L4RZsK2jHrtDwe8Yhd9HPSoU39GQAiGkRhaeXAMs", blurb: "It blooms for very few wallets." },
+  { n: 9,  name: "Riptide",  min: 50_000_000,  colour: "#3fc6bd", image: "QmNgfzXc3aovhsqfALmYFh4r7xLT6aGUWDLwnnQDBQSquY", blurb: "You do not follow the flow. It follows you." },
+  { n: 10, name: "Monolith", min: 150_000_000, colour: "#c89b63", image: "QmfLpznH4q97fq2KQifVQhTTAV4AZ1mCJifG1Booj7yoaW", blurb: "The rock the trenches are cut from." },
 ];
 
 /** Where this tier's artwork lives. */
@@ -67,9 +64,9 @@ export const tierImage = (t: Tier) => `${TIER_GATEWAY}/${t.image}`;
 /**
  * Every tier a volume has earned, lowest first.
  *
- * A wallet may claim each tier **once**, so a trader who has climbed to Deep
- * can collect the seven below it and come back for Trench when their volume
- * gets there. That is one claim per (wallet, tier), not one per wallet - the
+ * A wallet may claim each tier **once**, so a trader who has climbed to
+ * Warlord can collect the six below it and come back for Sakura when their
+ * volume gets there. That is one claim per (wallet, tier), not one per wallet - the
  * set is meant to be completed over time, and every threshold in it was
  * genuinely passed through.
  */

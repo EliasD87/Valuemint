@@ -140,11 +140,14 @@ export function useTrenchesClaim(earned: number) {
 
   return {
     deployed,
-    open: open === true,
+    /** Undefined until read: "not known yet" must not render as "paused". */
+    open: open as boolean | undefined,
     /** How many pieces this wallet can take right now, or undefined while loading. */
     owedCount: owed === undefined ? undefined : owed.length,
     loadingOwed,
     phase,
+    /** The claim transaction, once sent — for a link to it on the explorer. */
+    hash,
     claim,
     reset: () => {
       setPhase({ kind: "idle" });

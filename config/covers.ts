@@ -91,7 +91,7 @@ export const COLLECTION_COVERS: Record<string, string[]> = {
 
   // The Trenches — one picture per depth.
   /*
-    The Trenches — the first four depths, Scout to Architect.
+    The Trenches — the first four depths, Halo to Verdant.
 
     These have to be changed by hand whenever the collection is re-cut, and
     that is exactly what went wrong: the tiers were re-cut in `tiers.ts` and
@@ -99,12 +99,18 @@ export const COLLECTION_COVERS: Record<string, string[]> = {
     the old artwork while every token page carried the new. A cover is named
     here precisely so it needs no chain read — the cost of that is this file
     not knowing when the collection underneath it changes.
+
+    Named after the depth, and a re-cut must use NEW filenames. The image
+    optimiser caches by path for 30 days (`minimumCacheTTL` in
+    next.config.ts), so new pictures under the old `aab0dc8f-1..4.webp` names
+    kept serving the retired art from every cache that had seen them
+    (2026-09-25).
   */
   "0xaab0dc8f2835ed903b35d2f52ff17c4bc92bec19": [
-    "/covers/aab0dc8f-1.webp",
-    "/covers/aab0dc8f-2.webp",
-    "/covers/aab0dc8f-3.webp",
-    "/covers/aab0dc8f-4.webp",
+    "/covers/aab0dc8f-halo.webp",
+    "/covers/aab0dc8f-hellion.webp",
+    "/covers/aab0dc8f-lunaris.webp",
+    "/covers/aab0dc8f-verdant.webp",
   ],
 
   // Hypno Plush

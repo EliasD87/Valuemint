@@ -3,6 +3,7 @@ import { createPublicClient, erc721Abi, fallback, http } from "viem";
 import { RPC_HTTP, valuechain } from "@/config/chain";
 import { resolveMediaUrl } from "@/lib/format";
 import { metadataFetchAllowed } from "@/lib/media";
+import { servedFromMemory, tokenDocument } from "@/lib/tokenDocument";
 
 /**
  * Server-side reads for link previews.
@@ -49,6 +50,23 @@ export interface CollectionShare {
 
 const isAddress = (v: string): v is `0x${string}` => /^0x[0-9a-fA-F]{40}$/.test(v);
 
+/**
+ * `https://www.valuemint.store/api/metadata/<collection>/<id>` for a collection
+ * the route answers from memory, or undefined. Manifest-backed collections are
+ * left to the fetch: their documents are fixed by a CID and cache correctly.
+ */
+function ownRoute(url: string): { collection: string; id: number } | undefined {
+  try {
+    const u = new URL(url);
+    if (u.hostname !== "www.valuemint.store" && u.hostname !== "valuemint.store") return undefined;
+    const m = /^\/api\/metadata\/([^/]+)\/([0-9]+)$/.exec(u.pathname);
+    if (m === null || !servedFromMemory(m[1]!)) return undefined;
+    return { collection: m[1]!, id: Number(m[2]) };
+  } catch {
+    return undefined;
+  }
+}
+
 async function readJson(url: string): Promise<Record<string, unknown> | undefined> {
   /**
    * The host is checked before anything is fetched.
@@ -61,6 +79,24 @@ async function readJson(url: string): Promise<Record<string, unknown> | undefine
    * reflected SSRF, not blind.
    */
   if (!metadataFetchAllowed(url)) return undefined;
+
+  /**
+   * Our own route, for a collection it composes from the app's config rather
+   * than a pinned manifest — The Trenches, the KOLs, the baked-in sets. Those
+   * documents change when the config does (the Trenches were re-cut on
+   * 2026-09-25), so they are built here, in-process, exactly as the route
+   * builds them.
+   *
+   * Fetched instead, they came back stale twice over: an hour of the data
+   * cache below, and — from a development server — the *deployed* site's
+   * answer, because a contract's `baseURI` always names the production
+   * domain. Token pages were titled "Scout #1" beside Halo artwork.
+   */
+  const own = ownRoute(url);
+  if (own !== undefined) {
+    const result = await tokenDocument(own.collection, own.id);
+    return result.ok ? (result.document as Record<string, unknown>) : undefined;
+  }
 
   try {
     const res = await fetch(url, {

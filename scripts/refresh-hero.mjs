@@ -20,10 +20,10 @@ import sharp from "sharp";
  */
 
 const DECK = [
-  /* Scout, the first depth. Repointed when the collection was re-cut — the
-     old CID is a retired tier and re-running this would have restored a
-     picture that is no longer in the collection. */
-  ["trenches", "https://ipfs.filebase.io/ipfs/Qmduq6Jncodso95dfBu85GySMYrLNt1TVQhjGsawUTupRa"],
+  /* Halo, the first depth. Repointed each time the collection is re-cut
+     (last 2026-09-25) — an old CID is a retired tier, and re-running this
+     would restore a picture that is no longer in the collection. */
+  ["trenches", "https://ipfs.filebase.io/ipfs/Qmbig99tsfT5WMHzuxDBQFyNtWAJLxHRNmTLQdwAiKiC5B"],
   ["larpers", "https://ipfs.filebase.io/ipfs/QmVDPjHpvRa4HMrGwBnZXEcBauRnCu1VZUPukuidRRdzzy"],
   [
     "genesis",
