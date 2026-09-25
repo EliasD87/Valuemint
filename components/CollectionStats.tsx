@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 import { useCollectionStats } from "@/hooks/useCollectionStats";
 import { Soso } from "@/components/Soso";
-import { PriceChange } from "@/components/PriceChange";
+import { FloorChange } from "@/components/FloorChange";
 import { formatSoso, formatSosoWhole, formatCount } from "@/lib/format";
 import "./CollectionStats.css";
 
@@ -88,15 +88,11 @@ export function CollectionStats({
         </Cell>
 
         {/*
-          Where "Top offer" used to be, and it earns the slot better.
-
-          A best bid is one number that changes rarely; this is how much the
-          price people actually PAID moved in a day, which is the figure
-          somebody scanning a collection page is looking for. Not a listing
-          floor: an asking price nobody accepted moves that and should not move
-          this. See `PriceChange`.
+          The floor beside it, set against what the last day's sales averaged —
+          see lib/floorVsSales.ts. Handed the same floor the cell above shows,
+          so the two can never be two different numbers.
         */}
-        <PriceChange collection={collection} />
+        <FloorChange collection={collection} floorWei={s.floorWei} />
 
         <Cell label="Listed" note={listedShare}>
           <span className="cs-plain">{formatCount(BigInt(s.listed))}</span>

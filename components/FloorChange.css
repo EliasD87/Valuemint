@@ -1,0 +1,33 @@
+/* ============================================================ floor vs sales
+ *
+ * One percentage in the stats bar, with the average and the sale count as its
+ * note. It borrows `.cs-cell`, `.cs-value` and `.cs-note` from CollectionStats
+ * deliberately: it IS one of those cells, and restating the type here is how
+ * two things that should look identical start to drift.
+ * ========================================================================= */
+
+.chg-pct {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/*
+ * Green up, red down, and the tokens already exist for both themes — `--up` was
+ * darkened once already to clear 4.5:1 on its own wash, so using it rather than
+ * a literal is what keeps this legible on either ground.
+ */
+.chg-up {
+  color: var(--up);
+}
+
+.chg-down {
+  color: var(--down);
+}
+
+/*
+ * A floor level with the average is not "up by nothing". At `--ink-2` it reads
+ * as a figure rather than as a colour-coded direction.
+ */
+.chg-flat {
+  color: var(--ink-2);
+}
