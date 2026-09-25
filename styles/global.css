@@ -1536,3 +1536,10 @@ textarea {
 .info-tip-bubble b {
   font-weight: 700;
 }
+
+/* One line per tier inside the floor tip, so the breakdown reads as a list. */
+.ft-tiers {
+  display: grid;
+  gap: 0.2rem;
+  font-variant-numeric: tabular-nums;
+}

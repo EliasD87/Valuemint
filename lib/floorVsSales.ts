@@ -14,10 +14,16 @@
  * ---
  *
  * **What it is not.** It is not the floor's own move over a day, and the label
- * says "vs 24h avg" so it is not read as one. An average moves with WHICH pieces
- * sold as well as with price — one rare piece among commons lifts it — which is
- * why the average and the number of sales ride under the figure: two sales and
- * the percentage is two trades' worth of evidence, and the reader can see that.
+ * says "vs 24h avg" so it is not read as one.
+ *
+ * **Tiered collections compare like with like.** An average moves with WHICH
+ * pieces sold: on Genesis the one sale of a day was a higher tier at 860 while
+ * the floor was a Common at 200, and the cell read -76.7% with nothing having
+ * got cheaper. So where a collection has tiers, only sales of the FLOOR's tier
+ * are averaged (`onlyTier`) — the cheapest Common against what Commons sold
+ * for. No sale of that tier in the day is no figure, never a fallback to the
+ * other tiers' prices. A sale whose tier could not be read is left out rather
+ * than guessed into one.
  */
 
 export interface SaleSample {
@@ -26,6 +32,8 @@ export interface SaleSample {
   /** Units in the sale; 1 for an ERC-721. */
   amount: bigint;
   blockNumber: bigint;
+  /** The sold piece's tier, where the collection has tiers and it was read. */
+  tier?: string;
 }
 
 export interface FloorVsSales {
@@ -48,6 +56,8 @@ export function averageSale(
   sales: readonly SaleSample[],
   head: bigint | undefined,
   blocksPerDay: number,
+  /** Average only this tier's sales. Absent: every sale counts. */
+  onlyTier?: string,
 ): { averageWei: bigint; sales: number } | undefined {
   if (head === undefined) return undefined;
   const from = head > BigInt(blocksPerDay) ? head - BigInt(blocksPerDay) : 0n;
@@ -57,6 +67,7 @@ export function averageSale(
   let count = 0;
   for (const s of sales) {
     if (s.priceWei <= 0n || s.amount <= 0n) continue;
+    if (onlyTier !== undefined && s.tier !== onlyTier) continue;
     /** No upper bound: the index can be a block ahead of a polled head. */
     if (s.blockNumber < from) continue;
     total += s.priceWei * s.amount;
@@ -66,14 +77,54 @@ export function averageSale(
   return units === 0n ? undefined : { averageWei: total / units, sales: count };
 }
 
+export interface TierComparison extends FloorVsSales {
+  tier: string;
+}
+
+/**
+ * Tier by tier, then the average of the tiers — the owner's rule, 2026-09-25.
+ *
+ * For every tier with a live listing: that tier's floor now against the
+ * average price that tier sold for in the last 24 hours, as a percentage. A
+ * tier that sold nothing in the day, or has nothing listed, has no percentage
+ * and is left out. The figure is the plain mean of the percentages that remain
+ * — each tier counts once, however many of it sold, so a busy Common market
+ * cannot drown out the one Rare that traded.
+ *
+ * Undefined when no tier has both a listing and a sale.
+ */
+export function floorVsSalesByTier(
+  sales: readonly SaleSample[],
+  /** Each tier's cheapest live listing — `useFloors().tierRowsFor`. */
+  floors: ReadonlyArray<{ tier: string; price: bigint }>,
+  head: bigint | undefined,
+  blocksPerDay: number,
+): { percent: number; tiers: TierComparison[] } | undefined {
+  const tiers = floors.flatMap((f): TierComparison[] => {
+    const r = floorVsSales(sales, f.price, head, blocksPerDay, f.tier);
+    return r === undefined ? [] : [{ ...r, tier: f.tier }];
+  });
+  if (tiers.length === 0) return undefined;
+
+  /**
+   * Averaged in whole basis points, which each tier's figure already is. As
+   * percentages the halves go wrong in floating point — 5.26 and 11.11 mean
+   * 8.185, and 8.185 * 100 is 818.4999…, which rounds the wrong way.
+   */
+  const bps = tiers.reduce((sum, t) => sum + Math.round(t.percent * 100), 0);
+  return { percent: Math.round(bps / tiers.length) / 100, tiers };
+}
+
 export function floorVsSales(
   sales: readonly SaleSample[],
   floorWei: bigint | undefined,
   head: bigint | undefined,
   blocksPerDay: number,
+  /** The floor piece's tier, on a tiered collection. See the note at the top. */
+  onlyTier?: string,
 ): FloorVsSales | undefined {
   if (floorWei === undefined) return undefined;
-  const avg = averageSale(sales, head, blocksPerDay);
+  const avg = averageSale(sales, head, blocksPerDay, onlyTier);
   if (avg === undefined) return undefined;
 
   /** Basis points in bigint first: two 18-digit figures lose a 1% gap as floats. */
