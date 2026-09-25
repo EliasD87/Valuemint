@@ -52,8 +52,22 @@ const PLUMBING = new Set(["editions minted", "design number"]);
  * taken to withhold. It stays visible ON the piece, where it is an honest
  * answer to "what is this", and the manifest's own design counts are public
  * regardless — what is withheld is which token gets what, not the odds.
+ *
+ * **The Trenches' `Depth Number`, `Volume Threshold` and `Serial`.** A
+ * Trenches piece carries four attributes and only `Depth` is an axis. Depth
+ * Number and Volume Threshold are Depth again — one value per depth, so each
+ * filter row repeats the first chip for chip — and Serial is the piece's place
+ * within its depth, which, like Edition, runs across depths rather than within
+ * one. Offered as filters they turned one row into four (owner, 2026-09-25:
+ * "just the first one is enough").
  */
-const NOT_FILTERABLE = new Set(["edition", "status"]);
+const NOT_FILTERABLE = new Set([
+  "edition",
+  "status",
+  "depth number",
+  "volume threshold",
+  "serial",
+]);
 
 const key = (traitType: unknown): string => String(traitType ?? "").toLowerCase();
 

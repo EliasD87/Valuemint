@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { isDisplayable, isFilterable, isPlumbing } from "@/lib/traitRoles";
 import { documentFor } from "@/lib/buildMetadata";
+import { tokenDocument } from "@/lib/tokenDocument";
 
 /**
  * These lists decide what a collector sees and what they can slice a collection
@@ -81,7 +82,7 @@ describe("isFilterable", () => {
 
   /** A contract from somewhere else publishes whatever it likes. */
   it("allows an unknown trait from a third-party contract", () => {
-    for (const t of ["Background", "Serial", "Eyes"]) {
+    for (const t of ["Background", "Hat", "Eyes"]) {
       expect(isFilterable(t)).toBe(true);
     }
   });
@@ -90,5 +91,23 @@ describe("isFilterable", () => {
     for (const t of [undefined, null, ""]) {
       expect(isFilterable(t)).toBe(false);
     }
+  });
+});
+
+/**
+ * Against what the route really emits for a Trenches piece: four attributes,
+ * one axis. Depth Number and Volume Threshold restate Depth, and Serial runs
+ * across depths, so only Depth is offered as a filter.
+ */
+describe("a Trenches piece", () => {
+  it("is filtered by Depth alone, and still shows all four", async () => {
+    const result = await tokenDocument("sodex-trenches", 4_000_001);
+    expect(result.ok).toBe(true);
+    const names = ((result as { document: { attributes: { trait_type: string }[] } }).document.attributes).map(
+      (a) => a.trait_type,
+    );
+    expect(names).toEqual(["Depth", "Depth Number", "Volume Threshold", "Serial"]);
+    expect(names.filter(isFilterable)).toEqual(["Depth"]);
+    expect(names.filter(isDisplayable)).toEqual(names);
   });
 });
