@@ -20,7 +20,8 @@ import { Offers } from "@/components/Offers";
 import { TxResult } from "@/components/TxResult";
 import { FillBlocked } from "@/components/FillBlocked";
 import { ShareLink } from "@/components/ShareLink";
-import { formatSoso, resolveMediaUrl, shortAddress } from "@/lib/format";
+import { formatSoso, resolveMediaUrl } from "@/lib/format";
+import { AddressLink } from "@/components/AddressLink";
 import { MovingArt } from "@/components/MovingArt";
 import { soleArtworkFor } from "@/config/covers";
 import { Wordmark } from "@/components/Wordmark";
@@ -491,7 +492,15 @@ export function TokenView({
           <div className="token-who">
             <span className="token-who-owner">
               Owned by{" "}
-              <b>{owner === undefined ? "—" : isOwner ? "you" : shortAddress(owner as string, 6)}</b>
+              <b>
+                {owner === undefined ? (
+                  "—"
+                ) : isOwner ? (
+                  "you"
+                ) : (
+                  <AddressLink address={owner as string} chars={6} />
+                )}
+              </b>
             </span>
             <span className={`token-state${listed && active ? " is-live" : ""}`}>
               {settling

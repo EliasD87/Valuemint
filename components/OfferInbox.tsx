@@ -11,7 +11,8 @@ import { useOwnOfferExposure, useSeaportOrders, type SeaportOrder } from "@/hook
 import { useSeaportFill, useSeaportTrade } from "@/hooks/useSeaportTrade";
 import { FillBlocked } from "@/components/FillBlocked";
 import { useCanPayFeeInWsoso } from "@/hooks/useWsoso";
-import { formatSoso, shortAddress } from "@/lib/format";
+import { formatSoso } from "@/lib/format";
+import { AddressLink } from "@/components/AddressLink";
 import { currencyLabel, fulfillerOutlay } from "@/lib/seaport";
 import { deployment } from "@/config/contracts";
 import "./OfferInbox.css";
@@ -166,7 +167,7 @@ function InboxRow({ row, onChange }: { row: Row; onChange: () => void }) {
         </Soso>
         <span className="inbox-meta">
           {offer.tokenId === undefined ? "for any piece · " : ""}
-          from {shortAddress(offer.maker, 4)} · {whenExpires(offer.endTime)}
+          from <AddressLink address={offer.maker} chars={4} /> · {whenExpires(offer.endTime)}
         </span>
       </span>
 

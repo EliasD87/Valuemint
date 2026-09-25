@@ -7,7 +7,8 @@ import { useBurnedListedTokens } from "@/hooks/useSeaportOrders";
 import { deployment } from "@/config/contracts";
 import { Soso } from "@/components/Soso";
 import { ArrowRight } from "@/components/Arrows";
-import { formatSoso, shortAddress, timeAgo } from "@/lib/format";
+import { AddressLink } from "@/components/AddressLink";
+import { formatSoso, timeAgo } from "@/lib/format";
 import "@/styles/activity.css";
 
 /**
@@ -112,11 +113,11 @@ function Row({
       </span>
 
       <span className="act-who">
-        {row.from === undefined ? null : shortAddress(row.from)}
+        {row.from === undefined ? null : <AddressLink address={row.from} />}
         {row.to === undefined ? null : (
           <>
             {" → "}
-            {shortAddress(row.to)}
+            <AddressLink address={row.to} />
           </>
         )}
       </span>

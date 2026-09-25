@@ -5,7 +5,8 @@ import { useAccount } from "wagmi";
 import { useOffersForToken, useOwnOfferExposure } from "@/hooks/useSeaportOrders";
 import { useSeaportFill, useSeaportTrade } from "@/hooks/useSeaportTrade";
 import { useCanPayFeeInWsoso } from "@/hooks/useWsoso";
-import { formatSoso, shortAddress } from "@/lib/format";
+import { formatSoso } from "@/lib/format";
+import { AddressLink } from "@/components/AddressLink";
 import { currencyLabel, fulfillerOutlay } from "@/lib/seaport";
 import { deployment } from "@/config/contracts";
 import { FillBlocked } from "@/components/FillBlocked";
@@ -157,7 +158,7 @@ export function Offers({
                   </Soso>
                 </span>
                 <span className="offers-who">
-                  {isMine ? "You" : shortAddress(o.maker, 4)}
+                  {isMine ? "You" : <AddressLink address={o.maker} chars={4} />}
                   <span className="offers-when">
                     {o.tokenId === undefined ? "any piece · " : ""}
                     {whenExpires(o.endTime)}

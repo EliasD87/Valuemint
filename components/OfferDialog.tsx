@@ -5,7 +5,8 @@ import { createPortal } from "react-dom";
 import { useAccount } from "wagmi";
 import { useOffersForToken } from "@/hooks/useSeaportOrders";
 import { OfferForm, useTokenOfferTarget } from "@/components/OfferForm";
-import { formatSoso, shortAddress } from "@/lib/format";
+import { formatSoso } from "@/lib/format";
+import { AddressLink } from "@/components/AddressLink";
 import { currencyLabel } from "@/lib/seaport";
 import { whenExpires } from "@/components/Offers";
 import "./OfferDialog.css";
@@ -83,7 +84,7 @@ export function OfferDialog({
                     </Soso>
                   </span>
                   <span>
-                    {isMine(o.maker) ? "You" : shortAddress(o.maker, 4)} &middot;{" "}
+                    {isMine(o.maker) ? "You" : <AddressLink address={o.maker} chars={4} />} &middot;{" "}
                     {o.tokenId === undefined ? "any piece · " : ""}
                     {whenExpires(o.endTime)}
                   </span>

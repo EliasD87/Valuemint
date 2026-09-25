@@ -155,6 +155,132 @@
   min-width: 0;
 }
 
+/* ------------------------------------------------------ the wallet scan */
+
+/*
+ * A status line with a bar, above the holdings while a lookup is running.
+ * Transform-only motion throughout (the bar's scale, the radar's rotation, the
+ * shimmer's slide), so a page of cards loading underneath costs the
+ * compositor rather than layout.
+ */
+.hs {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  margin: 0 0 1rem;
+  padding: 0.7rem 0.95rem;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+}
+
+/* A small radar: a ring with a sweep turning inside it. */
+.hs-radar {
+  flex: none;
+  position: relative;
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 50%;
+  border: 1.5px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  overflow: hidden;
+}
+
+.hs-radar::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: conic-gradient(from 0deg, transparent 0deg, color-mix(in srgb, var(--accent) 70%, transparent) 70deg, transparent 72deg);
+  animation: hs-sweep 1.4s linear infinite;
+}
+
+.hs-radar::after {
+  content: "";
+  position: absolute;
+  inset: 45%;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+@keyframes hs-sweep {
+  to { transform: rotate(360deg); }
+}
+
+.hs-body {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 0.4rem;
+}
+
+.hs-text {
+  margin: 0;
+  font-size: var(--step--1);
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.hs-text b {
+  color: var(--ink);
+}
+
+.hs-sub {
+  color: var(--ink-3);
+}
+
+.hs-track {
+  position: relative;
+  display: block;
+  height: 4px;
+  border-radius: var(--r-pill);
+  background: var(--line);
+  overflow: hidden;
+}
+
+/* Determinate: a real share of a real total, grown from the left. */
+.hs-fill {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--accent);
+  transform-origin: left center;
+  transition: transform 400ms var(--ease);
+}
+
+/* A light passing along whatever is filled, so a long stage still moves. */
+.hs-fill::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--paper) 55%, transparent), transparent);
+  transform: translateX(-100%);
+  animation: hs-shimmer 1.3s ease-in-out infinite;
+}
+
+/* Before there is a total: a third of the bar travelling across it. */
+.hs-fill.is-indeterminate {
+  transform: scaleX(0.33);
+  animation: hs-travel 1.3s ease-in-out infinite;
+}
+
+@keyframes hs-shimmer {
+  to { transform: translateX(100%); }
+}
+
+/* Percentages are of the full track (the box is scaled, not resized), so a
+   third-wide bar is out of sight at -33% and at 100% — travel no further. */
+@keyframes hs-travel {
+  from { transform: translateX(-33%) scaleX(0.33); }
+  to { transform: translateX(100%) scaleX(0.33); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hs-radar::before,
+  .hs-fill::after,
+  .hs-fill.is-indeterminate {
+    animation: none;
+  }
+}
+
 /* ------------------------------------------------ traits held, per group */
 
 /*

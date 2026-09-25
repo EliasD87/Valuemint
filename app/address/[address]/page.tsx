@@ -12,6 +12,8 @@ import { PortfolioActivity } from "@/components/PortfolioActivity";
 import { HoldingsGroup } from "@/components/HoldingsGroup";
 import { TokenCardSkeleton } from "@/components/TokenCard";
 import { ShareLink } from "@/components/ShareLink";
+import { HoldingsScan } from "@/components/HoldingsScan";
+import { deployment } from "@/config/contracts";
 import { shortAddress } from "@/lib/format";
 import "@/styles/home.css";
 import "@/styles/portfolio.css";
@@ -119,8 +121,29 @@ export default function AddressPage({
                   </Link>
                 ) : null}
                 <ShareLink title={`${shortAddress(target, 6)} on ValueMint`} />
+                {/* Named, not just the icon beside the address: the explorer is
+                    where someone goes for the wallet's raw transactions, and
+                    arriving here from a click they may have wanted that. */}
+                <a
+                  className="btn btn-sm ph-scan"
+                  href={`${deployment.explorer}/address/${target}`}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                >
+                  View on Mainscan &#8599;
+                </a>
               </>
             }
+          />
+
+          <HoldingsScan
+            loading={isLoading}
+            discovering={isDiscovering}
+            collections={collections.length}
+            expected={expected}
+            found={tokens.length}
+            detailed={tokens.filter((t) => t.metadata !== undefined).length}
+            pending={pending.map((c) => c.name)}
           />
 
           {unlistable.length > 0 ? (
@@ -161,18 +184,11 @@ export default function AddressPage({
             </div>
           )}
 
-          {/* More is coming: the balances are known before the ids are. */}
+          {/* More is coming: the balances are known before the ids are. The
+              count and the collections still being read are in the scan line
+              at the top; this is the space they will fill. */}
           {isDiscovering && tokens.length > 0 ? (
             <div className="portfolio-more">
-              <p className="portfolio-more-note">
-                <span className="portfolio-more-dot" aria-hidden="true" />
-                Still finding this wallet&rsquo;s pieces &mdash;{" "}
-                <b>
-                  {tokens.length} of {expected}
-                </b>{" "}
-                so far
-                {pending.length > 0 ? <>, reading {pending.map((c) => c.name).join(", ")}</> : null}.
-              </p>
               <div className="grid-tokens" aria-hidden="true">
                 {Array.from({ length: Math.min(4, Math.max(1, expected - tokens.length)) }, (_, i) => (
                   <TokenCardSkeleton key={i} />

@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useAccount } from "wagmi";
 import { useTopHolders } from "@/hooks/useTopHolders";
 import { formatCount, shortAddress } from "@/lib/format";
-import { deployment } from "@/config/contracts";
 import "@/styles/activity.css";
 import "./TopHolders.css";
 
@@ -93,12 +93,9 @@ export function TopHolders({
                 {i + 1}
               </span>
 
-              <a
-                className="th-who"
-                href={`${deployment.explorer}/address/${h.address}`}
-                target="_blank"
-                rel="noreferrer noopener"
-              >
+              {/* To the holder's own page on ValueMint — what they collect —
+                  rather than the explorer, which lists transactions. */}
+              <Link className="th-who" href={`/address/${h.address}`} title={h.address}>
                 {mine(h.address) ? "You" : (h.name ?? shortAddress(h.address, 4))}
                 {/*
                   A contract holding a lot of a collection is a different fact
@@ -107,7 +104,7 @@ export function TopHolders({
                   anybody having bought anything.
                 */}
                 {h.isContract ? <span className="th-tag">contract</span> : null}
-              </a>
+              </Link>
 
               <span className="th-bar" aria-hidden="true">
                 <span

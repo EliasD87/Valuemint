@@ -11,7 +11,8 @@ import { useMultiBalance, useMultiListings } from "@/hooks/useMultiToken";
 import { TxResult } from "@/components/TxResult";
 import { ShareLink } from "@/components/ShareLink";
 import { Soso } from "@/components/Soso";
-import { formatSoso, resolveMediaUrl, shortAddress } from "@/lib/format";
+import { formatSoso, resolveMediaUrl } from "@/lib/format";
+import { AddressLink } from "@/components/AddressLink";
 import { isDisplayable } from "@/lib/traitRoles";
 import "@/styles/token.css";
 import { Activity } from "@/components/Activity";
@@ -159,7 +160,13 @@ export function MultiTokenView({
                         <span className="multi-left">{l.amount.toString()} left</span>
                       </div>
                       <p className="multi-seller">
-                        {isMine ? "Your listing" : `Seller ${shortAddress(l.seller)}`}
+                        {isMine ? (
+                          "Your listing"
+                        ) : (
+                          <>
+                            Seller <AddressLink address={l.seller} />
+                          </>
+                        )}
                       </p>
 
                       {isMine ? (

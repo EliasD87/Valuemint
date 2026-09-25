@@ -1455,3 +1455,24 @@ textarea {
   margin: 0;
   color: var(--ink-2);
 }
+
+/* ---------------------------------------------------------- address links
+ *
+ * A wallet address anywhere on the site opens that wallet's page. It takes the
+ * colour and weight of whatever it sits in - a table cell, a bold owner line,
+ * a dim meta row - so it reads as that text, and only the hover says it goes
+ * somewhere.
+ */
+.addr-link {
+  color: inherit;
+  font: inherit;
+  text-decoration: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.addr-link:hover,
+.addr-link:focus-visible {
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
