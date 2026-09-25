@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useAccount, useReadContract, useWriteContract } from "wagmi";
+import { useAccount, useReadContract } from "wagmi";
+import { useWriteContract } from "@/hooks/useChainWrite";
 import { useTxOutcome } from "@/hooks/useTxOutcome";
 import { TRENCHES_ABI, TRENCHES_ADDRESS, TRENCHES_CHAIN_ID } from "@/config/trenches";
 import { valuechain } from "@/config/chain";

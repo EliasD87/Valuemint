@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect } from "react";
 import { parseEther, type Address } from "viem";
-import { useAccount, useReadContract, useWriteContract } from "wagmi";
+import { useAccount, useReadContract } from "wagmi";
+import { useWriteContract } from "@/hooks/useChainWrite";
 import { useTxOutcome } from "@/hooks/useTxOutcome";
 import { deployment } from "@/config/contracts";
 import { WsosoAbi } from "@/config/wsoso";

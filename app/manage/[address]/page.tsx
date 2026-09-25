@@ -7,8 +7,8 @@ import {
   useAccount,
   useBalance,
   useReadContracts,
-  useWriteContract,
 } from "wagmi";
+import { useWriteContract } from "@/hooks/useChainWrite";
 import { useTxOutcome } from "@/hooks/useTxOutcome";
 import { ValueChainCollectionAbi, deployment } from "@/config/contracts";
 import { valuechain } from "@/config/chain";

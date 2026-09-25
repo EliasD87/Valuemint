@@ -5,11 +5,10 @@ import Link from "next/link";
 import { getAddress, parseEther, parseEventLogs } from "viem";
 import {
   useAccount,
-  useChainId,
   useSignMessage,
   useSwitchChain,
-  useWriteContract,
 } from "wagmi";
+import { useWriteContract } from "@/hooks/useChainWrite";
 import { useTxOutcome } from "@/hooks/useTxOutcome";
 import {
   ValueChainCollectionAbi,
@@ -101,7 +100,9 @@ function CreateClosed() {
 
 function Create() {
   const { address, isConnected } = useAccount();
-  const chainId = useChainId();
+  // The wallet's real network, from the connection. `useChainId()` only reports
+  // chains in the config, so a wallet on Ethereum read as ValueChain (2026-09-25).
+  const { chainId } = useAccount();
   const { switchChain, isPending: switching } = useSwitchChain();
   const { signMessageAsync } = useSignMessage();
 

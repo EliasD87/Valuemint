@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useAccount, useBalance, useChainId, useConnect, useDisconnect, useSwitchChain } from "wagmi";
+import { useAccount, useBalance, useConnect, useDisconnect, useSwitchChain } from "wagmi";
 import { valuechain } from "@/config/chain";
 import { formatSoso, tinyAddress } from "@/lib/format";
 
@@ -55,7 +55,9 @@ import { Soso } from "@/components/Soso";
  */
 export function Wallet() {
   const { address, isConnected } = useAccount();
-  const chainId = useChainId();
+  // The wallet's real network, from the connection. `useChainId()` only reports
+  // chains in the config, so a wallet on Ethereum read as ValueChain (2026-09-25).
+  const { chainId } = useAccount();
   // `connect` and the connector list moved into WalletPicker; only the pending
   // flag is still read here, to disable the button while a connection is open.
   const { isPending } = useConnect();

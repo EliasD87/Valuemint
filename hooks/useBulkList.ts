@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { useAccount, usePublicClient, useWriteContract } from "wagmi";
+import { useAccount, usePublicClient } from "wagmi";
+import { useWriteContract } from "@/hooks/useChainWrite";
 import { parseEther, parseGwei, type Address } from "viem";
 import { SEAPORT, SeaportAbi } from "@/config/seaport";
 import { valuechain } from "@/config/chain";

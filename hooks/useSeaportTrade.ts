@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useAccount, usePublicClient, useReadContract, useWriteContract } from "wagmi";
+import { useAccount, usePublicClient, useReadContract } from "wagmi";
+import { useWriteContract } from "@/hooks/useChainWrite";
 import { useQueryClient } from "@tanstack/react-query";
 import { useTxOutcome } from "@/hooks/useTxOutcome";
 import { parseEther, zeroHash, type Address } from "viem";

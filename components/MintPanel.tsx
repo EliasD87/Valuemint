@@ -4,11 +4,10 @@ import { useEffect } from "react";
 import {
   useAccount,
   useBalance,
-  useChainId,
   useReadContracts,
   useSwitchChain,
-  useWriteContract,
 } from "wagmi";
+import { useWriteContract } from "@/hooks/useChainWrite";
 import { useTxOutcome } from "@/hooks/useTxOutcome";
 import { ValueChainCollectionAbi, deployment } from "@/config/contracts";
 import { valuechain } from "@/config/chain";
@@ -27,7 +26,9 @@ import { ConnectButton } from "@/components/ConnectButton";
  */
 export function MintPanel({ address: collection }: { address: `0x${string}` }) {
   const { address, isConnected } = useAccount();
-  const chainId = useChainId();
+  // The wallet's real network, from the connection. `useChainId()` only reports
+  // chains in the config, so a wallet on Ethereum read as ValueChain (2026-09-25).
+  const { chainId } = useAccount();
   const { switchChain, isPending: switching } = useSwitchChain();
   const { data: balance } = useBalance({ address, query: { enabled: address !== undefined } });
 
