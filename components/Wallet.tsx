@@ -41,6 +41,7 @@ function WalletGlyph({ size }: { size: number }) {
   );
 }
 import { WalletPicker } from "./WalletPicker";
+import { isRefusedConnector } from "@/lib/refusedWallets";
 import { WrappedBalance } from "@/components/WrappedBalance";
 import { SosoCallout, WhereIsMySoso } from "@/components/SosoHelp";
 import "./Wallet.css";
@@ -82,6 +83,21 @@ export function Wallet() {
   const [mounted, setMounted] = useState(false);
   const [picking, setPicking] = useState(false);
   useEffect(() => setMounted(true), []);
+
+  /**
+   * A connection through Phantom is dropped the moment it appears, and the
+   * picker opens saying why. Phantom cannot reach ValueChain (see
+   * lib/refusedWallets), and wagmi restores the last connection on every load,
+   * so without this someone who once connected through it was stuck on a
+   * "switch in Phantom" that could never work.
+   */
+  const [refused, setRefused] = useState(false);
+  useEffect(() => {
+    if (!isConnected || connector === undefined || !isRefusedConnector(connector)) return;
+    disconnect();
+    setRefused(true);
+    setPicking(true);
+  }, [isConnected, connector, disconnect]);
 
   /**
    * The placeholder gates EVERY branch, not just the disconnected one.
@@ -131,7 +147,15 @@ export function Wallet() {
             </>
           )}
         </button>
-        {picking ? <WalletPicker onClose={() => setPicking(false)} /> : null}
+        {picking ? (
+          <WalletPicker
+            refused={refused}
+            onClose={() => {
+              setPicking(false);
+              setRefused(false);
+            }}
+          />
+        ) : null}
       </>
     );
   }

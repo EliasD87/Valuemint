@@ -189,3 +189,12 @@
   color: var(--danger, #c2273d);
   border-top: 1px solid var(--line);
 }
+
+/* Why the wallet that was connected is gone (Phantom, see lib/refusedWallets). */
+.wp-note {
+  margin: 0;
+  padding: 0.85rem 1.25rem 0;
+  font-size: var(--step--1);
+  line-height: 1.5;
+  color: var(--ink-2);
+}

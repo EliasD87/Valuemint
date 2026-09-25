@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useConnect, type Connector } from "wagmi";
+import { injectedIsRefused, isRefusedNamed, REFUSED_NOTE } from "@/lib/refusedWallets";
 import "./WalletPicker.css";
 
 /**
@@ -18,7 +19,14 @@ import "./WalletPicker.css";
  * announces itself with a name, an icon and a stable id. Those arrive as
  * separate connectors; all that was missing was somewhere to show them.
  */
-export function WalletPicker({ onClose }: { onClose: () => void }) {
+export function WalletPicker({
+  onClose,
+  refused = false,
+}: {
+  onClose: () => void;
+  /** Opened because a Phantom connection was just dropped: say why. */
+  refused?: boolean;
+}) {
   const { connect, connectors, isPending, error } = useConnect();
   const panel = useRef<HTMLDivElement>(null);
 
@@ -61,14 +69,14 @@ export function WalletPicker({ onClose }: { onClose: () => void }) {
    * appear and connect to the same wallet. Showing both is confusing, so the
    * generic entry is dropped whenever any named wallet was discovered.
    */
-  const named = connectors.filter((c) => c.type === "injected" && c.id !== "injected");
+  const named = connectors.filter((c) => c.type === "injected" && c.id !== "injected" && !isRefusedNamed(c));
   const generic = connectors.find((c) => c.id === "injected");
   const walletConnect = connectors.find((c) => c.id === "walletConnect");
 
   const installed: Connector[] =
     named.length > 0
       ? named
-      : generic !== undefined && typeof window !== "undefined" && "ethereum" in window
+      : generic !== undefined && typeof window !== "undefined" && "ethereum" in window && !injectedIsRefused()
         ? [generic]
         : [];
 
@@ -91,6 +99,8 @@ export function WalletPicker({ onClose }: { onClose: () => void }) {
             </svg>
           </button>
         </div>
+
+        {refused ? <p className="wp-note">{REFUSED_NOTE}</p> : null}
 
         <div className="wp-list">
           {installed.map((c) => (
