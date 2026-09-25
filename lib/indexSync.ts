@@ -2,6 +2,7 @@ import "server-only";
 
 import {
   createPublicClient,
+  erc721Abi,
   fallback,
   http,
   parseAbiItem,
@@ -12,9 +13,21 @@ import {
 import { RPC_HTTP, valuechain } from "@/config/chain";
 import { SEAPORT, SEAPORT_FROM_BLOCK } from "@/config/seaport";
 import { CONFIRMATIONS, CHUNK } from "@/lib/logScan";
-import type { OrderParameters } from "@/lib/seaport";
-import { counterRows, eventRows, orderRows } from "@/lib/indexRows";
-import { patch, select, upsert } from "@/lib/supabase";
+import {
+  ItemType,
+  readOrder,
+  resolveFillable,
+  type ChainAnswer,
+  type OrderParameters,
+} from "@/lib/seaport";
+import {
+  counterRows,
+  decodeParams,
+  eventRows,
+  orderRows,
+  type JsonOrderParameters,
+} from "@/lib/indexRows";
+import { patch, select, selectAll, upsert } from "@/lib/supabase";
 
 /**
  * Reading the chain into the index.
@@ -272,38 +285,128 @@ async function markStatus(hashes: string[], status: "filled" | "cancelled"): Pro
  * 24 a day — a couple of hundred across the whole chain, and still far finer
  * than a figure labelled "1d" needs.
  *
- * **A collection with nothing listed writes no row**, because `collection_floors`
- * only names collections that have a live listing. That is deliberate: the gap
- * reads as "not known", which is true, rather than as a floor of zero, which
- * would be a price nobody ever asked. A reader must treat a missing bucket as
- * unknown and not interpolate across it.
+ * **A collection with nothing listed writes no row.** That is deliberate: the
+ * gap reads as "not known", which is true, rather than as a floor of zero,
+ * which would be a price nobody ever asked. A reader must treat a missing
+ * bucket as unknown and not interpolate across it.
+ *
+ * ---
+ *
+ * **The same floor the page shows, by the same rules — since 2026-09-25.**
+ *
+ * This used to read `collection_floors`, the minimum over `live_orders`. That
+ * view retires an order for being filled, cancelled, expired or voided, and
+ * for nothing else, so three kinds of listing nobody can buy stayed in it:
+ *
+ *   - a token the seller has since handed on (Seaport does not know it left),
+ *   - a seller who withdrew the marketplace's approval,
+ *   - an order the app's own whitelist refuses (`readOrder` / `unsafeReason`):
+ *     a foreign currency, extra consideration lines, and the rest.
+ *
+ * Every one of those can be cheaper than anything real, so the recorded floor
+ * could sit under the page's own, and every change computed from it read more
+ * positive than the truth. Now each live listing goes through `readOrder` and
+ * `resolveFillable` exactly as `useSeaportOrders` puts it through them —
+ * ownership and approval read in one multicall — and only what survives is a
+ * floor.
+ *
+ * Measured on the day it changed, against the live book: the old rule was
+ * wrong for 6 of 10 collections — Larpers recorded 10 against a real 100 (a
+ * stale listing), The Trenches 0.001 with nothing buyable at all. Rows from
+ * before this change are the old rule; anything that compares against the
+ * history should start from the first hour after it deployed.
+ * `scripts/floor-rule-check.mts` puts both rules side by side.
  */
-export async function snapshotFloors(at: Date): Promise<number> {
-  const rows = await select<{
-    collection: string;
-    listed: number;
-    floor_wei: string | null;
-  }>("collection_floors?select=collection,listed,floor_wei");
+export async function snapshotFloors(at: Date, client: PublicClient = indexClient()): Promise<number> {
+  const rows = await selectAll<{ params: JsonOrderParameters }>("listings_public?select=params");
 
-  if (rows.length === 0) return 0;
+  /** The app's own reading of each order: the whitelist, and listings only. */
+  const listings = rows.flatMap((r) => {
+    let params: OrderParameters;
+    try {
+      params = decodeParams(r.params);
+    } catch {
+      return [];
+    }
+    const order = readOrder(params);
+    if (order === undefined || order.kind !== "listing" || order.tokenId === undefined) return [];
+    return [{ order, params, tokenId: order.tokenId }];
+  });
+
+  if (listings.length === 0) return 0;
+
+  /** Two reads per listing, the pair `resolveFillable` decides from. */
+  const answers = await client.multicall({
+    allowFailure: true,
+    contracts: listings.flatMap(({ order, params, tokenId }) => [
+      params.offer[0]?.itemType === ItemType.ERC1155
+        ? {
+            address: order.collection,
+            abi: ERC1155_BALANCE,
+            functionName: "balanceOf" as const,
+            args: [order.maker, tokenId] as const,
+          }
+        : {
+            address: order.collection,
+            abi: erc721Abi,
+            functionName: "ownerOf" as const,
+            args: [tokenId] as const,
+          },
+      {
+        address: order.collection,
+        abi: erc721Abi,
+        functionName: "isApprovedForAll" as const,
+        args: [order.maker, SEAPORT] as const,
+      },
+    ]),
+  });
+
+  /** Per collection: the cheapest fillable listing, and how many pieces are for sale. */
+  const floors = new Map<string, { floor: bigint; tokens: Set<string> }>();
+  listings.forEach(({ order, params, tokenId }, i) => {
+    const checks = { first: answers[i * 2] as ChainAnswer, second: answers[i * 2 + 1] as ChainAnswer };
+    if (!resolveFillable({ ...order, params }, checks)) return;
+
+    const key = order.collection.toLowerCase();
+    const at = floors.get(key) ?? { floor: order.priceWei, tokens: new Set<string>() };
+    if (order.priceWei < at.floor) at.floor = order.priceWei;
+    at.tokens.add(tokenId.toString());
+    floors.set(key, at);
+  });
+
+  if (floors.size === 0) return 0;
 
   /** Floored to the hour — this is the whole de-duplication mechanism. */
   const bucket = new Date(Math.floor(at.getTime() / 3_600_000) * 3_600_000).toISOString();
 
   await upsert(
     "floor_history",
-    rows.map((r) => ({
-      collection: r.collection,
+    [...floors.entries()].map(([collection, f]) => ({
+      collection,
       bucket,
-      floor_wei: r.floor_wei,
-      listed: r.listed,
+      floor_wei: f.floor.toString(),
+      listed: f.tokens.size,
       updated_at: at.toISOString(),
     })),
     "collection,bucket",
   );
 
-  return rows.length;
+  return floors.size;
 }
+
+/** ERC-1155 has no `ownerOf`; a holding is a balance. */
+const ERC1155_BALANCE = [
+  {
+    type: "function",
+    name: "balanceOf",
+    stateMutability: "view",
+    inputs: [
+      { name: "account", type: "address" },
+      { name: "id", type: "uint256" },
+    ],
+    outputs: [{ type: "uint256" }],
+  },
+] as const;
 
 export async function syncSeaport(client: PublicClient = indexClient()): Promise<SyncResult> {
   const started = Date.now();
@@ -330,7 +433,7 @@ export async function syncSeaport(client: PublicClient = indexClient()): Promise
      */
     let idleFloors = 0;
     try {
-      idleFloors = await snapshotFloors(new Date());
+      idleFloors = await snapshotFloors(new Date(), client);
     } catch (err) {
       console.error("[index] floor snapshot failed", err);
     }
@@ -427,7 +530,7 @@ export async function syncSeaport(client: PublicClient = indexClient()): Promise
    */
   let floors = 0;
   try {
-    floors = await snapshotFloors(at);
+    floors = await snapshotFloors(at, client);
   } catch (err) {
     console.error("[index] floor snapshot failed", err);
   }
