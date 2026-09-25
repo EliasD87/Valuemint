@@ -35,6 +35,18 @@
   border: 1px solid var(--line);
 }
 
+/*
+ * A banner video gets a slightly taller strip — still a strip.
+ *
+ * Tried first at the video's own 2.3:1: 520px tall on a desktop, which was the
+ * whole first screen, and the owner asked for the strip back with "a few
+ * vertical" added. 300px shows ~58% of a 2.3:1 frame's height against the
+ * still bands' ~46%, centred.
+ */
+.ch-band-video {
+  height: clamp(150px, 25vw, 300px);
+}
+
 /* ---------------------------------------------------- composed artwork */
 
 /*

@@ -32,13 +32,22 @@
 
 export interface HeroArt {
   /**
-   * Fills the band, `object-fit: cover`.
+   * Fills the band, `object-fit: cover`. Required unless `video` is given.
    *
    * Composition should survive a hard crop: the band is roughly 5:1 on a
    * desktop and a great deal squarer on a phone, so anything that must be seen
    * belongs near the vertical centre.
    */
-  background: string;
+  background?: string;
+
+  /**
+   * A looping, muted banner video, drawn in place of `background`.
+   *
+   * Encode it with its index at the front (`-movflags faststart`) or the
+   * browser has to fetch the end of the file before the first frame. Under
+   * `prefers-reduced-motion` it holds still on its first frame.
+   */
+  video?: string;
 
   /**
    * Where the band's crop sits in the background, as CSS `object-position` —
@@ -110,12 +119,14 @@ export const COLLECTION_HEROES: Record<string, HeroArt> = {
   },
 
   /*
-    ValueChain Genesis — the owner's own artwork, and like the boxes it is
-    already a banner: six panels across 2048x768, so no foreground and nothing
-    to align. Re-encoded to 1600 wide as WebP.
+    ValueChain Genesis — a video supplied by the owner, 2026-09-25: 992x432,
+    5s, H.264. The index was moved in front of the media (faststart) before it
+    was committed; as supplied it sat at the end of the file.
+
+    It replaced `genesis.webp`, the six-panel still, which is no longer drawn.
   */
   "0x5fadc59297e86acea20bff519aea0f9651cdc90b": {
-    background: "/heroes/genesis.webp",
+    video: "/heroes/genesis.mp4",
   },
 
   /*

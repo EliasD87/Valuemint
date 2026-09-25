@@ -13,6 +13,28 @@ import { formatCount, shortAddress } from "@/lib/format";
 import "./CollectionHero.css";
 
 /**
+ * Start a banner video, muted — or hold it on its first frame.
+ *
+ * `muted` in JSX is not enough on its own. React sets it as a property after
+ * hydration and never writes the attribute into the server HTML, so a browser
+ * parsing that HTML sees an unmuted autoplay video, refuses to play it, and
+ * does not try again when the property changes later. Setting it here and
+ * calling `play()` covers that. Reduced motion gets the still.
+ */
+function startMuted(el: HTMLVideoElement | null) {
+  if (el === null) return;
+  el.muted = true;
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    el.autoplay = false;
+    el.pause();
+    return;
+  }
+  void el.play().catch(() => {
+    /* Autoplay refused (a data-saver mode, say). The first frame still shows. */
+  });
+}
+
+/**
  * The top of a collection page: what this is, and whose.
  *
  * ---
@@ -62,20 +84,39 @@ export function CollectionHero({
 
   return (
     <header className="ch">
-      <div className={`ch-band${hero !== undefined ? " ch-band-art-custom" : ""}`}>
+      <div
+        className={`ch-band${hero !== undefined ? " ch-band-art-custom" : ""}${hero?.video !== undefined ? " ch-band-video" : ""}`}
+      >
         {hero !== undefined ? (
           <>
-            {/* eslint-disable-next-line @next/next/no-img-element -- local, pre-sized, fills a fixed box */}
-            <img
-              className="ch-bg"
-              src={hero.background}
-              alt=""
-              aria-hidden="true"
-              decoding="async"
-              /* Per-banner crop, where the art needs one — see `position` in
-                 config/heroes.ts. Absent, the stylesheet's centre applies. */
-              {...(hero.position === undefined ? {} : { style: { objectPosition: hero.position } })}
-            />
+            {hero.video !== undefined ? (
+              <video
+                ref={startMuted}
+                className="ch-bg"
+                src={hero.video}
+                autoPlay
+                muted
+                loop
+                playsInline
+                preload="auto"
+                disablePictureInPicture
+                aria-hidden="true"
+                tabIndex={-1}
+                {...(hero.position === undefined ? {} : { style: { objectPosition: hero.position } })}
+              />
+            ) : hero.background === undefined ? null : (
+              // eslint-disable-next-line @next/next/no-img-element -- local, pre-sized, fills a fixed box
+              <img
+                className="ch-bg"
+                src={hero.background}
+                alt=""
+                aria-hidden="true"
+                decoding="async"
+                /* Per-banner crop, where the art needs one — see `position` in
+                   config/heroes.ts. Absent, the stylesheet's centre applies. */
+                {...(hero.position === undefined ? {} : { style: { objectPosition: hero.position } })}
+              />
+            )}
             {hero.foreground === undefined ? null : (
               /*
                 Named rather than hidden, unlike the background.
