@@ -32,7 +32,8 @@ export function SealIcon({ size = 12 }: { size?: number }) {
  * The title says the blank is deliberate and when it ends; the odds say what
  * is inside. The second line is an invitation rather than an explanation — the
  * owner cut a sentence about the commitment as more than anyone needed, and
- * the proof link still carries it for whoever wants it.
+ * then the "Proof" link after it (2026-09-25). The commitment is still linked
+ * from a sealed piece's own page, in `Unrevealed` below.
  *
  * **The invitation is only made while it can be accepted.** It reads the
  * contract: public minting enabled and pieces left. Closed or sold out, the
@@ -89,14 +90,6 @@ export function SealedNotice({ collection }: { collection: `0x${string}` | undef
           </li>
         ))}
       </ul>
-      <a
-        className="ur-proof"
-        href={`${deployment.explorer}/tx/${held.commitmentTx}`}
-        target="_blank"
-        rel="noreferrer noopener"
-      >
-        Proof ↗
-      </a>
       {canMint ? (
         <a className="btn btn-sm btn-primary ur-notice-cta" href="#mint">
           Mint
