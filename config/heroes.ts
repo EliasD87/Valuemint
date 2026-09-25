@@ -208,20 +208,20 @@ export const COLLECTION_HEROES: Record<string, HeroArt> = {
   },
 
   /*
-    The Trenches — supplied by the owner, 2026-09-25: all ten depths in one
-    2048x768 cut-out, Halo (#1) at the centre, on a transparent ground.
+    The Trenches — a cover supplied by the owner, 2026-09-25: five of the
+    spirits (Sakura, Lunaris, Halo, Verdant, Eclipse) on a cream ground,
+    2172x724. 1600 wide as WebP, 2.0 MB to 122 KB. It replaced the ten-figure
+    group picture with its alpha dropped; that picture stays on /trenches as
+    the transparent cut-out (`trenches-cutout*.webp`).
 
-    This band is that PNG with its alpha channel dropped rather than
-    flattened: the colour under the transparent pixels is a dark ground with
-    each figure's glow in it, which is what a band wants. 1600 wide as WebP,
-    3.0 MB to 206 KB. /trenches uses the cut-out itself, transparency kept
-    (`trenches-cutout*.webp`), standing on its paper.
-
-    Centred: the figures stand across the middle of the picture, hoods at
-    roughly a third of its height, and the band's window keeps every hood.
+    CROPPED AT 8%, NOT CENTRED, and measured: the figures fill 5%-93% of the
+    height and the ~4.9:1 band shows ~62% of it. Centred, the window starts
+    below Halo's crown and cuts it off; at 8% the crown sits whole with a
+    little room above, every face is in, and only the robes' hems go.
   */
   "0xaab0dc8f2835ed903b35d2f52ff17c4bc92bec19": {
-    background: "/heroes/trenches.webp",
+    background: "/heroes/trenches-cover.webp",
+    position: "center 8%",
   },
 
   /** TestCybereator — the same artwork, from the same two files. */
