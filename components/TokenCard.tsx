@@ -10,7 +10,8 @@ import type { Listing } from "@/lib/seaport";
 import { formatSoso } from "@/lib/format";
 import { tierClass } from "@/lib/tokenMetadata";
 import { heldBackFor } from "@/config/reveal";
-import { revealShort } from "@/lib/unrevealed";
+import { isUnrevealed, revealShort } from "@/lib/unrevealed";
+import { SealIcon } from "@/components/Unrevealed";
 import { Art } from "@/components/Art";
 import { Wordmark } from "@/components/Wordmark";
 import { wordmarkSaying } from "@/config/wordmarks";
@@ -123,8 +124,18 @@ export function TokenCard({
    * is awaiting a reveal would be a claim about somebody else's collection.
    */
   const heldBack = heldBackFor(collection);
+  /*
+   * And the document has to have ARRIVED. A card still loading has no tier and
+   * no edition either, so without this every card on the page flashed the
+   * sealed ribbon until its metadata landed — a revealed piece's holder told,
+   * for a second, that it was a mystery. `isUnrevealed` is false for a missing
+   * document and true only for one with traits and no Design.
+   */
   const awaitingReveal =
-    heldBack !== undefined && token.tier === undefined && token.edition === undefined
+    heldBack !== undefined &&
+    isUnrevealed(token.metadata) &&
+    token.tier === undefined &&
+    token.edition === undefined
       ? heldBack
       : undefined;
 
@@ -235,6 +246,17 @@ export function TokenCard({
         */}
         {token.tier !== undefined ? (
           <span className={`tcard-ribbon chip-${tier}`}>{token.tier}</span>
+        ) : awaitingReveal !== undefined ? (
+          /*
+            A sealed piece has no tier to show, and the slot where every other
+            card names one is exactly where a holder looks. Left empty, a grid
+            of identical "?" helmets read as broken; the date in the tier's
+            place says the blank is deliberate and when it ends.
+          */
+          <span className="tcard-ribbon tcard-ribbon-sealed">
+            <SealIcon size={10} />
+            Reveals {revealShort(awaitingReveal)}
+          </span>
         ) : null}
 
         <div className="tcard-badges">
@@ -328,14 +350,14 @@ export function TokenCard({
               </span>
             ) : null}
             {/*
-              A held-back piece has no edition, and the date it becomes public
-              is the one fact about it that exists. Both conditions, as ever: a
-              document naming no design is not enough, or a third-party
-              contract that publishes none would advertise a reveal it never
-              promised.
+              A held-back piece has no edition. The date is on the ribbon over
+              the art, so this says the other reassuring fact: the design is
+              already decided. Both conditions, as ever: a document naming no
+              design is not enough, or a third-party contract that publishes
+              none would advertise a reveal it never promised.
             */}
             {awaitingReveal !== undefined ? (
-              <span className="tcard-reveal">Reveals {revealShort(awaitingReveal)}</span>
+              <span className="tcard-reveal">Design sealed</span>
             ) : token.edition !== undefined ? (
               <span>Ed. {token.edition}</span>
             ) : null}

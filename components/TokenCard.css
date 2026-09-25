@@ -233,6 +233,20 @@
 .tcard-ribbon.chip-uncommon { background: var(--uncommon); }
 .tcard-ribbon.chip-superrare { background: var(--superrare); }
 
+/*
+ * A sealed piece's date, in the tier's slot. Ink on paper, inverted, so it is
+ * the highest-contrast ribbon in either theme and cannot be mistaken for a
+ * tier colour.
+ */
+.tcard-ribbon-sealed {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  background: var(--ink);
+  color: var(--paper);
+}
+
 .tcard-badges {
   position: absolute;
   inset: 0.55rem 0.55rem auto;

@@ -116,7 +116,8 @@ export function MintPanel({ address: collection }: { address: `0x${string}` }) {
       : 0;
 
   return (
-    <aside className="mint-panel card">
+    /* `id="mint"`: the sealed-pieces notice above the grid links here. */
+    <aside className="mint-panel card" id="mint">
       <div className="mint-panel-head">
         <span className="dim">Mint price</span>
         <span className="mint-total mono">

@@ -117,3 +117,75 @@
   text-decoration: underline;
   text-underline-offset: 3px;
 }
+
+/* ------------------------------------------------------- above the grid */
+
+/*
+ * One row on a desktop: the padlock, what is going on, what is inside, the
+ * proof. It wraps to a stack on a phone rather than squeezing, and it is a
+ * well (`--surface-2`) rather than a card, because it describes the grid
+ * below it rather than being a thing of its own.
+ */
+.ur-notice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem 1rem;
+  margin: 0 0 1rem;
+  padding: 0.75rem 1rem;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+}
+
+.ur-notice-icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background: var(--ink);
+  color: var(--paper);
+}
+
+/* 14rem, not wider: at 22 the text dropped below the padlock on a phone and
+   left the icon alone on a row of its own. */
+.ur-notice-text {
+  flex: 1 1 14rem;
+  min-width: 0;
+  display: grid;
+  gap: 0.15rem;
+}
+
+.ur-notice-title {
+  margin: 0;
+  font-size: var(--step--1);
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.ur-notice-lead {
+  margin: 0;
+  font-size: var(--step--2);
+  line-height: 1.45;
+  color: var(--ink-2);
+}
+
+.ur-notice-lead strong {
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.ur-notice-cta {
+  flex: none;
+}
+
+.ur-notice .ur-proof {
+  justify-self: auto;
+}
+
+.seal-icon {
+  display: block;
+  flex: none;
+}

@@ -20,6 +20,7 @@ import { Select } from "@/components/Select";
 import { Activity } from "@/components/Activity";
 import { TopHolders } from "@/components/TopHolders";
 import { CollectionHero } from "@/components/CollectionHero";
+import { SealedNotice } from "@/components/Unrevealed";
 import { CollectionStats } from "@/components/CollectionStats";
 import { PageTabs, type TabDef } from "@/components/PageTabs";
 
@@ -335,6 +336,8 @@ export function CollectionView({ params }: { params: Promise<{ address: string }
         <TopHolders collection={collection} supply={supply as bigint | undefined} />
       ) : (
         <>
+          <SealedNotice collection={collection} />
+
           {/*
             Drawn as soon as the collection is known to have more than one piece,
             which is two round trips before the pieces themselves arrive.

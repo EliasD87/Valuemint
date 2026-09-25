@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isUnrevealed, revealLong, revealShort } from "@/lib/unrevealed";
+import { isUnrevealed, revealDay, revealLong, revealPending, revealShort } from "@/lib/unrevealed";
 
 const doc = (attributes: Array<{ trait_type: string; value: string | number }>) =>
   ({ name: "x", attributes }) as never;
@@ -80,5 +80,31 @@ describe("reveal wording", () => {
   it("falls back to the open-ended promise when no date is set", () => {
     expect(revealShort({})).toBe("At mint-out");
     expect(revealLong({})).toBe("when the last one is minted");
+  });
+
+  it("gives the bare day for a sentence that supplies its own preposition", () => {
+    const day = revealDay({ revealBy: "2026-10-02" });
+    expect(day).toContain("October");
+    expect(day?.startsWith("on ")).toBe(false);
+    expect(revealLong({ revealBy: "2026-10-02" })).toBe(`on ${day}`);
+    expect(revealDay({})).toBeUndefined();
+  });
+});
+
+describe("revealPending", () => {
+  const held = { revealBy: "2026-10-02" };
+
+  it("is pending before the day and through all of it, in UTC", () => {
+    expect(revealPending(held, new Date("2026-09-25T12:00:00Z"))).toBe(true);
+    expect(revealPending(held, new Date("2026-10-02T00:00:00Z"))).toBe(true);
+    expect(revealPending(held, new Date("2026-10-02T23:59:59Z"))).toBe(true);
+  });
+
+  it("retires from the next day", () => {
+    expect(revealPending(held, new Date("2026-10-03T00:00:00Z"))).toBe(false);
+  });
+
+  it("is always pending without a date — mint-out cannot be timed from here", () => {
+    expect(revealPending({}, new Date("2030-01-01T00:00:00Z"))).toBe(true);
   });
 });

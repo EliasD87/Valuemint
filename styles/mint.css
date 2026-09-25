@@ -45,6 +45,8 @@
  * scrolls with the page like everything else.
  */
 .mint-panel {
+  /* Arrived at by #mint from the sealed notice; clear the fixed header. */
+  scroll-margin-top: calc(var(--header-h) + 1rem);
   padding: 1.35rem;
   display: flex;
   flex-direction: column;

@@ -38,11 +38,32 @@ export function revealShort(held: { revealBy?: string }): string {
   });
 }
 
-export function revealLong(held: { revealBy?: string }): string {
-  if (held.revealBy === undefined) return "when the last one is minted";
-  return `on ${new Date(`${held.revealBy}T00:00:00Z`).toLocaleDateString(undefined, {
+/**
+ * Whether a reveal is still to come, so a notice announcing it can retire
+ * itself.
+ *
+ * Pending through the whole of the named day, in UTC — "revealed on 2 October"
+ * is still a true sentence at 23:00 on the 2nd. Without a date it is always
+ * pending: the promise is mint-out, and nothing here can tell when that was.
+ * Individual cards do not need this; they stop claiming a reveal the moment
+ * their document names a design.
+ */
+export function revealPending(held: { revealBy?: string }, now: Date = new Date()): boolean {
+  if (held.revealBy === undefined) return true;
+  return now.getTime() < new Date(`${held.revealBy}T00:00:00Z`).getTime() + 86_400_000;
+}
+
+/** The reveal date alone, month spelled out — "October 2". None without a date. */
+export function revealDay(held: { revealBy?: string }): string | undefined {
+  if (held.revealBy === undefined) return undefined;
+  return new Date(`${held.revealBy}T00:00:00Z`).toLocaleDateString(undefined, {
     day: "numeric",
     month: "long",
     timeZone: "UTC",
-  })}`;
+  });
+}
+
+export function revealLong(held: { revealBy?: string }): string {
+  const day = revealDay(held);
+  return day === undefined ? "when the last one is minted" : `on ${day}`;
 }
