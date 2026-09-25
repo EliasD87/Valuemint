@@ -7,6 +7,7 @@ import { useAccount } from "wagmi";
 import { Activity } from "@/components/Activity";
 import { MyTrades } from "@/components/MyTrades";
 import { ArrowLeft } from "@/components/Arrows";
+import { shortAddress } from "@/lib/format";
 import "@/styles/activity.css";
 
 /**
@@ -26,6 +27,7 @@ import "@/styles/activity.css";
  *   /activity?collection=0x…         one collection
  *   /activity?collection=0x…&token=7 one piece
  *   /activity?wallet=me              your own trades
+ *   /activity?wallet=0x…             anybody's, from their /address page
  */
 export default function ActivityPage() {
   return (
@@ -54,11 +56,27 @@ function ActivityView() {
     }
   })();
 
-  const wallet = params.get("wallet") === "me";
+  /**
+   * `me` is the connected wallet; an address is anybody's. The second exists
+   * because a searched-for wallet's page links its "See all" here, and `me`
+   * would have shown the visitor their own trades under a stranger's name.
+   */
+  const rawWallet = params.get("wallet") ?? "";
+  const walletMe = rawWallet === "me";
+  const walletOther = /^0x[0-9a-fA-F]{40}$/.test(rawWallet)
+    ? (rawWallet as `0x${string}`)
+    : undefined;
+  const wallet = walletMe || walletOther !== undefined;
+  const walletAddress = walletMe ? address : walletOther;
+  const own =
+    walletMe ||
+    (walletOther !== undefined && address?.toLowerCase() === walletOther.toLowerCase());
 
-  const heading = wallet
+  const heading = walletMe
     ? "Your trades"
-    : tokenId !== undefined
+    : walletOther !== undefined
+      ? `Trades of ${shortAddress(walletOther, 4)}`
+      : tokenId !== undefined
       ? `Token #${tokenId.toString()}`
       : collection !== undefined
         ? "Collection activity"
@@ -70,9 +88,11 @@ function ActivityView() {
       ? { href: `/token/${collection}/${tokenId}`, label: "Back to the piece" }
       : collection !== undefined
         ? { href: `/collection/${collection}`, label: "Back to the collection" }
-        : wallet
-          ? { href: "/portfolio", label: "Back to your portfolio" }
-          : { href: "/market", label: "Back to the market" };
+        : walletOther !== undefined
+          ? { href: `/address/${walletOther}`, label: "Back to the wallet" }
+          : walletMe
+            ? { href: "/portfolio", label: "Back to your portfolio" }
+            : { href: "/market", label: "Back to the market" };
 
   return (
     <section className="page section">
@@ -92,10 +112,10 @@ function ActivityView() {
       {/* "Full history" rather than the heading again: the h2 above already
           says whose history this is, and a panel titled the same thing twelve
           pixels under it is just noise. */}
-      {wallet && address === undefined ? (
+      {wallet && walletAddress === undefined ? (
         <p className="act-note">Connect a wallet to see what it has traded.</p>
       ) : wallet ? (
-        <MyTrades address={address} title="Full history" full />
+        <MyTrades address={walletAddress} title="Full history" full own={own} />
       ) : (
         <Activity collection={collection} tokenId={tokenId} title="Full history" full />
       )}

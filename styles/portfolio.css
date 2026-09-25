@@ -155,6 +155,86 @@
   min-width: 0;
 }
 
+/* ------------------------------------------------ traits held, per group */
+
+/*
+ * Between a collection's heading and its cards: each trait this wallet holds,
+ * value by value, with the count on the chip. A row per trait, and each row
+ * wraps — Genesis has ten designs, and a chip never shrinks to fit.
+ */
+.hg-traits {
+  display: grid;
+  gap: 0.4rem;
+  margin: -0.25rem 0 0.9rem;
+}
+
+.hg-trait {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.hg-trait-label {
+  min-width: 3.5rem;
+  margin-right: 0.2rem;
+  font-size: var(--step--3);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+/* The market's pill, one size down: these are counts to read, many per row. */
+.hg-trait .filt {
+  padding: 0.22rem 0.6rem;
+  font-size: var(--step--2);
+}
+
+/* A tier's own floor, inside its chip, after the count: "Uncommon 60 · floor 69". */
+.hg-floor {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.25rem;
+  padding-left: 0.45rem;
+  margin-left: 0.1rem;
+  border-left: 1px solid color-mix(in srgb, currentColor 25%, transparent);
+  font-weight: 500;
+  color: color-mix(in srgb, currentColor 80%, transparent);
+}
+
+.hg-clear {
+  justify-self: start;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: var(--step--2);
+  color: var(--ink-3);
+  cursor: pointer;
+}
+
+.hg-clear:hover {
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* Under the address on a searched-for wallet: the "this is you" badge and the
+   share control. Small, and wraps rather than widening the identity column. */
+.ph-extra {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.6rem;
+  margin-top: 0.15rem;
+  font-size: var(--step--2);
+}
+
+.ph-you {
+  text-decoration: none;
+}
+
 .ph-addr-text {
   margin-right: 0.3rem;
   font-size: var(--step-0);

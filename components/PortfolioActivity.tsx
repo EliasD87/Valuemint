@@ -38,7 +38,14 @@ const VIEWS: ReadonlyArray<{ key: View; label: string }> = [
  * Trades is the default. It is the view that always has something to say, and
  * the count on the other tab is what makes Offers findable.
  */
-export function PortfolioActivity({ address }: { address: `0x${string}` | undefined }) {
+export function PortfolioActivity({
+  address,
+  own = true,
+}: {
+  address: `0x${string}` | undefined;
+  /** False on somebody else's /address page: read-only, and "This wallet" not "You". */
+  own?: boolean;
+}) {
   const { offers } = useOrdersBy(address);
   const [view, setView] = useState<View>("trades");
   const id = useId();
@@ -71,7 +78,7 @@ export function PortfolioActivity({ address }: { address: `0x${string}` | undefi
         <div
           className="act-switch"
           role="tablist"
-          aria-label="Your activity"
+          aria-label={own ? "Your activity" : "This wallet's activity"}
           onKeyDown={onKeyDown}
         >
           {VIEWS.map((v, i) => {
@@ -107,9 +114,9 @@ export function PortfolioActivity({ address }: { address: `0x${string}` | undefi
         aria-labelledby={`${id}-tab-${view}`}
       >
         {view === "trades" ? (
-          <MyTrades address={address} bare />
+          <MyTrades address={address} bare own={own} />
         ) : (
-          <MyOffers address={address} bare />
+          <MyOffers address={address} bare own={own} />
         )}
       </div>
     </div>

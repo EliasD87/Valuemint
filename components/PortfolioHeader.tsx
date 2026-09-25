@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import { erc20Abi } from "viem";
+import { useReadContract } from "wagmi";
 import { WalletMark } from "@/components/WalletMark";
 import { Soso, SosoMark } from "@/components/Soso";
 import { WhereIsMySoso } from "@/components/SosoHelp";
 import { useSosoPrice } from "@/hooks/useSosoPrice";
-import { useWsoso } from "@/hooks/useWsoso";
 import { deployment } from "@/config/contracts";
 import { formatCount, formatSoso, formatSosoFixed, shortAddress } from "@/lib/format";
 import { formatUsd, sosoToUsd } from "@/lib/usd";
@@ -26,6 +27,13 @@ import type { FloorValue } from "@/lib/portfolioValue";
  *
  * Dollars ride beside the balance, and vanish rather than read "$0.00" while
  * the price is unknown.
+ *
+ * **Anybody's wallet, not only yours.** `/address/…` draws the same header for
+ * a wallet somebody searched for. Everything shown is read for `address`, never
+ * for whoever is connected — the WSOSO line used to come from `useWsoso`, which
+ * reads the CONNECTED account, and would have printed the visitor's own wrapped
+ * balance under a stranger's name. `own` only turns off what makes sense solely
+ * for the wallet's holder: the "where is my SOSO" prompt.
  */
 export function PortfolioHeader({
   address,
@@ -35,6 +43,9 @@ export function PortfolioHeader({
   asking,
   balance,
   nfts,
+  own = true,
+  heading = "Portfolio",
+  extra,
 }: {
   address: `0x${string}`;
   pieces: number;
@@ -46,20 +57,33 @@ export function PortfolioHeader({
   balance?: bigint;
   /** Pieces at their floors. `undefined` while holdings or floors are still loading. */
   nfts?: FloorValue;
+  /** The viewer holds this wallet. False on somebody else's /address page. */
+  own?: boolean;
+  /** The page's heading, for the outline — the address is what shows. */
+  heading?: string;
+  /** Beside the address: a "this is you" badge, a share control. */
+  extra?: ReactNode;
 }) {
   const price = useSosoPrice();
   /* Offers are made in WSOSO, so a bidder's spending money is partly wrapped.
-     Nothing is needed or approved here; this is only the balance. */
-  const wsoso = useWsoso(0n).balance;
+     Read for THIS address — see the note above. */
+  const { data: wsosoRaw } = useReadContract({
+    address: deployment.wsoso,
+    abi: erc20Abi,
+    functionName: "balanceOf",
+    args: [address],
+    query: { refetchInterval: 15_000 },
+  });
+  const wsoso = wsosoRaw ?? 0n;
 
   const usd = balance === undefined || price === undefined ? undefined : sosoToUsd(balance, price);
 
   return (
-    <section className="ph" aria-label="Portfolio">
+    <section className="ph" aria-label={heading}>
       <div className="ph-id">
         <WalletMark address={address} size={44} />
         <div className="ph-who">
-          <h2 className="ph-title">Portfolio</h2>
+          <h2 className="ph-title">{heading}</h2>
           <div className="ph-addr">
             <span className="ph-addr-text" title={address}>
               {shortAddress(address)}
@@ -85,6 +109,7 @@ export function PortfolioHeader({
               </svg>
             </a>
           </div>
+          {extra === undefined ? null : <div className="ph-extra">{extra}</div>}
         </div>
       </div>
 
@@ -117,8 +142,8 @@ export function PortfolioHeader({
           </p>
         ) : null}
         {/* Only while the balance reads 0.00: the question an empty wallet
-            raises, answered where it is raised. */}
-        <WhereIsMySoso balance={balance} />
+            raises, answered where it is raised — and only to its holder. */}
+        {own ? <WhereIsMySoso balance={balance} /> : null}
       </div>
 
       {/* A label and a figure each, nothing under them. The detail that used

@@ -151,6 +151,11 @@ export function traitOf(
  */
 const TIER_TRAITS = ["Tier", "Level", "Rarity", "Rank", "Grade"] as const;
 
+/** Whether a trait type is one `tierOf` reads as rarity — the axis floors are kept by. */
+export function isTierTrait(traitType: string): boolean {
+  return (TIER_TRAITS as readonly string[]).includes(traitType);
+}
+
 /**
  * The rarity of a token, whatever its collection decided to call it.
  *

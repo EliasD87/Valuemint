@@ -40,8 +40,15 @@ import "@/styles/activity.css";
 export function MyOffers({
   address,
   bare = false,
+  own = true,
 }: {
   address: `0x${string}` | undefined;
+  /**
+   * The viewer made these bids. False on somebody else's /address page: the
+   * list is still worth seeing — what a collector is bidding on — but only the
+   * maker can withdraw a Seaport order, so the column of buttons goes.
+   */
+  own?: boolean;
   /**
    * Render only the list, for a panel that owns the frame and the title.
    *
@@ -72,8 +79,10 @@ export function MyOffers({
     return (
       <p className="act-note">
         {isLoading
-          ? "Reading your offers from the chain…"
-          : "No standing offers. Anything you bid on shows here until it is taken, expires or you withdraw it."}
+          ? `Reading ${own ? "your" : "this wallet's"} offers from the chain…`
+          : own
+            ? "No standing offers. Anything you bid on shows here until it is taken, expires or you withdraw it."
+            : "No standing offers from this wallet."}
       </p>
     );
   }
@@ -99,14 +108,16 @@ export function MyOffers({
             <th scope="col" className="tr-num">
               Offer
             </th>
-            <th scope="col">
-              <span className="tr-sr">Action</span>
-            </th>
+            {own ? (
+              <th scope="col">
+                <span className="tr-sr">Action</span>
+              </th>
+            ) : null}
           </tr>
         </thead>
         <tbody>
           {offers.map((o) => (
-            <OfferRow key={o.hash} order={o} name={nameFor(o.collection)} />
+            <OfferRow key={o.hash} order={o} name={nameFor(o.collection)} own={own} />
           ))}
         </tbody>
       </table>
@@ -140,7 +151,7 @@ export function MyOffers({
  * wallet can hold bids across several — a hook cannot be called in a loop, so
  * the loop calls a component instead.
  */
-function OfferRow({ order, name }: { order: SeaportOrder; name: string }) {
+function OfferRow({ order, name, own }: { order: SeaportOrder; name: string; own: boolean }) {
   const trade = useSeaportTrade(order.collection);
 
   /** A collection-wide bid names no token; it is an offer on any piece. */
@@ -179,16 +190,18 @@ function OfferRow({ order, name }: { order: SeaportOrder; name: string }) {
         <span className="tr-l2">{whenExpires(order.endTime)}</span>
       </td>
 
-      <td className="tr-act">
-        <button
-          type="button"
-          className="btn btn-sm act-withdraw"
-          disabled={trade.busy}
-          onClick={() => trade.cancelOrder(order)}
-        >
-          {trade.busy ? "Withdrawing…" : "Withdraw"}
-        </button>
-      </td>
+      {own ? (
+        <td className="tr-act">
+          <button
+            type="button"
+            className="btn btn-sm act-withdraw"
+            disabled={trade.busy}
+            onClick={() => trade.cancelOrder(order)}
+          >
+            {trade.busy ? "Withdrawing…" : "Withdraw"}
+          </button>
+        </td>
+      ) : null}
     </tr>
   );
 }

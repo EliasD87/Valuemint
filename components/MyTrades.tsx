@@ -64,6 +64,7 @@ export function MyTrades({
   full = false,
   title = "Your trades",
   bare = false,
+  own = true,
 }: {
   address: `0x${string}` | undefined;
   limit?: number;
@@ -71,6 +72,12 @@ export function MyTrades({
   title?: string;
   /** Render only the list, for a panel that owns the frame and the title. */
   bare?: boolean;
+  /**
+   * The viewer holds `address`. False on somebody else's /address page, where
+   * "You" on every row would name the wrong person and the empty-state copy
+   * would be talking to someone who is not the one it describes.
+   */
+  own?: boolean;
 }) {
   const { rows, isLoading, logsUnavailable } = useActivity(undefined, undefined, {
     wallet: address,
@@ -131,13 +138,14 @@ export function MyTrades({
       ) : logsUnavailable ? (
         /* Absence of a read is not an absence of trades. */
         <p className="act-note">
-          Your history could not be read &mdash; the node would not serve event logs. It is
-          not empty; try again in a moment.
+          {own ? "Your" : "This wallet's"} history could not be read &mdash; the node would not
+          serve event logs. It is not empty; try again in a moment.
         </p>
       ) : rows.length === 0 ? (
         <p className="act-note">
-          Nothing yet. Every piece you buy, sell, list or bid on through ValueMint shows up
-          here, read straight from the chain.
+          {own
+            ? "Nothing yet. Every piece you buy, sell, list or bid on through ValueMint shows up here, read straight from the chain."
+            : "No trades on ValueMint yet. Anything this wallet buys, sells, lists or bids on shows up here."}
         </p>
       ) : (
         /*
@@ -236,10 +244,10 @@ export function MyTrades({
 
                     <td className="tr-parties">
                       <span className="tr-l1">
-                        <Party address={r.from} me={me} />
+                        <Party address={r.from} me={me} self={own ? "You" : "This wallet"} />
                       </span>
                       <span className="tr-l2">
-                        <Party address={r.to} me={me} />
+                        <Party address={r.to} me={me} self={own ? "You" : "This wallet"} />
                       </span>
                     </td>
                   </tr>
@@ -251,7 +259,10 @@ export function MyTrades({
       )}
 
       {!full && rows.length > shown.length ? (
-        <Link className="btn btn-sm btn-block act-all" href="/activity?wallet=me">
+        <Link
+          className="btn btn-sm btn-block act-all"
+          href={own ? "/activity?wallet=me" : `/activity?wallet=${address}`}
+        >
           See all {rows.length} events
           <ArrowRight />
         </Link>
@@ -288,16 +299,25 @@ export function MyTrades({
 }
 
 /**
- * One side of an event: "You", the other wallet, or nobody.
+ * One side of an event: the wallet this history is about, the other wallet,
+ * or nobody.
  *
- * "You" rather than your own address, because on your own history every row
- * has you on one side and a column of your own address repeated is noise
- * that hides the other party. Nobody is a dash: a listing has a maker and no
- * taker until it sells.
+ * A word rather than the subject's own address, because every row has it on
+ * one side and a column of the same address repeated is noise that hides the
+ * other party. "You" on your own history, "This wallet" on somebody else's.
+ * Nobody is a dash: a listing has a maker and no taker until it sells.
  */
-function Party({ address, me }: { address: `0x${string}` | undefined; me: string }) {
+function Party({
+  address,
+  me,
+  self,
+}: {
+  address: `0x${string}` | undefined;
+  me: string;
+  self: string;
+}) {
   if (address === undefined) return <span className="dim">&mdash;</span>;
-  if (address.toLowerCase() === me) return <span className="tr-you">You</span>;
+  if (address.toLowerCase() === me) return <span className="tr-you">{self}</span>;
   return (
     <Link className="tr-addr" href={`/address/${address}`} title={address}>
       {tinyAddress(address)}

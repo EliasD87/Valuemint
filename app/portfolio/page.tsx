@@ -1,26 +1,21 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
-import { holdingsAnchor } from "@/lib/anchors";
+import { useMemo } from "react";
 import { PortfolioHeader } from "@/components/PortfolioHeader";
 import { valueAtFloor } from "@/lib/portfolioValue";
 import Link from "next/link";
 import { useAccount, useBalance } from "wagmi";
 import { useQueryClient } from "@tanstack/react-query";
 import { useHoldings } from "@/hooks/useHoldings";
-import type { ChainToken } from "@/hooks/useEverything";
 import { OfferInbox } from "@/components/OfferInbox";
 import { PortfolioActivity } from "@/components/PortfolioActivity";
-import { BulkList } from "@/components/BulkList";
-import { TokenCard, TokenCardSkeleton } from "@/components/TokenCard";
-import { useGridColumns } from "@/hooks/useGridColumns";
+import { HoldingsGroup } from "@/components/HoldingsGroup";
+import { TokenCardSkeleton } from "@/components/TokenCard";
 import { useFloors } from "@/hooks/useFloors";
 import { floorForTier } from "@/lib/floors";
 import { CREATE_ENABLED } from "@/config/features";
-import { formatSoso } from "@/lib/format";
 import "@/styles/home.css";
 import "@/styles/portfolio.css";
-import { Soso } from "@/components/Soso";
 import { ConnectButton } from "@/components/ConnectButton";
 
 export default function Portfolio() {
@@ -43,7 +38,7 @@ export default function Portfolio() {
    * Query collapses the identical key against the order book this page already
    * reads for its own listings.
    */
-  const { floorFor, tierFloorsFor, tierRowsFor, isLoading: floorsLoading } = useFloors();
+  const { floorFor, tierRowsFor, isLoading: floorsLoading } = useFloors();
 
   /**
    * There is no "waiting for you" balance any more, and there is nothing to
@@ -182,12 +177,11 @@ export default function Portfolio() {
       ) : (
         <div className="stack stack-lg">
           {byCollection.map((group) => (
-            <Holdings
+            <HoldingsGroup
               key={group.address}
               group={group}
               viewer={address}
               floorFor={floorFor}
-              tierFloorsFor={tierFloorsFor}
               tierRowsFor={tierRowsFor}
             />
           ))}
@@ -241,166 +235,5 @@ export default function Portfolio() {
         </aside>
       </div>
     </section>
-  );
-}
-
-/** One collection's worth of what this wallet holds. */
-interface Group {
-  name: string;
-  address: `0x${string}`;
-  items: ChainToken[];
-}
-
-/**
- * A collection's pieces, one row deep until asked for more.
- *
- * A wallet holding sixty pieces of one collection turned this page into sixty
- * cards of scrolling before the next collection was reachable at all, so the
- * thing most people open it for — what do I hold, across everything — was the
- * thing the layout made hardest. One row each means the whole portfolio fits in
- * a screen or two whatever is in it, and the rest is one press away.
- *
- * A row is however many cards the grid is drawing at this width, read from the
- * grid itself rather than guessed from a breakpoint — see `useGridColumns`. A
- * guess would clip a row short or spill onto a second one, and would be wrong
- * again the next time the stylesheet moved.
- */
-function Holdings({
-  group,
-  viewer,
-  floorFor,
-  tierFloorsFor,
-  tierRowsFor,
-}: {
-  group: Group;
-  viewer: `0x${string}` | undefined;
-  floorFor: (address: string) => bigint | undefined;
-  tierFloorsFor: (address: string) => { tier: string; price: bigint; count: number }[];
-  /** Unfiltered — see lib/floors.ts for why this is not the same list. */
-  tierRowsFor: (address: string) => { tier: string; price: bigint; count: number }[];
-}) {
-  const grid = useRef<HTMLDivElement>(null);
-  const columns = useGridColumns(grid);
-  const [expanded, setExpanded] = useState(false);
-
-  /**
-   * Four until the grid has been measured.
-   *
-   * The measurement is a layout effect and lands before paint, so this is
-   * normally never seen — but it is the answer if `ResizeObserver` or
-   * `getComputedStyle` gives nothing, and content must never depend on a
-   * mechanism that might not run. Four is one row on a desktop; being wrong
-   * costs a row that is short or long, not an empty page.
-   */
-  const perRow = columns > 0 ? columns : 4;
-  const shown = expanded ? group.items : group.items.slice(0, perRow);
-  const hidden = group.items.length - shown.length;
-
-  const collectionFloor = floorFor(group.address);
-  const tierFloors = tierFloorsFor(group.address);
-  /** Unfiltered, because pricing a piece is not the same question as showing a breakdown. */
-  const tierRows = tierRowsFor(group.address);
-
-  return (
-    /*
-      Named so the listing prompt can send somebody straight here.
-
-      `scroll-margin-top` is what makes the anchor land correctly rather than
-      under the sticky header — without it the browser scrolls the heading to
-      y=0, which is behind the 72px bar, and the reader arrives at a collection
-      whose name they cannot see. See `.holdings-anchor` in portfolio's styles.
-    */
-    <div id={holdingsAnchor(group.address)} className="holdings-anchor">
-      <div className="head head-sub">
-        <div>
-          {/* The collection's floor beside the count, so the group says what it
-              is worth as well as how much of it there is. Omitted rather than
-              zeroed when nothing in the collection is listed — there is no
-              floor then, and 0 would be a different claim entirely. */}
-          <p className="eyebrow eyebrow-dim">
-            {group.items.length} held
-            {collectionFloor === undefined ? null : (
-              <>
-                {" · floor "}
-                <Soso size={12}>{formatSoso(collectionFloor)}</Soso>
-              </>
-            )}
-          </p>
-          <h3>{group.name}</h3>
-        </div>
-        {/* Both ways out of this group, side by side. The bulk button used to
-            be a full-width bar under the heading, which put a banner between a
-            collection's name and its pieces. */}
-        <div className="head-tools">
-          <BulkList
-            collection={group.address}
-            collectionName={group.name}
-            items={group.items
-              .filter((t) => t.listing === undefined)
-              .map((t) => ({ id: t.id, tier: t.tier }))}
-          />
-          <Link className="head-link" href={`/collection/${group.address}`}>
-            View collection &rarr;
-          </Link>
-        </div>
-      </div>
-
-      {/*
-        Only the unlisted ones, and only where there is more than one.
-        Re-listing something already up would put two live orders on one token
-        at two prices, and a buyer takes the cheaper — so the pieces already for
-        sale are deliberately not offered here.
-
-        Deliberately the whole group and not the visible row: bulk listing is
-        about everything held here, and collapsing the grid is a reading
-        convenience that must not quietly change what a button acts on.
-      */}
-      <div className="grid-tokens" ref={grid}>
-        {shown.map((t) => (
-          <TokenCard
-            key={`${t.collection}-${t.id}`}
-            token={t}
-            collection={t.collection}
-            listing={t.listing}
-            owner={t.owner}
-            viewerAddress={viewer}
-            /* Every card here is yours, so the badge marks nothing. The
-               addresses above still go in, because they are also what stops
-               this card offering you a bid on your own piece. */
-            markOwned={false}
-            /*
-              This piece's own tier floor, or none.
-
-              The distinction is the whole point. A collection holding Epics and
-              Commons has two floors, and quoting the Common one against an Epic
-              tells its owner precisely the wrong thing about what they hold.
-
-              It used to fall through to the collection floor whenever a tier had
-              nothing listed, which fired exactly when it was most wrong: the
-              collection floor is the minimum across every tier, so a Super Rare
-              with none for sale was shown the cheapest Common's asking price and
-              told it was its floor. `floorForTier` says nothing instead, and the
-              card omits the plate. See lib/floors.ts.
-            */
-            floor={floorForTier(t.tier, tierRows, collectionFloor)}
-          />
-        ))}
-      </div>
-
-      {hidden > 0 || expanded ? (
-        <div className="pf-more-row">
-          {/* The button names the total rather than the remainder: "Show all
-              1000" is what somebody is deciding about, and a second label
-              saying "997 more" beside it was the same fact twice. */}
-          <button
-            type="button"
-            className="btn btn-sm pf-more"
-            onClick={() => setExpanded((e) => !e)}
-          >
-            {expanded ? "Show fewer" : `Show all ${group.items.length}`}
-          </button>
-        </div>
-      ) : null}
-    </div>
   );
 }

@@ -6,7 +6,8 @@ import { useActivity } from "@/hooks/useActivity";
 import { useCollectionBasics } from "@/hooks/useCollectionBasics";
 import { Soso } from "@/components/Soso";
 import { formatSoso, formatCount } from "@/lib/format";
-import type { TokenMetadata } from "@/lib/tokenMetadata";
+import { tierOf, type TokenMetadata } from "@/lib/tokenMetadata";
+import { useFloors } from "@/hooks/useFloors";
 import "./TokenStats.css";
 
 /**
@@ -83,6 +84,24 @@ export function TokenStats({
   }, [bestListings]);
 
   /**
+   * This piece's own tier's floor, where it has a tier.
+   *
+   * The cell was "Collection floor" for every piece, and the collection floor
+   * is the minimum across every tier — so a Super Rare Treasure Box showed the
+   * cheapest Common's 8.98 beside it, the figure a buyer reads as "what this
+   * goes for". Reported as a low trait's floor being used for the others. The
+   * same rule as the cards and the portfolio (`floorForTier`): a tiered piece
+   * is priced against its tier or not at all, and "none listed" is the true
+   * answer when its tier has nothing for sale.
+   */
+  const tier = tierOf(metadata);
+  const { tierRowsFor, isLoading: floorsLoading } = useFloors();
+  const tierFloor =
+    tier === undefined || collection === undefined
+      ? undefined
+      : tierRowsFor(collection).find((r) => r.tier === tier)?.price;
+
+  /**
    * How many pieces share this one's design, and what share of the collection
    * that is.
    *
@@ -127,9 +146,30 @@ export function TokenStats({
         </Cell>
       )}
 
-      <Cell label="Collection floor">
-        {floorWei === undefined ? <Dash /> : <Soso size={15}>{formatSoso(floorWei)}</Soso>}
-      </Cell>
+      {/*
+        Nothing until the document is in. Before it, `tier` is undefined for
+        EVERY piece, so this fell to the collection floor for the first second
+        of every page — a Super Rare shown the Commons' price just as long as
+        it takes to notice it.
+      */}
+      {metadata === undefined ? (
+        <Cell label="Floor">
+          <Dash />
+        </Cell>
+      ) : tier === undefined ? (
+        <Cell label="Collection floor">
+          {floorWei === undefined ? <Dash /> : <Soso size={15}>{formatSoso(floorWei)}</Soso>}
+        </Cell>
+      ) : (
+        /* "none listed" is a claim, so it waits for the floors to have loaded:
+           a tier with no row yet is unknown, not empty. */
+        <Cell
+          label={`${tier} floor`}
+          {...(tierFloor === undefined && !floorsLoading ? { note: "none listed" } : {})}
+        >
+          {tierFloor === undefined ? <Dash /> : <Soso size={15}>{formatSoso(tierFloor)}</Soso>}
+        </Cell>
+      )}
 
       {/*
         Absent rather than dashed where the collection publishes no edition

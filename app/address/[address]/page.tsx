@@ -1,41 +1,42 @@
 "use client";
 
-import { use } from "react";
+import { use, useMemo } from "react";
 import Link from "next/link";
-import { useAccount } from "wagmi";
+import { useAccount, useBalance } from "wagmi";
 import { useHoldings } from "@/hooks/useHoldings";
-import { TokenCard, TokenCardSkeleton } from "@/components/TokenCard";
+import { useFloors } from "@/hooks/useFloors";
+import { floorForTier } from "@/lib/floors";
+import { valueAtFloor } from "@/lib/portfolioValue";
+import { PortfolioHeader } from "@/components/PortfolioHeader";
+import { PortfolioActivity } from "@/components/PortfolioActivity";
+import { HoldingsGroup } from "@/components/HoldingsGroup";
+import { TokenCardSkeleton } from "@/components/TokenCard";
 import { ShareLink } from "@/components/ShareLink";
-import { deployment } from "@/config/contracts";
 import { shortAddress } from "@/lib/format";
-/**
- * `home.css`, not `collections.css`.
- *
- * This page borrows the token grid and the stat strip from /portfolio and
- * /market, and both of those classes - `.grid-tokens`, `.strip-inner`,
- * `.strip-item`, `.portfolio-note` - are defined in home.css. Importing the
- * wrong sheet did not fail loudly: the markup rendered with no grid at all, so
- * every card stacked full-width and one plush toy filled the viewport, and the
- * two stat items ran together as "14 held4 collections" because the flex gap
- * was never applied either.
- *
- * `collections.css` is still needed for `.addr-title`.
- */
 import "@/styles/home.css";
-import "@/styles/collections.css";
+import "@/styles/portfolio.css";
 
 /**
- * Everything one address holds on ValueChain.
+ * Everything one address holds on ValueChain — the search result.
  *
- * The same view `/portfolio` gives you of your own wallet, for anybody's -
- * which is the point. A marketplace where you can only see your own holdings
+ * The same view `/portfolio` gives you of your own wallet, for anybody's,
+ * which is the point: a marketplace where you can only see your own holdings
  * makes it impossible to check who you are trading with, or to follow a
  * collector whose taste you rate.
  *
- * `useHoldings` was already written to take an address rather than assume the
- * connected one, so this is a route and a search box rather than new machinery.
- * It asks each collection for a balance and then reads back exactly those ids,
- * so the answer is complete rather than a sample.
+ * ---
+ *
+ * **It is /portfolio's layout now, read-only.** It used to be an address, two
+ * bare counts and one flat grid of every card the wallet held — a hundred
+ * pieces of one collection before the next was reachable, and no sign of
+ * what the wallet had done. It now shares the portfolio's parts: the header
+ * (balance first, then pieces, listed, at-floor), one row per collection with
+ * "Show all", and trades and offers beside them.
+ *
+ * `own` is what keeps it read-only. It is true only when the connected wallet
+ * IS this address, and it turns off the things only a holder can act on or
+ * should be asked: bulk listing, withdrawing offers, "where is my SOSO". Every
+ * figure is read for the address in the URL, never for the viewer.
  */
 export default function AddressPage({
   params,
@@ -47,11 +48,33 @@ export default function AddressPage({
   const target = valid ? (raw as `0x${string}`) : undefined;
 
   const { address: viewer } = useAccount();
-  const { tokens, isLoading, unlistable } = useHoldings(target);
+  const { tokens, collections, unlistable, pending, expected, isDiscovering, isLoading } =
+    useHoldings(target);
+  const { data: balance } = useBalance({
+    address: target,
+    query: { enabled: target !== undefined },
+  });
+  const { floorFor, tierRowsFor, isLoading: floorsLoading } = useFloors();
 
-  const isSelf = viewer !== undefined && target !== undefined && viewer.toLowerCase() === target.toLowerCase();
+  const own =
+    viewer !== undefined && target !== undefined && viewer.toLowerCase() === target.toLowerCase();
 
-  if (!valid) {
+  /** Grouped by collection, so a wallet reads as collections rather than a wall. */
+  const byCollection = useMemo(() => {
+    const map = new Map<
+      string,
+      { name: string; address: `0x${string}`; items: typeof tokens }
+    >();
+    for (const t of tokens) {
+      const key = t.collection.toLowerCase();
+      const entry = map.get(key) ?? { name: t.collectionName, address: t.collection, items: [] };
+      entry.items.push(t);
+      map.set(key, entry);
+    }
+    return [...map.values()];
+  }, [tokens]);
+
+  if (target === undefined) {
     return (
       <section className="page section market-empty">
         <h2>That isn&rsquo;t a wallet address.</h2>
@@ -63,97 +86,106 @@ export default function AddressPage({
     );
   }
 
+  const listed = tokens.filter((t) => t.listing !== undefined);
+  const asking = listed.reduce((sum, t) => sum + (t.listing?.price ?? 0n), 0n);
+
+  /** Withheld until floors and the first holdings land — see /portfolio. */
+  const nfts =
+    floorsLoading || (isLoading && tokens.length === 0)
+      ? undefined
+      : valueAtFloor(tokens, (t) =>
+          floorForTier(t.tier, tierRowsFor(t.collection), floorFor(t.collection)),
+        );
+
   return (
     <section className="page section">
-      <div className="head">
-        <div>
-          <p className="eyebrow">Wallet</p>
-          {/**
-           * The address is the heading even when it is your own.
-           *
-           * This said "Your collection" for the connected wallet, which reads
-           * fine on /portfolio and badly here: you arrive by searching, and the
-           * one thing a search result has to show is what was searched for.
-           * Replacing it with a pronoun means you cannot confirm you typed the
-           * right address, which is the whole reason you were looking.
-           *
-           * The chip carries the "this is you" signal instead, without taking
-           * the identity out of the title.
-           */}
-          <h2 className="addr-title">{shortAddress(raw, 6)}</h2>
-          {isSelf ? <span className="chip chip-up">This is your wallet</span> : null}
+      <div className="pf-layout">
+        <div className="pf-main">
+          <PortfolioHeader
+            address={target}
+            pieces={tokens.length}
+            collections={byCollection.length}
+            listed={listed.length}
+            asking={asking}
+            own={own}
+            heading={`Wallet ${shortAddress(target, 6)}`}
+            {...(balance?.value === undefined ? {} : { balance: balance.value })}
+            {...(nfts === undefined ? {} : { nfts })}
+            extra={
+              <>
+                {own ? (
+                  <Link className="chip chip-up ph-you" href="/portfolio">
+                    This is you &middot; open your portfolio
+                  </Link>
+                ) : null}
+                <ShareLink title={`${shortAddress(target, 6)} on ValueMint`} />
+              </>
+            }
+          />
+
+          {unlistable.length > 0 ? (
+            <p className="portfolio-note">
+              Pieces this wallet holds in {unlistable.map((c) => c.name).join(", ")} could not be
+              identified. {unlistable.length === 1 ? "It doesn't" : "They don't"} publish a
+              per-owner index and the explorer has no record of them either.
+            </p>
+          ) : null}
+
+          {isLoading && tokens.length === 0 ? (
+            <div className="grid-tokens">
+              {Array.from({ length: 6 }, (_, i) => (
+                <TokenCardSkeleton key={i} />
+              ))}
+            </div>
+          ) : tokens.length === 0 ? (
+            <div className="market-empty">
+              <h3>This wallet holds nothing here.</h3>
+              <p className="muted">
+                Checked all {collections.length} collection{collections.length === 1 ? "" : "s"}{" "}
+                on ValueChain and found nothing under this address. Its trades, if it has any,
+                are beside this.
+              </p>
+            </div>
+          ) : (
+            <div className="stack stack-lg">
+              {byCollection.map((group) => (
+                <HoldingsGroup
+                  key={group.address}
+                  group={group}
+                  viewer={viewer}
+                  floorFor={floorFor}
+                  tierRowsFor={tierRowsFor}
+                  own={own}
+                />
+              ))}
+            </div>
+          )}
+
+          {/* More is coming: the balances are known before the ids are. */}
+          {isDiscovering && tokens.length > 0 ? (
+            <div className="portfolio-more">
+              <p className="portfolio-more-note">
+                <span className="portfolio-more-dot" aria-hidden="true" />
+                Still finding this wallet&rsquo;s pieces &mdash;{" "}
+                <b>
+                  {tokens.length} of {expected}
+                </b>{" "}
+                so far
+                {pending.length > 0 ? <>, reading {pending.map((c) => c.name).join(", ")}</> : null}.
+              </p>
+              <div className="grid-tokens" aria-hidden="true">
+                {Array.from({ length: Math.min(4, Math.max(1, expected - tokens.length)) }, (_, i) => (
+                  <TokenCardSkeleton key={i} />
+                ))}
+              </div>
+            </div>
+          ) : null}
         </div>
-        <div className="wrap-row head-actions">
-          <ShareLink title={`${shortAddress(raw, 6)} on ValueMint`} />
-          <a
-            className="head-link"
-            href={`${deployment.explorer}/address/${raw}`}
-            target="_blank"
-            rel="noreferrer noopener"
-          >
-            On the explorer &rarr;
-          </a>
-        </div>
+
+        <aside className="pf-side">
+          <PortfolioActivity address={target} own={own} />
+        </aside>
       </div>
-
-      <div className="strip-inner">
-        <span className="strip-item">
-          <b>{isLoading ? "…" : tokens.length}</b> held
-        </span>
-        {/* The address moved up into the heading, so repeating it here would
-            just be the same string twice. What is useful alongside the count is
-            how many collections those pieces span. */}
-        <span className="strip-item">
-          <b>
-            {isLoading
-              ? "…"
-              : new Set(tokens.map((t) => t.collection.toLowerCase())).size}
-          </b>{" "}
-          collections
-        </span>
-      </div>
-
-      {/*
-        Collections without the Enumerable extension report a balance but cannot
-        say which ids. Naming them is the honest thing: silently omitting them
-        would make this page under-report, which is worse than no page at all.
-      */}
-      {unlistable.length > 0 ? (
-        <p className="portfolio-note">
-          {unlistable.length} collection{unlistable.length === 1 ? "" : "s"} could not be read.
-          They hold a balance for this address but do not publish a token list, so their pieces
-          cannot be shown here.
-        </p>
-      ) : null}
-
-      {isLoading && tokens.length === 0 ? (
-        <div className="grid-tokens">
-          {Array.from({ length: 8 }, (_, i) => (
-            <TokenCardSkeleton key={i} />
-          ))}
-        </div>
-      ) : tokens.length === 0 ? (
-        <div className="market-empty">
-          <h3>This wallet holds nothing on ValueChain.</h3>
-          <p className="muted">
-            Nothing minted from any collection this marketplace can see. It may still hold
-            tokens from a collection that does not publish a list.
-          </p>
-        </div>
-      ) : (
-        <div className="grid-tokens">
-          {tokens.map((t) => (
-            <TokenCard
-              key={`${t.collection}-${t.id}`}
-              token={t}
-              collection={t.collection}
-              collectionName={t.collectionName}
-              listing={t.listing}
-              viewerAddress={viewer}
-            />
-          ))}
-        </div>
-      )}
     </section>
   );
 }
