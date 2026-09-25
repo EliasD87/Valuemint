@@ -6,9 +6,8 @@ import { getAddress, parseEther, parseEventLogs } from "viem";
 import {
   useAccount,
   useSignMessage,
-  useSwitchChain,
 } from "wagmi";
-import { useWriteContract } from "@/hooks/useChainWrite";
+import { useSwitchToChain, useWriteContract } from "@/hooks/useChainWrite";
 import { useTxOutcome } from "@/hooks/useTxOutcome";
 import {
   ValueChainCollectionAbi,
@@ -103,7 +102,8 @@ function Create() {
   // The wallet's real network, from the connection. `useChainId()` only reports
   // chains in the config, so a wallet on Ethereum read as ValueChain (2026-09-25).
   const { chainId } = useAccount();
-  const { switchChain, isPending: switching } = useSwitchChain();
+  // The connected wallet, with a timeout: see useSwitchToChain.
+  const { switchTo, switching } = useSwitchToChain();
   const { signMessageAsync } = useSignMessage();
 
   const [step, setStep] = useState(0);
@@ -663,7 +663,7 @@ function Create() {
             ) : !isConnected ? (
               <ConnectButton>Connect wallet</ConnectButton>
             ) : chainId !== valuechain.id ? (
-              <button className="btn btn-primary btn-lg" disabled={switching} onClick={() => switchChain({ chainId: valuechain.id })}>
+              <button className="btn btn-primary btn-lg" disabled={switching} onClick={() => void switchTo(valuechain.id).catch(() => undefined)}>
                 {switching ? "Switching…" : "Switch to ValueChain"}
               </button>
             ) : (

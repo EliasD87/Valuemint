@@ -5,9 +5,8 @@ import {
   useAccount,
   useBalance,
   useReadContracts,
-  useSwitchChain,
 } from "wagmi";
-import { useWriteContract } from "@/hooks/useChainWrite";
+import { useSwitchToChain, useWriteContract } from "@/hooks/useChainWrite";
 import { useTxOutcome } from "@/hooks/useTxOutcome";
 import { ValueChainCollectionAbi, deployment } from "@/config/contracts";
 import { valuechain } from "@/config/chain";
@@ -29,7 +28,8 @@ export function MintPanel({ address: collection }: { address: `0x${string}` }) {
   // The wallet's real network, from the connection. `useChainId()` only reports
   // chains in the config, so a wallet on Ethereum read as ValueChain (2026-09-25).
   const { chainId } = useAccount();
-  const { switchChain, isPending: switching } = useSwitchChain();
+  // The connected wallet, with a timeout: see useSwitchToChain.
+  const { switchTo, switching } = useSwitchToChain();
   const { data: balance } = useBalance({ address, query: { enabled: address !== undefined } });
 
   const base = { address: collection, abi: ValueChainCollectionAbi } as const;
@@ -148,7 +148,7 @@ export function MintPanel({ address: collection }: { address: `0x${string}` }) {
               <button
                 className="btn btn-primary btn-lg btn-block"
                 disabled={switching}
-                onClick={() => switchChain({ chainId: valuechain.id })}
+                onClick={() => void switchTo(valuechain.id).catch(() => undefined)}
               >
                 {switching ? "Switching…" : "Switch to ValueChain"}
               </button>

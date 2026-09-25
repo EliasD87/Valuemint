@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useAccount, useBalance, useConnect, useDisconnect, useSwitchChain } from "wagmi";
+import { useAccount, useBalance, useConnect, useDisconnect } from "wagmi";
+import { SWITCH_STALLED, useSwitchToChain } from "@/hooks/useChainWrite";
 import { valuechain } from "@/config/chain";
 import { formatSoso, tinyAddress } from "@/lib/format";
 
@@ -57,12 +58,13 @@ export function Wallet() {
   const { address, isConnected } = useAccount();
   // The wallet's real network, from the connection. `useChainId()` only reports
   // chains in the config, so a wallet on Ethereum read as ValueChain (2026-09-25).
-  const { chainId } = useAccount();
+  const { chainId, connector } = useAccount();
   // `connect` and the connector list moved into WalletPicker; only the pending
   // flag is still read here, to disable the button while a connection is open.
   const { isPending } = useConnect();
   const { disconnect } = useDisconnect();
-  const { switchChain, isPending: isSwitching } = useSwitchChain();
+  const { switchTo, switching: isSwitching } = useSwitchToChain();
+  const [switchStalled, setSwitchStalled] = useState(false);
   const { data: balance } = useBalance({ address, query: { refetchInterval: 15_000 } });
   const [open, setOpen] = useState(false);
 
@@ -135,18 +137,47 @@ export function Wallet() {
   }
 
   if (chainId !== valuechain.id) {
+    /**
+     * Switch, and a way out. The switch goes to the wallet this account is
+     * connected through and gives up after 20s (see `useSwitchToChain`); and
+     * Disconnect stays on screen, because a person whose site connection
+     * belongs to the wrong wallet needs to reconnect with the right one — this
+     * state used to replace the account menu entirely, leaving no way to.
+     */
     return (
-      <button
-        className="btn wallet-wrong"
-        disabled={isSwitching}
-        onClick={() => switchChain({ chainId: valuechain.id })}
-      >
-        {isSwitching ? "Switching…" : (
-          <>
-            Wrong network<span className="wide-only">&nbsp;— switch</span>
-          </>
-        )}
-      </button>
+      <span className="wallet-wrong-group">
+        <button
+          className="btn wallet-wrong"
+          disabled={isSwitching}
+          title={switchStalled ? SWITCH_STALLED : undefined}
+          onClick={() => {
+            setSwitchStalled(false);
+            switchTo(valuechain.id).catch(() => setSwitchStalled(true));
+          }}
+        >
+          {isSwitching ? (
+            "Check your wallet…"
+          ) : switchStalled ? (
+            <>
+              Switch in your wallet<span className="wide-only">&nbsp;— retry</span>
+            </>
+          ) : (
+            <>
+              Wrong network<span className="wide-only">&nbsp;— switch{connector?.name ? ` in ${connector.name}` : ""}</span>
+            </>
+          )}
+        </button>
+        <button
+          type="button"
+          className="btn btn-sm wallet-wrong-out"
+          /* Which wallet this is, because it is not always the one people think:
+             an earlier connection can come back as the active one. */
+          title={connector?.name ? `Connected with ${connector.name}` : undefined}
+          onClick={() => disconnect()}
+        >
+          Disconnect
+        </button>
+      </span>
     );
   }
 

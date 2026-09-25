@@ -385,3 +385,14 @@
   width: 100%;
   justify-content: center;
 }
+
+/* Wrong network: the switch, and Disconnect beside it so a person connected
+   through the wrong wallet can reconnect with the right one. */
+.wallet-wrong-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.wallet-wrong-out {
+  white-space: nowrap;
+}
