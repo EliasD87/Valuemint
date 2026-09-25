@@ -404,7 +404,8 @@ function ClaimAction({ claim }: { claim: ReturnType<typeof useTrenchesClaim> }) 
   }
   if (open === undefined || owedCount === undefined) {
     return (
-      <button type="button" className="btn btn-primary btn-block" disabled>
+      <button type="button" className="btn btn-primary btn-block is-busy" disabled aria-busy="true">
+        <span className="trx-spin" aria-hidden="true" />
         Checking what you can claim…
       </button>
     );
@@ -416,7 +417,14 @@ function ClaimAction({ claim }: { claim: ReturnType<typeof useTrenchesClaim> }) 
   const busy = phase.kind === "authorising" || phase.kind === "signing";
   return (
     <>
-      <button type="button" className="btn btn-primary btn-block" disabled={busy} onClick={() => void claim.claim()}>
+      <button
+        type="button"
+        className={`btn btn-primary btn-block${busy ? " is-busy" : ""}`}
+        disabled={busy}
+        aria-busy={busy}
+        onClick={() => void claim.claim()}
+      >
+        {busy ? <span className="trx-spin" aria-hidden="true" /> : null}
         {phase.kind === "authorising"
           ? "Checking your volume…"
           : phase.kind === "signing"

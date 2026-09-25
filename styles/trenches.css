@@ -258,3 +258,34 @@
   font-size: var(--step--1);
   color: var(--ink-2);
 }
+
+/**
+ * Working, not disabled. The server re-reads the wallet's volume from SoDEX
+ * before it signs, which takes a few seconds, and a greyed-out button over
+ * that wait read as stuck (owner, 2026-09-25). So a busy button keeps its full
+ * colour and carries a small spinner in its own ink.
+ */
+.trx-you .btn.is-busy:disabled {
+  opacity: 1;
+  cursor: progress;
+}
+.trx-spin {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid color-mix(in srgb, currentColor 28%, transparent);
+  border-top-color: currentColor;
+  animation: trx-spin 750ms linear infinite;
+}
+@keyframes trx-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+/* As TxResult's spinner: the words already say what is happening. */
+@media (prefers-reduced-motion: reduce) {
+  .trx-spin {
+    animation: none;
+  }
+}
