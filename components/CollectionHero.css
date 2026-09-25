@@ -45,6 +45,47 @@
  */
 .ch-band-video {
   height: clamp(150px, 25vw, 300px);
+  /*
+   * The clips below need z-index to cross-fade, and without a stacking context
+   * of its own that z-index competes with the page: the front clip painted
+   * over the avatar that overlaps this band's lower edge.
+   */
+  isolation: isolate;
+}
+
+.ch-band-video .ch-scrim {
+  z-index: 3;
+}
+
+/*
+ * The two clips BannerVideo alternates between. Hidden until `play()` has
+ * resolved — a paused video is where a browser draws its play button — and
+ * the one coming in fades over the one going out, which stays opaque beneath
+ * it. 0.8s is `FADE` in BannerVideo.tsx; change both or neither.
+ */
+.bv-clip {
+  opacity: 0;
+  z-index: 1;
+  pointer-events: none;
+  transition: opacity 0.8s linear;
+}
+
+.bv-clip[data-state="front"] {
+  opacity: 1;
+  z-index: 2;
+}
+
+.bv-clip[data-state="under"] {
+  opacity: 1;
+  z-index: 1;
+  transition: none;
+}
+
+/* Belt and braces: WebKit's own overlay, should a paused clip ever show. */
+.bv-clip::-webkit-media-controls,
+.bv-clip::-webkit-media-controls-start-playback-button {
+  display: none !important;
+  -webkit-appearance: none;
 }
 
 /* ---------------------------------------------------- composed artwork */

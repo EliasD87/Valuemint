@@ -41,13 +41,20 @@ export interface HeroArt {
   background?: string;
 
   /**
-   * A looping, muted banner video, drawn in place of `background`.
-   *
-   * Encode it with its index at the front (`-movflags faststart`) or the
-   * browser has to fetch the end of the file before the first frame. Under
-   * `prefers-reduced-motion` it holds still on its first frame.
+   * A looping, muted banner video, drawn in place of `background` by
+   * `BannerVideo` — which crossfades its end into its start.
    */
-  video?: string;
+  video?: {
+    /** MP4 with its index at the front (`-movflags faststart`), or the
+        browser has to fetch the end of the file before the first frame. */
+    src: string;
+    /** The video's first frame. Painted at once, and all that reduced motion
+        sees. */
+    still: string;
+    /** The same loop as an animated image, crossfade baked in, for browsers
+        that refuse to autoplay video. Without it they get the still. */
+    fallback?: string;
+  };
 
   /**
    * Where the band's crop sits in the background, as CSS `object-position` —
@@ -123,10 +130,20 @@ export const COLLECTION_HEROES: Record<string, HeroArt> = {
     5s, H.264. The index was moved in front of the media (faststart) before it
     was committed; as supplied it sat at the end of the file.
 
+    `genesis-loop.webp` is its 121 frames at 720px, with the last 19 (0.8s)
+    crossfaded into the first 19 and the output starting at frame 19: measured,
+    the step from its last frame to its first is 0.70 against 0.85 between
+    ordinary neighbours, so the loop has no seam. 2.2 MB, and only fetched by a
+    browser that refused the video.
+
     It replaced `genesis.webp`, the six-panel still, which is no longer drawn.
   */
   "0x5fadc59297e86acea20bff519aea0f9651cdc90b": {
-    video: "/heroes/genesis.mp4",
+    video: {
+      src: "/heroes/genesis.mp4",
+      still: "/heroes/genesis-still.webp",
+      fallback: "/heroes/genesis-loop.webp",
+    },
   },
 
   /*
