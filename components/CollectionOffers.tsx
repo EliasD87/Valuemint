@@ -57,6 +57,14 @@ export function CollectionOffers({ collection }: { collection: `0x${string}` }) 
   const { address } = useAccount();
   const isMine = (o: SeaportOrder) => address !== undefined && o.maker.toLowerCase() === address.toLowerCase();
   const somethingStanding = anyPiece.length > 0 || traits.length > 0;
+
+  /**
+   * Whether this collection has traits to offer on. Where it does, "any piece"
+   * is not offered: a bid meant for the good ones, made as "any piece", is
+   * filled with the cheapest piece in the collection — the owner's point,
+   * 2026-09-26, that this would go wrong for people new to it.
+   */
+  const hasTraits = criteria.supported && criteria.sets.length > 0;
   const { tokens: held } = useHoldings(somethingStanding ? address : undefined);
   const myPieces = useMemo(
     () => held.filter((t) => t.collection.toLowerCase() === collection.toLowerCase()),
@@ -93,19 +101,27 @@ export function CollectionOffers({ collection }: { collection: `0x${string}` }) 
   return (
     <section className="co" aria-label="Collection offers">
       <div className="co-lines">
-        <p className="co-line">
-          <span className="co-label">Any piece</span>
-          {anyPiece[0] === undefined ? (
-            <span className="co-none">No offers yet</span>
-          ) : (
-            <>
-              <Soso size={14} unit={currencyLabel(anyPiece[0].currency)}>
-                {formatSoso(anyPiece[0].priceWei)}
-              </Soso>
-              {accept(anyPiece[0])}
-            </>
-          )}
-        </p>
+        {hasTraits && anyPiece[0] === undefined ? (
+          traits.length === 0 ? (
+            <p className="co-line">
+              <span className="co-none">No offers yet</span>
+            </p>
+          ) : null
+        ) : (
+          <p className="co-line">
+            <span className="co-label">Any piece</span>
+            {anyPiece[0] === undefined ? (
+              <span className="co-none">No offers yet</span>
+            ) : (
+              <>
+                <Soso size={14} unit={currencyLabel(anyPiece[0].currency)}>
+                  {formatSoso(anyPiece[0].priceWei)}
+                </Soso>
+                {accept(anyPiece[0])}
+              </>
+            )}
+          </p>
+        )}
         {traits.slice(0, 3).map(({ offer, set }) => (
           <p key={offer.hash} className="co-line">
             <span className="co-label">{traitLabel(set)}</span>
@@ -125,6 +141,8 @@ export function CollectionOffers({ collection }: { collection: `0x${string}` }) 
         <CollectionOfferDialog
           collection={collection}
           supported={criteria.supported}
+          hasTraits={hasTraits}
+          traitsFailed={criteria.isError}
           loadingTraits={criteria.isLoading}
           sets={criteria.sets}
           bound={criteria.bound}
@@ -150,6 +168,8 @@ const traitRank = (t: string) => {
 function CollectionOfferDialog({
   collection,
   supported,
+  hasTraits,
+  traitsFailed,
   loadingTraits,
   sets,
   bound,
@@ -158,6 +178,10 @@ function CollectionOfferDialog({
 }: {
   collection: `0x${string}`;
   supported: boolean;
+  /** The collection has trait sets: offers are by trait only. */
+  hasTraits: boolean;
+  /** The trait lookup failed: offer nothing rather than fall back to "any piece". */
+  traitsFailed: boolean;
   loadingTraits: boolean;
   sets: TraitSetSummary[];
   /** On a growing collection, the highest token id the sets cover. */
@@ -166,7 +190,9 @@ function CollectionOfferDialog({
   onClose: () => void;
 }) {
   const { address } = useAccount();
-  const [scope, setScope] = useState<"any" | "trait">("any");
+  /* Never "any" on a collection with traits, and nothing at all until that is known. */
+  const scope: "any" | "trait" = hasTraits ? "trait" : "any";
+  const undecided = loadingTraits || traitsFailed;
 
   const types = useMemo(
     () => [...new Set(sets.map((s) => s.traitType))].sort((a, b) => traitRank(a) - traitRank(b)),
@@ -220,37 +246,25 @@ function CollectionOfferDialog({
         </div>
 
         <div className="od-body">
-          <div className="co-scope" role="radiogroup" aria-label="What the offer is for">
-            <button
-              type="button"
-              role="radio"
-              aria-label="Any piece: any holder in the collection can accept"
-              aria-checked={scope === "any"}
-              className={`co-scope-btn${scope === "any" ? " is-on" : ""}`}
-              onClick={() => setScope("any")}
-            >
-              <b>Any piece</b>
-              <span>Any holder in the collection can accept</span>
-            </button>
-            <button
-              type="button"
-              role="radio"
-              aria-label="By trait: only holders of pieces with that trait can accept"
-              aria-checked={scope === "trait"}
-              disabled={!supported}
-              className={`co-scope-btn${scope === "trait" ? " is-on" : ""}`}
-              onClick={() => setScope("trait")}
-            >
-              <b>By trait</b>
-              <span>
-                {supported
-                  ? "Only holders of pieces with that trait can accept"
-                  : loadingTraits
-                    ? "Reading this collection's traits…"
-                    : "Not available for this collection"}
-              </span>
-            </button>
-          </div>
+          {undecided ? (
+            <p className="co-scope-note">
+              {traitsFailed
+                ? "Could not read this collection's traits just now. Close this and try again in a moment."
+                : "Reading this collection's traits…"}
+            </p>
+          ) : (
+            <p className="co-scope-note">
+              {scope === "trait" ? (
+                <>
+                  <b>By trait.</b> Only holders of pieces with the trait you pick can accept.
+                </>
+              ) : (
+                <>
+                  <b>Any piece.</b> Any holder in the collection can accept.
+                </>
+              )}
+            </p>
+          )}
 
           {scope === "trait" && supported && chosen !== undefined ? (
             <div className="co-pick">
@@ -312,7 +326,7 @@ function CollectionOfferDialog({
             </ul>
           ) : null}
 
-          <OfferForm target={target} replacing={false} onDone={() => undefined} />
+          {undecided ? null : <OfferForm target={target} replacing={false} onDone={() => undefined} />}
         </div>
       </div>
     </>,

@@ -85,7 +85,15 @@ export function HoldingsGroup({
         out.set(a.trait_type, inner);
       }
     }
-    return [...out.entries()].map(
+    /**
+     * The rarity row alone, where the collection has one. Genesis showed Design
+     * above Tier — nine chips of artwork names over the four that say what the
+     * pieces are worth — and the owner asked for the tier only (2026-09-26).
+     * A collection with no rarity trait keeps what it has.
+     */
+    const all = [...out.entries()];
+    const tiers = all.filter(([type]) => isTierTrait(type));
+    return (tiers.length > 0 ? tiers : all).map(
       ([type, values]) => [type, [...values.entries()].sort((x, y) => y[1] - x[1])] as const,
     );
   }, [group.items]);

@@ -44,6 +44,26 @@ export function ThemeToggle() {
   useEffect(() => {
     setTheme(stored() ?? "light");
     setMounted(true);
+
+    /**
+     * Keep the page on the stored theme, whatever happens to <html>.
+     *
+     * The inline script stamps `data-theme` before first paint, but React owns
+     * <html>: when hydration fails somewhere below — a restored wallet
+     * connection rendering differently on the client is the usual cause —
+     * React re-renders from the root, and React 19 clears the attributes of
+     * the <html> it takes back. The page went light under a toggle that still
+     * read dark (reported 2026-09-26). Put it back whenever it goes missing.
+     */
+    const root = document.documentElement;
+    const keep = () => {
+      const want = stored();
+      if (want !== undefined && root.dataset.theme !== want) root.dataset.theme = want;
+    };
+    keep();
+    const watch = new MutationObserver(keep);
+    watch.observe(root, { attributes: true, attributeFilter: ["data-theme"] });
+    return () => watch.disconnect();
   }, []);
 
   const toggle = () => {
