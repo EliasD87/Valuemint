@@ -76,6 +76,17 @@ export default function Trenches() {
   const { address } = useAccount();
   const [state, setState] = useState<State>({ kind: "idle" });
 
+  /**
+   * Nothing wallet-shaped renders until after hydration. The server has no
+   * wallet, so it draws "Connect a wallet"; wagmi restores a connection
+   * during the first client render, which drew "Reading SoDEX…" instead. React
+   * then threw the server HTML away and rebuilt the tree — and rebuilding the
+   * root is what clears <html data-theme>, flipping a dark page light
+   * (2026-09-26). Same gate as the one in Wallet.tsx.
+   */
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
   const check = useCallback(async (who: string, signal?: { cancelled: boolean }) => {
     setState({ kind: "checking" });
     try {
@@ -173,13 +184,6 @@ export default function Trenches() {
               </Link>
             ) : null}
           </div>
-
-          <YourDepth
-            state={state}
-            connected={address !== undefined}
-            onRetry={() => address && void check(address)}
-            onClaimed={() => void refetchReads()}
-          />
         </div>
 
         <figure className="trx-art">
@@ -200,6 +204,14 @@ export default function Trenches() {
             <span>ValueMint</span>
           </figcaption>
         </figure>
+
+        {/* The wallet's standing, the width of the section under both columns. */}
+        <YourDepth
+          state={state}
+          connected={mounted && address !== undefined}
+          onRetry={() => address && void check(address)}
+          onClaimed={() => void refetchReads()}
+        />
       </section>
 
       <section className="page section" id="depths">
@@ -260,15 +272,23 @@ function YourDepth({
   const next = data?.next == null ? undefined : TIERS.find((t) => t.n === data.next!.n);
 
   const volume = data?.next != null ? Math.max(data.next.min - data.next.needed, 0) : undefined;
-  const from = tier?.min ?? 0;
-  const to = next?.min;
-  const progress =
-    tier !== undefined && next === undefined
-      ? 1
-      : volume !== undefined && to !== undefined && to > from
-        ? Math.min(Math.max((volume - from) / (to - from), 0), 1)
+  /**
+   * All the volume so far against the next depth's mark — the "6,825 / 10,000"
+   * of it, counted from zero rather than from this depth's own mark, so it
+   * reads as how far they have come and not only what is left.
+   */
+  const toward =
+    next === undefined
+      ? tier === undefined
+        ? 0
+        : 1
+      : volume !== undefined && next.min > 0
+        ? Math.min(Math.max(volume / next.min, 0), 1)
         : 0;
-  const percent = Math.floor(progress * 100);
+  const towardPct = Math.floor(toward * 100);
+  /** Depths already reached: every circle up to this one is checked. */
+  const reachedN = tier?.n ?? 0;
+  const loading = state.kind === "checking";
 
   let reading: React.ReactNode;
   if (!connected) {
@@ -309,69 +329,115 @@ function YourDepth({
   }, [claimDone]);
 
   return (
-    <div className="card trx-you" aria-live="polite">
-      <div className="trx-you-top">
-        <span className="eyebrow">Your depth</span>
-        {claim.open === true ? (
-          <span className="chip chip-up">Claiming open</span>
-        ) : claim.open === false ? (
-          <span className="chip">Claiming paused</span>
+    <div
+      className="card trx-you"
+      aria-live="polite"
+      /* One colour for the checks, the ring and the bar: the current depth's. */
+      style={{ ["--from" as string]: tier?.colour ?? "var(--line-strong)" }}
+    >
+      {/* Left: who they are and the ladder. Right: the next goal and the claim. */}
+      <div className="trx-you-main">
+        <div className="trx-you-top">
+          <span className="eyebrow">Your depth</span>
+          {claim.open === true ? (
+            <span className="chip chip-up">Claiming open</span>
+          ) : claim.open === false ? (
+            <span className="chip">Claiming paused</span>
+          ) : null}
+        </div>
+        <p className="trx-you-reading">{reading}</p>
+        {/*
+          The ladder, one circle per depth — how far they have come at a
+          glance: a check on every depth reached; a ring
+          filling toward the next; the rest still to go.
+        */}
+        {showBar ? (
+          <ol className={`trx-ladder${loading ? " is-loading" : ""}`} aria-label="Depths">
+            {TIERS.map((t) => {
+              const done = t.n <= reachedN;
+              const active = !loading && next !== undefined && t.n === next.n;
+              return (
+                <li
+                  key={t.n}
+                  className={`trx-rung${done ? " is-done" : active ? " is-active" : ""}`}
+                  title={`${t.name} · ${t.min === 0 ? "any trade" : formatVolume(t.min)}`}
+                  aria-label={`${t.name}: ${done ? "reached" : active ? `${towardPct}% of the way` : "not yet"}`}
+                >
+                  <span className="trx-rung-dot">
+                    {done ? (
+                      <svg className="trx-rung-check" viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M6.5 12.5l3.8 3.8 7.2-8.1" />
+                      </svg>
+                    ) : active ? (
+                      <svg className="trx-rung-ring" viewBox="0 0 24 24" aria-hidden="true">
+                        <circle className="trx-rung-track" cx="12" cy="12" r="10.25" />
+                        <circle
+                          className="trx-rung-arc"
+                          cx="12"
+                          cy="12"
+                          r="10.25"
+                          pathLength={100}
+                          strokeDasharray={`${Math.max(towardPct, 2)} 100`}
+                        />
+                      </svg>
+                    ) : null}
+                  </span>
+                  <span className="trx-rung-label" aria-hidden="true">
+                    {two(t.n)}
+                  </span>
+                </li>
+              );
+            })}
+          </ol>
         ) : null}
       </div>
-      <p className="trx-you-reading">{reading}</p>
-
-      {showBar ? (
-        <div className="trx-progress" style={{ ["--from" as string]: tier?.colour ?? "var(--line-strong)", ["--to" as string]: next?.colour ?? tier?.colour ?? "var(--line-strong)" }}>
-          <div className="trx-progress-figures">
-            <span>
-              {volume !== undefined ? (
-                <>
-                  <b>{formatTraded(volume)}</b> traded
-                </>
-              ) : state.kind === "checking" ? (
-                "\u00a0"
-              ) : (
-                <b>{formatVolume(from)}+ traded</b>
-              )}
+      <div className="trx-you-side">
+        {/* The goal: all the volume so far against the next depth's mark. */}
+        {showBar ? (
+          <div className="trx-goal">
+            <span className="trx-goal-label">
+              {loading ? "Volume" : next !== undefined ? `To ${next.name}` : "Every depth reached"}
             </span>
-            <span>
-              {data?.next != null && next !== undefined ? (
-                <>
-                  <b>{formatVolume(data.next.needed)}</b> to {next.name}
-                </>
-              ) : tier !== undefined ? (
-                "Deepest reached"
-              ) : null}
-            </span>
+            <div className="trx-goal-figures">
+              <span className="trx-goal-num">
+                {loading ? (
+                  <b>&nbsp;</b>
+                ) : volume !== undefined ? (
+                  <b>{formatTraded(volume)}</b>
+                ) : (
+                  <b>{formatVolume(tier?.min ?? 0)}+</b>
+                )}
+                {!loading && next !== undefined ? <span className="trx-goal-of">/{formatVolume(next.min)}</span> : null}
+              </span>
+              {loading ? null : <span className="trx-goal-pct">{towardPct}%</span>}
+            </div>
+            <div
+              className={`trx-goal-track${loading ? " is-loading" : ""}`}
+              role="progressbar"
+              aria-label={next === undefined ? "Volume" : `Volume toward ${next.name}`}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={towardPct}
+            >
+              <span className="trx-goal-fill" style={{ width: `${loading ? 0 : toward * 100}%` }} />
+            </div>
+            {!loading && data?.next != null && next !== undefined ? (
+              <p className="trx-goal-note">
+                {formatVolume(data.next.needed)} more to reach {next.name}
+              </p>
+            ) : null}
           </div>
-          <div
-            className={`trx-progress-track${state.kind === "checking" ? " is-loading" : ""}`}
-            role="progressbar"
-            aria-label={next === undefined ? "Volume" : `Volume toward ${next.name}`}
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-valuenow={percent}
-          >
-            <span className="trx-progress-fill" style={{ width: `${progress * 100}%` }} />
-          </div>
-          <div className="trx-progress-ends">
-            <span>{tier === undefined ? "" : `${tier.name} · ${tier.min === 0 ? "any trade" : formatVolume(tier.min)}`}</span>
-            <span>
-              {next !== undefined ? `${next.name} · ${formatVolume(next.min)}` : tier !== undefined ? `${percent}%` : ""}
-            </span>
-          </div>
-        </div>
-      ) : null}
-
-      {!connected ? (
-        <ConnectButton className="btn btn-primary btn-block">Connect wallet to claim</ConnectButton>
-      ) : state.kind === "error" ? (
-        <button type="button" className="btn btn-sm" onClick={onRetry}>
-          Try again
-        </button>
-      ) : tier !== undefined && claim.deployed ? (
-        <ClaimAction claim={claim} />
-      ) : null}
+        ) : null}
+        {!connected ? (
+          <ConnectButton className="btn btn-primary btn-block">Connect wallet to claim</ConnectButton>
+        ) : state.kind === "error" ? (
+          <button type="button" className="btn btn-sm" onClick={onRetry}>
+            Try again
+          </button>
+        ) : tier !== undefined && claim.deployed ? (
+          <ClaimAction claim={claim} />
+        ) : null}
+      </div>
     </div>
   );
 }

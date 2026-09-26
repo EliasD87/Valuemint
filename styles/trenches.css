@@ -15,7 +15,7 @@
 
 .trx-intro {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 30rem);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 34rem);
   align-items: center;
   gap: clamp(1.75rem, 4vw, 3.5rem);
 }
@@ -48,15 +48,29 @@
   margin-top: 0.3rem;
 }
 
-/* The connected wallet's standing, as a small panel under the buttons. */
+/* The connected wallet's standing: a full-width row under the hero, so the
+   text and the art above it can balance each other. Two halves — the ladder,
+   the goal — that stack on a narrow screen. */
 .trx-you {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 19rem), 1fr));
+  align-items: start;
+  gap: 1.1rem clamp(1.5rem, 4vw, 3rem);
+  width: 100%;
+  padding: clamp(1rem, 2.2vw, 1.4rem) clamp(1rem, 2.4vw, 1.6rem);
+}
+.trx-you-main,
+.trx-you-side {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: 0.7rem;
-  width: min(100%, 26rem);
-  margin-top: 0.6rem;
-  padding: 1rem 1.1rem 1.1rem;
+  min-width: 0;
+}
+/* The goal starts level with the ladder's circles, not the card's top. */
+.trx-you-side .trx-goal {
+  margin-top: 0;
 }
 
 .trx-you-top {
@@ -84,45 +98,23 @@
   width: 100%;
 }
 
-.trx-progress-figures,
-.trx-progress-ends {
-  display: flex;
-  justify-content: space-between;
-  gap: 0.75rem;
-  font-variant-numeric: tabular-nums;
-}
-.trx-progress-figures {
-  font-size: var(--step--1);
-  color: var(--ink-2);
-}
-.trx-progress-figures b {
-  font-size: var(--step-0);
-  font-weight: 750;
-  color: var(--ink);
-}
-.trx-progress-ends {
-  font-size: var(--step--2);
-  color: var(--ink-3);
+/* The flow and the sweep, used by the journey bar's active segment. */
+@keyframes trx-flow {
+  from {
+    background-position: -200% 0;
+  }
+  to {
+    background-position: 0 0;
+  }
 }
 
-.trx-progress-track {
-  position: relative;
-  height: 10px;
-  overflow: hidden;
-  border-radius: var(--r-pill);
-  background: var(--surface-2);
-  box-shadow: inset 0 0 0 1px var(--line-strong);
-}
-.trx-progress-fill {
-  position: absolute;
-  inset: 0 auto 0 0;
-  border-radius: inherit;
-  background: linear-gradient(to right, var(--from), var(--to));
-  box-shadow: inset 0 0 0 1px var(--ring);
-  transition: width var(--med) var(--ease);
-}
-.trx-progress-track.is-loading {
-  animation: trx-pulse 1.2s ease-in-out infinite;
+@keyframes trx-sheen {
+  from {
+    background-position: -150% 0;
+  }
+  to {
+    background-position: 250% 0;
+  }
 }
 @keyframes trx-pulse {
   50% {
@@ -232,15 +224,6 @@
   justify-content: flex-start;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .trx-progress-track.is-loading {
-    animation: none;
-  }
-  .trx-progress-fill {
-    transition: none;
-  }
-}
-
 /* ---------------------------------------------------------------- narrow */
 
 @media (max-width: 999px) {
@@ -253,8 +236,10 @@
   .trx-intro {
     grid-template-columns: minmax(0, 1fr);
   }
+  /* Stacked: the art spans the column like the text and the depth card, rather
+     than a 30rem panel stranded on the left. */
   .trx-art {
-    width: min(100%, 30rem);
+    width: 100%;
   }
 }
 
@@ -295,5 +280,182 @@
 @media (prefers-reduced-motion: reduce) {
   .trx-spin {
     animation: none;
+  }
+}
+
+/* ---- The ladder: one circle per depth (a week of a streak, not a bar). */
+.trx-ladder {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(10, minmax(0, 1fr));
+  gap: 0.3rem;
+  width: 100%;
+}
+.trx-ladder.is-loading {
+  animation: trx-pulse 1.2s ease-in-out infinite;
+}
+.trx-rung {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  min-width: 0;
+}
+.trx-rung-dot {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  max-width: 1.85rem;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: var(--surface-2);
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+}
+/* Reached: checked, all in ONE colour — the wallet's current depth — like a
+   streak's days, rather than ten different colours (owner, 2026-09-26). */
+.trx-rung.is-done .trx-rung-dot {
+  background: var(--from);
+  box-shadow: inset 0 0 0 1px var(--ring);
+}
+/* Dark on purpose: every depth colour is a mid or light tone, the same in
+   both themes, and a dark mark reads on all ten where white fails on gold. */
+.trx-rung-check {
+  width: 64%;
+  height: 64%;
+  fill: none;
+  stroke: rgb(18 18 22 / 0.85);
+  stroke-width: 2.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+/* Working toward: a ring filling in that same colour. */
+.trx-rung.is-active .trx-rung-dot {
+  background: transparent;
+  box-shadow: none;
+}
+.trx-rung-ring {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+.trx-rung-ring circle {
+  fill: none;
+  stroke-width: 3;
+}
+.trx-rung-track {
+  stroke: var(--line-strong);
+}
+.trx-rung-arc {
+  stroke: var(--from);
+  stroke-linecap: round;
+  transition: stroke-dasharray var(--med) var(--ease);
+}
+.trx-rung-label {
+  font-size: var(--step--3);
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-3);
+}
+.trx-rung.is-done .trx-rung-label,
+.trx-rung.is-active .trx-rung-label {
+  color: var(--ink);
+}
+
+/* ---- The goal: volume so far against the next depth's mark. */
+.trx-goal {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  width: 100%;
+  margin-top: 0.5rem;
+}
+.trx-goal-label {
+  font-size: var(--step--2);
+  font-weight: 650;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.trx-goal-figures {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+.trx-goal-num b {
+  font-size: var(--step-2);
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+.trx-goal-of {
+  margin-left: 0.15rem;
+  font-size: var(--step--1);
+  font-weight: 600;
+  color: var(--ink-3);
+}
+.trx-goal-pct {
+  font-size: var(--step--1);
+  font-weight: 650;
+  color: var(--ink-2);
+}
+.trx-goal-track {
+  position: relative;
+  height: 8px;
+  overflow: hidden;
+  border-radius: var(--r-pill);
+  background: var(--surface-2);
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+}
+.trx-goal-track.is-loading {
+  animation: trx-pulse 1.2s ease-in-out infinite;
+}
+/* The same colour flowing into a lighter shade of itself, with the sweep over
+   it. White in the mix is fine here: the colour is the depth's own, the same in
+   both themes. */
+.trx-goal-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    90deg,
+    var(--from) 0%,
+    color-mix(in oklab, var(--from) 55%, white) 50%,
+    var(--from) 100%
+  );
+  background-size: 200% 100%;
+  transition: width var(--med) var(--ease);
+  animation: trx-flow 3.2s linear infinite;
+}
+.trx-goal-fill::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(100deg, transparent 20%, rgb(255 255 255 / 0.5) 50%, transparent 80%);
+  background-size: 60% 100%;
+  background-repeat: no-repeat;
+  animation: trx-sheen 2.4s ease-in-out infinite;
+}
+.trx-goal-note {
+  margin: 0;
+  font-size: var(--step--2);
+  color: var(--ink-3);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .trx-ladder.is-loading,
+  .trx-goal-track.is-loading,
+  .trx-goal-fill,
+  .trx-goal-fill::after,
+  .trx-rung-arc {
+    animation: none;
+    transition: none;
   }
 }
