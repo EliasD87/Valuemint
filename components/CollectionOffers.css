@@ -1,0 +1,122 @@
+/* ======================================================= collection offers */
+
+/* The strip under the stats bar: standing collection-level bids, and the way
+   to make one. */
+.co {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.5rem;
+  margin: 0.25rem 0 1rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface);
+}
+
+.co-lines {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 1.5rem;
+  min-width: 0;
+}
+
+.co-line {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  font-size: var(--step--1);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.co-label {
+  font-size: var(--step--2);
+  font-weight: 600;
+  color: var(--ink-3);
+}
+
+.co-none,
+.co-more {
+  margin: 0;
+  font-size: var(--step--1);
+  font-weight: 500;
+  color: var(--ink-3);
+}
+
+/* Any piece / by trait. */
+.co-scope {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  margin-bottom: 0.9rem;
+}
+
+.co-scope-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.2rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.co-scope-btn b {
+  font-size: var(--step--1);
+}
+.co-scope-btn span {
+  font-size: var(--step--2);
+  line-height: 1.35;
+  color: var(--ink-3);
+}
+.co-scope-btn.is-on {
+  border-color: var(--ink);
+  box-shadow: inset 0 0 0 1px var(--ink);
+}
+.co-scope-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+.co-scope-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.co-pick {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  margin-bottom: 0.9rem;
+}
+
+.co-pick-note {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: var(--step--2);
+  line-height: 1.45;
+  color: var(--ink-2);
+}
+
+@media (max-width: 480px) {
+  .co-scope,
+  .co-pick {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Take a standing offer: goes to the viewer's qualifying piece. Small enough
+   to sit inside the line without pushing the strip taller. */
+.co-accept {
+  margin-left: 0.15rem;
+  padding: 0.2rem 0.6rem;
+  font-size: var(--step--2);
+  line-height: 1.4;
+}

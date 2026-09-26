@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useAccount } from "wagmi";
-import { useOffersForToken } from "@/hooks/useSeaportOrders";
+import { useTokenOffers } from "@/hooks/useTokenOffers";
 import { OfferForm, useTokenOfferTarget } from "@/components/OfferForm";
 import { formatSoso } from "@/lib/format";
 import { AddressLink } from "@/components/AddressLink";
@@ -35,7 +35,7 @@ export function OfferDialog({
   onClose: () => void;
 }) {
   const { address } = useAccount();
-  const { offers, logsUnavailable } = useOffersForToken(collection, tokenId);
+  const { offers, logsUnavailable } = useTokenOffers(collection, tokenId);
   const isMine = (maker: string) =>
     address !== undefined && maker.toLowerCase() === address.toLowerCase();
   const offerTarget = useTokenOfferTarget(collection, tokenId);
@@ -85,7 +85,7 @@ export function OfferDialog({
                   </span>
                   <span>
                     {isMine(o.maker) ? "You" : <AddressLink address={o.maker} chars={4} />} &middot;{" "}
-                    {o.tokenId === undefined ? "any piece · " : ""}
+                    {o.trait !== undefined ? `${o.trait} · ` : o.tokenId === undefined ? "any piece · " : ""}
                     {whenExpires(o.endTime)}
                   </span>
                 </li>

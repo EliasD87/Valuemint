@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useMemo } from "react";
 import { useOrdersBy } from "@/hooks/useSeaportOrders";
 import { useSeaportTrade } from "@/hooks/useSeaportTrade";
+import { boundsOf, rootKey, traitLabel, useCriteriaSets } from "@/hooks/useCriteria";
 import { useAllCollections } from "@/hooks/useAllCollections";
 import type { SeaportOrder } from "@/hooks/useSeaportOrders";
 import { formatSosoFixed, shortAddress } from "@/lib/format";
@@ -154,9 +155,23 @@ export function MyOffers({
 function OfferRow({ order, name, own }: { order: SeaportOrder; name: string; own: boolean }) {
   const trade = useSeaportTrade(order.collection);
 
-  /** A collection-wide bid names no token; it is an offer on any piece. */
+  /**
+   * A collection-wide bid names no token: any piece. A trait bid names none
+   * either, and is named by its set — or, where the site no longer recognises
+   * the root, as a trait offer plainly, so its maker can still find and cancel
+   * it. It is never called "Any piece".
+   */
+  const isTrait = order.criteria !== undefined && order.criteria !== 0n;
+  const { byRoot } = useCriteriaSets(isTrait ? order.collection : undefined, boundsOf([order]));
+  const set = isTrait ? byRoot.get(rootKey(order.criteria!)) : undefined;
   const piece =
-    order.tokenId === undefined ? "Any piece" : `#${order.tokenId.toString()}`;
+    order.tokenId !== undefined
+      ? `#${order.tokenId.toString()}`
+      : isTrait
+        ? set === undefined
+          ? "Trait offer"
+          : traitLabel(set)
+        : "Any piece";
 
   /* Two lines, the same shape as a trade row: the piece over its collection,
      the amount over how long it has left. */

@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useAccount } from "wagmi";
-import { useOffersForToken, useOwnOfferExposure } from "@/hooks/useSeaportOrders";
+import { useOffersForToken, useOwnOfferExposure, useTraitOffers } from "@/hooks/useSeaportOrders";
+import { boundsOf, rootKey, traitLabel, useTokenCriteria } from "@/hooks/useCriteria";
 import { useSeaportFill, useSeaportTrade } from "@/hooks/useSeaportTrade";
 import { useCanPayFeeInWsoso } from "@/hooks/useWsoso";
 import { formatSoso } from "@/lib/format";
@@ -52,7 +53,25 @@ export function Offers({
   onChange: () => void;
 }) {
   const { address, isConnected } = useAccount();
-  const { offers, logsUnavailable } = useOffersForToken(collection, tokenId);
+  const { offers: direct, logsUnavailable } = useOffersForToken(collection, tokenId);
+
+  /**
+   * Trait offers this piece can be sold into: only those whose set the server
+   * says contains THIS token, each carrying the token's proof. A trait offer
+   * for a trait this piece does not have never appears here — and could not be
+   * filled if it did, because Seaport checks the proof against the root.
+   */
+  const { offers: traitAll } = useTraitOffers(collection);
+  const { byRoot: memberships } = useTokenCriteria(collection, tokenId, boundsOf(traitAll));
+  const offers = useMemo(() => {
+    const trait = traitAll.flatMap((o) => {
+      const m = o.criteria === undefined ? undefined : memberships.get(rootKey(o.criteria));
+      return m === undefined ? [] : [{ ...o, trait: traitLabel(m), proof: m.proof }];
+    });
+    return [...direct.map((o) => ({ ...o, trait: undefined, proof: undefined })), ...trait].sort((a, b) =>
+      b.priceWei > a.priceWei ? 1 : b.priceWei < a.priceWei ? -1 : 0,
+    );
+  }, [direct, traitAll, memberships]);
 
   /** Only accept and withdraw run from here; the form owns its own writes. */
   const trade = useSeaportTrade(collection);
@@ -69,7 +88,10 @@ export function Offers({
    * from the money in flight and never asked, so this step is easy to forget and
    * fails as a bare wallet revert when it is.
    */
-  const best = offers[0];
+  const isMine = (o: { maker: string }) =>
+    address !== undefined && o.maker.toLowerCase() === address.toLowerCase();
+  /** The best offer this holder could take: never their own. */
+  const best = offers.find((o) => !isMine(o));
   // What this order actually charges, not what our own fee rate would be.
   const feeOnBest = best === undefined ? 0n : fulfillerOutlay(best.params);
   /**
@@ -96,9 +118,7 @@ export function Offers({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [trade.isSuccess, trade.hash, fill.isSuccess, fill.hash, feeAllowance.isSuccess]);
 
-  const mine = offers.find(
-    (o) => address !== undefined && o.maker.toLowerCase() === address.toLowerCase(),
-  );
+  const mine = offers.find(isMine);
 
   return (
     <div className="offers">
@@ -116,13 +136,13 @@ export function Offers({
         ) : null}
       </div>
 
-      {mustApproveToken && offers.length > 0 ? (
+      {mustApproveToken && best !== undefined ? (
         <p className="offers-approve-note">
           Before you can accept, the marketplace needs permission to move this piece when it
           sells. One transaction, once per collection — the piece stays in your wallet until
           somebody buys it.
         </p>
-      ) : mustAllowFee && offers.length > 0 ? (
+      ) : mustAllowFee && best !== undefined ? (
         <p className="offers-approve-note">
           {/* Leads with the goal, not the paperwork. "One more permission"
               answers a question nobody asked; what a seller wants to know is
@@ -148,24 +168,34 @@ export function Offers({
       ) : (
         <ul className="offers-list">
           {offers.map((o) => {
-            const isMine =
-              address !== undefined && o.maker.toLowerCase() === address.toLowerCase();
+            const mineRow = isMine(o);
             return (
-              <li key={o.hash} className={`offers-row${isMine ? " is-mine" : ""}`}>
+              <li key={o.hash} className={`offers-row${mineRow ? " is-mine" : ""}`}>
                 <span className="offers-price mono">
                   <Soso size={16} unit={currencyLabel(o.currency)}>
                     {formatSoso(o.priceWei)}
                   </Soso>
                 </span>
                 <span className="offers-who">
-                  {isMine ? "You" : <AddressLink address={o.maker} chars={4} />}
+                  {mineRow ? "You" : <AddressLink address={o.maker} chars={4} />}
                   <span className="offers-when">
-                    {o.tokenId === undefined ? "any piece · " : ""}
+                    {o.trait !== undefined ? `${o.trait} · ` : o.tokenId === undefined ? "any piece · " : ""}
                     {whenExpires(o.endTime)}
                   </span>
                 </span>
 
-                {isOwner ? (
+                {/* Your own bid is withdrawn, never accepted — even on a piece you
+                    hold, which a collection or trait offer can match. */}
+                {mineRow ? (
+                  <button
+                    type="button"
+                    className="btn btn-sm"
+                    disabled={busy}
+                    onClick={() => trade.cancelOrder(o)}
+                  >
+                    Withdraw
+                  </button>
+                ) : isOwner ? (
                   <button
                     type="button"
                     className="btn btn-primary btn-sm"
@@ -181,7 +211,7 @@ export function Offers({
                     onClick={() => {
                       if (mustApproveToken) trade.approve();
                       else if (mustAllowFee) feeAllowance.allow();
-                      else fill.acceptOffer(o, tokenId);
+                      else fill.acceptOffer(o, tokenId, o.proof);
                     }}
                   >
                     {/* Each rung names the step it performs AND where it leads.
@@ -194,15 +224,6 @@ export function Offers({
                       : mustAllowFee
                         ? "Allow fee, then accept"
                         : "Accept offer"}
-                  </button>
-                ) : isMine ? (
-                  <button
-                    type="button"
-                    className="btn btn-sm"
-                    disabled={busy}
-                    onClick={() => trade.cancelOrder(o)}
-                  >
-                    Withdraw
                   </button>
                 ) : (
                   <span />

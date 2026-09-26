@@ -5,7 +5,7 @@ import { useAccount, usePublicClient, useReadContract } from "wagmi";
 import { useWriteContract } from "@/hooks/useChainWrite";
 import { useQueryClient } from "@tanstack/react-query";
 import { useTxOutcome } from "@/hooks/useTxOutcome";
-import { parseEther, zeroHash, type Address } from "viem";
+import { parseEther, zeroHash, type Address, type Hex } from "viem";
 import { ValueChainCollectionAbi } from "@/config/contracts";
 import { rememberValidatedOrders } from "@/lib/pendingOrders";
 import { SEAPORT, SeaportAbi } from "@/config/seaport";
@@ -19,12 +19,14 @@ import {
   buildListing,
   buildOffer,
   lotPrice,
+  randomSalt,
   toComponents,
   asOrder,
   toWire,
   type OrderParameters,
 } from "@/lib/seaport";
 import type { SeaportOrder } from "@/hooks/useSeaportOrders";
+import { saltWithBound } from "@/lib/criteria";
 
 /**
  * Trading through Seaport: list, buy, bid, accept, cancel.
@@ -226,13 +228,23 @@ export function useSeaportTrade(collection: Address | undefined) {
   );
 
   /**
-   * Bid. Leave `tokenId` out for a collection offer any holder can accept.
+   * Bid. Leave `tokenId` out for a collection offer any holder can accept, and
+   * pass `criteria` (a trait set's root, from `/api/criteria`) to limit it to
+   * the pieces with one trait. On a growing collection also pass the `bound`
+   * the set was built at, which the order records in its salt so the set can
+   * still be rebuilt, and the offer named, after more pieces are minted.
    *
    * The money never leaves the bidder's wallet: this writes an order, and the
    * WSOSO moves only when somebody fills it.
    */
   const makeOffer = useCallback(
-    (tokenId: bigint | undefined, priceInSoso: string, days: number = DEFAULT_ORDER_DAYS) => {
+    (
+      tokenId: bigint | undefined,
+      priceInSoso: string,
+      days: number = DEFAULT_ORDER_DAYS,
+      criteria?: Hex,
+      bound?: bigint,
+    ) => {
       if (collection === undefined || address === undefined) return;
       reset();
       writeContract({
@@ -247,6 +259,10 @@ export function useSeaportTrade(collection: Address | undefined) {
                 bidder: address,
                 collection,
                 tokenId,
+                ...(tokenId === undefined && criteria !== undefined ? { criteria } : {}),
+                ...(tokenId === undefined && criteria !== undefined && bound !== undefined
+                  ? { salt: saltWithBound(bound, randomSalt()) }
+                  : {}),
                 priceWei: parseEther(priceInSoso),
                 days,
               }),
@@ -343,11 +359,28 @@ interface FillRequest {
  * buyer needs nothing; somebody accepting a bid needs both an NFT approval and a
  * WSOSO allowance for the fee.
  */
+/** What a fill that was mined and reverted most likely means, said about the order. */
+export const FILL_REVERTED = {
+  offer:
+    "The sale did not go through: someone else most likely sold into this offer, or the bidder withdrew it, a moment before yours landed. Nothing was sold; you paid only a little gas.",
+  listing:
+    "The purchase did not go through: someone else most likely bought this, or the seller withdrew it, a moment before yours landed. Nothing was bought; you paid only a little gas.",
+} as const;
+
 export function useSeaportFill() {
   const { address } = useAccount();
   const client = usePublicClient();
-  const { writeContract, data: hash, isPending: signing, error, reset } = useWriteContract();
-  const { isLoading: confirming, isSuccess } = useTxOutcome({ hash });
+  const { writeContract, data: hash, isPending: signing, error: sendError, reset } = useWriteContract();
+  const { isLoading: confirming, isSuccess, reverted } = useTxOutcome({ hash });
+
+  /**
+   * A fill that passed the check and was then beaten to the order on chain
+   * reverts — and this hook used to read only whether it was mined, so the
+   * page showed nothing at all: no error, no success. The side of the last
+   * attempt decides how the failure is worded.
+   */
+  const [side, setSide] = useState<"listing" | "offer">("listing");
+  const error = sendError ?? (reverted ? new Error(FILL_REVERTED[side]) : null);
 
   /**
    * Why the last attempt did not reach the wallet, if it did not.
@@ -388,16 +421,17 @@ export function useSeaportFill() {
    * have worked is worse than the problem. See `classifyFillFailure`.
    */
   const send = useCallback(
-    async (request: FillRequest) => {
+    async (request: FillRequest, side: "listing" | "offer" = "listing") => {
       reset();
       setBlocked(undefined);
+      setSide(side);
 
       if (client !== undefined && address !== undefined) {
         setChecking(true);
         try {
           await client.simulateContract({ ...request, account: address } as never);
         } catch (err) {
-          const why = classifyFillFailure(err instanceof Error ? err.message : String(err));
+          const why = classifyFillFailure(err instanceof Error ? err.message : String(err), side);
           if (why !== undefined) {
             setBlocked(why);
             setChecking(false);
@@ -478,7 +512,7 @@ export function useSeaportFill() {
    * the identifier alone is the answer.
    */
   const acceptOffer = useCallback(
-    (order: SeaportOrder, tokenId: bigint) => {
+    (order: SeaportOrder, tokenId: bigint, proof?: readonly Hex[]) => {
       if (address === undefined) return;
 
       if (order.tokenId !== undefined) {
@@ -499,12 +533,21 @@ export function useSeaportFill() {
           abi: SeaportAbi,
           functionName: "fulfillOrder",
           args: [asOrder(order.params), CONDUIT_KEY],
-        });
+        }, "offer");
         return;
       }
 
       const index = criteriaIndex(order.params);
       if (index < 0) return;
+
+      /**
+       * A trait offer needs this token's proof against its root (from
+       * `/api/criteria`). Without one Seaport would revert — refuse here rather
+       * than spend the holder's gas finding out.
+       */
+      const isTrait = order.criteria !== undefined && order.criteria !== 0n;
+      // An EMPTY proof is valid (a one-piece set's root is its leaf); a missing one is not.
+      if (isTrait && proof === undefined) return;
 
       void send({
         chainId: valuechain.id,
@@ -519,16 +562,20 @@ export function useSeaportFill() {
               side: 1, // consideration
               index: BigInt(index),
               identifier: tokenId,
-              criteriaProof: [] as readonly `0x${string}`[],
+              criteriaProof: (isTrait ? proof! : []) as readonly `0x${string}`[],
             },
           ],
           CONDUIT_KEY,
           address,
         ],
-      });
+      }, "offer");
     },
     [address, send],
   );
+
+  useEffect(() => {
+    if (reverted) refreshBook();
+  }, [reverted, refreshBook]);
 
   return {
     buy,
@@ -547,6 +594,8 @@ export function useSeaportFill() {
     checking,
     busy: signing || confirming || checking,
     isSuccess,
+    /** Mined and reverted — beaten to the order. `error` carries the words. */
+    reverted,
     error,
     reset,
     hash,

@@ -141,3 +141,20 @@ describe("priceMoved", () => {
     expect(priceMoved(TEN, TEN + 1n)?.direction).toBe("dearer");
   });
 });
+
+describe("classifyFillFailure for an offer", () => {
+  it("says an offer was sold into, not that a listing was bought", () => {
+    const block = classifyFillFailure("OrderAlreadyFilled(bytes32)", "offer");
+    expect(block?.kind).toBe("sold");
+    expect(block?.say).toMatch(/already sold into this offer/);
+    expect(block?.say).not.toMatch(/bought/);
+  });
+
+  it("keeps the listing wording by default", () => {
+    expect(classifyFillFailure("OrderAlreadyFilled(bytes32)")?.say).toMatch(/bought/);
+  });
+
+  it("names the bidder when an offer was withdrawn", () => {
+    expect(classifyFillFailure("OrderIsCancelled(bytes32)", "offer")?.say).toMatch(/bidder withdrew/);
+  });
+});

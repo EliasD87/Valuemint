@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useAccount } from "wagmi";
-import { useOffersForToken } from "@/hooks/useSeaportOrders";
+import { useTokenOffers } from "@/hooks/useTokenOffers";
 import { OfferDialog } from "@/components/OfferDialog";
 import type { LoadedToken } from "@/hooks/useTokens";
 import type { Listing } from "@/lib/seaport";
@@ -177,7 +177,7 @@ export function TokenCard({
    * will actually pay for it even when nobody has named this exact piece -
    * which, for a collection of one design in five editions, is most of them.
    */
-  const { offers } = useOffersForToken(collection, token.id);
+  const { offers } = useTokenOffers(collection, token.id);
   const offer =
     offers.length === 0 ? undefined : { count: offers.length, best: offers[0]!.priceWei };
   const [offering, setOffering] = useState(false);

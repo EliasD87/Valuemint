@@ -52,6 +52,41 @@ const BAKED_IN: Record<string, BakedIn> = {
 };
 
 /**
+ * How many serials of each Trenches depth a trait set covers. Serials run
+ * without end, so a set needs a bound; at 97 claimed across all ten depths
+ * (2026-09-25) this is ample for an offer that lives 90 days at most. A piece
+ * claimed past it is simply not covered by an older offer — never wrongly
+ * covered.
+ */
+export const TRENCHES_SERIALS_PER_DEPTH = 5_000;
+
+/**
+ * Every token id this module can compose a document for, per collection — the
+ * universe `lib/traitSets.ts` builds trait offers over.
+ *
+ * Kept beside `tokenDocument` so the two cannot disagree about what exists.
+ * Includes ids not minted yet wherever their traits are already fixed (a
+ * manifest assigns every id up to its supply), so a trait offer covers pieces
+ * minted after it was made. `undefined` for anything this module does not
+ * serve.
+ */
+export async function tokenIdsOf(collection: string): Promise<number[] | undefined> {
+  const range = (from: number, to: number) => Array.from({ length: Math.max(0, to - from + 1) }, (_, i) => from + i);
+
+  if (collection === KOLS_SLUG) return KOLS.map((k) => k.n);
+  if (collection === TRENCHES_SLUG) {
+    return TIERS.flatMap((t) => range(1, TRENCHES_SERIALS_PER_DEPTH).map((s) => t.n * TIER_STRIDE + s));
+  }
+  const baked = BAKED_IN[collection];
+  if (baked !== undefined) return range(1, baked.tokens.length);
+  if (CID.test(collection)) {
+    const entry = await loadManifest(collection);
+    return entry === undefined ? undefined : range(1, supplyOfManifest(entry.manifest));
+  }
+  return undefined;
+}
+
+/**
  * Collections this answers without fetching anything.
  *
  * All three are compiled into the bundle - `trade-buddies` from a JSON file,

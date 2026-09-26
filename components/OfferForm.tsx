@@ -342,13 +342,26 @@ export function useTokenOfferTarget(collection: `0x${string}`, tokenId: bigint):
  * own audit surface and its own allowance for a bidder to get wrong. It is now
  * a field left blank.
  */
-export function useCollectionOfferTarget(collection: `0x${string}`): OfferTarget {
+export function useCollectionOfferTarget(
+  collection: `0x${string}`,
+  /**
+   * Narrow it to one trait: the set's root and its name. Only the pieces in
+   * that set can be sold into the offer — Seaport checks each against the root,
+   * so a holder of anything else cannot fill it whatever a page shows.
+   */
+  trait?: { root: `0x${string}`; label: string; count: number; bound?: bigint },
+): OfferTarget {
   const trade = useSeaportTrade(collection);
 
   return {
     spender: SEAPORT,
-    buying: "any piece in this collection",
-    place: (amount, days) => trade.makeOffer(undefined, amount, days),
+    buying:
+      trait === undefined
+        ? "any piece in this collection"
+        : trait.bound !== undefined
+          ? `any piece with ${trait.label} minted so far`
+          : `any piece with ${trait.label} (${trait.count.toLocaleString()} ${trait.count === 1 ? "piece" : "pieces"})`,
+    place: (amount, days) => trade.makeOffer(undefined, amount, days, trait?.root, trait?.bound),
     signing: trade.signing,
     confirming: trade.confirming,
     busy: trade.busy,

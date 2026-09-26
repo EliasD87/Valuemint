@@ -420,16 +420,32 @@ describe("unsafeReason — hostile order shapes", () => {
 
   /**
    * A criteria item carries either zero — "any token in this contract" — or a
-   * Merkle root. We can satisfy the first and never the second, because
-   * `acceptOffer` sends an empty proof. Showing one we know will revert costs
-   * the holder gas to learn nothing.
+   * Merkle root: a trait offer (2026-09-25). A root on an ERC-721 item is
+   * admitted and carried as `criteria`, so no screen can mistake it for "any
+   * piece"; whether the root is one we recognise is resolved later, from the
+   * set. ERC-1155 roots are still refused: nothing here builds them.
    */
-  it("refuses a criteria bid whose root this app cannot resolve", () => {
+  it("admits an ERC-721 trait root and carries it, never as any-piece", () => {
+    const root = "0xbc86492b02012fd259f3ed8423ddd2ecf07a6327cfe1a21ba8e4a8cb6450e013" as const;
+    const trait = offer({ tokenId: undefined, criteria: root });
+
+    expect(unsafeReason(trait)).toBeUndefined();
+    const read = readOrder(trait)!;
+    expect(read.tokenId).toBeUndefined();
+    expect(read.criteria).toBe(BigInt(root));
+  });
+
+  it("marks a collection-wide bid with criteria zero", () => {
+    expect(readOrder(offer({ tokenId: undefined }))!.criteria).toBe(0n);
+    expect(readOrder(offer({ tokenId: 7n }))!.criteria).toBeUndefined();
+  });
+
+  it("still refuses an ERC-1155 criteria root", () => {
     const base = offer({ tokenId: undefined });
     const merkle: OrderParameters = {
       ...base,
       consideration: base.consideration.map((c, i) =>
-        i === 0 ? { ...c, identifierOrCriteria: 123_456_789n } : c,
+        i === 0 ? { ...c, itemType: ItemType.ERC1155_WITH_CRITERIA, identifierOrCriteria: 123_456_789n } : c,
       ),
     };
 

@@ -124,3 +124,27 @@ describe("averageSale", () => {
     expect(averageSale([sale(100, -1)], HEAD, DAY)?.sales).toBe(1);
   });
 });
+
+describe("sales for next to nothing", () => {
+  const cheap = (price: number, tier: string) => ({ priceWei: BigInt(Math.round(price * 1e6)) * 10n ** 12n, amount: 1n, blockNumber: HEAD - 5n, tier });
+
+  it("shows no figure when the day's only sales were dust (2026-09-26, Genesis read +149,999,900%)", () => {
+    const r = floorVsSalesByTier(
+      [cheap(0.001, "Rare"), cheap(0.0001, "Common")],
+      [{ tier: "Rare", price: 1000n * SOSO }, { tier: "Common", price: 200n * SOSO }],
+      HEAD,
+      DAY,
+    );
+    expect(r).toBeUndefined();
+  });
+
+  it("leaves dust out of a day that also had real sales", () => {
+    const r = floorVsSales([cheap(0.001, "Common"), cheap(190, "Common")], 200n * SOSO, HEAD, DAY, "Common");
+    expect(r?.sales).toBe(1);
+    expect(r?.averageWei).toBe(190n * SOSO);
+  });
+
+  it("keeps a real discount, however steep, above 1% of the floor", () => {
+    expect(floorVsSales([cheap(3, "Common")], 200n * SOSO, HEAD, DAY, "Common")?.sales).toBe(1);
+  });
+});

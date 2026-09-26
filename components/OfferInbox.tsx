@@ -1,6 +1,9 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useQueries } from "@tanstack/react-query";
+import type { Hex } from "viem";
+import { boundsOf, fetchTokenCriteria, rootKey, tokenCriteriaKey, traitLabel } from "@/hooks/useCriteria";
 import Link from "next/link";
 import { Art } from "@/components/Art";
 import { Soso } from "@/components/Soso";
@@ -49,16 +52,97 @@ export interface Held {
 interface Row {
   token: Held;
   offer: SeaportOrder;
+  /** A trait offer's name, and this piece's proof into its set. */
+  trait?: string;
+  proof?: Hex[];
+}
+
+/** A sale made from this inbox, kept after its row is gone. */
+interface Sold {
+  hash: `0x${string}`;
+  piece: string;
+  price: bigint;
+  currency: `0x${string}`;
+}
+
+/** An accept that could not happen — the offer was taken or withdrawn first. */
+interface Gone {
+  key: string;
+  piece: string;
+  say: string;
 }
 
 export function OfferInbox({ holdings, onChange }: { holdings: Held[]; onChange: () => void }) {
-  const { orders } = useSeaportOrders();
+  const { orders, traitOffers } = useSeaportOrders();
+
+  /**
+   * Accepting sells the piece, the piece leaves the wallet, and its row — and
+   * the "Sold" beside the button — went with it on the next refresh. The
+   * seller saw nothing at all. The note lives here instead, above the rows.
+   */
+  const [sold, setSold] = useState<Sold[]>([]);
+  const onSold = useCallback(
+    (s: Sold) => setSold((all) => (all.some((x) => x.hash === s.hash) ? all : [s, ...all])),
+    [],
+  );
+
+  /**
+   * The same for an accept that found the offer gone. The check refuses, the
+   * book is re-read, the offer is no longer live — and the row carrying the
+   * explanation disappeared with it, so the holder saw their button vanish and
+   * nothing else.
+   */
+  const [gone, setGone] = useState<Gone[]>([]);
+  const onGone = useCallback(
+    (g: Gone) => setGone((all) => (all.some((x) => x.key === g.key) ? all : [g, ...all].slice(0, 3))),
+    [],
+  );
+  const { address } = useAccount();
+
+  /**
+   * Your own bids are not offers you can take. A collection or trait offer
+   * matches any piece you hold in that collection — including when you made
+   * it — and listed here it read as money waiting for you.
+   */
+  const isMine = (o: SeaportOrder) => address !== undefined && o.maker.toLowerCase() === address.toLowerCase();
+
+  /**
+   * Trait offers need the server to say which held pieces are in each set, and
+   * the proof for each. Asked only for pieces in collections that have a trait
+   * offer standing, one cached request per piece.
+   */
+  const traitCollections = useMemo(
+    () => new Set(traitOffers.filter((o) => o.fillable).map((o) => o.collection.toLowerCase())),
+    [traitOffers],
+  );
+  const candidates = useMemo(
+    () => holdings.filter((h) => traitCollections.has(h.collection.toLowerCase())),
+    [holdings, traitCollections],
+  );
+  /** Per collection, the snapshots its standing trait offers were made at. */
+  const boundsByCollection = useMemo(() => {
+    const by = new Map<string, bigint[]>();
+    for (const c of traitCollections) {
+      by.set(c, boundsOf(traitOffers.filter((o) => o.fillable && o.collection.toLowerCase() === c)));
+    }
+    return by;
+  }, [traitOffers, traitCollections]);
+  const memberships = useQueries({
+    queries: candidates.map((h) => {
+      const bounds = boundsByCollection.get(h.collection.toLowerCase());
+      return {
+        queryKey: tokenCriteriaKey(h.collection, h.id, bounds),
+        staleTime: 5 * 60_000,
+        queryFn: () => fetchTokenCriteria(h.collection, h.id, bounds),
+      };
+    }),
+  });
 
   const rows = useMemo<Row[]>(() => {
     const found = new Map<string, Row>();
 
     for (const offer of orders) {
-      if (offer.kind !== "offer") continue;
+      if (offer.kind !== "offer" || isMine(offer)) continue;
 
       /**
        * The piece this offer would be settled with. A bid naming a token needs
@@ -78,28 +162,70 @@ export function OfferInbox({ holdings, onChange }: { holdings: Held[]; onChange:
       found.set(offer.hash, { token: match, offer });
     }
 
+    /**
+     * A trait offer takes only a held piece the server places in its set,
+     * sent with that piece's proof. A piece outside the set is never offered
+     * here — and Seaport would refuse it if it were.
+     */
+    for (const offer of traitOffers) {
+      if (!offer.fillable || offer.criteria === undefined || isMine(offer)) continue;
+      const key = rootKey(offer.criteria);
+      for (let i = 0; i < candidates.length; i++) {
+        const h = candidates[i]!;
+        if (h.collection.toLowerCase() !== offer.collection.toLowerCase()) continue;
+        const m = memberships[i]?.data?.find((x) => rootKey(x.root) === key);
+        if (m === undefined) continue;
+        found.set(offer.hash, { token: h, offer, trait: traitLabel(m), proof: m.proof });
+        break;
+      }
+    }
+
     // Best money first - the reason anyone opens this.
     return [...found.values()].sort((a, b) =>
       b.offer.priceWei > a.offer.priceWei ? 1 : b.offer.priceWei < a.offer.priceWei ? -1 : 0,
     );
-  }, [holdings, orders]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- isMine reads only `address`
+  }, [holdings, orders, traitOffers, candidates, memberships, address]);
 
-  if (rows.length === 0) return null;
+  if (rows.length === 0 && sold.length === 0 && gone.length === 0) return null;
 
   return (
     <div className="inbox card">
       <div className="inbox-head">
         <p className="eyebrow">Offers you can take</p>
         <span className="inbox-count">
-          {rows.length === 1 ? "1 live offer" : `${rows.length} live offers`}
+          {rows.length === 0 ? "No live offers" : rows.length === 1 ? "1 live offer" : `${rows.length} live offers`}
         </span>
       </div>
 
-      <ul className="inbox-list">
-        {rows.map((r) => (
-          <InboxRow key={r.offer.hash} row={r} onChange={onChange} />
-        ))}
-      </ul>
+      {sold.map((s) => (
+        <p key={s.hash} className="txr txr-good">
+          Sold {s.piece} for{" "}
+          <Soso size={13} unit={currencyLabel(s.currency)}>
+            {formatSoso(s.price)}
+          </Soso>
+          . It is in your balance above as WSOSO, which unwraps to SOSO one for one.{" "}
+          <a href={`${deployment.explorer}/tx/${s.hash}`} target="_blank" rel="noreferrer noopener">
+            View transaction
+          </a>
+        </p>
+      ))}
+
+      {gone.map((g) => (
+        <div key={g.key} className="fill-blocked" role="status" aria-live="polite">
+          <p>
+            <b>{g.piece}:</b> {g.say}
+          </p>
+        </div>
+      ))}
+
+      {rows.length === 0 ? null : (
+        <ul className="inbox-list">
+          {rows.map((r) => (
+            <InboxRow key={r.offer.hash} row={r} onChange={onChange} onSold={onSold} onGone={onGone} />
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
@@ -110,7 +236,17 @@ export function OfferInbox({ holdings, onChange }: { holdings: Held[]; onChange:
  * A row rather than a loop body because accepting needs hooks scoped to a single
  * collection, and holdings can span several.
  */
-function InboxRow({ row, onChange }: { row: Row; onChange: () => void }) {
+function InboxRow({
+  row,
+  onChange,
+  onSold,
+  onGone,
+}: {
+  row: Row;
+  onChange: () => void;
+  onSold: (s: Sold) => void;
+  onGone: (g: Gone) => void;
+}) {
   const { token, offer } = row;
   const trade = useSeaportTrade(token.collection);
   const fill = useSeaportFill();
@@ -131,6 +267,14 @@ function InboxRow({ row, onChange }: { row: Row; onChange: () => void }) {
   const feeAllowance = useCanPayFeeInWsoso(fulfillerOutlay(offer.params), ownBids);
 
   useEffect(() => {
+    if (fill.isSuccess && fill.hash !== undefined) {
+      onSold({
+        hash: fill.hash,
+        piece: `${token.design ?? token.collectionName} #${token.id.toString()}`,
+        price: offer.priceWei,
+        currency: offer.currency,
+      });
+    }
     if (trade.isSuccess || fill.isSuccess || feeAllowance.isSuccess) {
       onChange();
       void trade.refetchApproval();
@@ -138,6 +282,14 @@ function InboxRow({ row, onChange }: { row: Row; onChange: () => void }) {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [trade.isSuccess, trade.hash, fill.isSuccess, fill.hash, feeAllowance.isSuccess]);
+
+  /* Refused before sending, or beaten to it on chain: tell the inbox, which outlives this row. */
+  useEffect(() => {
+    const piece = `${token.design ?? token.collectionName} #${token.id.toString()}`;
+    if (fill.blocked !== undefined) onGone({ key: `${offer.hash}:blocked`, piece, say: fill.blocked.say });
+    else if (fill.reverted && fill.error !== null) onGone({ key: `${offer.hash}:reverted`, piece, say: fill.error.message });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fill.blocked, fill.reverted]);
 
   const mustApprove = trade.needsApproval;
   const mustAllowFee = !mustApprove && feeAllowance.needsAllowance;
@@ -166,7 +318,7 @@ function InboxRow({ row, onChange }: { row: Row; onChange: () => void }) {
           {formatSoso(offer.priceWei)}
         </Soso>
         <span className="inbox-meta">
-          {offer.tokenId === undefined ? "for any piece · " : ""}
+          {row.trait !== undefined ? `for ${row.trait} · ` : offer.tokenId === undefined ? "for any piece · " : ""}
           from <AddressLink address={offer.maker} chars={4} /> · {whenExpires(offer.endTime)}
         </span>
       </span>
@@ -186,7 +338,7 @@ function InboxRow({ row, onChange }: { row: Row; onChange: () => void }) {
           onClick={() => {
             if (mustApprove) trade.approve();
             else if (mustAllowFee) feeAllowance.allow();
-            else fill.acceptOffer(offer, token.id);
+            else fill.acceptOffer(offer, token.id, row.proof);
           }}
         >
           {busy

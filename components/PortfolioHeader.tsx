@@ -6,6 +6,7 @@ import { useReadContract } from "wagmi";
 import { WalletMark } from "@/components/WalletMark";
 import { Soso, SosoMark } from "@/components/Soso";
 import { WhereIsMySoso } from "@/components/SosoHelp";
+import { UnwrapDialog } from "@/components/UnwrapDialog";
 import { useSosoPrice } from "@/hooks/useSosoPrice";
 import { deployment } from "@/config/contracts";
 import { formatCount, formatSoso, formatSosoFixed, shortAddress } from "@/lib/format";
@@ -75,6 +76,7 @@ export function PortfolioHeader({
     query: { refetchInterval: 15_000 },
   });
   const wsoso = wsosoRaw ?? 0n;
+  const [unwrapping, setUnwrapping] = useState(false);
 
   const usd = balance === undefined || price === undefined ? undefined : sosoToUsd(balance, price);
 
@@ -133,14 +135,28 @@ export function PortfolioHeader({
             )}
           </p>
         )}
-        {/* Wrapped SOSO is spending money too, set aside for offers. Named on
-            its own line rather than added in: it is a different token, and a
-            bidder needs to see how much of it they have. */}
+        {/* Wrapped SOSO is spending money too. Named on its own line rather
+            than added in: it is a different token. And said plainly what it
+            is, because a seller who accepts an offer is PAID in it — the SOSO
+            they expected never arrives as SOSO, and "+ 4 WSOSO" alone did not
+            tell them that was their sale. */}
         {wsoso > 0n ? (
-          <p className="ph-wrapped">
-            + <Soso size={12} unit="WSOSO">{formatSosoFixed(wsoso)}</Soso>
-          </p>
+          <div className="ph-wrapped-block">
+            <p className="ph-wrapped">
+              + <Soso size={12} unit="WSOSO">{formatSosoFixed(wsoso)}</Soso>
+              {own ? (
+                <button type="button" className="btn btn-sm ph-unwrap" onClick={() => setUnwrapping(true)}>
+                  Unwrap to SOSO
+                </button>
+              ) : null}
+            </p>
+            <p className="ph-wrapped-note">
+              Wrapped SOSO, worth exactly 1 SOSO each. Offers are made in it, and an offer you accept pays
+              you in it.
+            </p>
+          </div>
         ) : null}
+        {unwrapping ? <UnwrapDialog onClose={() => setUnwrapping(false)} /> : null}
         {/* Only while the balance reads 0.00: the question an empty wallet
             raises, answered where it is raised — and only to its holder. */}
         {own ? <WhereIsMySoso balance={balance} /> : null}

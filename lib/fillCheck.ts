@@ -102,6 +102,18 @@ const RULES: Array<{ test: RegExp; kind: FillBlockKind; say: string }> = [
 ];
 
 /**
+ * The same refusals, said about an offer rather than a listing. Accepting a
+ * bid that someone else already sold into read "Somebody bought this while you
+ * were looking" — true of a listing, backwards for an offer.
+ */
+const OFFER_SAY: Partial<Record<FillBlockKind, string>> = {
+  sold: "Someone else already sold into this offer. Nothing was sent, and you have not paid any gas.",
+  withdrawn: "The bidder withdrew this offer. Nothing was sent, and you have not paid any gas.",
+  expired: "This offer expired before you got to it. Nothing was sent.",
+  gone: "This offer is no longer live — the bidder withdrew it, or cancelled everything they had standing. Nothing was sent.",
+};
+
+/**
  * Read a simulation failure, or `undefined` when it is not about the order.
  *
  * `undefined` is the important return. It means "this is not a reason to stand
@@ -109,9 +121,15 @@ const RULES: Array<{ test: RegExp; kind: FillBlockKind; say: string }> = [
  * bad moment, not enough SOSO — and the caller goes on to sign exactly as
  * before. Only a recognised, order-is-gone failure stops anything.
  */
-export function classifyFillFailure(message: string): FillBlock | undefined {
+export function classifyFillFailure(
+  message: string,
+  side: "listing" | "offer" = "listing",
+): FillBlock | undefined {
   for (const rule of RULES) {
-    if (rule.test.test(message)) return { kind: rule.kind, say: rule.say, refresh: true };
+    if (rule.test.test(message)) {
+      const say = (side === "offer" ? OFFER_SAY[rule.kind] : undefined) ?? rule.say;
+      return { kind: rule.kind, say, refresh: true };
+    }
   }
   return undefined;
 }

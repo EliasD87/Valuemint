@@ -216,6 +216,11 @@ interface OfferInput {
    * that any holder can accept.
    */
   tokenId?: bigint;
+  /**
+   * With no `tokenId`: the Merkle root of a trait's set (`/api/criteria`), so
+   * only those pieces can be sold into the offer. Omitted: any piece.
+   */
+  criteria?: Hex;
   priceWei: bigint;
   days?: number;
   salt?: bigint;
@@ -244,7 +249,7 @@ export function buildOffer(input: OfferInput): OrderParameters {
     {
       itemType: anyToken ? ItemType.ERC721_WITH_CRITERIA : ItemType.ERC721,
       token: input.collection,
-      identifierOrCriteria: input.tokenId ?? 0n,
+      identifierOrCriteria: input.tokenId ?? (input.criteria === undefined ? 0n : BigInt(input.criteria)),
       startAmount: 1n,
       endAmount: 1n,
       recipient: input.bidder,
@@ -332,8 +337,14 @@ export type OrderKind = "listing" | "offer";
 export interface ReadOrder {
   kind: OrderKind;
   collection: Address;
-  /** `undefined` on a collection-wide offer, which names no single token. */
+  /** `undefined` on a collection-wide or trait offer, which names no single token. */
   tokenId?: bigint;
+  /**
+   * On an offer with no token: `0n` for any piece in the collection, or the
+   * Merkle root of the set a trait offer covers. Undefined on everything else.
+   * A non-zero value is NEVER "any piece" — check this, not `tokenId`.
+   */
+  criteria?: bigint;
   /** Who made the order: the seller on a listing, the bidder on an offer. */
   maker: Address;
   /** Native SOSO (the zero address) on a listing, WSOSO on an offer. */
@@ -613,19 +624,22 @@ export function unsafeReason(p: OrderParameters): UnsafeReason | undefined {
    * A criteria item carries either zero — "any token in this contract" — or a
    * Merkle root naming a specific set.
    *
-   * We can satisfy the first: the resolver supplies the identifier and an empty
-   * proof. We cannot satisfy the second, because resolving a root needs the
-   * original token list, which is not on chain and which this app never
-   * receives. `acceptOffer` sends `criteriaProof: []` either way, so against a
-   * real root Seaport rejects the proof and the holder pays gas to learn
-   * nothing — having been shown the bid as takeable on any piece they own.
+   * Zero is a collection offer: the resolver supplies the identifier and an
+   * empty proof. A root is a TRAIT offer (2026-09-25): every piece with one
+   * trait, the set built by `/api/criteria` and proved with `lib/criteria.ts`,
+   * whose trees are settled against Seaport's real bytecode in contracts/test.
    *
-   * Refuse it rather than advertise something we know will revert.
+   * Admitted here only for ERC-721, the one shape that flow builds. It is NOT
+   * a promise that the root is one we recognise — that needs the set, which is
+   * not on chain, so it is resolved later and asynchronously. Until then a
+   * trait offer is kept apart from every other order (see `traitOffers` in
+   * useSeaportOrders): no screen may show it as "any piece", and one whose
+   * root we cannot resolve is shown nowhere but to its own maker.
    */
   const criteriaItem =
     nfts[0]!.itemType === ItemType.ERC721_WITH_CRITERIA ||
     nfts[0]!.itemType === ItemType.ERC1155_WITH_CRITERIA;
-  if (criteriaItem && nfts[0]!.identifierOrCriteria !== 0n) {
+  if (criteriaItem && nfts[0]!.identifierOrCriteria !== 0n && nfts[0]!.itemType !== ItemType.ERC721_WITH_CRITERIA) {
     return "bid-criteria-unresolvable";
   }
 
@@ -724,12 +738,13 @@ export function readOrder(p: OrderParameters): ReadOrder | undefined {
       kind: "offer",
       collection: nftWanted.token,
       /**
-       * A criteria item with `identifierOrCriteria` zero means any token in the
-       * collection. A non-zero criteria value is a Merkle root, which this app
-       * neither builds nor can resolve back into a token list - so it is treated
-       * as collection-wide rather than misreported as a bid on token N.
+       * A criteria item names no single token: zero means any token in the
+       * collection, anything else is the root of a trait's set. Both leave
+       * `tokenId` undefined and carry the value in `criteria`, which is what
+       * tells them apart — a trait offer must never read as "any piece".
        */
       tokenId: criteria ? undefined : nftWanted.identifierOrCriteria,
+      ...(criteria ? { criteria: nftWanted.identifierOrCriteria } : {}),
       maker: p.offerer,
       currency: currencyOffered.token,
       priceWei: currencyOffered.startAmount,

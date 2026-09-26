@@ -431,7 +431,7 @@ export function useSeaportOrders(enabled = true) {
    */
   const checking = standing.length > 0 && fillChecks === undefined && !fillChecksFailed;
 
-  const orders = useMemo<SeaportOrder[]>(
+  const all = useMemo<SeaportOrder[]>(
     () =>
       standing.map((o, i) => {
         /**
@@ -459,8 +459,25 @@ export function useSeaportOrders(enabled = true) {
     [standing, fillChecks],
   );
 
+  /**
+   * Trait offers, kept out of `orders` entirely (2026-09-25).
+   *
+   * A trait offer names no token, exactly like a collection offer, and every
+   * screen written before trait offers existed reads "no token" as "any
+   * piece". Left in `orders`, one would have appeared on every piece in the
+   * collection as acceptable — and a Common holder would have been shown an
+   * "Uncommon" bid they cannot fill. Kept apart, the older screens behave
+   * exactly as before, and each place that shows a trait offer does so on
+   * purpose, after checking the piece is in its set.
+   */
+  const { orders, traitOffers } = useMemo(() => {
+    const isTrait = (o: SeaportOrder) => o.kind === "offer" && o.criteria !== undefined && o.criteria !== 0n;
+    return { orders: all.filter((o) => !isTrait(o)), traitOffers: all.filter(isTrait) };
+  }, [all]);
+
   return {
     orders,
+    traitOffers,
     /**
      * `checking` belongs here, not in a separate flag.
      *
@@ -647,16 +664,39 @@ export function useCollectionOffers(collection: Address | undefined) {
  * fillable the moment the allowance is topped up, so it is still exposure.
  */
 export function useOwnOfferExposure(maker: Address | undefined, currency?: Address) {
-  const { orders } = useSeaportOrders();
+  const { orders, traitOffers } = useSeaportOrders();
 
   return useMemo(() => {
     if (maker === undefined) return 0n;
-    return orders
+    /**
+     * Trait offers too. The allowance is set to this total, so a bid missing
+     * from it is a bid whose cover the next `allow()` silently revokes.
+     */
+    return [...orders, ...traitOffers]
       .filter((o) => o.kind === "offer")
       .filter((o) => sameAddress(o.maker, maker))
       .filter((o) => currency === undefined || sameAddress(o.currency, currency))
       .reduce((total, o) => total + o.priceWei, 0n);
-  }, [orders, maker, currency]);
+  }, [orders, traitOffers, maker, currency]);
+}
+
+/**
+ * Trait offers that apply to one collection, fillable ones only, best first.
+ * Each still has to be matched to a set (`useCriteriaSets` / `useTokenCriteria`)
+ * before it may be shown — an unrecognised root is shown nowhere.
+ */
+export function useTraitOffers(collection: Address | undefined) {
+  const { traitOffers, isLoading } = useSeaportOrders();
+
+  const offers = useMemo(
+    () =>
+      traitOffers
+        .filter((o) => o.fillable && sameAddress(o.collection, collection))
+        .sort((a, b) => (b.priceWei > a.priceWei ? 1 : b.priceWei < a.priceWei ? -1 : 0)),
+    [traitOffers, collection],
+  );
+
+  return { offers, isLoading };
 }
 
 /**
@@ -669,15 +709,16 @@ export function useOwnOfferExposure(maker: Address | undefined, currency?: Addre
  * carries `fillable` so the UI can mark it rather than drop it.
  */
 export function useOrdersBy(maker: Address | undefined) {
-  const { orders, isLoading, logsUnavailable } = useSeaportOrders();
+  const { orders, traitOffers, isLoading, logsUnavailable } = useSeaportOrders();
 
   return useMemo(() => {
-    const mine = orders.filter((o) => sameAddress(o.maker, maker));
+    /** A maker's own trait offers are theirs to see and cancel, recognised or not. */
+    const mine = [...orders, ...traitOffers].filter((o) => sameAddress(o.maker, maker));
     return {
       listings: mine.filter((o) => o.kind === "listing"),
       offers: mine.filter((o) => o.kind === "offer"),
       isLoading,
       logsUnavailable,
     };
-  }, [orders, maker, isLoading, logsUnavailable]);
+  }, [orders, traitOffers, maker, isLoading, logsUnavailable]);
 }

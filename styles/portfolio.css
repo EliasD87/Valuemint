@@ -573,3 +573,26 @@
     grid-column: 1 / -1;
   }
 }
+
+/* WSOSO under the balance: the figure, the way back to SOSO, and one line
+   saying what it is. */
+.ph-wrapped-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.ph-unwrap {
+  margin-left: 0.35rem;
+  padding: 0.15rem 0.55rem;
+  font-size: var(--step--2);
+  line-height: 1.4;
+}
+
+.ph-wrapped-note {
+  margin: 0;
+  max-width: 34ch;
+  font-size: var(--step--2);
+  line-height: 1.45;
+  color: var(--ink-3);
+}

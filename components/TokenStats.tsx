@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo } from "react";
-import { useBestListings, useOffersForToken } from "@/hooks/useSeaportOrders";
+import { useBestListings } from "@/hooks/useSeaportOrders";
+import { useTokenOffers } from "@/hooks/useTokenOffers";
 import { useActivity } from "@/hooks/useActivity";
 import { useCollectionBasics } from "@/hooks/useCollectionBasics";
 import { Soso } from "@/components/Soso";
@@ -70,7 +71,7 @@ export function TokenStats({
   metadata?: TokenMetadata;
 }) {
   const { best: bestListings } = useBestListings(collection);
-  const { best: bestOffer } = useOffersForToken(collection, tokenId);
+  const { best: bestOffer } = useTokenOffers(collection, tokenId);
   const { lastSale, logsUnavailable } = useActivity(collection, tokenId);
   const { supply } = useCollectionBasics(collection);
 

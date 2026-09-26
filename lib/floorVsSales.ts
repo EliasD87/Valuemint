@@ -24,7 +24,17 @@
  * for. No sale of that tier in the day is no figure, never a fallback to the
  * other tiers' prices. A sale whose tier could not be read is left out rather
  * than guessed into one.
+ *
+ * **A sale for next to nothing is not a price.** Under 1% of the floor it is
+ * compared with, a "sale" is a transfer dressed as one — a test, a gift, two
+ * wallets of the same person — and it wrecks a mean: on 2026-09-26 two test
+ * fills at 0.001 and 0.0001 against floors of 1,000 and 200 put Genesis at
+ * +149,999,900%. Those are left out, and a day with nothing else sold shows
+ * no figure at all, exactly as a day with no sales does.
  */
+
+/** Below this fraction of the floor, a sale is not treated as a price. */
+export const DUST_BELOW_FLOOR_DIVISOR = 100n;
 
 export interface SaleSample {
   /** Per unit. */
@@ -58,6 +68,8 @@ export function averageSale(
   blocksPerDay: number,
   /** Average only this tier's sales. Absent: every sale counts. */
   onlyTier?: string,
+  /** Leave out sales priced under this, per unit. See the note at the top. */
+  minPriceWei: bigint = 0n,
 ): { averageWei: bigint; sales: number } | undefined {
   if (head === undefined) return undefined;
   const from = head > BigInt(blocksPerDay) ? head - BigInt(blocksPerDay) : 0n;
@@ -66,7 +78,7 @@ export function averageSale(
   let units = 0n;
   let count = 0;
   for (const s of sales) {
-    if (s.priceWei <= 0n || s.amount <= 0n) continue;
+    if (s.priceWei <= 0n || s.amount <= 0n || s.priceWei < minPriceWei) continue;
     if (onlyTier !== undefined && s.tier !== onlyTier) continue;
     /** No upper bound: the index can be a block ahead of a polled head. */
     if (s.blockNumber < from) continue;
@@ -124,7 +136,7 @@ export function floorVsSales(
   onlyTier?: string,
 ): FloorVsSales | undefined {
   if (floorWei === undefined) return undefined;
-  const avg = averageSale(sales, head, blocksPerDay, onlyTier);
+  const avg = averageSale(sales, head, blocksPerDay, onlyTier, floorWei / DUST_BELOW_FLOOR_DIVISOR);
   if (avg === undefined) return undefined;
 
   /** Basis points in bigint first: two 18-digit figures lose a 1% gap as floats. */

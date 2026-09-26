@@ -10,6 +10,7 @@ import { toListing, type Listing } from "@/lib/seaport";
 import { useGenericTokens } from "@/hooks/useGenericTokens";
 import { useTokenIds } from "@/hooks/useTokenIds";
 import { MintPanel } from "@/components/MintPanel";
+import { CollectionOffers } from "@/components/CollectionOffers";
 import { TokenCard, TokenCardSkeleton } from "@/components/TokenCard";
 import { formatCount } from "@/lib/format";
 import { isFilterable } from "@/lib/traitRoles";
@@ -326,6 +327,9 @@ export function CollectionView({ params }: { params: Promise<{ address: string }
       />
 
       <CollectionStats collection={collection} supply={supply as bigint | undefined} />
+
+      {/* Bids on the whole collection or one trait, and the way to place one. */}
+      {collection === undefined ? null : <CollectionOffers collection={collection} />}
 
       <PageTabs tabs={tabs} active={tab} onChange={setTab} label="Collection sections" />
 
