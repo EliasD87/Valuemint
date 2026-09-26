@@ -52,6 +52,15 @@ export const COLLECTION_COVERS: Record<string, string[]> = {
     "/boxes/cybereator.webp",
   ],
 
+  // ValueMint KOLs — the first four portraits, from the /kols roster mirror
+  // (metadata/scripts/localise-kols.mjs), which is already local and 640px.
+  "0x8a22d660611d0dc2051ab515da950dd9fcafbbbd": [
+    "/kols/roster/01.webp",
+    "/kols/roster/02.webp",
+    "/kols/roster/03.webp",
+    "/kols/roster/04.webp",
+  ],
+
   // TestCybereator — the same artwork, from the same file.
   "0x412d8af16b7ff3fe75e1cd380bd86ef33dd8ad0f": [
     "/boxes/cybereator.webp",

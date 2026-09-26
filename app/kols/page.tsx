@@ -7,7 +7,7 @@ import { Art } from "@/components/Art";
 import { ConnectButton } from "@/components/ConnectButton";
 import { Soso } from "@/components/Soso";
 import { TxResult } from "@/components/TxResult";
-import { KOLS, kolImage, xHandle, type Kol } from "@/config/kols";
+import { KOLS, kolImage, kolLocal, xHandle, type Kol } from "@/config/kols";
 import { useKolRewards, type Stage } from "@/hooks/useKolRewards";
 import { formatSoso } from "@/lib/format";
 import "@/styles/kols.css";
@@ -61,10 +61,17 @@ const FEATURED = [
   { file: "lutz-v2", letter: "O", tint: "var(--plinth-b)", shift: "0%" },
   // Replaced Takimi's figure 2026-09-26. A new filename rather than new bytes
   // under the old one, for the same reason as lutz-v2. A broad bust where hers
-  // was narrow, so it has to move much further right to leave the stem clear:
-  // at 16% it covered the whole stem; 48% clears it by 7px at 1440 and 4px at
-  // 390, measured, where the right shoulder runs ~20px off a phone screen.
-  { file: "cigar-l", letter: "L", tint: "var(--plinth-c)", shift: "48%" },
+  // was narrow, so it sits right of centre to leave the stem readable.
+  //
+  // It was 48%, which cleared the stem entirely but hung the figure 139px past
+  // the letter at 1440 — the word read as leaning right. Measured against the
+  // figure's own alpha (the sides of the cutout are transparent), stem coverage
+  // by shift: 48% and 35% none; 28% only the bottom tenth, where the shoulder
+  // crosses; 22% the bottom fifth; 16% the smoke reaches it a quarter down. 28%
+  // keeps nine tenths of the stem clear and brings the overhang to 94px, and
+  // `.kol-plinth:last-child` in kols.css reserves that overhang so the row
+  // centres on the word-plus-figure rather than on the letters alone.
+  { file: "cigar-l", letter: "L", tint: "var(--plinth-c)", shift: "28%" },
 ] as const;
 
 /** The eyebrow's second half: where the claim stands, in two words. */
@@ -75,14 +82,27 @@ const STAGE_LABEL: Record<Stage, string> = {
   ended: "Claiming closed",
 };
 
+/**
+ * The deadline in the reader's own timezone, with the time. A date alone was
+ * ambiguous by up to a day — "until Sep 26" read as the whole of the 26th when
+ * claiming actually stopped at 19:51 UTC.
+ */
 const day = (unix: number) =>
-  new Date(unix * 1000).toLocaleDateString(undefined, { day: "numeric", month: "short" });
+  new Date(unix * 1000).toLocaleString(undefined, {
+    day: "numeric",
+    month: "short",
+    hour: "numeric",
+    minute: "2-digit",
+  });
 
 export default function Kols() {
   const rewards = useKolRewards();
   const stage = rewards.stage ?? "soon";
   const live = stage === "open" || stage === "ended";
-  const share = rewards.reward !== undefined && rewards.reward > 0n ? formatSoso(rewards.reward) : undefined;
+  const total = rewards.totalRewards > 0n ? formatSoso(rewards.totalRewards) : undefined;
+  // Everyone gets the same amount (the plan), so the header says what one
+  // person receives; if amounts ever differ it falls back to the total.
+  const each = rewards.sameReward !== undefined && rewards.sameReward > 0n ? formatSoso(rewards.sameReward) : undefined;
 
   return (
     <div className="kol">
@@ -124,6 +144,42 @@ export default function Kols() {
             posting, contributing, trading, helping, and being part of the community.
           </p>
 
+          {/*
+            What each of them gets, and who is giving it — one object, so the
+            credit reads as part of the offer rather than a logo strip bolted
+            underneath. The gift on the left, the sponsor on the right; on a
+            phone the two stack with the rule turning horizontal.
+          */}
+          <div className="kol-sponsor">
+            <p className="kol-gift">
+              <span className="kol-gift-item">
+                <span className="kol-gift-thumbs" aria-hidden="true">
+                  {KOLS.slice(0, 3).map((k) => (
+                    // Eager: they sit above the fold, and next/image's lazy
+                    // observer has been seen never to fire for tiny images.
+                    <Image key={k.n} src={kolLocal(k)} alt="" width={48} height={48} loading="eager" />
+                  ))}
+                </span>
+                1/1 portrait NFT
+              </span>
+              <span className="kol-gift-plus" aria-hidden="true">
+                +
+              </span>
+              <span className="kol-gift-item">
+                {/* The white mark on purpose, whatever the site theme: this band
+                    is always dark, and the light-theme mark vanishes on it. */}
+                {/* eslint-disable-next-line @next/next/no-img-element -- a 4 KB local icon, as in Soso.tsx */}
+                <img className="kol-gift-soso" src="/soso-dark.png" alt="" width={128} height={128} />
+                SOSO reward
+              </span>
+            </p>
+            <span className="kol-sponsor-rule" aria-hidden="true" />
+            <p className="kol-sponsor-by">
+              <span>Sponsored by</span>
+              <b className="kol-sponsor-mark">ValueChain</b>
+            </p>
+          </div>
+
           {/* What each of them receives and how many have. Only once claiming
               has opened: before that the numbers are not settled, and a row of
               blanks reads as broken rather than as "soon". */}
@@ -131,21 +187,28 @@ export default function Kols() {
             <dl className="kol-facts">
               <div>
                 <dt>Portraits</dt>
-                <dd>{KOLS.length}</dd>
+                <dd>{rewards.minted ?? KOLS.length}</dd>
               </div>
-              {share === undefined ? null : (
+              {each !== undefined ? (
                 <div>
                   <dt>Each receives</dt>
                   <dd>
-                    <Soso size={16}>{share}</Soso>
+                    <Soso size={16}>{each}</Soso>
                   </dd>
                 </div>
-              )}
+              ) : total !== undefined ? (
+                <div>
+                  <dt>SOSO rewards</dt>
+                  <dd>
+                    <Soso size={16}>{total}</Soso>
+                  </dd>
+                </div>
+              ) : null}
               <div>
                 <dt>Claimed</dt>
                 <dd>
                   {rewards.claimedCount}
-                  <span className="kol-facts-of"> / {KOLS.length}</span>
+                  <span className="kol-facts-of"> / {rewards.minted ?? KOLS.length}</span>
                 </dd>
               </div>
             </dl>
@@ -182,7 +245,7 @@ export default function Kols() {
 
       <section className="section" id="roster">
         <div className="page">
-          {rewards.deployed && stage !== "soon" ? <Yours rewards={rewards} stage={stage} share={share} /> : null}
+          {rewards.deployed && stage !== "soon" ? <Yours rewards={rewards} stage={stage} /> : null}
 
           <div className="kol-grid">
             {KOLS.map((k) => (
@@ -231,11 +294,9 @@ export default function Kols() {
 function Yours({
   rewards,
   stage,
-  share,
 }: {
   rewards: ReturnType<typeof useKolRewards>;
   stage: Stage;
-  share: string | undefined;
 }) {
   const { isConnected } = useAccount();
   const { mine, tx, deadline } = rewards;
@@ -264,6 +325,8 @@ function Yours({
   }
 
   const { kol } = mine;
+  // Their own reward — amounts differ per KOL. Zero means portrait only.
+  const share = mine.amount > 0n ? formatSoso(mine.amount) : undefined;
   const claimed = mine.claimed || tx.success;
 
   return (
@@ -284,7 +347,7 @@ function Yours({
           <ClaimedActions kol={kol} portraits={rewards.portraits} />
         ) : stage === "preparing" ? (
           <p className="kol-yours-lede">
-            Your portrait is set aside for this wallet. Claiming opens soon — check back here.
+            Your portrait is set aside for this wallet. Claiming opens soon, so check back here.
           </p>
         ) : stage === "ended" ? (
           <p className="kol-yours-lede">
@@ -331,7 +394,7 @@ function Yours({
             />
             <p className="kol-yours-small">
               {deadline === undefined ? null : <>Open until {day(deadline)}. </>}
-              You pay a little gas; the rest is on us.
+              Sponsored by ValueChain. You pay only a little gas.
             </p>
           </>
         )}
@@ -342,7 +405,7 @@ function Yours({
 
 /** After the claim: where it is, and a post to tell people about it. */
 function ClaimedActions({ kol, portraits }: { kol: Kol; portraits: `0x${string}` | undefined }) {
-  const text = "Just claimed my one-of-one portrait on ValueMint — made for the people who show up on SoDEX.";
+  const text = "Just claimed my one-of-one portrait on ValueMint, made for the people who show up on SoDEX.";
   const intent =
     `https://x.com/intent/post?text=${encodeURIComponent(text)}` +
     `&url=${encodeURIComponent("https://www.valuemint.store/kols")}`;

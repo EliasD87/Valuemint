@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useAccount, useReadContracts } from "wagmi";
+import { useAccount, useReadContract, useReadContracts } from "wagmi";
 import { useWriteContract } from "@/hooks/useChainWrite";
 import { useTxOutcome } from "@/hooks/useTxOutcome";
 import { KOL_REWARDS_ABI, KOL_REWARDS_ADDRESS } from "@/config/kolRewards";
@@ -31,9 +31,14 @@ export interface KolStatus {
   /** Recorded wallet, or undefined until one is set. */
   wallet: `0x${string}` | undefined;
   claimed: boolean;
+  /** This portrait's own SOSO reward, in wei. Rewards are per KOL, not equal. */
+  amount: bigint;
 }
 
 const ZERO = "0x0000000000000000000000000000000000000000";
+const NEXT_TOKEN_ID_ABI = [
+  { type: "function", name: "nextTokenId", stateMutability: "view", inputs: [], outputs: [{ name: "", type: "uint256" }] },
+] as const;
 const deployed = KOL_REWARDS_ADDRESS !== "";
 const contract = { address: KOL_REWARDS_ADDRESS as `0x${string}`, abi: KOL_REWARDS_ABI } as const;
 
@@ -44,7 +49,6 @@ export function useKolRewards() {
   // batches both into multicall regardless.
   const meta = useReadContracts({
     contracts: [
-      { ...contract, functionName: "reward" },
       { ...contract, functionName: "deadline" },
       { ...contract, functionName: "portraits" },
     ],
@@ -55,18 +59,31 @@ export function useKolRewards() {
     query: { enabled: deployed, refetchInterval: 20_000 },
   });
 
-  const reward = meta.data?.[0]?.result as bigint | undefined;
-  const deadline = meta.data?.[1]?.result as bigint | undefined;
-  const portraits = meta.data?.[2]?.result as `0x${string}` | undefined;
+  const deadline = meta.data?.[0]?.result as bigint | undefined;
+  const portraits = meta.data?.[1]?.result as `0x${string}` | undefined;
+
+  /**
+   * How many portraits were actually minted into the set, from the collection
+   * itself. The roster in config/kols.ts runs ahead of the chain whenever a
+   * new KOL is added before their portrait is minted, and "36 portraits" when
+   * only 35 can be claimed is a number that is simply wrong.
+   */
+  const { data: nextTokenId } = useReadContract({
+    address: portraits,
+    abi: NEXT_TOKEN_ID_ABI,
+    functionName: "nextTokenId",
+    query: { enabled: portraits !== undefined, refetchInterval: 60_000 },
+  });
+  const minted = nextTokenId === undefined ? undefined : Math.min(Number(nextTokenId) - 1, KOLS.length);
 
   /** Keyed by token id. Empty until read. */
   const statuses = useMemo(() => {
     const map = new Map<number, KolStatus>();
     if (status.data === undefined) return map;
     KOLS.forEach((k, i) => {
-      const r = status.data[i]?.result as readonly [`0x${string}`, boolean] | undefined;
+      const r = status.data[i]?.result as readonly [`0x${string}`, boolean, bigint] | undefined;
       if (r === undefined) return;
-      map.set(k.n, { wallet: r[0] === ZERO ? undefined : r[0], claimed: r[1] });
+      map.set(k.n, { wallet: r[0] === ZERO ? undefined : r[0], claimed: r[1], amount: r[2] });
     });
     return map;
   }, [status.data]);
@@ -95,13 +112,36 @@ export function useKolRewards() {
     if (address === undefined) return undefined;
     const lower = address.toLowerCase();
     const kol = KOLS.find((k) => statuses.get(k.n)?.wallet?.toLowerCase() === lower);
-    return kol === undefined ? undefined : { kol, claimed: statuses.get(kol.n)?.claimed ?? false };
+    if (kol === undefined) return undefined;
+    const s = statuses.get(kol.n);
+    return { kol, claimed: s?.claimed ?? false, amount: s?.amount ?? 0n };
   }, [address, statuses]);
 
   const claimedCount = useMemo(
     () => [...statuses.values()].filter((s) => s.claimed).length,
     [statuses],
   );
+
+  /**
+   * Every reward on the list, claimed or not: the size of the set's SOSO, as a
+   * visitor would describe it. Amounts stay on record after a claim, so this
+   * does not shrink as people collect.
+   */
+  const totalRewards = useMemo(
+    () => [...statuses.values()].reduce((sum, s) => (s.wallet === undefined ? sum : sum + s.amount), 0n),
+    [statuses],
+  );
+
+  /**
+   * The one amount every recorded KOL gets, when they all get the same — which
+   * is the plan. Undefined as soon as any two differ, and then the header shows
+   * the total instead. The contract allows either; the page just describes it.
+   */
+  const sameReward = useMemo(() => {
+    const amounts = [...statuses.values()].filter((s) => s.wallet !== undefined).map((s) => s.amount);
+    if (amounts.length === 0) return undefined;
+    return amounts.every((a) => a === amounts[0]) ? amounts[0] : undefined;
+  }, [statuses]);
 
   // --- the claim ---------------------------------------------------------
 
@@ -140,9 +180,13 @@ export function useKolRewards() {
     deployed,
     loading: deployed && isLoading,
     stage,
-    reward,
+    totalRewards,
+    /** Set only when every recorded KOL gets the same amount. */
+    sameReward,
     deadline: deadline === undefined || deadline === 0n ? undefined : Number(deadline),
     portraits,
+    /** Portraits minted into the set; undefined until read. */
+    minted,
     statuses,
     claimedCount,
     mine,

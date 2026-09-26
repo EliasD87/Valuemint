@@ -143,6 +143,18 @@
   align-items: flex-end;
 }
 
+/*
+ * The L's figure is wider than the L and stands right of centre (see the shift
+ * note in page.tsx), so it overhangs the letter by about a quarter of
+ * `--letter`. Reserving that as margin makes the row centre on what the eye
+ * sees — word plus figure — instead of on the letters alone, which pushed the
+ * whole composition visibly right. A fraction of `--letter`, so it scales with
+ * the type at every width.
+ */
+.kol-plinth:last-child {
+  margin-right: calc(var(--letter) * 0.25);
+}
+
 .kol-letter {
   display: block;
   font-family: var(--display);
@@ -732,5 +744,179 @@
 
   .kol-facts dd {
     font-size: var(--step-0);
+  }
+}
+
+/* ============================================================ the sponsor ===
+ *
+ * "1/1 portrait NFT + SOSO reward | Sponsored by ValueChain", as one
+ * line under the lede. The gift and the giver are one object on purpose: a
+ * logo strip under a hero reads as small print, and this is the headline fact
+ * about the set after what it is. Stated for the dark band like everything
+ * else in the hero.
+ * ========================================================================== */
+
+/* Open type on the band, no container. It sat in a glass pill at first, and a
+   pill on a hero reads as a button — something to press that does nothing. */
+.kol-sponsor {
+  display: inline-flex;
+  align-items: center;
+  gap: clamp(0.9rem, 2vw, 1.4rem);
+  margin-top: 0.45rem;
+}
+
+.kol-gift {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0;
+  font-size: calc(var(--step--1) * 1.12);
+  font-weight: 700;
+  letter-spacing: -0.005em;
+  color: #fdfdfe;
+  white-space: nowrap;
+}
+
+.kol-gift-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Three of the portraits, overlapped: says "portrait" faster than a word. */
+.kol-gift-thumbs {
+  display: inline-flex;
+}
+
+.kol-gift-thumbs img {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #1f0b2b;
+  background: #2a1238;
+}
+
+.kol-gift-thumbs img + img {
+  margin-left: -9px;
+}
+
+.kol-gift-soso {
+  width: 25px;
+  height: 25px;
+  flex: none;
+}
+
+.kol-gift-plus {
+  font-weight: 500;
+  color: #9d85b0;
+}
+
+.kol-sponsor-rule {
+  width: 1px;
+  height: 1.9rem;
+  flex: none;
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.kol-sponsor-by {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.05rem;
+  margin: 0;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.kol-sponsor-by span {
+  font-size: calc(var(--step--3) * 1.12);
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #b89bcc;
+}
+
+/* The sponsor's name, set large enough to be the thing you remember. Until an
+   official logo file is supplied it is a type wordmark: the display face with
+   a cool sheen, so it reads as a brand rather than as more body copy. */
+.kol-sponsor-mark {
+  font-family: var(--display);
+  font-size: calc(var(--step-1) * 1.12);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  /*
+   * The same sheen as before, drawn twice as wide so a band of light can
+   * travel across the letters. Every stop is a light tint, so at any frame —
+   * or with no animation at all — the name is fully legible: only where the
+   * brightest band sits changes. Written the way the rest of this file writes
+   * animation, with no fill mode, so the resting style is the visible one.
+   */
+  background: linear-gradient(
+    100deg,
+    #e6dcff 0%,
+    #b9a6ff 22%,
+    #e6dcff 38%,
+    #ffffff 50%,
+    #e6dcff 62%,
+    #b9a6ff 78%,
+    #e6dcff 100%
+  );
+  background-size: 250% 100%;
+  background-position: 100% 0;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: kol-sheen 5.5s ease-in-out infinite;
+}
+
+/* Left to right, then a long rest before the next pass, so it catches the eye
+   once in a while instead of shimmering constantly beside the portraits. */
+@keyframes kol-sheen {
+  0% {
+    background-position: 100% 0;
+  }
+  45%,
+  100% {
+    background-position: 0% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kol-sponsor-mark {
+    animation: none;
+  }
+}
+
+/* Phones: the gift over the sponsor, the rule turned horizontal between. */
+@media (max-width: 560px) {
+  .kol-sponsor {
+    flex-direction: column;
+    gap: 0.55rem;
+  }
+
+  .kol-sponsor-rule {
+    width: 48px;
+    height: 1px;
+  }
+
+  .kol-sponsor-by {
+    align-items: center;
+  }
+
+  /* Phones keep the smaller set: at the larger one the gift line outgrows a
+     375px screen (it already spans 305 of 335px here). */
+  .kol-gift {
+    font-size: var(--step--1);
+  }
+
+  .kol-gift-thumbs img {
+    width: 26px;
+    height: 26px;
+  }
+
+  .kol-gift-soso {
+    width: 22px;
+    height: 22px;
   }
 }

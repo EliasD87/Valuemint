@@ -2,14 +2,17 @@
  * The KOL claim contract (`contracts/contracts/KolRewards.sol`).
  *
  * It holds every portrait and the SOSO pool, and pays each out once to the
- * wallet recorded for it. Nothing about who funds the pool lives here or on the
- * page — only what each KOL receives.
+ * wallet recorded for it.
  *
- * Deployed address, or "" before launch. With no address the page stays the
- * showcase it was: nothing is read, nothing can be claimed, and the eyebrow
- * still says "Coming soon".
+ * The live contract, deployed 2026-09-26 and owned by the Safe, is the default
+ * — it is public and permanent, so there is no reason to make a deploy depend
+ * on an environment variable being set. NEXT_PUBLIC_KOL_REWARDS_ADDRESS only
+ * overrides it, to point a local build at a rehearsal contract. Set it to an
+ * empty string and the page falls back to the plain showcase.
  */
-export const KOL_REWARDS_ADDRESS = (process.env.NEXT_PUBLIC_KOL_REWARDS_ADDRESS ?? "") as
+const LIVE_KOL_REWARDS = "0x175B5eb9C0C0337606F6Af6922DC994314d8A96a";
+
+export const KOL_REWARDS_ADDRESS = (process.env.NEXT_PUBLIC_KOL_REWARDS_ADDRESS ?? LIVE_KOL_REWARDS) as
   | `0x${string}`
   | "";
 
@@ -30,14 +33,8 @@ export const KOL_REWARDS_ABI = [
     outputs: [
       { name: "wallet", type: "address" },
       { name: "isClaimed", type: "bool" },
+      { name: "amount", type: "uint256" },
     ],
-  },
-  {
-    type: "function",
-    name: "reward",
-    stateMutability: "view",
-    inputs: [],
-    outputs: [{ name: "", type: "uint256" }],
   },
   {
     type: "function",

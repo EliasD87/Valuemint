@@ -80,6 +80,8 @@ export const KOLS: Kol[] = [
   { n: 34, name: "Stephen", image: "QmVdG9ZbGHfNEkGe1QPqZfHBuJF7QduoUUoxQhBQiTLP3w", x: "https://x.com/Nightmare340" },
   { n: 35, name: "GOLD7 SoSoValue", image: "QmZPnZNFSEUtKa4sxX6kU6BvSXqZqQTwLAmALHPZrrJi77", x: "https://x.com/k03150825" },
   { n: 36, name: "El Turco", image: "Qmd9GmPeReh4SvvSioZbRoFZhUA7qvXWuH9b8ehtzatrQK", x: "https://x.com/birataturkcu88" },
+  // Back 2026-09-26, after #1-36 were minted: appended, never inserted.
+  { n: 37, name: "ELIAS", image: "Qmb7cBjWjstatn3QZXj1wfvBv23BtmttEPfJyAmWBBdNG7", x: "https://x.com/eliasing__" },
 ];
 
 /** "https://x.com/VaultSeek" → "@VaultSeek". */

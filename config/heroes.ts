@@ -224,6 +224,23 @@ export const COLLECTION_HEROES: Record<string, HeroArt> = {
     position: "center 8%",
   },
 
+  /*
+    ValueMint KOLs — the group banner supplied by the owner, 2026-09-26: all 37
+    portraits on two shelves under the "VALUEMINT · KOL COLLECTION" wordmark,
+    2172x724. 1600 wide as WebP, 2.1 MB to 138 KB.
+
+    CROPPED AT 60%, measured: at 1440 the band is 1259x240, so it shows 57%
+    of the picture's height and cannot hold the wordmark and both shelves.
+    Rendered at 5%, 30%, 45% and 60%: 5% keeps the wordmark and loses the
+    bottom shelf; 45% cuts the bottom shelf through the faces; 60% has every
+    one of the 37 faces, both shelves, with the wordmark given up. The page
+    prints the collection's name right under the band, so the faces win.
+  */
+  "0x8a22d660611d0dc2051ab515da950dd9fcafbbbd": {
+    background: "/heroes/kols-cover.webp",
+    position: "center 60%",
+  },
+
   /** TestCybereator — the same artwork, from the same two files. */
   "0x412d8af16b7ff3fe75e1cd380bd86ef33dd8ad0f": {
     background: "/heroes/cybereator-bg.webp",
