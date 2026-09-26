@@ -121,14 +121,20 @@ const SLOTS = KOLS.length * 4;
 /**
  * The belt's fixed running order.
  *
- * Stride 5 rather than `i % 12`, which would run the roster in its stored order
- * four times over and put the two cats a fixed twelve apart. Five is coprime
- * with twelve, so every portrait still appears exactly four times and the order
- * is mixed. It is arithmetic rather than a shuffle because the server and the
- * browser have to agree on it, and it is computed once because it never
- * changes.
+ * A stride rather than `i % n`, which would run the roster in its stored order
+ * four times over. The stride must share no factor with the roster size or
+ * the belt repeats a few faces and never shows the rest: 5 was fine at 12 and
+ * 17, and at 15 it would have cycled three portraits. So it is the first
+ * number from 5 up that is coprime with the roster, found here rather than
+ * hardcoded. Arithmetic rather than a shuffle because the server and the
+ * browser have to agree on it, and computed once because it never changes.
  */
-const BELT: Kol[] = Array.from({ length: SLOTS }, (_, i) => KOLS[(i * 5) % KOLS.length]).filter(
+const gcd = (a: number, b: number): number => (b === 0 ? a : gcd(b, a % b));
+const STRIDE = (() => {
+  for (let s = 5; s < KOLS.length; s++) if (gcd(s, KOLS.length) === 1) return s;
+  return 1;
+})();
+const BELT: Kol[] = Array.from({ length: SLOTS }, (_, i) => KOLS[(i * STRIDE) % KOLS.length]).filter(
   (k): k is Kol => k !== undefined,
 );
 

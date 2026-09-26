@@ -14,44 +14,53 @@
  *
  * ## Token id is the index
  *
- * Token N carries entry N, so ids stay stable as the list grows. **Only ever
- * append.** Reordering or removing an entry would silently repoint a token
- * that is already in someone's wallet at a different person's portrait.
+ * Token N carries entry N, so ids stay stable as the list grows. **Once the
+ * collection is minted, only ever append.** Reordering or removing an entry
+ * would silently repoint a token already in someone's wallet at a different
+ * person's portrait.
+ *
+ * Renumbered once, 2026-09-26, before anything existed on chain (no KOLs
+ * collection in either factory, checked): Keng Noor, Markinho and Stephen
+ * were removed and bΞar added (then three more the same day), and the ids
+ * were closed up so the first mint —
+ * `mintBatch` numbers tokens sequentially from 1 — lands each portrait on its
+ * own id with no gaps.
  */
 
 export interface Kol {
-  /** Token id. Also this entry's position — append only. */
+  /** Token id. Also this entry's position — append only, once minted. */
   n: number;
   /** The name they go by. */
   name: string;
   /** Filebase CID of the portrait. */
   image: string;
+  /** Their X profile, where they gave one. */
+  x?: string;
 }
 
 export const KOLS: Kol[] = [
   { n: 1, name: "BTCtensai", image: "QmWp59bT9RZi6qQozSZnfsoT2VC4z2744dZdQTGcGa83tz" },
-  { n: 2, name: "CORTEZ", image: "QmPj319pEoPpg2NqP5ozvk2qxPoMDWjKPm2jMvnENAqi3K" },
+  { n: 2, name: "CORTEZ", image: "QmPj319pEoPpg2NqP5ozvk2qxPoMDWjKPm2jMvnENAqi3K", x: "https://x.com/eyupyavuz75" },
   { n: 3, name: "ELIAS", image: "Qmb7cBjWjstatn3QZXj1wfvBv23BtmttEPfJyAmWBBdNG7" },
   { n: 4, name: "FARMERCIST", image: "QmadRf1XfZRqUhHZe3NLDbJv7RTqaXC9wwv2Dch7mZNVyM" },
-  { n: 5, name: "KENG NOOR", image: "QmQjpADdjRv1YtY4UrHYNAWZ9gJsUodgC4Zg5SVkp19YSH" },
-  { n: 6, name: "LUTZ", image: "QmQ4LmfH4StkAmNLxHfmuz2CKbyJPqvRqiUWzLd2QjxUsC" },
-  { n: 7, name: "MARKINHO", image: "Qmdkz4kNgUmShMnaAE3oegwomQV45UgjUCka4qvJTEscZq" },
-  { n: 8, name: "MICK", image: "QmZMufXR1z6QAFE83r9sRiqKBSsDPXhDLb8gFajvpuiHYV" },
-  { n: 9, name: "SKIDO", image: "QmRJoNdX43yLpTUMfxt77eCtvNs585Ra5wqcncoyMhnbyP" },
-  { n: 10, name: "TAKIMI", image: "QmdMQBwzSru7WyeaJJbTX8a1yw8rA6mX69TBTtVc2rJFAa" },
-  { n: 11, name: "VICTOR", image: "QmZYgrPQiMB6pUHPGcVbaiLEKcet5yV1NeDp6iNpRkh2cS" },
-  { n: 12, name: "VITALY", image: "QmTRUUobkZ8VCjtdh1Tby3gwt4tu7UJ6YYCS6jTx3Ac2G6" },
-  /* Appended rather than sorted into place. The twelve above happen to be
-     alphabetical, which is a coincidence of the order they were added in — and
-     "0xYeFz" would sort to the top, which is exactly the move the note above
-     forbids: token N carries entry N, so reordering repoints somebody's
-     portrait at a different person. */
-  { n: 13, name: "0xYeFz", image: "QmYdzZKnNZBvrQ7TKgheAcdXJRp3Yg8t5SYGpQ8v3DW1mM" },
-  { n: 14, name: "Vault", image: "QmR3mn5oGzragL4EkMsJE3hp5soTPMX2DLLh61pUxeh6Si" },
-  { n: 15, name: "Stephen", image: "QmVdG9ZbGHfNEkGe1QPqZfHBuJF7QduoUUoxQhBQiTLP3w" },
-  { n: 16, name: "NFTrader-Crypto", image: "QmeQ23pxiPzEWuW1ZebqEqmBbYdz39KvRBNTrfQZeSwZp7" },
-  { n: 17, name: "Ralmix", image: "Qmc5UYEsvfcstnjDdsFYbVmijwEh62P1sgN68pfo2Dd6nC" },
+  { n: 5, name: "LUTZ", image: "QmQ4LmfH4StkAmNLxHfmuz2CKbyJPqvRqiUWzLd2QjxUsC" },
+  { n: 6, name: "MICK", image: "QmZMufXR1z6QAFE83r9sRiqKBSsDPXhDLb8gFajvpuiHYV" },
+  { n: 7, name: "SKIDO", image: "QmRJoNdX43yLpTUMfxt77eCtvNs585Ra5wqcncoyMhnbyP", x: "https://x.com/MR_CRYPTO150" },
+  { n: 8, name: "TAKIMI", image: "QmdMQBwzSru7WyeaJJbTX8a1yw8rA6mX69TBTtVc2rJFAa" },
+  { n: 9, name: "VICTOR", image: "QmZYgrPQiMB6pUHPGcVbaiLEKcet5yV1NeDp6iNpRkh2cS" },
+  { n: 10, name: "VITALY", image: "QmTNkiWFbiEM1hLDHk6GjC6c7XhUyTGyhg64aQgxqvefkH", x: "https://x.com/vitalythm" },
+  { n: 11, name: "0xYeFz", image: "QmYdzZKnNZBvrQ7TKgheAcdXJRp3Yg8t5SYGpQ8v3DW1mM" },
+  { n: 12, name: "Vault", image: "QmR3mn5oGzragL4EkMsJE3hp5soTPMX2DLLh61pUxeh6Si", x: "https://x.com/VaultSeek" },
+  { n: 13, name: "NFTrader-Crypto", image: "QmeQ23pxiPzEWuW1ZebqEqmBbYdz39KvRBNTrfQZeSwZp7", x: "https://x.com/NftraderCrypto" },
+  { n: 14, name: "Ralmix", image: "Qmc5UYEsvfcstnjDdsFYbVmijwEh62P1sgN68pfo2Dd6nC" },
+  { n: 15, name: "bΞar", image: "QmQoHrQqt7vz4gD8ZUtB8RDSgw8RC92eg1ytMqHgDpFyod", x: "https://x.com/mato_3535" },
+  { n: 16, name: "Kagurazaka Fortune", image: "QmXyTk8yrdp3cViAfxEQTFWpNa8yD5HNaeCgbQs5ov5mts" },
+  { n: 17, name: "ただのいぬ", image: "QmTwQwMK8VfSjpdPAdpsYi5QpdJep8qr4jED6mNCT7HHza" },
+  { n: 18, name: "ハルのナカミ", image: "QmS53hQv261bJehBbdT7f14Gnn5MvbGiTXmEzDAJew5B15" },
 ];
+
+/** "https://x.com/VaultSeek" → "@VaultSeek". */
+export const xHandle = (url: string) => `@${url.replace(/\/+$/, "").split("/").pop() ?? ""}`;
 
 /** The collection's slug, matching the metadata route and the contract baseURI. */
 export const KOLS_SLUG = "valuemint-kols";

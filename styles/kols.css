@@ -402,3 +402,32 @@
     opacity: 1;
   }
 }
+
+/* Their X profile, under the name: the one thing on this page a visitor can
+   act on. Quiet until pointed at, so the roster still reads as portraits. */
+.kol-card-x {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+  padding: 0 0.75rem 0.6rem;
+  font-size: var(--step--2);
+  font-weight: 600;
+  color: var(--ink-3);
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.kol-card-x svg {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  fill: currentColor;
+}
+
+.kol-card-x:hover,
+.kol-card-x:focus-visible {
+  color: var(--ink);
+}
