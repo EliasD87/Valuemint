@@ -244,7 +244,7 @@ export default function Kols() {
         </div>
       </section>
 
-      <section className="section" id="roster">
+      <section className="section kol-roster" id="roster">
         <div className="page">
           {/* For the people on the roster: how to get on the claim list. Not
               once claiming has closed, when there is nothing left to join. */}
@@ -281,6 +281,25 @@ export default function Kols() {
                 )}
               </article>
             ))}
+          </div>
+
+          {/* All of them together, closing the page: a thank-you, then the
+              group cut-out supplied by the owner (2026-09-26). */}
+          <div className="kol-thanks">
+            <h2>Thank you for showing up.</h2>
+            <p>
+              For every post, every trade, and every reply that helped someone find their way.
+              SoDEX is better because you&rsquo;re in it.
+            </p>
+          </div>
+          <div className="kol-crowd">
+            <Image
+              src="/kols/crowd.webp"
+              alt="All 37 KOL portraits together"
+              width={1901}
+              height={458}
+              sizes="(max-width: 1180px) 100vw, 1100px"
+            />
           </div>
         </div>
       </section>

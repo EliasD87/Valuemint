@@ -920,3 +920,54 @@
     height: 22px;
   }
 }
+
+/* The whole roster as one group picture, under the grid of portraits.
+   Transparent, so it sits on the page in either theme. */
+.kol-crowd {
+  width: 100%;
+  max-width: 1100px;
+  /*
+   * Standing on the footer, not floating above it: the section's bottom
+   * padding is dropped (.kol-roster) and this pulls up through the footer's
+   * own top margin — the same clamp as .footer in Layout.css — so the crowd's
+   * feet meet the footer's edge.
+   */
+  margin: clamp(1rem, 2.5vw, 1.75rem) auto calc(-1 * clamp(3rem, 8vw, 6rem));
+}
+
+.kol-roster {
+  padding-bottom: 0;
+}
+
+/* The thank-you above it: the page's closing words, centred, in the same
+   display face as the hero title. */
+.kol-thanks {
+  margin: clamp(3rem, 7vw, 5rem) auto 0;
+  max-width: 44rem;
+  text-align: center;
+}
+
+.kol-thanks h2 {
+  margin: 0 0 0.6rem;
+  font-family: var(--display);
+  font-size: clamp(1.7rem, 3.6vw, 2.6rem);
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  line-height: 1.05;
+  text-wrap: balance;
+  color: var(--ink);
+}
+
+.kol-thanks p {
+  margin: 0;
+  font-size: var(--step-0);
+  line-height: 1.6;
+  text-wrap: balance;
+  color: var(--ink-2);
+}
+
+.kol-crowd img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
