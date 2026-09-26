@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useAccount, useReadContract } from "wagmi";
+import { useAccount, useBytecode, useReadContract } from "wagmi";
 import { useWriteContract } from "@/hooks/useChainWrite";
 import { useTxOutcome } from "@/hooks/useTxOutcome";
 import {
@@ -135,6 +135,12 @@ interface KnownCall {
   /** ABI types, when the call takes arguments that must be read before signing. */
   params?: readonly { readonly type: string }[];
   render?: (args: readonly unknown[]) => string;
+  /**
+   * The one contract this call is meant for, lower-cased. When set, approving
+   * is refused unless "Contract to call" is exactly this address — the
+   * calldata alone reads the same whichever address it is sent to.
+   */
+  target?: string;
 }
 
 /** The live KOL contracts, so a call aimed at them reads as what it is. */
@@ -176,6 +182,7 @@ const KNOWN_CALLS: Record<string, KnownCall> = {
   // could not be approved here: the page rightly refuses a call it cannot
   // read, and it had never been taught these.
   "0xed0e31de": {
+    target: KOL_COLLECTION,
     label: "mintBatch(address,string[])",
     params: [{ type: "address" }, { type: "string[]" }] as const,
     render: ([to, uris]) => {
@@ -184,6 +191,7 @@ const KNOWN_CALLS: Record<string, KnownCall> = {
     },
   },
   "0x5eff440b": {
+    target: KOL_REWARDS,
     label: "setRecipients(uint256[],address[],uint256[])",
     params: [{ type: "uint256[]" }, { type: "address[]" }, { type: "uint256[]" }] as const,
     render: ([ids, wallets, amounts]) => {
@@ -198,19 +206,23 @@ const KNOWN_CALLS: Record<string, KnownCall> = {
     },
   },
   "0x3be3ebb0": {
+    target: KOL_REWARDS,
     label: "open(uint64)",
     params: [{ type: "uint64" }] as const,
     render: ([t]) => `open — start claiming, until ${when(t)}. It can later be extended, never shortened.`,
   },
   "0x08805f75": {
+    target: KOL_REWARDS,
     label: "extendDeadline(uint64)",
     params: [{ type: "uint64" }] as const,
     render: ([t]) => `extendDeadline — keep claiming open until ${when(t)}.`,
   },
   "0x35faa416": {
+    target: KOL_REWARDS,
     label: "sweep() — after the deadline (or before opening), send the claim contract's remaining SOSO to the Safe",
   },
   "0x334afdb4": {
+    target: KOL_REWARDS,
     label: "returnPortrait(uint256,address)",
     params: [{ type: "uint256" }, { type: "address" }] as const,
     render: ([id, to]) => `returnPortrait — take unclaimed portrait #${String(id)} back out of the claim contract, to ${String(to)}.`,
@@ -224,7 +236,7 @@ const KNOWN_CALLS: Record<string, KnownCall> = {
  * safety argument of this page is that the description and the hash describe
  * the same call.
  */
-function describeCall(raw: string): { text: string; safe: boolean } {
+function describeCall(raw: string): { text: string; safe: boolean; target?: string } {
   const data = raw.trim().toLowerCase();
   if (!/^0x([0-9a-f]{2})*$/.test(data)) {
     return { text: "That is not valid calldata.", safe: false };
@@ -251,12 +263,12 @@ function describeCall(raw: string): { text: string; safe: boolean } {
         safe: false,
       };
     }
-    return { text: known.label, safe: true };
+    return { text: known.label, safe: true, target: known.target };
   }
 
   try {
     const args = decodeAbiParameters(known.params as readonly AbiParameter[], argBytes);
-    return { text: known.render?.(args) ?? known.label, safe: true };
+    return { text: known.render?.(args) ?? known.label, safe: true, target: known.target };
   } catch {
     return {
       text: `${known.label} — the arguments could not be read from this calldata. Do not approve it.`,
@@ -350,6 +362,30 @@ export default function SafeConsole() {
   const call = describeCall(data);
   const targetName = TARGETS[to.trim().toLowerCase()] ?? "an unrecognised contract";
 
+  /**
+   * Is "Contract to call" a contract at all, and the right one?
+   *
+   * The calldata was checked; the address it goes to was not. On 2026-09-26 a
+   * 14-wallet setRecipients batch was approved and executed with a KOL's own
+   * wallet pasted as the target — calldata perfect, description perfect, and
+   * the Safe spent a nonce sending it to an address with no code, where it did
+   * nothing. So: no code means refuse, and a call that belongs to one known
+   * contract is refused when aimed anywhere else.
+   */
+  const { data: code, isSuccess: codeRead } = useBytecode({
+    address: validTo ? (to.trim() as `0x${string}`) : undefined,
+    chainId: valuechain.id,
+    query: { enabled: validTo },
+  });
+  const targetProblem: string | undefined = !validTo
+    ? undefined
+    : codeRead && (code === undefined || code === "0x")
+      ? `${to.trim()} is a plain wallet, not a contract. A Safe transaction sent there does nothing but use up a nonce. Check "Contract to call".`
+      : call.target !== undefined && to.trim().toLowerCase() !== call.target
+        ? `This call belongs to ${TARGETS[call.target] ?? call.target} (${call.target}), but "Contract to call" is ${to.trim()}. Fix the address before approving.`
+        : undefined;
+  const approvable = call.safe && targetProblem === undefined && (!validTo || codeRead);
+
   return (
     <section className="page section safe-page">
       <div className="head">
@@ -409,6 +445,7 @@ export default function SafeConsole() {
           <div className="safe-reads">
             <p><b>{targetName}</b></p>
             <p className={call.safe ? "dim" : "safe-warn"}>{call.text}</p>
+            {targetProblem === undefined ? null : <p className="safe-warn">{targetProblem}</p>}
           </div>
 
           {txHash !== undefined ? (
@@ -440,7 +477,7 @@ export default function SafeConsole() {
               txHash={txHash}
               to={to.trim()}
               data={data.trim()}
-              callIsSafe={call.safe}
+              callIsSafe={approvable}
               onDone={() => void refetchNonce()}
             />
           )}
@@ -563,14 +600,14 @@ function ApproveRow({
             })
           }
         >
-          {busy ? "Confirm in your wallet…" : !callIsSafe ? "Calldata not understood" : "Approve"}
+          {busy ? "Confirm in your wallet…" : !callIsSafe ? "Can't approve: see the warning above" : "Approve"}
         </button>
       ) : null}
 
       {!callIsSafe ? (
         <p className="safe-warn">
-          Approving is disabled because this calldata could not be fully accounted for.
-          Fix it, or verify it independently, before signing anything.
+          Approving is disabled: either the calldata could not be fully accounted for, or
+          it is aimed at the wrong address. Fix what the warning above names before signing anything.
         </p>
       ) : null}
 
