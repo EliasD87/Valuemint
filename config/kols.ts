@@ -87,6 +87,9 @@ export const KOLS: Kol[] = [
 /** "https://x.com/VaultSeek" → "@VaultSeek". */
 export const xHandle = (url: string) => `@${url.replace(/\/+$/, "").split("/").pop() ?? ""}`;
 
+/** The live ValueMint KOLs collection (deployed 2026-09-26, owned by the Safe). */
+export const KOLS_COLLECTION = "0x8a22d660611d0dc2051ab515da950dd9fcafbbbd";
+
 /** The collection's slug, matching the metadata route and the contract baseURI. */
 export const KOLS_SLUG = "valuemint-kols";
 

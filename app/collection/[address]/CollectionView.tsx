@@ -24,6 +24,7 @@ import { CollectionHero } from "@/components/CollectionHero";
 import { SealedNotice } from "@/components/Unrevealed";
 import { CollectionStats } from "@/components/CollectionStats";
 import { PageTabs, type TabDef } from "@/components/PageTabs";
+import { KOLS_COLLECTION } from "@/config/kols";
 
 /**
  * Any ERC-721 on ValueChain, not only ours.
@@ -58,6 +59,16 @@ const PAGE = 60;
  * — is this small enough to draw whole — for every collection rather than one.
  */
 const WHOLE_COLLECTION_MAX = 100;
+
+/**
+ * Collections whose token number means something — a roster position, not a
+ * mint time — so pieces with no price run from #1 up instead of newest first.
+ *
+ * Named in config, not here: this page has been bitten by naming collections
+ * before. The KOL set is the case — #1 is the first person on the roster, and
+ * the newest-first default opened the page on #37.
+ */
+const ROSTER_ORDERED = new Set([KOLS_COLLECTION]);
 
 /**
  * The sections of a collection, as tabs rather than a stack.
@@ -248,6 +259,7 @@ export function CollectionView({ params }: { params: Promise<{ address: string }
     );
 
     const priceOf = (id: bigint) => listings.get(id.toString())?.price;
+    const rosterOrder = ROSTER_ORDERED.has((collection ?? "").toLowerCase());
     return [...rows].sort((a, b) => {
       if (sort === "id-asc") return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
       if (sort === "id-desc") return a.id > b.id ? -1 : a.id < b.id ? 1 : 0;
@@ -258,7 +270,10 @@ export function CollectionView({ params }: { params: Promise<{ address: string }
        * Treating "no price" as zero would put everything unlisted at the top
        * of "price low", which is the opposite of what the control promises.
        */
-      if (pa === undefined && pb === undefined) return a.id > b.id ? -1 : 1;
+      if (pa === undefined && pb === undefined) {
+        if (rosterOrder) return a.id < b.id ? -1 : 1;
+        return a.id > b.id ? -1 : 1;
+      }
       if (pa === undefined) return 1;
       if (pb === undefined) return -1;
       const n = pa < pb ? -1 : pa > pb ? 1 : 0;
