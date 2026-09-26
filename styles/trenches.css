@@ -224,6 +224,14 @@
   opacity: 0.6;
 }
 
+/* Claimed / Locked sits bottom-left on a depth, not the token card's top-right:
+   the top of each piece is where its halo, horns and crest are (owner's call,
+   2026-09-26). Only here — every other card keeps the shared position. */
+.trx-card .tcard-badges {
+  inset: auto auto 0.55rem 0.55rem;
+  justify-content: flex-start;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .trx-progress-track.is-loading {
     animation: none;
