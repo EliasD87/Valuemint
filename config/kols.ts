@@ -54,6 +54,7 @@ export const KOLS: Kol[] = [
   { n: 13, name: "Kagurazaka Fortune", image: "QmXyTk8yrdp3cViAfxEQTFWpNa8yD5HNaeCgbQs5ov5mts", x: "https://x.com/KagurazakaF" },
   { n: 14, name: "ただのいぬ", image: "QmTwQwMK8VfSjpdPAdpsYi5QpdJep8qr4jED6mNCT7HHza", x: "https://x.com/one_wan_inu" },
   { n: 15, name: "ハルのナカミ", image: "QmS53hQv261bJehBbdT7f14Gnn5MvbGiTXmEzDAJew5B15", x: "https://x.com/yurusanaiinu" },
+  { n: 16, name: "tomo&cipher", image: "QmVYfUZCmdrdcAmpDhJPWGLQ5CcQPyvZ3inCZ8KazWwF8g", x: "https://x.com/tomo81782224" },
 ];
 
 /** "https://x.com/VaultSeek" → "@VaultSeek". */
