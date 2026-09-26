@@ -1,16 +1,27 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
+import { useAccount } from "wagmi";
 import { Art } from "@/components/Art";
-import { KOLS, kolImage, xHandle } from "@/config/kols";
+import { ConnectButton } from "@/components/ConnectButton";
+import { Soso } from "@/components/Soso";
+import { TxResult } from "@/components/TxResult";
+import { KOLS, kolImage, xHandle, type Kol } from "@/config/kols";
+import { useKolRewards, type Stage } from "@/hooks/useKolRewards";
+import { formatSoso } from "@/lib/format";
 import "@/styles/kols.css";
 
 /**
  * The KOL portraits.
  *
- * Given, never minted or sold — so this page is a showcase rather than a
- * storefront. There is no price, no claim button and nothing to connect a
- * wallet for; the only thing a visitor does here is look.
+ * Given, never sold — so this page is a showcase, never a storefront. The one
+ * thing it lets anybody do is for the people on it: connect the wallet they gave
+ * us and take their portrait and their share of SOSO from `KolRewards`.
+ * Everyone else only looks.
+ *
+ * Until that contract has an address (`NEXT_PUBLIC_KOL_REWARDS_ADDRESS`) the
+ * page is exactly the showcase it was — nothing is read and nothing offered.
  *
  * The three at the top are cutouts standing in front of the letters K, O and L,
  * which is the whole reason they are separate assets from the twelve below: the
@@ -56,7 +67,23 @@ const FEATURED = [
   { file: "cigar-l", letter: "L", tint: "var(--plinth-c)", shift: "48%" },
 ] as const;
 
+/** The eyebrow's second half: where the claim stands, in two words. */
+const STAGE_LABEL: Record<Stage, string> = {
+  soon: "Coming soon",
+  preparing: "Coming soon",
+  open: "Claiming open",
+  ended: "Claiming closed",
+};
+
+const day = (unix: number) =>
+  new Date(unix * 1000).toLocaleDateString(undefined, { day: "numeric", month: "short" });
+
 export default function Kols() {
+  const rewards = useKolRewards();
+  const stage = rewards.stage ?? "soon";
+  const live = stage === "open" || stage === "ended";
+  const share = rewards.reward !== undefined && rewards.reward > 0n ? formatSoso(rewards.reward) : undefined;
+
   return (
     <div className="kol">
       <section className="kol-hero">
@@ -86,16 +113,43 @@ export default function Kols() {
                 changes nothing on screen. */}
             One of one{" "}
             <span className="kol-eyebrow-rule" aria-hidden="true" />
-            <span className="kol-soon">
+            <span className={`kol-soon is-${stage}`}>
               <span className="kol-soon-dot" aria-hidden="true" />
-              Coming soon
+              {STAGE_LABEL[stage]}
             </span>
           </p>
           <h1 className="kol-title">The people who show up</h1>
           <p className="kol-lede">
-            Portraits of the regulars on SoDEX — the ones posting through every candle. Made
-            for them, given to them. Never for sale.
+            A small appreciation collection for the people who keep showing up around SoDEX:
+            posting, contributing, trading, helping, and being part of the community.
           </p>
+
+          {/* What each of them receives and how many have. Only once claiming
+              has opened: before that the numbers are not settled, and a row of
+              blanks reads as broken rather than as "soon". */}
+          {live ? (
+            <dl className="kol-facts">
+              <div>
+                <dt>Portraits</dt>
+                <dd>{KOLS.length}</dd>
+              </div>
+              {share === undefined ? null : (
+                <div>
+                  <dt>Each receives</dt>
+                  <dd>
+                    <Soso size={16}>{share}</Soso>
+                  </dd>
+                </div>
+              )}
+              <div>
+                <dt>Claimed</dt>
+                <dd>
+                  {rewards.claimedCount}
+                  <span className="kol-facts-of"> / {KOLS.length}</span>
+                </dd>
+              </div>
+            </dl>
+          ) : null}
         </div>
 
         {/* The letters carry meaning now, so the row is announced as the word it
@@ -128,11 +182,16 @@ export default function Kols() {
 
       <section className="section" id="roster">
         <div className="page">
+          {rewards.deployed && stage !== "soon" ? <Yours rewards={rewards} stage={stage} share={share} /> : null}
+
           <div className="kol-grid">
             {KOLS.map((k) => (
-              <article className="kol-card" key={k.n}>
+              <article className={`kol-card${rewards.mine?.kol.n === k.n ? " is-mine" : ""}`} key={k.n}>
                 <div className="kol-card-art">
                   <Art src={kolImage(k)} alt={k.name} sizes="(max-width: 700px) 45vw, 240px" />
+                  {rewards.statuses.get(k.n)?.claimed ? (
+                    <span className="chip chip-up kol-card-chip">Claimed</span>
+                  ) : null}
                 </div>
                 <div className="kol-card-foot">
                   <b>{k.name}</b>
@@ -158,5 +217,149 @@ export default function Kols() {
         </div>
       </section>
     </div>
+  );
+}
+
+/**
+ * The connected wallet's own portrait, and the one button on this page.
+ *
+ * The person it is for arrives not knowing whether they are on the list, so
+ * something shows while claiming is open. Not connected: an invitation to
+ * check. Connected and not on it: one quiet line. On it: their portrait, large,
+ * with what comes with it.
+ */
+function Yours({
+  rewards,
+  stage,
+  share,
+}: {
+  rewards: ReturnType<typeof useKolRewards>;
+  stage: Stage;
+  share: string | undefined;
+}) {
+  const { isConnected } = useAccount();
+  const { mine, tx, deadline } = rewards;
+
+  if (!isConnected) {
+    if (stage !== "open") return null;
+    return (
+      <div className="kol-invite">
+        <p>
+          <b>On the roster?</b> Connect the wallet you shared with us to claim your portrait.
+        </p>
+        <ConnectButton className="btn btn-primary">Connect wallet</ConnectButton>
+      </div>
+    );
+  }
+
+  if (rewards.loading) return null;
+
+  if (mine === undefined) {
+    if (stage !== "open") return null;
+    return (
+      <p className="kol-invite-note">
+        No portrait is waiting for this wallet. On the roster? Connect the wallet you shared with us.
+      </p>
+    );
+  }
+
+  const { kol } = mine;
+  const claimed = mine.claimed || tx.success;
+
+  return (
+    <section className={`kol-yours${claimed ? " is-claimed" : ""}`} aria-labelledby="kol-yours-title">
+      <div className="kol-yours-art">
+        <Art src={kolImage(kol)} alt={kol.name} sizes="(max-width: 760px) 90vw, 420px" />
+      </div>
+
+      <div className="kol-yours-body">
+        <p className="kol-yours-eyebrow">
+          {claimed ? "In your wallet" : "Made for you"} · #{kol.n}
+        </p>
+        <h2 id="kol-yours-title" className="kol-yours-title">
+          {claimed ? <>It&rsquo;s yours, {kol.name}.</> : <>GM, {kol.name}.</>}
+        </h2>
+
+        {claimed ? (
+          <ClaimedActions kol={kol} portraits={rewards.portraits} />
+        ) : stage === "preparing" ? (
+          <p className="kol-yours-lede">
+            Your portrait is set aside for this wallet. Claiming opens soon — check back here.
+          </p>
+        ) : stage === "ended" ? (
+          <p className="kol-yours-lede">
+            Claiming closed{deadline === undefined ? "" : ` on ${day(deadline)}`}. Reach out to us and we will
+            sort it out.
+          </p>
+        ) : (
+          <>
+            <p className="kol-yours-lede">
+              One of one, drawn for you and nobody else
+              {share === undefined ? "." : ", with SOSO alongside it, straight to this wallet."}
+            </p>
+
+            <ul className="kol-yours-gets">
+              <li>
+                <span>Portrait</span>
+                <b>#{kol.n} · 1 of 1</b>
+              </li>
+              {share === undefined ? null : (
+                <li>
+                  <span>Reward</span>
+                  <b>
+                    <Soso size={16}>{share}</Soso>
+                  </b>
+                </li>
+              )}
+            </ul>
+
+            <button
+              type="button"
+              className={`btn btn-primary btn-lg btn-block${tx.busy ? " is-busy" : ""}`}
+              disabled={tx.busy}
+              aria-busy={tx.busy}
+              onClick={() => void rewards.claim(kol.n)}
+            >
+              {tx.signing ? "Confirm in your wallet…" : tx.confirming ? "Claiming…" : "Claim"}
+            </button>
+            <TxResult
+              hash={tx.hash}
+              confirming={tx.confirming}
+              success={false}
+              error={tx.error}
+              successLabel="Claimed"
+            />
+            <p className="kol-yours-small">
+              {deadline === undefined ? null : <>Open until {day(deadline)}. </>}
+              You pay a little gas; the rest is on us.
+            </p>
+          </>
+        )}
+      </div>
+    </section>
+  );
+}
+
+/** After the claim: where it is, and a post to tell people about it. */
+function ClaimedActions({ kol, portraits }: { kol: Kol; portraits: `0x${string}` | undefined }) {
+  const text = "Just claimed my one-of-one portrait on ValueMint — made for the people who show up on SoDEX.";
+  const intent =
+    `https://x.com/intent/post?text=${encodeURIComponent(text)}` +
+    `&url=${encodeURIComponent("https://www.valuemint.store/kols")}`;
+
+  return (
+    <>
+      <p className="kol-yours-lede">Your portrait and your SOSO are in this wallet. Thank you for showing up.</p>
+      <div className="kol-yours-actions">
+        {portraits === undefined ? null : (
+          <Link className="btn btn-primary" href={`/token/${portraits}/${kol.n}`}>
+            View your portrait
+          </Link>
+        )}
+        <a className="btn" href={intent} target="_blank" rel="noreferrer noopener">
+          Share on X
+        </a>
+      </div>
+    </>
   );
 }

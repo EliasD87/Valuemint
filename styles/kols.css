@@ -66,7 +66,11 @@
 
 .kol-lede {
   margin: 0;
-  max-width: 52ch;
+  /* Wide enough for the sentence to sit on two lines wherever the screen
+     allows it, and balanced so the two come out even rather than one long
+     line over a stub. */
+  max-width: 80ch;
+  text-wrap: balance;
   font-size: var(--step--1);
   line-height: 1.6;
   color: #cbb8d8;
@@ -430,4 +434,303 @@
 .kol-card-x:hover,
 .kol-card-x:focus-visible {
   color: var(--ink);
+}
+
+/* ============================================================== the claim ===
+ *
+ * Everything below appears only once `KolRewards` has an address. Until then
+ * the page is the showcase above and none of these classes render.
+ * ========================================================================== */
+
+/* The eyebrow's status dot follows the stage. Orange pulse means "soon"; green
+   means something can be done right now; closed goes still and grey. The
+   hero is a committed dark band (see the top of this file), so these are
+   stated for dark ground, like everything else in it. */
+.kol-soon.is-open .kol-soon-dot {
+  background: #3ecf8e;
+  box-shadow: 0 0 0 3px rgba(62, 207, 142, 0.18);
+}
+
+.kol-soon.is-ended .kol-soon-dot {
+  background: rgba(255, 255, 255, 0.45);
+  box-shadow: none;
+  animation: none;
+}
+
+/* Three figures in the hero, under the lede. Glass on the violet, hairlines
+   between — the same quiet register as the eyebrow, so the portraits stay the
+   subject. */
+.kol-facts {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin: 0.6rem 0 0;
+  padding: 0.35rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--r-lg);
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(6px);
+}
+
+.kol-facts > div {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0.45rem clamp(0.9rem, 2.4vw, 1.6rem);
+}
+
+.kol-facts > div + div {
+  border-left: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.kol-facts dt {
+  font-size: var(--step--3);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #b89bcc;
+}
+
+.kol-facts dd {
+  margin: 0;
+  font-family: var(--display);
+  font-size: var(--step-1);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  color: #fdfdfe;
+}
+
+.kol-facts-of {
+  font-weight: 600;
+  color: #9d85b0;
+}
+
+/* ------------------------------------------------------ not connected yet */
+
+.kol-invite {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1.25rem;
+  margin-bottom: clamp(1.25rem, 3vw, 2rem);
+  padding: 0.9rem 0.9rem 0.9rem 1.25rem;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+}
+
+.kol-invite p {
+  margin: 0;
+  font-size: var(--step--1);
+  color: var(--ink-2);
+}
+
+.kol-invite b {
+  color: var(--ink);
+}
+
+.kol-invite-note {
+  margin: 0 0 clamp(1.25rem, 3vw, 2rem);
+  font-size: var(--step--1);
+  color: var(--ink-3);
+  text-align: center;
+}
+
+/* ------------------------------------------------------------ yours ------
+ *
+ * The portrait large, and beside it what comes with it and the button. Laid
+ * out like the token page's hero rather than a modal: this is the one moment on
+ * the site made for exactly one person, and it should read as a place, not a
+ * prompt.
+ */
+.kol-yours {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  gap: clamp(1.25rem, 3.5vw, 2.75rem);
+  align-items: center;
+  margin-bottom: clamp(1.75rem, 4vw, 3rem);
+  padding: clamp(1rem, 2.4vw, 1.5rem);
+  border: 1px solid var(--accent-line);
+  border-radius: var(--r-xl);
+  background:
+    radial-gradient(120% 90% at 0% 0%, var(--accent-wash), transparent 60%),
+    var(--surface);
+  box-shadow: var(--shadow-md);
+}
+
+.kol-yours-art {
+  position: relative;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: var(--r-lg);
+  background: var(--surface-2);
+  box-shadow: var(--shadow-art);
+}
+
+/*
+ * The shine, once it is theirs: a band of light that crosses the portrait
+ * once. A pseudo-element over the art, so the portrait itself is never what
+ * animates — nothing here can hide the artwork if the animation fails to run.
+ */
+.kol-yours.is-claimed .kol-yours-art::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    115deg,
+    transparent 35%,
+    rgba(255, 255, 255, 0.38) 50%,
+    transparent 65%
+  );
+  transform: translateX(110%);
+  animation: kol-shine 1.4s var(--ease) 0.2s;
+  pointer-events: none;
+}
+
+@keyframes kol-shine {
+  from {
+    transform: translateX(-110%);
+  }
+}
+
+.kol-yours-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  min-width: 0;
+}
+
+.kol-yours-eyebrow {
+  margin: 0;
+  font-size: var(--step--2);
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.kol-yours-title {
+  margin: 0;
+  font-family: var(--display);
+  font-size: clamp(1.7rem, 3.6vw, 2.6rem);
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  line-height: 1.05;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.kol-yours-lede {
+  margin: 0;
+  max-width: 44ch;
+  font-size: var(--step-0);
+  line-height: 1.55;
+  color: var(--ink-2);
+}
+
+.kol-yours-gets {
+  margin: 0.2rem 0 0.3rem;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+}
+
+.kol-yours-gets li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.7rem 0.9rem;
+  font-size: var(--step--1);
+}
+
+.kol-yours-gets li + li {
+  border-top: 1px solid var(--line);
+}
+
+.kol-yours-gets span {
+  color: var(--ink-3);
+}
+
+.kol-yours-gets b {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
+.kol-yours-small {
+  margin: 0;
+  font-size: var(--step--2);
+  color: var(--ink-3);
+}
+
+.kol-yours-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 0.3rem;
+}
+
+@media (max-width: 760px) {
+  .kol-yours {
+    grid-template-columns: 1fr;
+  }
+
+  .kol-yours-art {
+    max-width: 420px;
+    width: 100%;
+    justify-self: center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kol-yours.is-claimed .kol-yours-art::after {
+    animation: none;
+  }
+}
+
+/* ------------------------------------------------------------- roster ---- */
+
+.kol-card-chip {
+  position: absolute;
+  top: 0.55rem;
+  left: 0.55rem;
+  z-index: 1;
+  box-shadow: var(--shadow-sm);
+}
+
+/* Their own card in the roster, marked so they can find themselves in it. */
+.kol-card.is-mine {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+/* Phones: the three figures stay on one row. Wrapped, the third dropped under
+   the first two with its divider hanging on nothing (measured at 375). */
+@media (max-width: 760px) {
+  .kol-facts {
+    flex-wrap: nowrap;
+    width: 100%;
+    max-width: 360px;
+  }
+
+  .kol-facts > div {
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 0.4rem 0.35rem;
+  }
+
+  .kol-facts dt {
+    letter-spacing: 0.08em;
+    white-space: nowrap;
+  }
+
+  .kol-facts dd {
+    font-size: var(--step-0);
+  }
 }

@@ -120,7 +120,14 @@ const securityHeaders = [
        * has no host and reaches no network — it is bytes already in the page.
        * `img-src` has allowed `data:` all along for exactly this reason.
        */
-      "connect-src 'self' https: wss: data:",
+      /*
+       * Plus a local node, in development only, so a page can be rehearsed
+       * against `hardhat node` (see contracts/scripts/local-kol-rewards.mjs).
+       * Plain http/ws to loopback; production never sees it.
+       */
+      isDev
+        ? "connect-src 'self' https: wss: data: http://127.0.0.1:* ws://127.0.0.1:*"
+        : "connect-src 'self' https: wss: data:",
 
       /**
        * `data:` because EIP-6963 wallets supply their icons as data URIs, and
