@@ -48,7 +48,12 @@ const FEATURED = [
   // Versioned filename: the artwork was replaced, and the image optimiser
   // caches by source URL — same path with different bytes serves the old cut.
   { file: "lutz-v2", letter: "O", tint: "var(--plinth-b)", shift: "0%" },
-  { file: "takimi", letter: "L", tint: "var(--plinth-c)", shift: "16%" },
+  // Replaced Takimi's figure 2026-09-26. A new filename rather than new bytes
+  // under the old one, for the same reason as lutz-v2. A broad bust where hers
+  // was narrow, so it has to move much further right to leave the stem clear:
+  // at 16% it covered the whole stem; 48% clears it by 7px at 1440 and 4px at
+  // 390, measured, where the right shoulder runs ~20px off a phone screen.
+  { file: "cigar-l", letter: "L", tint: "var(--plinth-c)", shift: "48%" },
 ] as const;
 
 export default function Kols() {
