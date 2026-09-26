@@ -6,6 +6,7 @@ import { useWriteContract } from "@/hooks/useChainWrite";
 import { useTxOutcome } from "@/hooks/useTxOutcome";
 import {
   decodeAbiParameters,
+  formatEther,
   keccak256,
   parseGwei,
   stringToBytes,
@@ -136,6 +137,17 @@ interface KnownCall {
   render?: (args: readonly unknown[]) => string;
 }
 
+/** The live KOL contracts, so a call aimed at them reads as what it is. */
+const KOL_COLLECTION = "0x8a22d660611d0dc2051ab515da950dd9fcafbbbd";
+const KOL_REWARDS = "0x175b5eb9c0c0337606f6af6922dc994314d8a96a";
+
+/** "the KOL claim contract" for that address, the address itself otherwise. */
+const who = (a: unknown) =>
+  String(a).toLowerCase() === KOL_REWARDS ? `the KOL claim contract (${String(a)})` : String(a);
+
+/** unix seconds -> a date anyone can check, in UTC so every signer sees the same one. */
+const when = (t: unknown) => `${new Date(Number(t) * 1000).toUTCString()}`;
+
 const KNOWN_CALLS: Record<string, KnownCall> = {
   "0x79ba5097": { label: "acceptOwnership() — take ownership of the target contract" },
   "0x8456cb59": { label: "pause() — halt all trading" },
@@ -156,6 +168,52 @@ const KNOWN_CALLS: Record<string, KnownCall> = {
     label: "setFeeRecipient(address)",
     params: [{ type: "address" }] as const,
     render: ([who]) => `setFeeRecipient(${String(who)}) — sends all future fees to that address.`,
+  },
+
+  // --- the KOL collection and its claim contract (KolRewards) -------------
+  //
+  // Added when the first of these — minting #37 into the claim contract —
+  // could not be approved here: the page rightly refuses a call it cannot
+  // read, and it had never been taught these.
+  "0xed0e31de": {
+    label: "mintBatch(address,string[])",
+    params: [{ type: "address" }, { type: "string[]" }] as const,
+    render: ([to, uris]) => {
+      const n = (uris as readonly string[]).length;
+      return `mintBatch — mint ${n} new token${n === 1 ? "" : "s"}, the next id${n === 1 ? "" : "s"} in the collection, to ${who(to)}.`;
+    },
+  },
+  "0x5eff440b": {
+    label: "setRecipients(uint256[],address[],uint256[])",
+    params: [{ type: "uint256[]" }, { type: "address[]" }, { type: "uint256[]" }] as const,
+    render: ([ids, wallets, amounts]) => {
+      const i = ids as readonly bigint[];
+      const w = wallets as readonly string[];
+      const a = amounts as readonly bigint[];
+      if (i.length !== w.length || i.length !== a.length) {
+        return "setRecipients — the three lists are different lengths. The contract will refuse it.";
+      }
+      const lines = i.map((id, k) => `#${id} → ${w[k]} · ${formatEther(a[k] ?? 0n)} SOSO`);
+      return `setRecipients — record ${i.length} KOL line${i.length === 1 ? "" : "s"}. Check every one: ${lines.join("; ")}`;
+    },
+  },
+  "0x3be3ebb0": {
+    label: "open(uint64)",
+    params: [{ type: "uint64" }] as const,
+    render: ([t]) => `open — start claiming, until ${when(t)}. It can later be extended, never shortened.`,
+  },
+  "0x08805f75": {
+    label: "extendDeadline(uint64)",
+    params: [{ type: "uint64" }] as const,
+    render: ([t]) => `extendDeadline — keep claiming open until ${when(t)}.`,
+  },
+  "0x35faa416": {
+    label: "sweep() — after the deadline (or before opening), send the claim contract's remaining SOSO to the Safe",
+  },
+  "0x334afdb4": {
+    label: "returnPortrait(uint256,address)",
+    params: [{ type: "uint256" }, { type: "address" }] as const,
+    render: ([id, to]) => `returnPortrait — take unclaimed portrait #${String(id)} back out of the claim contract, to ${String(to)}.`,
   },
 };
 
@@ -213,6 +271,8 @@ const TARGETS: Record<string, string> = {
   [deployment.marketplace.toLowerCase()]: "Marketplace v3 (superseded, paused)",
   "0xb1153aa3dbadd59e3e6aa61452f2daa90b99a859": "Legacy factory — the rehearsal target",
   [deployment.factory.toLowerCase()]: "Collection factory",
+  [KOL_COLLECTION]: "ValueMint KOLs — the KOL portrait collection",
+  [KOL_REWARDS]: "KOL claim contract — holds the portraits and the SOSO pool",
 };
 
 /** Safe's blob for hashes approved on chain, owners ascending. */
@@ -262,7 +322,12 @@ export default function SafeConsole() {
   }, []);
 
   const [to, setTo] = useState("");
-  const [data, setData] = useState("0x79ba5097");
+  // Empty, not a real call. It used to start as acceptOwnership's selector,
+  // and on 2026-09-26 two signers approved that by mistake — the long
+  // calldata they meant to paste never replaced it. It was harmless (the
+  // target has no such function, so it can only revert), but a pre-filled
+  // action is one an owner can sign without ever having chosen it.
+  const [data, setData] = useState("");
 
   const base = { address: safeAddress, abi: safeAbi, query: { enabled: safeAddress !== undefined } } as const;
   const { data: owners } = useReadContract({ ...base, functionName: "getOwners" });
