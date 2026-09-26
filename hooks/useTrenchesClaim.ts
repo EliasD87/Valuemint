@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useAccount, useReadContract } from "wagmi";
+import { useAccount, usePublicClient, useReadContract } from "wagmi";
 import { useWriteContract } from "@/hooks/useChainWrite";
 import { useTxOutcome } from "@/hooks/useTxOutcome";
 import { TRENCHES_ABI, TRENCHES_ADDRESS, TRENCHES_CHAIN_ID } from "@/config/trenches";
@@ -74,7 +74,8 @@ export function useTrenchesClaim(earned: number) {
 
   const { writeContractAsync, reset } = useWriteContract();
   const [hash, setHash] = useState<`0x${string}` | undefined>();
-  const { isSuccess } = useTxOutcome({ hash });
+  const { isSuccess, reverted } = useTxOutcome({ hash });
+  const client = usePublicClient({ chainId: TRENCHES_CHAIN_ID as typeof valuechain.id });
 
   const claim = useCallback(async () => {
     if (address === undefined || !deployed) return;
@@ -101,6 +102,29 @@ export function useTrenchesClaim(earned: number) {
       return;
     }
 
+    /**
+     * The gas limit, worked out here rather than left to the wallet.
+     *
+     * Each depth is a mint, about 145,000 gas apiece, so claiming seven at once
+     * needs ~1,053,000. One wallet app sent every attempt with a flat 720,000
+     * and ran out of gas six times in a row (2026-09-25/26) — the only failed
+     * claims on the contract. Estimated against the real signature and padded
+     * by a quarter; if the estimate itself fails, the wallet is left to decide,
+     * as before.
+     */
+    let gas: bigint | undefined;
+    try {
+      const estimate = await client?.estimateContractGas({
+        ...contract,
+        functionName: "claim",
+        args: [auth.maxTier, BigInt(auth.deadline), auth.signature],
+        account: address,
+      });
+      gas = estimate === undefined ? undefined : (estimate * 125n) / 100n;
+    } catch {
+      gas = undefined;
+    }
+
     setPhase({ kind: "signing" });
     let sent: `0x${string}`;
     try {
@@ -115,6 +139,7 @@ export function useTrenchesClaim(earned: number) {
         chainId: TRENCHES_CHAIN_ID as typeof valuechain.id,
         functionName: "claim",
         args: [auth.maxTier, BigInt(auth.deadline), auth.signature],
+        ...(gas === undefined ? {} : { gas }),
       });
     } catch (error) {
       // A rejected signature is a decision, not a failure; say nothing alarming.
@@ -129,7 +154,7 @@ export function useTrenchesClaim(earned: number) {
 
     setHash(sent);
     setPhase({ kind: "confirming" });
-  }, [address, contract, deployed, reset, writeContractAsync]);
+  }, [address, client, contract, deployed, reset, writeContractAsync]);
 
   // The receipt landing is what makes the claim real, so the owed list is
   // re-read from the chain rather than assumed empty.
@@ -138,6 +163,17 @@ export function useTrenchesClaim(earned: number) {
     setPhase({ kind: "done" });
     void refetchOwed();
   }, [isSuccess, phase.kind, refetchOwed]);
+
+  // A claim mined but reverted used to leave the page on "confirming" for
+  // good. Nothing was claimed, so say so and let them try again.
+  useEffect(() => {
+    if (!reverted || phase.kind !== "confirming") return;
+    setPhase({
+      kind: "error",
+      message: "The claim transaction failed on chain, so nothing was claimed. Try again — you only paid a little gas.",
+    });
+    void refetchOwed();
+  }, [reverted, phase.kind, refetchOwed]);
 
   return {
     deployed,
