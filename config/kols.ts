@@ -79,6 +79,7 @@ export const KOLS: Kol[] = [
   { n: 33, name: "FARMERCIST", image: "QmadRf1XfZRqUhHZe3NLDbJv7RTqaXC9wwv2Dch7mZNVyM", x: "https://x.com/Farmercist" },
   { n: 34, name: "Stephen", image: "QmVdG9ZbGHfNEkGe1QPqZfHBuJF7QduoUUoxQhBQiTLP3w", x: "https://x.com/Nightmare340" },
   { n: 35, name: "GOLD7 SoSoValue", image: "QmZPnZNFSEUtKa4sxX6kU6BvSXqZqQTwLAmALHPZrrJi77", x: "https://x.com/k03150825" },
+  { n: 36, name: "El Turco", image: "Qmd9GmPeReh4SvvSioZbRoFZhUA7qvXWuH9b8ehtzatrQK", x: "https://x.com/birataturkcu88" },
 ];
 
 /** "https://x.com/VaultSeek" → "@VaultSeek". */
