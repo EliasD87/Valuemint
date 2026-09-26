@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { coverFor } from "@/config/covers";
+import { avatarFor, coverFor } from "@/config/covers";
 import { heroFor } from "@/config/heroes";
 import { wordmarkFor } from "@/config/wordmarks";
 import { xAccountFor } from "@/config/socials";
@@ -59,7 +59,7 @@ export function CollectionHero({
    * the avatar is what a piece of it looks like — and a collection with a
    * composed banner still wants its token art in the round.
    */
-  const avatar = covers?.[0];
+  const avatar = avatarFor(address);
 
   return (
     <header className="ch">

@@ -16,6 +16,7 @@ import { Art } from "@/components/Art";
 import { Wordmark } from "@/components/Wordmark";
 import { wordmarkSaying } from "@/config/wordmarks";
 import { soleArtworkFor } from "@/config/covers";
+import { offersAllowed } from "@/config/kols";
 import "./TokenCard.css";
 import { Soso } from "@/components/Soso";
 
@@ -361,7 +362,7 @@ export function TokenCard({
             ) : token.edition !== undefined ? (
               <span>Ed. {token.edition}</span>
             ) : null}
-            {offer !== undefined ? (
+            {!offersAllowed(collection) ? null : offer !== undefined ? (
               <span className="tcard-offer-best">
                 {offer.count > 1 ? `${offer.count} offers · ` : ""}
                 best <b>{formatSoso(offer.best)}</b>
@@ -388,7 +389,7 @@ export function TokenCard({
                 Buy
               </Link>
             ) : null}
-            {isConnected && !isYours ? (
+            {isConnected && !isYours && offersAllowed(collection) ? (
               <button type="button" className="tcard-offer-btn" onClick={() => setOffering(true)}>
                 Offer
               </button>

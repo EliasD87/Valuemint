@@ -17,6 +17,7 @@ import { useListingFor } from "@/hooks/useSeaportOrders";
 import { splitFee } from "@/lib/seaport";
 import { priceMoved } from "@/lib/fillCheck";
 import { Offers } from "@/components/Offers";
+import { offersAllowed } from "@/config/kols";
 import { TxResult } from "@/components/TxResult";
 import { FillBlocked } from "@/components/FillBlocked";
 import { ShareLink } from "@/components/ShareLink";
@@ -703,8 +704,14 @@ export function TokenView({
               </p>
             ) : (
               <p className="token-note">
-                Not listed for sale. Only its owner can set a price &mdash; but anyone can
-                make an offer below.
+                {offersAllowed(collection) ? (
+                  <>
+                    Not listed for sale. Only its owner can set a price &mdash; but anyone can
+                    make an offer below.
+                  </>
+                ) : (
+                  <>Not listed for sale. Only its owner can set a price.</>
+                )}
               </p>
             )}
 
@@ -735,12 +742,14 @@ export function TokenView({
                   that is not somebody's asking price. */}
               <Activity collection={collection} tokenId={tokenId} markBurned />
 
-              <Offers
-                collection={collection}
-                tokenId={tokenId}
-                isOwner={isOwner}
-                onChange={afterAction}
-              />
+              {offersAllowed(collection) ? (
+                <Offers
+                  collection={collection}
+                  tokenId={tokenId}
+                  isOwner={isOwner}
+                  onChange={afterAction}
+                />
+              ) : null}
             </>
           )}
 

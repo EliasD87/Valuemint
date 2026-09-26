@@ -90,6 +90,20 @@ export const xHandle = (url: string) => `@${url.replace(/\/+$/, "").split("/").p
 /** The live ValueMint KOLs collection (deployed 2026-09-26, owned by the Safe). */
 export const KOLS_COLLECTION = "0x8a22d660611d0dc2051ab515da950dd9fcafbbbd";
 
+/** Where a KOL sends their wallet address to be put on the claim list. */
+export const KOLS_CLAIM_CONTACT = { handle: "eliasing__", url: "https://x.com/eliasing__" };
+
+/**
+ * Whether the marketplace offers to bid on this collection's pieces.
+ *
+ * Not on the KOL portraits: each is a one-of-one given to one named person,
+ * so a "Make offer" button on it reads as an invitation to buy someone's
+ * portrait off them. Holders can still list one if they choose; nobody is
+ * prompted to bid. Everything else keeps its offers.
+ */
+export const offersAllowed = (collection: string | undefined) =>
+  collection === undefined || collection.toLowerCase() !== KOLS_COLLECTION;
+
 /** The collection's slug, matching the metadata route and the contract baseURI. */
 export const KOLS_SLUG = "valuemint-kols";
 

@@ -1,0 +1,98 @@
+/* The KOL claim line: one row, the X mark on the left, the handle on the
+   right, and the whole thing a link. Tokens only, so it holds in both themes. */
+.kcn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 clamp(1rem, 2.5vw, 1.5rem);
+  padding: 10px 16px 10px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  color: var(--ink-2);
+  font-size: var(--step--1);
+  text-decoration: none;
+  transition: border-color var(--fast), transform var(--fast), box-shadow var(--fast);
+}
+
+.kcn:hover,
+.kcn:focus-visible {
+  border-color: var(--ink);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.kcn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+/* The X mark in an ink disc, the way X draws it. */
+.kcn-x {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--ink);
+}
+
+.kcn-x svg {
+  width: 15px;
+  height: 15px;
+  fill: var(--paper);
+}
+
+.kcn-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.kcn-text b {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.kcn-handle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+  font-weight: 700;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.kcn-arrow {
+  color: var(--accent);
+  transition: transform var(--fast);
+}
+
+.kcn:hover .kcn-arrow {
+  transform: translateX(3px);
+}
+
+/* Phones: the handle drops under the sentence rather than squeezing it. */
+@media (max-width: 560px) {
+  .kcn {
+    flex-wrap: wrap;
+    border-radius: var(--r-lg);
+    row-gap: 4px;
+  }
+
+  .kcn-text {
+    flex-basis: calc(100% - 50px);
+  }
+
+  .kcn-handle {
+    margin-left: 46px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kcn,
+  .kcn-arrow {
+    transition: none;
+  }
+}

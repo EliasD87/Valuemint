@@ -7,6 +7,7 @@ import { Art } from "@/components/Art";
 import { ConnectButton } from "@/components/ConnectButton";
 import { Soso } from "@/components/Soso";
 import { TxResult } from "@/components/TxResult";
+import { KolClaimNote } from "@/components/KolClaimNote";
 import { KOLS, kolImage, kolLocal, xHandle, type Kol } from "@/config/kols";
 import { useKolRewards, type Stage } from "@/hooks/useKolRewards";
 import { formatSoso } from "@/lib/format";
@@ -245,6 +246,10 @@ export default function Kols() {
 
       <section className="section" id="roster">
         <div className="page">
+          {/* For the people on the roster: how to get on the claim list. Not
+              once claiming has closed, when there is nothing left to join. */}
+          {stage === "ended" ? null : <KolClaimNote />}
+
           {rewards.deployed && stage !== "soon" ? <Yours rewards={rewards} stage={stage} /> : null}
 
           <div className="kol-grid">

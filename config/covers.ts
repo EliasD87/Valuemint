@@ -54,6 +54,7 @@ export const COLLECTION_COVERS: Record<string, string[]> = {
 
   // ValueMint KOLs — the first four portraits, from the /kols roster mirror
   // (metadata/scripts/localise-kols.mjs), which is already local and 640px.
+  // The collection's avatar is NOT the first of these: see COLLECTION_AVATARS.
   "0x8a22d660611d0dc2051ab515da950dd9fcafbbbd": [
     "/kols/roster/01.webp",
     "/kols/roster/02.webp",
@@ -148,6 +149,25 @@ export const COLLECTION_COVERS: Record<string, string[]> = {
     "/covers/c486e7aa-1.webp",
   ],
 };
+
+/**
+ * A collection's avatar, where it is not simply its first cover.
+ *
+ * The avatar is normally `covers[0]`. A collection whose cards should show its
+ * pieces but whose profile picture is purpose-made art names that art here.
+ */
+export const COLLECTION_AVATARS: Record<string, string> = {
+  // ValueMint KOLs — the "KOL" group art supplied by the owner, 2026-09-26: the
+  // three figures standing in the letters, as on /kols. Cropped to the centre
+  // 1000px of the 1254px PNG (wide white margins made the figures tiny at
+  // avatar size), 512px WebP. Its cards keep the portraits above.
+  "0x8a22d660611d0dc2051ab515da950dd9fcafbbbd": "/covers/valuemint-kols.webp",
+};
+
+/** The collection's avatar: its named one, else its first cover. */
+export function avatarFor(address: string): string | undefined {
+  return COLLECTION_AVATARS[address.toLowerCase()] ?? coverFor(address)?.[0];
+}
 
 /** The named cover for a collection, or nothing if it has not been given one. */
 export function coverFor(address: string): string[] | undefined {

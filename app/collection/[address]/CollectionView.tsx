@@ -24,7 +24,7 @@ import { CollectionHero } from "@/components/CollectionHero";
 import { SealedNotice } from "@/components/Unrevealed";
 import { CollectionStats } from "@/components/CollectionStats";
 import { PageTabs, type TabDef } from "@/components/PageTabs";
-import { KOLS_COLLECTION } from "@/config/kols";
+import { KOLS_COLLECTION, offersAllowed } from "@/config/kols";
 
 /**
  * Any ERC-721 on ValueChain, not only ours.
@@ -344,7 +344,7 @@ export function CollectionView({ params }: { params: Promise<{ address: string }
       <CollectionStats collection={collection} supply={supply as bigint | undefined} />
 
       {/* Bids on the whole collection or one trait, and the way to place one. */}
-      {collection === undefined ? null : <CollectionOffers collection={collection} />}
+      {collection === undefined || !offersAllowed(collection) ? null : <CollectionOffers collection={collection} />}
 
       <PageTabs tabs={tabs} active={tab} onChange={setTab} label="Collection sections" />
 
@@ -373,7 +373,10 @@ export function CollectionView({ params }: { params: Promise<{ address: string }
             every one does and being wrong costs a row disappearing on a page with a
             single token on it.
           */}
-          {(supply ?? 2n) > 1n ? (
+          {/* Not for a roster-ordered set like the KOLs: its order IS the
+              content (#1 first), there are no prices to sort by, and its
+              traits describe nobody in particular. */}
+          {(supply ?? 2n) > 1n && !ROSTER_ORDERED.has((collection ?? "").toLowerCase()) ? (
             <div className="coll-controls">
               <div className="wrap-row">
                 {/* The default first, so the selected pill leads the row. */}
