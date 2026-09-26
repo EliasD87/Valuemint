@@ -25,6 +25,13 @@ export interface HiddenCollection {
 
 export const HIDDEN_COLLECTIONS: HiddenCollection[] = [
   {
+    address: "0x117768CBF1c666A25272917af828178f49Bd6b23",
+    reason:
+      "KOL Claim Test v2 (KOLTEST) — the second rehearsal set, for KolRewards " +
+      "with per-KOL reward amounts, deployed 2026-09-26: 5 test NFTs for the " +
+      "owner's test wallets. Not the real KOL collection.",
+  },
+  {
     address: "0x38e8E2b3F51d87Bb1232e1a54EB54ddf9D54BbB3",
     reason:
       "KOL Claim Test (KOLTEST) — the rehearsal set for KolRewards, deployed " +
