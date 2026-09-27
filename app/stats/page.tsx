@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useBlockNumber } from "wagmi";
 import { useActivity, type ActivityRow } from "@/hooks/useActivity";
 import { useAllCollections } from "@/hooks/useAllCollections";
+import { useMinters } from "@/hooks/useMinters";
 import { PulseVolume } from "@/components/PulseVolume";
 import { Select } from "@/components/Select";
 import { Soso } from "@/components/Soso";
@@ -95,6 +96,8 @@ const WINDOWS: { value: string; label: string; hours?: number }[] = [
 export default function StatsPage() {
   const { rows: all, isLoading, logsUnavailable, logsPartial, refetch } = useActivity(undefined);
   const { collections } = useAllCollections();
+  /** Wallets that minted here, which the marketplace events alone never showed. */
+  const minters = useMinters();
 
   /** Twelve seconds of staleness cannot change what "3 hours ago" says. */
   const { data: head } = useBlockNumber({ query: { staleTime: 12_000 } });
@@ -131,13 +134,17 @@ export default function StatsPage() {
    * that quietly stayed all-time under a 24-hour chart would be the worst of
    * both.
    */
-  const rows = useMemo(() => {
-    if (hours === undefined || head === undefined) return visible;
+  /** The first block of the chosen window; undefined for all time. */
+  const floor = useMemo(() => {
+    if (hours === undefined || head === undefined) return undefined;
     const back = BigInt(Math.round((hours * 3600) / SECONDS_PER_BLOCK));
-    if (head < back) return visible;
-    const floor = head - back;
-    return visible.filter((r) => r.blockNumber >= floor);
-  }, [visible, hours, head]);
+    return head < back ? undefined : head - back;
+  }, [hours, head]);
+
+  const rows = useMemo(
+    () => (floor === undefined ? visible : visible.filter((r) => r.blockNumber >= floor)),
+    [visible, floor],
+  );
 
   const nameFor = useMemo(() => {
     const names = new Map<string, string>();
@@ -173,8 +180,18 @@ export default function StatsPage() {
         ? undefined
         : (Number(newest - oldest) * SECONDS_PER_BLOCK) / 3600;
 
+    /**
+     * Wallets that minted in the window join the count. "Wallets involved"
+     * counted only listings, offers and sales, so everyone who minted or
+     * claimed and never traded — most Trenches claimers — was missing.
+     * Treasure Box and Cybereator mints are not in this list (lib/minters.ts).
+     */
+    for (const [wallet, block] of minters ?? []) {
+      if (floor === undefined || BigInt(block) >= floor) traders.add(wallet);
+    }
+
     return { traders: traders.size, collections: seen.size, volume, sales, listings, offers, span };
-  }, [rows]);
+  }, [rows, minters, floor]);
 
   /** Who is actually moving, by what settled rather than by what was asked. */
   const movers = useMemo(() => {
