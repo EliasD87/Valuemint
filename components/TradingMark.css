@@ -1,0 +1,94 @@
+/* ============================================================ trading mark
+ *
+ * Three candles in a round badge, sized from the text beside it like the
+ * verified mark. Colours are the site's own up and down, so it reads as a
+ * market in either theme.
+ * ========================================================================= */
+
+.tm {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  translate: 0 1px;
+}
+
+.tm svg {
+  width: var(--tm-size, 15px);
+  height: var(--tm-size, 15px);
+  display: block;
+  overflow: visible;
+}
+
+.tm-badge {
+  fill: var(--surface-2);
+  stroke: var(--line-strong);
+  stroke-width: 1;
+}
+
+.tm-candle line {
+  stroke-width: 1.3;
+  stroke-linecap: round;
+}
+.tm-up line {
+  stroke: var(--up);
+}
+.tm-up rect {
+  fill: var(--up);
+}
+.tm-down line {
+  stroke: var(--down);
+}
+.tm-down rect {
+  fill: var(--down);
+}
+
+/*
+ * The tick: each candle drifts up and down and its body breathes, out of step
+ * with the others, so the three never move together and it reads as a live
+ * chart. Negative delays start each one mid-cycle, so there is no moment where
+ * all three sit still in a row.
+ */
+.tm-candle {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+  animation: tm-drift 2.6s ease-in-out infinite;
+}
+.tm-candle rect {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+  animation: tm-breathe 2.6s ease-in-out infinite;
+}
+.tm-c2,
+.tm-c2 rect {
+  animation-delay: -0.9s;
+}
+.tm-c3,
+.tm-c3 rect {
+  animation-delay: -1.7s;
+}
+
+@keyframes tm-drift {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-1.6px);
+  }
+}
+@keyframes tm-breathe {
+  0%,
+  100% {
+    transform: scaleY(1);
+  }
+  50% {
+    transform: scaleY(0.72);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tm-candle,
+  .tm-candle rect {
+    animation: none;
+  }
+}

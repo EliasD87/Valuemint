@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { Art } from "@/components/Art";
 import { Wordmark } from "@/components/Wordmark";
 import { VerifiedMark } from "@/components/VerifiedMark";
+import { TradingMark } from "@/components/TradingMark";
 import { wordmarkFor } from "@/config/wordmarks";
 import { shortAddress } from "@/lib/format";
 
@@ -114,6 +115,7 @@ export function CollectionCard({ href, name, symbol, address, images, badge, sta
             <b className="coll-card-title">
               {mark === undefined ? name : <Wordmark mark={mark} name={name} />}
               <VerifiedMark collection={address} size={14} />
+              <TradingMark collection={address} size={14} />
             </b>
             <span className="mono dim">{symbol || shortAddress(address, 4)}</span>
           </div>

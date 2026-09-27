@@ -9,6 +9,7 @@ import { Wordmark } from "@/components/Wordmark";
 import { BannerVideo } from "@/components/BannerVideo";
 import { ShareLink } from "@/components/ShareLink";
 import { VerifiedMark } from "@/components/VerifiedMark";
+import { TradingMark } from "@/components/TradingMark";
 import { deployment } from "@/config/contracts";
 import { formatCount, shortAddress } from "@/lib/format";
 import "./CollectionHero.css";
@@ -190,6 +191,8 @@ export function CollectionHero({
                 what.
               */}
               <VerifiedMark collection={address} size={20} />
+              {/* Beside it, for a collection earned by trading (config/tradingMark.ts). */}
+              <TradingMark collection={address} size={20} />
             </h2>
 
             <div className="ch-actions">
