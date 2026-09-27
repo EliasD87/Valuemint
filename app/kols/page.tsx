@@ -167,11 +167,39 @@ export default function Kols() {
                 +
               </span>
               <span className="kol-gift-item">
-                {/* The white mark on purpose, whatever the site theme: this band
-                    is always dark, and the light-theme mark vanishes on it. */}
-                {/* eslint-disable-next-line @next/next/no-img-element -- a 4 KB local icon, as in Soso.tsx */}
-                <img className="kol-gift-soso" src="/soso-dark.png" alt="" width={128} height={128} />
-                SOSO reward
+                {/* A wrapped present with the SOSO mark tied on as its tag: the
+                    reward is not announced yet, so it reads as a surprise. The
+                    white mark on purpose, whatever the site theme: this band is
+                    always dark, and the light-theme mark vanishes on it. */}
+                <span className="kol-gift-box" aria-hidden="true">
+                  <svg className="kol-gift-present" viewBox="0 0 32 32" focusable="false">
+                    <defs>
+                      <linearGradient id="kolGiftWrap" x1="0" y1="0" x2="1" y2="1">
+                        <stop offset="0" stopColor="#ff8a3d" />
+                        <stop offset="1" stopColor="#e8479f" />
+                      </linearGradient>
+                      <linearGradient id="kolGiftLid" x1="0" y1="0" x2="1" y2="1">
+                        <stop offset="0" stopColor="#ffa25e" />
+                        <stop offset="1" stopColor="#f25aa8" />
+                      </linearGradient>
+                    </defs>
+                    {/* bow */}
+                    <path d="M16 11c-2.6-4.6-7.4-5.2-7.6-2.1-.2 2.5 3.8 2.6 7.6 2.1Z" fill="#fde68a" />
+                    <path d="M16 11c2.6-4.6 7.4-5.2 7.6-2.1.2 2.5-3.8 2.6-7.6 2.1Z" fill="#fde68a" />
+                    {/* box */}
+                    <rect x="5.5" y="15" width="21" height="13.5" rx="2.2" fill="url(#kolGiftWrap)" />
+                    {/* lid */}
+                    <g className="kol-gift-lid">
+                      <rect x="4" y="10.5" width="24" height="5.5" rx="1.8" fill="url(#kolGiftLid)" />
+                      <rect x="14.2" y="10.5" width="3.6" height="5.5" fill="#fde68a" />
+                    </g>
+                    {/* ribbon down the front */}
+                    <rect x="14.2" y="15" width="3.6" height="13.5" fill="#fde68a" />
+                  </svg>
+                  {/* eslint-disable-next-line @next/next/no-img-element -- a 4 KB local icon, as in Soso.tsx */}
+                  <img className="kol-gift-soso" src="/soso-dark.png" alt="" width={128} height={128} />
+                </span>
+                Surprise reward
               </span>
             </p>
             <span className="kol-sponsor-rule" aria-hidden="true" />

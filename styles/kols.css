@@ -801,10 +801,90 @@
   margin-left: -9px;
 }
 
-.kol-gift-soso {
-  width: 25px;
-  height: 25px;
+/*
+ * The reward as a wrapped present with the SOSO mark tied on as its tag.
+ *
+ * The present wiggles now and then, the way a box does when something inside
+ * wants out: a short tilt, the lid lifting a touch, then a long rest. Only a
+ * transform animates, from the resting state, with no fill mode, so the box
+ * is fully drawn whether or not the animation ever runs.
+ */
+.kol-gift-box {
+  position: relative;
+  display: inline-block;
+  width: 34px;
+  height: 34px;
   flex: none;
+}
+
+.kol-gift-present {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  filter: drop-shadow(0 3px 6px rgba(232, 71, 159, 0.35));
+  transform-origin: 50% 90%;
+  animation: kol-gift-wiggle 4.2s ease-in-out infinite;
+}
+
+.kol-gift-lid {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: kol-gift-lid 4.2s ease-in-out infinite;
+}
+
+/* The SOSO mark, hung on the box's corner like a gift tag. */
+.kol-gift-soso {
+  position: absolute;
+  right: -6px;
+  bottom: -4px;
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px #1f0b2b;
+  background: #1f0b2b;
+}
+
+@keyframes kol-gift-wiggle {
+  0%,
+  70%,
+  100% {
+    transform: rotate(0deg);
+  }
+  75% {
+    transform: rotate(-8deg);
+  }
+  80% {
+    transform: rotate(7deg);
+  }
+  85% {
+    transform: rotate(-4deg);
+  }
+  90% {
+    transform: rotate(2deg);
+  }
+}
+
+@keyframes kol-gift-lid {
+  0%,
+  72%,
+  92%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  78% {
+    transform: translateY(-2.5px) rotate(-6deg);
+  }
+  84% {
+    transform: translateY(-1.5px) rotate(4deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kol-gift-present,
+  .kol-gift-lid {
+    animation: none;
+  }
 }
 
 .kol-gift-plus {
@@ -915,9 +995,14 @@
     height: 26px;
   }
 
+  .kol-gift-box {
+    width: 30px;
+    height: 30px;
+  }
+
   .kol-gift-soso {
-    width: 22px;
-    height: 22px;
+    width: 15px;
+    height: 15px;
   }
 }
 
@@ -970,4 +1055,17 @@
   display: block;
   width: 100%;
   height: auto;
+}
+
+/* The smallest phones: "1/1 portrait NFT + Surprise reward" no longer
+   fits one line at 320px, so it wraps, centred, instead of overflowing. */
+@media (max-width: 359px) {
+  .kol-gift {
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .kol-gift-plus {
+    display: none;
+  }
 }
