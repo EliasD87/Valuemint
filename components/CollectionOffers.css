@@ -129,3 +129,37 @@
   line-height: 1.5;
   color: var(--ink-2);
 }
+
+/* Where Accept will be, while the viewer's pieces are checked: a small ring
+   the size of the button's text, so nothing jumps when the answer lands. */
+.co-accept-wait {
+  display: inline-block;
+  width: 0.85rem;
+  height: 0.85rem;
+  margin-left: 0.35rem;
+  border-radius: 50%;
+  border: 2px solid var(--line-strong);
+  border-top-color: var(--ink-2);
+  animation: co-spin 0.8s linear infinite;
+}
+@keyframes co-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .co-accept-wait {
+    animation: none;
+    border-top-color: var(--line-strong);
+  }
+}
+
+/* "Checking offers…": the spinner leads, so it sits flush left, not indented. */
+.co-checking {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+.co-checking .co-accept-wait {
+  margin-left: 0;
+}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useSyncExternalStore, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useReadContracts } from "wagmi";
 import {
@@ -330,22 +330,46 @@ export function useSeaportOrders(enabled = true) {
     query: { enabled: candidates.length > 0, refetchInterval: 25_000 },
   });
 
+  /**
+   * Each order's last known status, by hash.
+   *
+   * The status read is one batch over every candidate, so ANY change to the
+   * list — one new order anywhere, one index refresh — is a new batch, and
+   * until it answered `standing` was empty: every listing and offer on the
+   * site vanished for a few seconds and came back (seen 2026-09-27, an offer on
+   * Cybereator blinking out and in). While a new batch loads, an order the
+   * site has already seen keeps its last answer; only a brand-new order waits
+   * for its first. A failed read is never papered over with an old answer.
+   */
+  const statusMemory = useRef(new Map<string, [boolean, boolean, bigint, bigint]>());
+
   /** Orders that Seaport itself still considers open. Fillability comes next. */
   const standing = useMemo(() => {
     const voidedAfter = data?.voidedAfter ?? new Map<string, bigint>();
     const now = Math.floor(Date.now() / 1000);
+    const memory = statusMemory.current;
+
+    if (statuses !== undefined) {
+      candidates.forEach((c, i) => {
+        const entry = statuses[i];
+        if (entry?.status === "success") {
+          memory.set(c.hash.toLowerCase(), entry.result as [boolean, boolean, bigint, bigint]);
+        }
+      });
+    }
 
     return candidates
       .map((c, i) => {
         const entry = statuses?.[i];
-        if (entry?.status !== "success") return undefined;
+        const result =
+          statuses === undefined
+            ? memory.get(c.hash.toLowerCase())
+            : entry?.status === "success"
+              ? (entry.result as [boolean, boolean, bigint, bigint])
+              : undefined;
+        if (result === undefined) return undefined;
 
-        const [isValidated, isCancelled, filled, size] = entry.result as [
-          boolean,
-          boolean,
-          bigint,
-          bigint,
-        ];
+        const [isValidated, isCancelled, filled, size] = result;
 
         if (!isValidated || isCancelled) return undefined;
         // `size` is 0 until something is filled; once set, filled >= size is done.
@@ -429,11 +453,19 @@ export function useSeaportOrders(enabled = true) {
    * There are three states here and the code below used to have two. See the
    * note on the `fillChecks === undefined` branch.
    */
-  const checking = standing.length > 0 && fillChecks === undefined && !fillChecksFailed;
+  /** Each order's last fillability answer, by hash — see `statusMemory`. */
+  const fillMemory = useRef(new Map<string, Pick<SeaportOrder, "fillable" | "unfillable">>());
+  const checking =
+    standing.length > 0 && fillChecks === undefined && !fillChecksFailed && fillMemory.current.size === 0;
 
   const all = useMemo<SeaportOrder[]>(
     () =>
       standing.map((o, i) => {
+        /* A new batch still loading: an order already checked keeps its answer. */
+        if (fillChecks === undefined) {
+          const known = fillMemory.current.get(o.hash.toLowerCase());
+          if (known !== undefined) return { ...o, ...known };
+        }
         /**
          * Three states, not two: not checked yet, checked and refused, checked
          * and answered. `resolveFillable` in `lib/seaport.ts` is the rule and
@@ -446,8 +478,7 @@ export function useSeaportOrders(enabled = true) {
             ? undefined
             : { first: fillChecks[i * 2], second: fillChecks[i * 2 + 1] };
 
-        return {
-          ...o,
+        const verdict = {
           fillable: resolveFillable(o, checks),
           /**
            * The same two answers, read for a different question. Nothing extra
@@ -455,6 +486,8 @@ export function useSeaportOrders(enabled = true) {
            */
           unfillable: unfillableReason(o, checks),
         };
+        if (checks !== undefined) fillMemory.current.set(o.hash.toLowerCase(), verdict);
+        return { ...o, ...verdict };
       }),
     [standing, fillChecks],
   );
@@ -486,7 +519,7 @@ export function useSeaportOrders(enabled = true) {
      * state for a second or two on every load and then fill in — which reads
      * as "nothing for sale" at exactly the moment somebody arrived to buy.
      */
-    isLoading: scanning || loadingStatus || checking,
+    isLoading: scanning || (loadingStatus && statusMemory.current.size === 0) || checking,
     /**
      * The feed is built from logs; if the endpoint refuses them, say so rather
      * than showing an empty market.

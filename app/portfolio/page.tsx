@@ -133,10 +133,11 @@ export default function Portfolio() {
 
       {/*
         Above the grid on purpose: it is the only thing on this page that is
-        somebody else's money waiting on a decision. It renders nothing at all
-        when no offer stands on anything held, so a quiet portfolio stays quiet.
+        somebody else's money waiting on a decision. It is there from the
+        first paint, saying it is checking, and then either the offers or that
+        there are none.
       */}
-      <OfferInbox holdings={mine} onChange={afterSale} />
+      <OfferInbox holdings={mine} onChange={afterSale} holdingsLoading={isDiscovering || (isLoading && mine.length === 0)} />
 
       {unlistable.length > 0 ? (
         <p className="portfolio-note">

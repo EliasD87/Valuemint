@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useQueries } from "@tanstack/react-query";
 import { useAccount } from "wagmi";
-import { useHoldings } from "@/hooks/useHoldings";
+import { useMyPieces } from "@/hooks/useMyPieces";
 import { useCollectionOffers, useTraitOffers } from "@/hooks/useSeaportOrders";
 import { boundsOf, fetchMemberRoots, rootKey, traitLabel, useCriteriaSets, type TraitSetSummary } from "@/hooks/useCriteria";
 import { OfferForm, useCollectionOfferTarget } from "@/components/OfferForm";
@@ -29,7 +29,7 @@ import "./CollectionOffers.css";
  * Uncommon offer whatever they click.
  */
 export function CollectionOffers({ collection }: { collection: `0x${string}` }) {
-  const { offers: all } = useCollectionOffers(collection);
+  const { offers: all, isLoading: loadingOffers } = useCollectionOffers(collection);
   const { offers: traitOffers } = useTraitOffers(collection);
   /* Asked for the snapshots standing offers were made at too, or an offer made
      before the latest mint on a growing collection would not be recognised. */
@@ -65,27 +65,48 @@ export function CollectionOffers({ collection }: { collection: `0x${string}` }) 
    * 2026-09-26, that this would go wrong for people new to it.
    */
   const hasTraits = criteria.supported && criteria.sets.length > 0;
-  const { tokens: held } = useHoldings(somethingStanding ? address : undefined);
-  const myPieces = useMemo(
-    () => held.filter((t) => t.collection.toLowerCase() === collection.toLowerCase()),
-    [held, collection],
-  );
+  /* This collection only — see useMyPieces for why not the whole wallet. */
+  const { ids: myIds, holds, checking: checkingPieces } = useMyPieces(collection, address, somethingStanding);
   const bounds = boundsOf(traitOffers);
   const memberships = useQueries({
-    queries: (traits.length > 0 ? myPieces : []).map((t) => ({
-      queryKey: ["criteria-member", collection.toLowerCase(), t.id.toString(), bounds.join(",")],
+    queries: (traits.length > 0 ? myIds : []).map((id) => ({
+      queryKey: ["criteria-member", collection.toLowerCase(), id.toString(), bounds.join(",")],
       staleTime: 5 * 60_000,
-      queryFn: () => fetchMemberRoots(collection, t.id, bounds),
+      queryFn: () => fetchMemberRoots(collection, id, bounds),
     })),
   });
+  const checkingTraits = memberships.some((q) => q.isLoading);
   const pieceFor = (o: SeaportOrder): bigint | undefined => {
     if (isMine(o)) return undefined;
-    if (o.criteria === undefined || o.criteria === 0n) return myPieces[0]?.id;
+    if (o.criteria === undefined || o.criteria === 0n) return myIds[0];
     const key = rootKey(o.criteria);
-    const i = myPieces.findIndex((_, n) => memberships[n]?.data?.has(key) === true);
-    return i < 0 ? undefined : myPieces[i]!.id;
+    const i = myIds.findIndex((_, n) => memberships[n]?.data?.has(key) === true);
+    return i < 0 ? undefined : myIds[i];
   };
+  /**
+   * Accept, or — while the viewer's pieces are still being checked — a small
+   * spinner in its place, so the button does not pop in beside an offer that
+   * has been on screen for seconds.
+   */
   const accept = (o: SeaportOrder) => {
+    if (address === undefined || isMine(o)) return null;
+    const trait = o.criteria !== undefined && o.criteria !== 0n;
+    /*
+      Any piece needs only to know the viewer holds one — one read — so Accept
+      shows at once and, until the ids are known, opens the portfolio, where
+      the offer is waiting against a piece. A trait offer needs the ids and the
+      set, so it waits for them.
+    */
+    if (!trait && myIds.length === 0 && holds === true) {
+      return (
+        <Link className="btn btn-sm co-accept" href="/portfolio" title="Accept from your portfolio">
+          Accept
+        </Link>
+      );
+    }
+    if (checkingPieces || (trait && checkingTraits)) {
+      return <span className="co-accept-wait" role="status" aria-label="Checking your pieces" />;
+    }
     const id = pieceFor(o);
     return id === undefined ? null : (
       <Link
@@ -104,14 +125,28 @@ export function CollectionOffers({ collection }: { collection: `0x${string}` }) 
         {hasTraits && anyPiece[0] === undefined ? (
           traits.length === 0 ? (
             <p className="co-line">
-              <span className="co-none">No offers yet</span>
+              {loadingOffers ? (
+                <span className="co-none co-checking" role="status">
+                  <span className="co-accept-wait" aria-hidden="true" />
+                  Checking offers…
+                </span>
+              ) : (
+                <span className="co-none">No offers yet</span>
+              )}
             </p>
           ) : null
         ) : (
           <p className="co-line">
             <span className="co-label">Any piece</span>
             {anyPiece[0] === undefined ? (
-              <span className="co-none">No offers yet</span>
+              loadingOffers ? (
+                <span className="co-none co-checking" role="status">
+                  <span className="co-accept-wait" aria-hidden="true" />
+                  Checking offers…
+                </span>
+              ) : (
+                <span className="co-none">No offers yet</span>
+              )
             ) : (
               <>
                 <Soso size={14} unit={currencyLabel(anyPiece[0].currency)}>

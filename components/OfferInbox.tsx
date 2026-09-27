@@ -72,8 +72,17 @@ interface Gone {
   say: string;
 }
 
-export function OfferInbox({ holdings, onChange }: { holdings: Held[]; onChange: () => void }) {
-  const { orders, traitOffers } = useSeaportOrders();
+export function OfferInbox({
+  holdings,
+  onChange,
+  holdingsLoading = false,
+}: {
+  holdings: Held[];
+  onChange: () => void;
+  /** The wallet's pieces are still being found: "no offers" cannot be said yet. */
+  holdingsLoading?: boolean;
+}) {
+  const { orders, traitOffers, isLoading: bookLoading } = useSeaportOrders();
 
   /**
    * Accepting sells the piece, the piece leaves the wallet, and its row — and
@@ -187,16 +196,48 @@ export function OfferInbox({ holdings, onChange }: { holdings: Held[]; onChange:
     // eslint-disable-next-line react-hooks/exhaustive-deps -- isMine reads only `address`
   }, [holdings, orders, traitOffers, candidates, memberships, address]);
 
-  if (rows.length === 0 && sold.length === 0 && gone.length === 0) return null;
+  /**
+   * Whether "no offers" is a finding yet. It used to render nothing until an
+   * offer turned up, so the panel appeared out of nowhere seconds after the
+   * page — and a wallet with none could not tell "none" from "not checked".
+   * Now it is there from the start, checking, and only says "none" once the
+   * pieces, the order book and every trait lookup have answered.
+   */
+  const loading = holdingsLoading || bookLoading || memberships.some((q) => q.isLoading);
+  /* Once answered, stay answered: a background refresh of the book is not a
+     reason to go back to "checking" and flicker the panel. */
+  const [answered, setAnswered] = useState(false);
+  useEffect(() => {
+    if (!loading) setAnswered(true);
+  }, [loading]);
+  const checking = loading && !answered;
+  const quiet = rows.length === 0 && sold.length === 0 && gone.length === 0;
 
   return (
     <div className="inbox card">
       <div className="inbox-head">
         <p className="eyebrow">Offers you can take</p>
         <span className="inbox-count">
-          {rows.length === 0 ? "No live offers" : rows.length === 1 ? "1 live offer" : `${rows.length} live offers`}
+          {rows.length === 0
+            ? null
+            : rows.length === 1
+                ? "1 live offer"
+                : `${rows.length} live offers`}
         </span>
       </div>
+
+      {quiet ? (
+        <p className="inbox-status" role="status">
+          {checking ? (
+            <>
+              <span className="inbox-spin" aria-hidden="true" />
+              Checking for offers on your pieces…
+            </>
+          ) : (
+            "No offers on your pieces right now."
+          )}
+        </p>
+      ) : null}
 
       {sold.map((s) => (
         <p key={s.hash} className="txr txr-good">

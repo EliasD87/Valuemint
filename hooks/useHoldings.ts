@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { useReadContracts } from "wagmi";
 import { erc721Abi } from "viem";
 import { useBestListings } from "@/hooks/useSeaportOrders";
@@ -202,6 +203,38 @@ export function useHoldings(address: `0x${string}` | undefined) {
     (sum, entry) => sum + (entry?.status === "success" ? Number(entry.result as bigint) : 0),
     0,
   );
+
+  const settled =
+    !loadingCollections && !loadingBalances && !loadingIds && !loadingTransfers && !loadingDetails && !loadingMeta;
+
+  /**
+   * The last complete answer, kept while a new one is being built.
+   *
+   * On the live site the collection list arrives in two parts — the site's
+   * own, then the explorer's a few seconds later — and every change to it is a
+   * new balances query. That used to empty the portfolio: the cards went, the
+   * skeletons came back, and everything loaded again (reported 2026-09-27).
+   * Now a reload shows the pieces already known until the new answer is
+   * complete, then swaps it in. The first load still fills in as it goes.
+   */
+  const last = useRef<
+    { address: string; tokens: ChainToken[]; collections: typeof collections; expected: number } | undefined
+  >(undefined);
+  useEffect(() => {
+    if (settled && address !== undefined) last.current = { address, tokens, collections, expected };
+  });
+  const previous = last.current;
+  if (!settled && previous !== undefined && previous.address === address) {
+    return {
+      tokens: previous.tokens,
+      collections: previous.collections,
+      unlistable: [],
+      pending: [],
+      expected: previous.expected,
+      isDiscovering: false,
+      isLoading: false,
+    };
+  }
 
   return {
     tokens,
