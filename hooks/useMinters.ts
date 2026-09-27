@@ -11,7 +11,7 @@ import { useQuery } from "@tanstack/react-query";
  * it was — the marketplace wallets alone — rather than blanking anything.
  */
 export function useMinters() {
-  const { data } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: ["stats-minters"],
     staleTime: 5 * 60_000,
     retry: 1,
@@ -22,5 +22,6 @@ export function useMinters() {
       return body.minters ?? [];
     },
   });
-  return data;
+  /* `loading` is "not answered yet"; a failed lookup is answered, so nothing waits on it. */
+  return { minters: data, loading: isLoading };
 }

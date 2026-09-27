@@ -6,6 +6,7 @@ import { useBlockNumber } from "wagmi";
 import { useActivity, type ActivityRow } from "@/hooks/useActivity";
 import { useAllCollections } from "@/hooks/useAllCollections";
 import { useMinters } from "@/hooks/useMinters";
+import { CountUp } from "@/components/CountUp";
 import { PulseVolume } from "@/components/PulseVolume";
 import { Select } from "@/components/Select";
 import { Soso } from "@/components/Soso";
@@ -97,7 +98,7 @@ export default function StatsPage() {
   const { rows: all, isLoading, logsUnavailable, logsPartial, refetch } = useActivity(undefined);
   const { collections } = useAllCollections();
   /** Wallets that minted here, which the marketplace events alone never showed. */
-  const minters = useMinters();
+  const { minters, loading: mintersLoading } = useMinters();
 
   /** Twelve seconds of staleness cannot change what "3 hours ago" says. */
   const { data: head } = useBlockNumber({ query: { staleTime: 12_000 } });
@@ -326,7 +327,9 @@ export default function StatsPage() {
 
           <ul className="pulse-figures">
             <li>
-              <span className="pulse-fig">{stats.sales}</span>
+              <span className="pulse-fig">
+                <CountUp value={stats.sales} />
+              </span>
               <span className="pulse-cap">pieces sold</span>
             </li>
             <li>
@@ -335,24 +338,40 @@ export default function StatsPage() {
                   not fit a half-width tile on a phone — it was clipped to
                   "2996.03 SOS". A stat tile's caption is where a unit belongs
                   anyway, and it makes all six figures read alike. */}
-              <span className="pulse-fig">{formatSoso(stats.volume, 2)}</span>
+              <span className="pulse-fig">
+                <CountUp
+                  value={Number(stats.volume) / 1e18}
+                  decimals={2}
+                  final={formatSoso(stats.volume, 2)}
+                />
+              </span>
               {/* "through Seaport" was plumbing showing through the paint. */}
               <span className="pulse-cap">SOSO settled</span>
             </li>
             <li>
-              <span className="pulse-fig">{stats.listings}</span>
+              <span className="pulse-fig">
+                <CountUp value={stats.listings} />
+              </span>
               <span className="pulse-cap">listings written</span>
             </li>
             <li>
-              <span className="pulse-fig">{stats.offers}</span>
+              <span className="pulse-fig">
+                <CountUp value={stats.offers} />
+              </span>
               <span className="pulse-cap">offers made</span>
             </li>
             <li>
-              <span className="pulse-fig">{stats.traders}</span>
+              {/* Keeps counting until the minters land (lib/minters.ts), then
+                  counts on to the full figure. */}
+              <span className="pulse-fig">
+                <CountUp value={stats.traders} pending={mintersLoading} />
+              </span>
               <span className="pulse-cap">wallets involved</span>
             </li>
             <li>
-              <span className="pulse-fig">{stats.collections}</span>
+              <span className="pulse-fig">
+                <CountUp value={stats.collections} />
+              </span>
               <span className="pulse-cap">collections moving</span>
             </li>
           </ul>
