@@ -103,6 +103,24 @@ const RULES: Array<{ test: RegExp; say: string }> = [
     say: "This collection is sold out.",
   },
 
+  /* ------------------------------------------------------------ KOL claim */
+  {
+    test: /\bAlreadyClaimed\b/,
+    say: "This portrait has already been claimed. It went to the wallet on the list, so check that wallet.",
+  },
+  {
+    test: /\bClaimEnded\b/,
+    say: "Claiming has closed. Reach out to us and we will sort it out.",
+  },
+  {
+    test: /\bNotOpen\b/,
+    say: "Claiming has not opened yet. Check back soon.",
+  },
+  {
+    test: /\bNoRecipient\b/,
+    say: "No wallet is on the list for this portrait yet.",
+  },
+
   /* ---------------------------------------------------------------- Seaport
    * Losing a race is the normal way a trade fails on a marketplace, and until
    * the ABI carried Seaport's errors none of these could be decoded at all —

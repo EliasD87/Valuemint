@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useAccount, useReadContract, useReadContracts } from "wagmi";
+import { useAccount, usePublicClient, useReadContract, useReadContracts } from "wagmi";
 import { useWriteContract } from "@/hooks/useChainWrite";
 import { useTxOutcome } from "@/hooks/useTxOutcome";
 import { KOL_REWARDS_ABI, KOL_REWARDS_ADDRESS } from "@/config/kolRewards";
@@ -146,12 +146,37 @@ export function useKolRewards() {
   // --- the claim ---------------------------------------------------------
 
   const write = useWriteContract();
+  const client = usePublicClient({ chainId: valuechain.id });
   const [hash, setHash] = useState<`0x${string}` | undefined>();
+  const [refused, setRefused] = useState<Error | null>(null);
   const outcome = useTxOutcome({ hash });
 
   const claim = async (id: number) => {
     write.reset();
     setHash(undefined);
+    setRefused(null);
+
+    /*
+     * Ask the chain first, through our own RPC. A wallet's gas estimate fails
+     * the same way, but what it reports varies by wallet and often loses the
+     * contract's reason ("claim reverted"); our transport keeps the revert
+     * data, so viem names the error and the message can say "claiming has
+     * closed" or "already claimed". Only those known refusals stop here — any
+     * other failure is left to the wallet, since one node's view can lag.
+     */
+    if (client !== undefined && address !== undefined) {
+      try {
+        await client.simulateContract({ ...contract, functionName: "claim", args: [BigInt(id)], account: address });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        if (/\b(AlreadyClaimed|ClaimEnded|NotOpen|NoRecipient)\b/.test(message)) {
+          setRefused(err instanceof Error ? err : new Error(message));
+          void status.refetch();
+          return;
+        }
+      }
+    }
+
     try {
       const sent = await write.writeContractAsync({
         ...contract,
@@ -198,7 +223,7 @@ export function useKolRewards() {
       signing: write.isPending,
       confirming: hash !== undefined && outcome.isLoading,
       success: outcome.isSuccess,
-      error: (write.error ?? outcome.error ?? null) as Error | null,
+      error: (refused ?? write.error ?? outcome.error ?? null) as Error | null,
     },
   };
 }

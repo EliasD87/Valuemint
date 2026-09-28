@@ -1,0 +1,112 @@
+/* Dev-only rehearsal panel (LocalTestWallet.tsx). Never in a production build. */
+
+.ltw {
+  position: fixed;
+  z-index: 70;
+  left: 12px;
+  bottom: 12px;
+  width: min(300px, calc(100vw - 24px));
+  border: 1px dashed var(--accent);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-lg);
+  font-size: 12px;
+  color: var(--ink);
+}
+
+.ltw-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.55rem 0.75rem;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.ltw-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.ltw-who {
+  margin-left: auto;
+  font-weight: 500;
+  color: var(--ink-3);
+}
+
+.ltw-body {
+  display: grid;
+  gap: 0.4rem;
+  max-height: 60svh;
+  overflow-y: auto;
+  padding: 0 0.75rem 0.75rem;
+}
+
+.ltw-label {
+  margin: 0.35rem 0 0;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.ltw-accounts,
+.ltw-actions {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.ltw-acct,
+.ltw-actions button {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0 0.5rem;
+  padding: 0.4rem 0.55rem;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.ltw-actions button {
+  display: block;
+}
+
+.ltw-acct.is-on {
+  border-color: var(--accent);
+  background: var(--accent-wash);
+}
+
+.ltw-acct b {
+  grid-row: span 2;
+  align-self: center;
+}
+
+.ltw-acct i {
+  font-style: normal;
+  color: var(--ink-3);
+}
+
+.ltw-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  cursor: pointer;
+}
+
+.ltw-note {
+  margin: 0.3rem 0 0;
+  color: var(--ink-2);
+  overflow-wrap: anywhere;
+}

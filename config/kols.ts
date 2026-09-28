@@ -90,9 +90,6 @@ export const xHandle = (url: string) => `@${url.replace(/\/+$/, "").split("/").p
 /** The live ValueMint KOLs collection (deployed 2026-09-26, owned by the Safe). */
 export const KOLS_COLLECTION = "0x8a22d660611d0dc2051ab515da950dd9fcafbbbd";
 
-/** Where a KOL sends their wallet address to be put on the claim list. */
-export const KOLS_CLAIM_CONTACT = { handle: "eliasing__", url: "https://x.com/eliasing__" };
-
 /**
  * Whether the marketplace offers to bid on this collection's pieces.
  *

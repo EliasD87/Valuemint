@@ -257,6 +257,25 @@
   --series-3: #1baf7a;
   --series-other: #8b8b96;
 
+  /*
+   * The KOL claim envelope (components/KolEnvelope.css): a white envelope on a
+   * pale ground in light, a charcoal one in the dark, with the same warm light
+   * spilling out of it in both. The card's gradient runs dark-to-orange in
+   * light and red-to-amber in dark, as the two reference mocks did.
+   */
+  --env-stage: #efeff1;
+  --env-back: #e7e7ea;
+  --env-front: #fbfbfc;
+  --env-front-2: #f1f1f3;
+  --env-edge: rgba(14, 14, 16, 0.07);
+  --env-ink: #0e0e10;
+  --env-ink-2: #7a7a84;
+  --env-glow: rgba(255, 120, 30, 0.55);
+  --env-glow-2: rgba(255, 170, 60, 0.35);
+  --env-card-a: #2a1206;
+  --env-card-b: #ff8a1e;
+  --env-spark: #ffb347;
+
 }
 
 /* ==========================================================================
@@ -359,6 +378,19 @@
   --series-2: #d95926;
   --series-3: #199e70;
   --series-other: #65656f;
+
+  --env-stage: #070708;
+  --env-back: #18181b;
+  --env-front: #1d1d21;
+  --env-front-2: #16161a;
+  --env-edge: rgba(255, 255, 255, 0.06);
+  --env-ink: #f4f4f6;
+  --env-ink-2: #8b8b96;
+  --env-glow: rgba(255, 96, 0, 0.75);
+  --env-glow-2: rgba(255, 170, 40, 0.4);
+  --env-card-a: #c93a0a;
+  --env-card-b: #ffb020;
+  --env-spark: #ffae3d;
 
 }
 

@@ -50,4 +50,11 @@ export const KOL_REWARDS_ABI = [
     inputs: [],
     outputs: [{ name: "", type: "address" }],
   },
+  // The refusals `claim` can hit, so viem names them and lib/txError.ts can
+  // say what happened instead of printing a bare selector.
+  { type: "error", name: "NotOpen", inputs: [] },
+  { type: "error", name: "ClaimEnded", inputs: [] },
+  { type: "error", name: "AlreadyClaimed", inputs: [{ name: "id", type: "uint256" }] },
+  { type: "error", name: "NoRecipient", inputs: [{ name: "id", type: "uint256" }] },
+  { type: "error", name: "TransferFailed", inputs: [] },
 ] as const;

@@ -1,13 +1,14 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Image from "next/image";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useAccount } from "wagmi";
 import { Art } from "@/components/Art";
 import { ConnectButton } from "@/components/ConnectButton";
 import { Soso } from "@/components/Soso";
-import { TxResult } from "@/components/TxResult";
-import { KolClaimNote } from "@/components/KolClaimNote";
+import { KolEnvelope } from "@/components/KolEnvelope";
 import { KOLS, kolImage, kolLocal, xHandle, type Kol } from "@/config/kols";
 import { useKolRewards, type Stage } from "@/hooks/useKolRewards";
 import { formatSoso } from "@/lib/format";
@@ -74,6 +75,16 @@ const FEATURED = [
   // centres on the word-plus-figure rather than on the letters alone.
   { file: "cigar-l", letter: "L", tint: "var(--plinth-c)", shift: "28%" },
 ] as const;
+
+/**
+ * The rehearsal wallet for a local chain. The flag is inlined at build time and
+ * never set for production, so this whole branch — import included — is gone
+ * from the deployed bundle.
+ */
+const LocalTestWallet =
+  process.env.NEXT_PUBLIC_LOCAL_TEST_WALLET === "1"
+    ? dynamic(() => import("@/components/LocalTestWallet"), { ssr: false })
+    : null;
 
 /** The eyebrow's second half: where the claim stands, in two words. */
 const STAGE_LABEL: Record<Stage, string> = {
@@ -274,10 +285,6 @@ export default function Kols() {
 
       <section className="section kol-roster" id="roster">
         <div className="page">
-          {/* For the people on the roster: how to get on the claim list. Not
-              once claiming has closed, when there is nothing left to join. */}
-          {stage === "ended" ? null : <KolClaimNote />}
-
           {rewards.deployed && stage !== "soon" ? <Yours rewards={rewards} stage={stage} /> : null}
 
           <div className="kol-grid">
@@ -331,6 +338,8 @@ export default function Kols() {
           </div>
         </div>
       </section>
+
+      {LocalTestWallet === null ? null : <LocalTestWallet />}
     </div>
   );
 }
@@ -352,6 +361,30 @@ function Yours({
 }) {
   const { isConnected } = useAccount();
   const { mine, tx, deadline } = rewards;
+  const [envelope, setEnvelope] = useState(false);
+
+  /*
+   * The envelope opens by itself once claiming is live, the first time a KOL
+   * with a portrait waiting arrives — and only that first time. Remembered in
+   * localStorage per portrait, so closing it sticks across reloads and later
+   * visits; a pop-up that keeps returning stops being a gift. The "Open your
+   * envelope" button on their card brings it back whenever they want.
+   */
+  const waitingId = stage === "open" && mine !== undefined && !mine.claimed ? mine.kol.n : undefined;
+  useEffect(() => {
+    if (waitingId === undefined) return;
+    const key = `kol-envelope-${waitingId}`;
+    try {
+      if (localStorage.getItem(key) !== null) return;
+      localStorage.setItem(key, "1");
+    } catch {
+      // Storage refused (private mode): open it anyway, once per page load.
+    }
+    setEnvelope(true);
+  }, [waitingId]);
+
+  const openEnvelope = () => setEnvelope(true);
+  const closeEnvelope = () => setEnvelope(false);
 
   if (!isConnected) {
     if (stage !== "open") return null;
@@ -380,6 +413,7 @@ function Yours({
   // Their own reward — amounts differ per KOL. Zero means portrait only.
   const share = mine.amount > 0n ? formatSoso(mine.amount) : undefined;
   const claimed = mine.claimed || tx.success;
+  const ready = stage === "open" && !claimed;
 
   return (
     <section className={`kol-yours${claimed ? " is-claimed" : ""}`} aria-labelledby="kol-yours-title">
@@ -428,29 +462,21 @@ function Yours({
               )}
             </ul>
 
-            <button
-              type="button"
-              className={`btn btn-primary btn-lg btn-block${tx.busy ? " is-busy" : ""}`}
-              disabled={tx.busy}
-              aria-busy={tx.busy}
-              onClick={() => void rewards.claim(kol.n)}
-            >
-              {tx.signing ? "Confirm in your wallet…" : tx.confirming ? "Claiming…" : "Claim"}
+            {/* The claim itself happens in the envelope; this reopens it. */}
+            <button type="button" className="btn btn-primary btn-lg btn-block kol-yours-open" onClick={openEnvelope}>
+              {tx.busy ? "Claiming…" : "Open your envelope"}
             </button>
-            <TxResult
-              hash={tx.hash}
-              confirming={tx.confirming}
-              success={false}
-              error={tx.error}
-              successLabel="Claimed"
-            />
             <p className="kol-yours-small">
-              {deadline === undefined ? null : <>Open until {day(deadline)}. </>}
-              Sponsored by ValueChain. You pay only a little gas.
+              Sponsored by ValueChain
+              {deadline === undefined ? null : <> · Open until {day(deadline)}</>}
             </p>
           </>
         )}
       </div>
+
+      {/* Stays open once claimed — by them or by anyone else on their behalf —
+          and turns into the "it's yours" state rather than vanishing. */}
+      {envelope ? <KolEnvelope rewards={rewards} onClose={closeEnvelope} /> : null}
     </section>
   );
 }
