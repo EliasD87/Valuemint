@@ -16,7 +16,6 @@ import {
 import { valuechain } from "@/config/chain";
 import { deployment } from "@/config/contracts";
 import { TxResult } from "@/components/TxResult";
-import { shortAddress } from "@/lib/format";
 import "./safe.css";
 import { ConnectButton } from "@/components/ConnectButton";
 
@@ -298,7 +297,7 @@ function approvedHashSignatures(owners: readonly string[]): `0x${string}` {
 }
 
 export default function SafeConsole() {
-  const { address, isConnected } = useAccount();
+  const { isConnected } = useAccount();
 
   // Read once on mount rather than through a router hook, so the page is a
   // plain static document with nothing about this Safe in the bundle.
@@ -312,12 +311,12 @@ export default function SafeConsole() {
      * Well-formed is not the same as ours.
      *
      * Everything below is an assertion the named contract makes about itself:
-     * `getOwners` draws the owner chips, `approvedHashes` decides who has
+     * `getOwners` decides who may approve, `approvedHashes` counts who has
      * signed, and `getTransactionHash` produces the very number an owner is
      * asked to approve. That last one is the page's whole safety argument — the
      * hash is trustworthy *because* it was recomputed from the described call.
      * Aimed at a contract an attacker wrote, the recomputation is theirs: they
-     * return the three real owner addresses so the chips look right, and the
+     * answer every read the way a real Safe would, and the
      * human-readable description sits above a hash that means nothing.
      *
      * So the address is checked against a pinned value. It is checked as a
@@ -395,21 +394,10 @@ export default function SafeConsole() {
         </div>
       </div>
 
-      <p className="safe-intro">
-        Safe&rsquo;s own app doesn&rsquo;t support ValueChain, so this is where owners approve.
-        Your key never leaves your wallet, and the threshold must be met before anything happens.
-      </p>
-
       {rejected ? (
-        <p className="safe-warn">
-          That address is not the Safe this console knows, so nothing below will be shown for it.
-          If you believe it should be, check the address rather than approving anything here.
-        </p>
+        <p className="safe-warn">That address is not recognised. Check it before approving anything.</p>
       ) : safeAddress === undefined ? (
-        <p className="safe-warn">
-          No Safe named. Open this page with <span className="mono">?safe=0x…</span> on the end —
-          the address isn&rsquo;t stored here, so the page tells nobody anything on its own.
-        </p>
+        <p className="safe-warn">No Safe named.</p>
       ) : null}
 
       <div className="safe-grid">
@@ -420,14 +408,6 @@ export default function SafeConsole() {
             <div><dt>Rule</dt><dd>{ready ? `${threshold} of ${owners.length}` : "…"}</dd></div>
             <div><dt>Next nonce</dt><dd className="mono">{ready ? String(safeNonce) : "…"}</dd></div>
           </dl>
-          <ul className="safe-owners">
-            {(owners ?? []).map((o) => (
-              <li key={o} className={address?.toLowerCase() === o.toLowerCase() ? "is-you" : undefined}>
-                <span className="mono">{shortAddress(o, 4)}</span>
-                {address?.toLowerCase() === o.toLowerCase() ? <b>you</b> : null}
-              </li>
-            ))}
-          </ul>
         </div>
 
         <div className="safe-card card">
@@ -561,24 +541,17 @@ function ApproveRow({
 
   return (
     <>
-      <div className="safe-approvals">
-        {(owners ?? []).map((o) => {
-          const has = approvers.some((a) => a.toLowerCase() === o.toLowerCase());
-          return (
-            <span key={o} className={`safe-chip ${has ? "is-signed" : ""}`}>
-              {has ? "signed" : "waiting"} · {shortAddress(o, 4)}
-            </span>
-          );
-        })}
-      </div>
+      {txHash === undefined || threshold === undefined ? null : (
+        <p className="safe-fine">
+          Approvals: {approvers.length} of {String(threshold)}
+          {alreadyApproved ? " · including yours" : null}
+        </p>
+      )}
 
       {!ownersKnown ? (
-        <p className="safe-fine">Reading the Safe&rsquo;s owners…</p>
+        <p className="safe-fine">Reading the Safe…</p>
       ) : !isOwner ? (
-        <p className="safe-warn">
-          This wallet isn&rsquo;t one of the {owners.length} owners, so the Safe would refuse its
-          approval. Switch to an owner wallet.
-        </p>
+        <p className="safe-warn">This wallet can&rsquo;t approve for this Safe. Switch wallets.</p>
       ) : alreadyApproved && !enough ? (
         <p className="safe-fine">
           You&rsquo;ve approved this. Waiting on one more owner before it can run.

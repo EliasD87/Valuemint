@@ -10,12 +10,6 @@
   max-width: 980px;
 }
 
-.safe-intro {
-  margin: 0 0 1.5rem;
-  color: var(--ink-2);
-  max-width: 62ch;
-}
-
 .safe-grid {
   display: grid;
   grid-template-columns: minmax(240px, 300px) minmax(0, 1fr);
@@ -53,32 +47,6 @@
   margin: 0;
   font-variant-numeric: tabular-nums;
   font-weight: 600;
-}
-
-.safe-owners {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-  border-top: 1px solid var(--line);
-  padding-top: 0.75rem;
-}
-
-.safe-owners li {
-  display: flex;
-  justify-content: space-between;
-  gap: 0.5rem;
-  font-size: var(--step--2);
-  color: var(--ink-2);
-}
-
-.safe-owners li.is-you b {
-  color: var(--accent);
-  font-size: var(--step--3);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
 }
 
 .safe-reads {
@@ -131,26 +99,6 @@
   background: var(--warn-wash);
   border-radius: var(--r-sm);
   padding: 0.7rem 0.8rem;
-}
-
-.safe-approvals {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-}
-
-.safe-chip {
-  font-size: var(--step--3);
-  padding: 0.25rem 0.55rem;
-  border-radius: 100px;
-  background: var(--surface-2);
-  color: var(--ink-3);
-  font-variant-numeric: tabular-nums;
-}
-
-.safe-chip.is-signed {
-  background: var(--up-wash, var(--surface-2));
-  color: var(--up, var(--ink));
 }
 
 .safe-page .field {
