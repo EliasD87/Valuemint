@@ -1,50 +1,119 @@
 /* ======================================================= collection offers */
 
-/* The strip under the stats bar: standing collection-level bids, and the way
-   to make one. */
+/* The offers board under the stats bar: standing collection-level bids,
+   one row per trait, and the way to make one. */
 .co {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 0.75rem 1.5rem;
+  flex-direction: column;
+  gap: 0.6rem;
   margin: 0.25rem 0 1rem;
-  padding: 0.75rem 1rem;
+  padding: 0.85rem 1rem;
   border: 1px solid var(--line);
   border-radius: var(--r-md);
   background: var(--surface);
 }
 
-.co-lines {
+.co-head {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  gap: 0.4rem 1.5rem;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.6rem 1rem;
+}
+.co-title {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
   min-width: 0;
 }
-
-.co-line {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin: 0;
-  font-size: var(--step--1);
+.co-eyebrow {
+  font-size: var(--step--2);
   font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.co-sub {
+  font-size: var(--step--1);
+  color: var(--ink-2);
   font-variant-numeric: tabular-nums;
 }
 
-.co-label {
+/* One row per trait: what | how many | best, read together on the left, and
+   Accept at the far edge — not the name at one side of a wide page and its
+   price at the other. */
+.co-board {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.co-row {
+  display: grid;
+  grid-template-columns: minmax(0, 13rem) minmax(4.5rem, auto) minmax(6rem, auto) 1fr;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+  border-top: 1px solid var(--line);
+  font-variant-numeric: tabular-nums;
+}
+.co-what {
+  display: flex;
+  align-items: baseline;
+  gap: 0.45rem;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.co-type {
   font-size: var(--step--2);
   font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   color: var(--ink-3);
 }
-
-.co-none,
-.co-more {
-  margin: 0;
+.co-what b {
   font-size: var(--step--1);
-  font-weight: 500;
+  font-weight: 700;
+  color: var(--ink);
+}
+.co-count {
+  font-size: var(--step--2);
+  white-space: nowrap;
   color: var(--ink-3);
+}
+.co-best {
+  justify-self: start;
+  font-size: var(--step--1);
+  font-weight: 700;
+}
+.co-act {
+  display: flex;
+  justify-content: flex-end;
+}
+@media (max-width: 640px) {
+  .co-row {
+    grid-template-columns: minmax(0, 1fr) auto auto auto;
+  }
+  .co-best {
+    justify-self: end;
+  }
+}
+
+.co-toggle {
+  align-self: flex-start;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: var(--step--1);
+  font-weight: 600;
+  color: var(--ink-2);
+  cursor: pointer;
+}
+.co-toggle:hover,
+.co-toggle:focus-visible {
+  color: var(--ink);
 }
 
 /* Any piece / by trait. */
@@ -115,7 +184,7 @@
 /* Take a standing offer: goes to the viewer's qualifying piece. Small enough
    to sit inside the line without pushing the strip taller. */
 .co-accept {
-  margin-left: 0.15rem;
+  margin-left: 0;
   padding: 0.2rem 0.6rem;
   font-size: var(--step--2);
   line-height: 1.4;

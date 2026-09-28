@@ -119,58 +119,99 @@ export function CollectionOffers({ collection }: { collection: `0x${string}` }) 
     );
   };
 
+  /**
+   * The board: one row per thing an offer is for — "Any piece", or one trait
+   * value — with the best price and how many stand behind it.
+   *
+   * It used to print each offer on its own: on Treasure Box that read "Level:
+   * Common 5 WSOSO" three times, then "+6 more trait offers" (2026-09-28).
+   * Offers on the same trait are one row now however many there are, and a
+   * trait on a growing collection is one row across every snapshot it was
+   * offered at.
+   */
+  const groups = useMemo(() => {
+    const byKey = new Map<string, { key: string; type?: string; value: string; offers: SeaportOrder[] }>();
+    if (anyPiece.length > 0) byKey.set("any", { key: "any", value: "Any piece", offers: [...anyPiece] });
+    for (const { offer, set } of traits) {
+      const key = traitLabel(set);
+      const g = byKey.get(key) ?? { key, type: set.traitType, value: set.value, offers: [] };
+      g.offers.push(offer);
+      byKey.set(key, g);
+    }
+    const desc = (a: SeaportOrder, b: SeaportOrder) => (b.priceWei > a.priceWei ? 1 : b.priceWei < a.priceWei ? -1 : 0);
+    const list = [...byKey.values()].map((g) => ({ ...g, offers: g.offers.sort(desc) }));
+    return list.sort((a, b) => desc(a.offers[0]!, b.offers[0]!));
+  }, [anyPiece, traits]);
+
+  const [expanded, setExpanded] = useState(false);
+  const ROWS = 4;
+  const visible = expanded ? groups : groups.slice(0, ROWS);
+  const count = groups.reduce((n, g) => n + g.offers.length, 0);
+  const best = groups[0]?.offers[0];
+
+  /** The best offer in a group this viewer could take, else the best one there. */
+  const takeable = (offers: SeaportOrder[]) =>
+    offers.find((o) => !isMine(o) && pieceFor(o) !== undefined) ?? offers.find((o) => !isMine(o));
+
   return (
     <section className="co" aria-label="Collection offers">
-      <div className="co-lines">
-        {hasTraits && anyPiece[0] === undefined ? (
-          traits.length === 0 ? (
-            <p className="co-line">
-              {loadingOffers ? (
-                <span className="co-none co-checking" role="status">
-                  <span className="co-accept-wait" aria-hidden="true" />
-                  Checking offers…
-                </span>
-              ) : (
-                <span className="co-none">No offers yet</span>
-              )}
-            </p>
-          ) : null
-        ) : (
-          <p className="co-line">
-            <span className="co-label">Any piece</span>
-            {anyPiece[0] === undefined ? (
-              loadingOffers ? (
-                <span className="co-none co-checking" role="status">
-                  <span className="co-accept-wait" aria-hidden="true" />
-                  Checking offers…
-                </span>
-              ) : (
-                <span className="co-none">No offers yet</span>
-              )
-            ) : (
+      <div className="co-head">
+        <div className="co-title">
+          <span className="co-eyebrow">Collection offers</span>
+          <span className="co-sub">
+            {count > 0 && best !== undefined ? (
               <>
-                <Soso size={14} unit={currencyLabel(anyPiece[0].currency)}>
-                  {formatSoso(anyPiece[0].priceWei)}
+                {count === 1 ? "1 offer" : `${count} offers`} · best{" "}
+                <Soso size={12} unit={currencyLabel(best.currency)}>
+                  {formatSoso(best.priceWei)}
                 </Soso>
-                {accept(anyPiece[0])}
               </>
+            ) : loadingOffers ? (
+              <span className="co-checking" role="status">
+                <span className="co-accept-wait" aria-hidden="true" />
+                Checking offers…
+              </span>
+            ) : hasTraits ? (
+              "None yet. Offer on a trait and every holder of it can accept."
+            ) : (
+              "None yet. Offer on the collection and any holder can accept."
             )}
-          </p>
-        )}
-        {traits.slice(0, 3).map(({ offer, set }) => (
-          <p key={offer.hash} className="co-line">
-            <span className="co-label">{traitLabel(set)}</span>
-            <Soso size={14} unit={currencyLabel(offer.currency)}>
-              {formatSoso(offer.priceWei)}
-            </Soso>
-            {accept(offer)}
-          </p>
-        ))}
-        {traits.length > 3 ? <p className="co-more">+{traits.length - 3} more trait offers</p> : null}
+          </span>
+        </div>
+        <button type="button" className="btn btn-primary btn-sm" onClick={() => setOpen(true)}>
+          Make an offer
+        </button>
       </div>
-      <button type="button" className="btn btn-primary" onClick={() => setOpen(true)}>
-        Make an offer
-      </button>
+
+      {visible.length === 0 ? null : (
+        <ul className="co-board">
+          {visible.map((g) => {
+            const top = g.offers[0]!;
+            const target = takeable(g.offers);
+            return (
+              <li key={g.key} className="co-row">
+                <span className="co-what">
+                  {g.type === undefined ? null : <span className="co-type">{g.type}</span>}
+                  <b>{g.value}</b>
+                </span>
+                <span className="co-count">{g.offers.length === 1 ? "1 offer" : `${g.offers.length} offers`}</span>
+                <span className="co-best">
+                  <Soso size={14} unit={currencyLabel(top.currency)}>
+                    {formatSoso(top.priceWei)}
+                  </Soso>
+                </span>
+                <span className="co-act">{target === undefined ? null : accept(target)}</span>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+
+      {groups.length > ROWS ? (
+        <button type="button" className="co-toggle" onClick={() => setExpanded((v) => !v)} aria-expanded={expanded}>
+          {expanded ? "Show fewer" : `+${groups.length - ROWS} more`}
+        </button>
+      ) : null}
 
       {open ? (
         <CollectionOfferDialog
