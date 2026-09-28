@@ -223,3 +223,21 @@
     animation: none;
   }
 }
+
+/* The list arrives whole, with a soft rise rather than a jump. No fill-mode:
+   outside the animation the row is simply visible, so it never depends on
+   the animation running. */
+.inbox-row {
+  animation: inbox-in 320ms ease-out;
+}
+@keyframes inbox-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .inbox-row {
+    animation: none;
+  }
+}

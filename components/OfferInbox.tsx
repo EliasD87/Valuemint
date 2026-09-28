@@ -76,11 +76,14 @@ export function OfferInbox({
   holdings,
   onChange,
   holdingsLoading = false,
+  artLoading = false,
 }: {
   holdings: Held[];
   onChange: () => void;
   /** The wallet's pieces are still being found: "no offers" cannot be said yet. */
   holdingsLoading?: boolean;
+  /** The pieces' documents — names and artwork — are still arriving. */
+  artLoading?: boolean;
 }) {
   const { orders, traitOffers, isLoading: bookLoading } = useSeaportOrders();
 
@@ -203,26 +206,51 @@ export function OfferInbox({
    * Now it is there from the start, checking, and only says "none" once the
    * pieces, the order book and every trait lookup have answered.
    */
-  const loading = holdingsLoading || bookLoading || memberships.some((q) => q.isLoading);
-  /* Once answered, stay answered: a background refresh of the book is not a
-     reason to go back to "checking" and flicker the panel. */
+  const found = !holdingsLoading && !bookLoading && !memberships.some((q) => q.isLoading);
+
+  /**
+   * And the artwork, a little longer. Every piece being known is not the same
+   * as the list being ready: a Cybereator's document comes from SoDEX's own
+   * host, and its row arrived as a bare box. Up to four seconds more for the
+   * documents, then the list shows regardless — a slow host must not hold it.
+   */
+  const [artDeadline, setArtDeadline] = useState(false);
+  useEffect(() => {
+    if (!found || !artLoading) return;
+    const t = window.setTimeout(() => setArtDeadline(true), 4_000);
+    return () => window.clearTimeout(t);
+  }, [found, artLoading]);
+  const loading = !found || (artLoading && !artDeadline);
+
+  /**
+   * Nothing is listed until the whole answer is in. It used to show the first
+   * offer found — the Trenches piece, enumerable, known at once — and then,
+   * with no sign anything was still coming, three Cybereator offers landed on
+   * top of it once their slower lookup finished. Now it says it is checking
+   * until every piece, offer and trait lookup has answered, then shows them
+   * all together.
+   *
+   * Once answered, it stays answered: a background refresh of the book is not
+   * a reason to go back to "checking" and flicker the panel.
+   */
   const [answered, setAnswered] = useState(false);
   useEffect(() => {
     if (!loading) setAnswered(true);
   }, [loading]);
   const checking = loading && !answered;
-  const quiet = rows.length === 0 && sold.length === 0 && gone.length === 0;
+  const shown = checking ? [] : rows;
+  const quiet = shown.length === 0 && sold.length === 0 && gone.length === 0;
 
   return (
     <div className="inbox card">
       <div className="inbox-head">
         <p className="eyebrow">Offers you can take</p>
         <span className="inbox-count">
-          {rows.length === 0
+          {shown.length === 0
             ? null
-            : rows.length === 1
+            : shown.length === 1
                 ? "1 live offer"
-                : `${rows.length} live offers`}
+                : `${shown.length} live offers`}
         </span>
       </div>
 
@@ -260,9 +288,9 @@ export function OfferInbox({
         </div>
       ))}
 
-      {rows.length === 0 ? null : (
+      {shown.length === 0 ? null : (
         <ul className="inbox-list">
-          {rows.map((r) => (
+          {shown.map((r) => (
             <InboxRow key={r.offer.hash} row={r} onChange={onChange} onSold={onSold} onGone={onGone} />
           ))}
         </ul>

@@ -137,7 +137,7 @@ export default function Portfolio() {
         first paint, saying it is checking, and then either the offers or that
         there are none.
       */}
-      <OfferInbox holdings={mine} onChange={afterSale} holdingsLoading={isDiscovering || (isLoading && mine.length === 0)} />
+      <OfferInbox holdings={mine} onChange={afterSale} holdingsLoading={isDiscovering || (isLoading && mine.length === 0)} artLoading={isLoading} />
 
       {unlistable.length > 0 ? (
         <p className="portfolio-note">
