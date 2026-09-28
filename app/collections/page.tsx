@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useReadContracts } from "wagmi";
 import { ValueChainCollectionAbi, deployment } from "@/config/contracts";
-import { PINNED_COLLECTIONS } from "@/config/featured";
+import { MAIN_COLLECTIONS, PINNED_COLLECTIONS } from "@/config/featured";
 import { CREATE_ENABLED } from "@/config/features";
 import { useRegistry } from "@/hooks/useRegistry";
 import { useDiscoveredCollections } from "@/hooks/useDiscovery";
@@ -19,18 +19,10 @@ export default function Collections() {
   const { data: discovered, isLoading, error } = useDiscoveredCollections();
 
   /**
-   * How many collections to draw before asking.
-   *
-   * Every ERC-721 and ERC-1155 the explorer indexes shows up here, so this list
-   * only grows and most of what arrives is not what anyone came looking for. Six
-   * is two full rows on a desktop grid and shows the page is populated without
-   * making someone scroll past a dozen strangers to reach the button that adds
-   * their own.
-   *
-   * Not pagination: "See more" reveals the rest in place, because there is
-   * nothing on a second page worth navigating between.
+   * "See more": everything not in `MAIN_COLLECTIONS`, revealed in place. The
+   * explorer finds every ERC-721 on the chain, so this list only grows, and
+   * most of what arrives is not what anyone came looking for.
    */
-  const FIRST_PAGE = 6;
   const [showAll, setShowAll] = useState(false);
   const { artFor } = useCollectionArt();
   const { floorFor } = useFloors();
@@ -94,6 +86,10 @@ export default function Collections() {
     query: { enabled: all.length > 0, refetchInterval: 20_000 },
   });
 
+  const isMain = (address: string) => MAIN_COLLECTIONS.some((m) => m.toLowerCase() === address.toLowerCase());
+  const main = all.filter((c) => isMain(c.address));
+  const more = all.filter((c) => !isMain(c.address));
+
   const statsFor = (i: number) => {
     const at = (n: number) => {
       const entry = data?.[i * 4 + n];
@@ -105,6 +101,56 @@ export default function Collections() {
       mintPrice: at(2) as bigint | undefined,
       open: at(3) as boolean | undefined,
     };
+  };
+
+  /** One card, drawn the same in the main grid and under See more. */
+  const card = (c: (typeof all)[number]) => {
+    const s = statsFor(all.indexOf(c));
+
+    return (
+      <CollectionCard
+        key={c.address}
+        // Every collection opens its own page. The first one used to
+        // link to "/" instead, from when the home page *was* that
+        // collection - so on a marketplace listing five collections,
+        // clicking one of them silently dumped you back on Explore.
+        href={`/collection/${c.address}`}
+        name={c.name}
+        symbol={c.symbol}
+        address={c.address}
+        images={artFor(c.address)}
+        badge={s.open === true ? <span className="chip chip-up">Minting</span> : null}
+        stats={[
+          {
+            label: "Minted",
+            value:
+              formatCount(s.totalSupply) +
+              (s.maxSupply !== undefined && s.maxSupply > 0n
+                ? ` / ${formatCount(s.maxSupply)}`
+                : ""),
+          },
+          /* Only where there is one. A collection minted elsewhere
+             has no price this marketplace can read, and a column of
+             dashes under "Mint price" said nothing on every card
+             that had it. The row closes up around the gap. */
+          ...(s.mintPrice === undefined
+            ? []
+            : [{ label: "Mint price", value: `${formatSoso(s.mintPrice)} SOSO` }]),
+          {
+            label: "Floor",
+            /**
+             * Undefined means nothing is listed, which is not the same as free -
+             * hence the dash rather than a 0.
+             */
+            value:
+              floorFor(c.address) === undefined
+                ? "—"
+                : `${formatSoso(floorFor(c.address)!)} SOSO`,
+          },
+          { label: "Origin", value: c.fromFactory ? "ValueMint" : "External" },
+        ]}
+      />
+    );
   };
 
   return (
@@ -155,56 +201,20 @@ export default function Collections() {
           ))}
         </div>
       ) : (
-        <div className="coll-grid">
-          {all.map((c, i) => {
-            const s = statsFor(i);
+        <>
+          <div className="coll-grid">{main.map(card)}</div>
 
-            return (
-              <CollectionCard
-                key={c.address}
-                // Every collection opens its own page. The first one used to
-                // link to "/" instead, from when the home page *was* that
-                // collection - so on a marketplace listing five collections,
-                // clicking one of them silently dumped you back on Explore.
-                href={`/collection/${c.address}`}
-                name={c.name}
-                symbol={c.symbol}
-                address={c.address}
-                images={artFor(c.address)}
-                badge={s.open === true ? <span className="chip chip-up">Minting</span> : null}
-                stats={[
-                  {
-                    label: "Minted",
-                    value:
-                      formatCount(s.totalSupply) +
-                      (s.maxSupply !== undefined && s.maxSupply > 0n
-                        ? ` / ${formatCount(s.maxSupply)}`
-                        : ""),
-                  },
-                  /* Only where there is one. A collection minted elsewhere
-                     has no price this marketplace can read, and a column of
-                     dashes under "Mint price" said nothing on every card
-                     that had it. The row closes up around the gap. */
-                  ...(s.mintPrice === undefined
-                    ? []
-                    : [{ label: "Mint price", value: `${formatSoso(s.mintPrice)} SOSO` }]),
-                  {
-                    label: "Floor",
-                    /**
-                     * Undefined means nothing is listed, which is not the same as free -
-                     * hence the dash rather than a 0.
-                     */
-                    value:
-                      floorFor(c.address) === undefined
-                        ? "—"
-                        : `${formatSoso(floorFor(c.address)!)} SOSO`,
-                  },
-                  { label: "Origin", value: c.fromFactory ? "ValueMint" : "External" },
-                ]}
-              />
-            );
-          })}
-        </div>
+          {more.length === 0 ? null : (
+            <>
+              {showAll ? <div className="coll-grid coll-grid-more">{more.map(card)}</div> : null}
+              <div className="coll-more">
+                <button type="button" className="btn" onClick={() => setShowAll((v) => !v)} aria-expanded={showAll}>
+                  {showAll ? "Show fewer" : `See more (${more.length})`}
+                </button>
+              </div>
+            </>
+          )}
+        </>
       )}
 
     </section>

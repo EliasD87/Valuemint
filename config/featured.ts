@@ -294,6 +294,27 @@ export const PINNED_COLLECTIONS: ReadonlyArray<`0x${string}`> = [
 ];
 
 /**
+ * The collections /collections always shows. Everything else — any contract
+ * the explorer finds, starting with "Layer 1" on 2026-09-28 — goes behind "See
+ * more" rather than joining the first screen.
+ *
+ * The owner's rule: nine on show, the rest one click away. A new collection
+ * joins the first screen by being added here, not by appearing on chain.
+ * Order on the page still comes from `PINNED_COLLECTIONS` above.
+ */
+export const MAIN_COLLECTIONS: ReadonlyArray<`0x${string}`> = [
+  "0x371c4F7F68bE3e558b89cC1f0fB113851C76E750", // SoDEX Treasure Box
+  "0xCD30D4bCaa99E556B70A2C4bDFC4050D26E48D30", // Cybereator
+  "0xaAb0dC8f2835Ed903b35d2f52FF17c4bc92Bec19", // The Trenches
+  "0x5Fadc59297e86aceA20Bff519aea0f9651Cdc90B", // ValueChain Genesis
+  "0x01c28095bfffc9973Da4c4e8A34E9d5b6649C988", // Hypno Plush
+  "0x0273DF41B56E3480886Fe8f0451349bEc0f8edf6", // SoDex Larpers
+  "0xc486e7AA1C971a61c2a9c6B8ccf671AcB0FFD064", // The Oracle
+  "0xfE7b74F5dbAeEA6A0Ef0385F572D60083FEFE0C0", // Orange Companions
+  "0x8A22d660611D0Dc2051AB515dA950dD9FcafbbBD", // ValueMint KOLs
+];
+
+/**
  * How /market's filter row is cut up, and the only place it is decided.
  *
  * ── EDIT THIS TO CHANGE THE MARKET'S FILTER BUTTONS ──────────────────────
