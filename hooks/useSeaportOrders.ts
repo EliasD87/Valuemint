@@ -1,6 +1,17 @@
 "use client";
 
-import { useEffect, useMemo, useSyncExternalStore, useRef } from "react";
+import {
+  createContext,
+  createElement,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type ReactNode,
+} from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useReadContracts } from "wagmi";
 import {
@@ -250,7 +261,7 @@ function useValidatedOrders(enabled = true) {
  * the expensive part, the log scan, is shared between them by react-query. A
  * hook per slice would mean a scan per slice.
  */
-export function useSeaportOrders(enabled = true) {
+function useOrderBookSource(enabled: boolean) {
   /**
    * Two sources for the same announcements, and the chain is the one that
    * always works.
@@ -508,28 +519,70 @@ export function useSeaportOrders(enabled = true) {
     return { orders: all.filter((o) => !isTrait(o)), traitOffers: all.filter(isTrait) };
   }, [all]);
 
-  return {
-    orders,
-    traitOffers,
-    /**
-     * `checking` belongs here, not in a separate flag.
-     *
-     * Every public view filters on `fillable`, which is now `false` until the
-     * ownership reads land. Without this the market would render its empty
-     * state for a second or two on every load and then fill in — which reads
-     * as "nothing for sale" at exactly the moment somebody arrived to buy.
-     */
-    isLoading: scanning || (loadingStatus && statusMemory.current.size === 0) || checking,
-    /**
-     * The feed is built from logs; if the endpoint refuses them, say so rather
-     * than showing an empty market.
-     *
-     * The fillability reads count too. If they cannot be made, every order is
-     * held back as unverified, and an empty grid would be a lie about the
-     * market rather than a fact about it.
-     */
-    logsUnavailable: (error !== null && error !== undefined) || fillChecksFailed,
-  };
+  /**
+   * `checking` belongs here, not in a separate flag.
+   *
+   * Every public view filters on `fillable`, which is now `false` until the
+   * ownership reads land. Without this the market would render its empty
+   * state for a second or two on every load and then fill in — which reads
+   * as "nothing for sale" at exactly the moment somebody arrived to buy.
+   */
+  const isLoading = scanning || (loadingStatus && statusMemory.current.size === 0) || checking;
+  /**
+   * The feed is built from logs; if the endpoint refuses them, say so rather
+   * than showing an empty market.
+   *
+   * The fillability reads count too. If they cannot be made, every order is
+   * held back as unverified, and an empty grid would be a lie about the
+   * market rather than a fact about it.
+   */
+  const logsUnavailable = (error !== null && error !== undefined) || fillChecksFailed;
+
+  /** Stable while nothing changed, so the provider does not re-render every reader for nothing. */
+  return useMemo(
+    () => ({ orders, traitOffers, isLoading, logsUnavailable }),
+    [orders, traitOffers, isLoading, logsUnavailable],
+  );
+}
+
+export type OrderBook = ReturnType<typeof useOrderBookSource>;
+
+/**
+ * One order book per page, however many things on it ask.
+ *
+ * Every token card asks — twice, through `useOffersForToken` and
+ * `useTraitOffers` — and each call used to run this whole hook again: its own
+ * `useReadContracts` over every order on the chain, its own fillability reads,
+ * its own filtering. react-query shared the requests, but not the work of
+ * asking: each call re-hashed a query key holding every order's arguments on
+ * every render. Profiled 2026-09-30 on /market with sixty cards: the main
+ * thread was busy 11.4 s of 12, and most of it was that hashing, 120 times
+ * over, re-run whenever any read landed.
+ *
+ * So the book is built once, here, and every caller reads it from context.
+ * It still only loads while something on the page wants it: each caller with
+ * `enabled` registers, and the book runs while anyone is registered — so a
+ * page that never asks for prices never pays for them, as before.
+ */
+const OrderBookContext = createContext<{ book: OrderBook; want: () => () => void } | null>(null);
+
+export function SeaportOrdersProvider({ children }: { children: ReactNode }) {
+  const [wanted, setWanted] = useState(0);
+  const want = useCallback(() => {
+    setWanted((n) => n + 1);
+    return () => setWanted((n) => n - 1);
+  }, []);
+  const book = useOrderBookSource(wanted > 0);
+  const value = useMemo(() => ({ book, want }), [book, want]);
+  return createElement(OrderBookContext.Provider, { value }, children);
+}
+
+export function useSeaportOrders(enabled = true): OrderBook {
+  const context = useContext(OrderBookContext);
+  if (context === null) throw new Error("useSeaportOrders needs <SeaportOrdersProvider> above it");
+  const { want } = context;
+  useEffect(() => (enabled ? want() : undefined), [enabled, want]);
+  return context.book;
 }
 
 const sameAddress = (a: Address | undefined, b: Address | undefined) =>
