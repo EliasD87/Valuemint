@@ -279,11 +279,12 @@ async function markStatus(hashes: string[], status: "filled" | "cancelled"): Pro
  * against it reads more positive than the truth. A price signal biased one way
  * is worse than no price signal, so this is recorded forward instead.
  *
- * Bucketed to the hour, which is what makes it affordable. The sync runs every
- * thirty seconds; keyed on a timestamp this would write 2,880 rows per
- * collection per day. Keyed on the hour it upserts one row 120 times and leaves
- * 24 a day — a couple of hundred across the whole chain, and still far finer
- * than a figure labelled "1d" needs.
+ * Bucketed to the hour, which is what makes it affordable. Keyed on a
+ * timestamp this would write a row per collection per run. Keyed on the hour it
+ * upserts one row a few times and leaves 24 a day — a couple of hundred across
+ * the whole chain, and still far finer than a figure labelled "1d" needs.
+ *
+ * **Taken once every ten minutes, not on every run** — see `floorSnapshotDue`.
  *
  * **A collection with nothing listed writes no row.** That is deliberate: the
  * gap reads as "not known", which is true, rather than as a floor of zero,
@@ -317,6 +318,24 @@ async function markStatus(hashes: string[], status: "filled" | "cancelled"): Pro
  * history should start from the first hour after it deployed.
  * `scripts/floor-rule-check.mts` puts both rules side by side.
  */
+/**
+ * Whether this run takes the floor snapshot: the first minute of every ten.
+ *
+ * It used to run on every sync, every thirty seconds — each time reading the
+ * whole listing book back out of Supabase and upserting the hour's rows again,
+ * 120 times an hour to leave one row. Three of a run's four database requests
+ * were this, and Supabase logs every request: on 2026-09-30 the free plan's
+ * 1 GB of log ingestion was 86% used, and the book read back each time counts
+ * against egress too. Six snapshots an hour still records the hour; nothing on
+ * the site displays the history yet.
+ *
+ * Wall-clock rather than "ten minutes since the last one", because the last
+ * one would have to be read from the database — the request being saved.
+ */
+export function floorSnapshotDue(at: Date): boolean {
+  return at.getUTCMinutes() % 10 === 0;
+}
+
 export async function snapshotFloors(at: Date, client: PublicClient = indexClient()): Promise<number> {
   const rows = await selectAll<{ params: JsonOrderParameters }>("listings_public?select=params");
 
@@ -432,10 +451,13 @@ export async function syncSeaport(client: PublicClient = indexClient()): Promise
      * rose because its cheapest listing timed out.
      */
     let idleFloors = 0;
-    try {
-      idleFloors = await snapshotFloors(new Date(), client);
-    } catch (err) {
-      console.error("[index] floor snapshot failed", err);
+    const now = new Date();
+    if (floorSnapshotDue(now)) {
+      try {
+        idleFloors = await snapshotFloors(now, client);
+      } catch (err) {
+        console.error("[index] floor snapshot failed", err);
+      }
     }
 
     return {
@@ -529,10 +551,12 @@ export async function syncSeaport(client: PublicClient = indexClient()): Promise
    * not a whole index run and the block range it would have advanced.
    */
   let floors = 0;
-  try {
-    floors = await snapshotFloors(at, client);
-  } catch (err) {
-    console.error("[index] floor snapshot failed", err);
+  if (floorSnapshotDue(at)) {
+    try {
+      floors = await snapshotFloors(at, client);
+    } catch (err) {
+      console.error("[index] floor snapshot failed", err);
+    }
   }
 
   return {
