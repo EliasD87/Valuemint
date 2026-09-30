@@ -31,6 +31,17 @@ const PIN_RANK = new Map(PINNED_COLLECTIONS.map((a, i) => [a.toLowerCase(), i]))
  */
 const pinRank = (address: string) => PIN_RANK.get(address.toLowerCase()) ?? PIN_RANK.size;
 
+/**
+ * Cards drawn at first, and per press of "Show more". The same sixty as a
+ * collection page.
+ *
+ * The grid used to draw every listing on the chain at once. Measured cold on
+ * 2026-09-30: 431 cards, 896 images and 10,247 elements, and the page's main
+ * thread was blocked for 11 of its first 20 seconds, then for most of the next
+ * ten as the book refreshed and every card re-rendered. Clicks waited behind
+ * that and scrolling stuttered.
+ */
+const PAGE = 60;
 
 export default function Market() {
   const { address } = useAccount();
@@ -69,6 +80,15 @@ export default function Market() {
 
   const [sort, setSort] = useState<Sort>("traded");
   const [filterTo, setFilterTo] = useState<string>("all");
+
+  /**
+   * How many cards are drawn. Tied to the sort and filter it was grown under,
+   * so changing either starts again from the first page instead of drawing
+   * three hundred cards of a new order.
+   */
+  const view = `${sort}|${filterTo}`;
+  const [paging, setPaging] = useState({ view, limit: PAGE });
+  const limit = paging.view === view ? paging.limit : PAGE;
 
   /**
    * The filter row: named buttons, not one per collection.
@@ -351,20 +371,36 @@ export default function Market() {
           </div>
         </div>
       ) : (
-        <div className="grid-tokens">
-          {visible.map((t) => (
-            <TokenCard
-              key={`${t.collection}-${t.id}`}
-              token={t}
-              collection={t.collection}
-              collectionName={t.collectionName}
-              listing={t.listing}
-              owner={t.owner}
-              viewerAddress={address}
-              vouched={vouchedFor.get(t.collection.toLowerCase())}
-            />
-          ))}
-        </div>
+        <>
+          <div className="grid-tokens">
+            {visible.slice(0, limit).map((t) => (
+              <TokenCard
+                key={`${t.collection}-${t.id}`}
+                token={t}
+                collection={t.collection}
+                collectionName={t.collectionName}
+                listing={t.listing}
+                owner={t.owner}
+                viewerAddress={address}
+                vouched={vouchedFor.get(t.collection.toLowerCase())}
+              />
+            ))}
+          </div>
+          {visible.length > limit ? (
+            <div className="market-more">
+              <p className="market-more-count">
+                Showing <b>{limit.toLocaleString()}</b> of <b>{visible.length.toLocaleString()}</b>
+              </p>
+              <button
+                type="button"
+                className="btn"
+                onClick={() => setPaging({ view, limit: limit + PAGE })}
+              >
+                Show {Math.min(PAGE, visible.length - limit)} more
+              </button>
+            </div>
+          ) : null}
+        </>
       )}
 
     </section>
