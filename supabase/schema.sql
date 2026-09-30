@@ -316,3 +316,28 @@ revoke all on live_orders, listings_public, offers_public, collection_floors,
 
 -- And for anything added later, so this cannot be forgotten once.
 alter default privileges in schema public revoke all on tables from anon, authenticated;
+
+-- ---------------------------------------------------------------------------
+-- KOL applications
+-- ---------------------------------------------------------------------------
+
+-- People asking to join the KOL collection, from the "Apply to join" pop-up on
+-- /kols via /api/kol-apply. Unlike everything above, this is NOT a cache of
+-- chain state: it is the only copy, so do not truncate it with the index.
+--
+-- One row per wallet (lowercase); applying again from the same wallet updates
+-- the handle. `signature` is the wallet's signature over the message in
+-- lib/kolApply.ts, kept so the claim "this wallet asked" can be re-checked.
+-- `status` is for the owner's review: new, accepted, declined.
+create table if not exists kol_applications (
+  wallet      text primary key,
+  x_handle    text not null,
+  signed_at   timestamptz not null,
+  signature   text not null,
+  status      text not null default 'new',
+  created_at  timestamptz not null default now(),
+  updated_at  timestamptz not null default now()
+);
+
+alter table kol_applications enable row level security;
+revoke all on kol_applications from anon, authenticated;

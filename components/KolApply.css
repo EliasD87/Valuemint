@@ -1,0 +1,308 @@
+/*
+ * "Apply to join" on /kols. The button sits on the hero's band, which is dark
+ * in both themes, so like the rest of the hero it is styled for that band
+ * rather than from the page tokens: a light pill, the one solid thing on the
+ * violet, so it reads as the action. The pop-up is an ordinary dialog on the
+ * page and uses the tokens like every other one.
+ */
+
+.kap-open {
+  /*
+   * Above the KOL letters. Their glyphs overshoot their own boxes upward by
+   * design and come later in the page, so without this the top of the K and O
+   * sat over the button and took its clicks (measured: two of three points on
+   * the button hit a letter at 1280x720).
+   */
+  position: relative;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 1.2rem;
+  padding: 0.45rem 1.15rem 0.45rem 0.5rem;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: #fdfdfe;
+  color: #0e0e10;
+  font: inherit;
+  font-size: var(--step--1);
+  cursor: pointer;
+  box-shadow: 0 10px 30px -12px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.4);
+  transition: translate 0.25s var(--ease), box-shadow 0.25s var(--ease);
+}
+
+.kap-open:hover {
+  translate: 0 -2px;
+  box-shadow: 0 16px 38px -12px rgba(0, 0, 0, 0.65), 0 0 0 4px rgba(255, 138, 61, 0.35);
+}
+
+.kap-open:focus-visible {
+  outline: 2px solid #ff8a3d;
+  outline-offset: 3px;
+}
+
+/* Three of the set, overlapping, then the empty seat. */
+.kap-faces {
+  display: flex;
+  align-items: center;
+}
+
+.kap-faces img,
+.kap-seat {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 2px solid #fdfdfe;
+  flex: none;
+}
+
+.kap-faces img {
+  object-fit: cover;
+  background: #ececef;
+}
+
+.kap-faces > * + * {
+  margin-left: -9px;
+}
+
+.kap-seat {
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  background: #fff1e8;
+  outline: 1.5px dashed #ff5c00;
+  outline-offset: -4px;
+  color: #d14a00;
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.kap-open.is-sent .kap-seat {
+  background: #e7f6ec;
+  outline-color: #15803d;
+  color: #15803d;
+  font-size: 13px;
+}
+
+.kap-label {
+  font-weight: 500;
+  color: #55555e;
+  white-space: nowrap;
+}
+
+.kap-label b {
+  font-weight: 750;
+  color: #0e0e10;
+}
+
+.kap-arrow {
+  display: inline-block;
+  font-weight: 700;
+  transition: translate 0.25s var(--ease);
+}
+
+.kap-open:hover .kap-arrow {
+  translate: 3px 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kap-open,
+  .kap-arrow {
+    transition: none;
+  }
+}
+
+/* ------------------------------------------------------------------ dialog */
+
+.kap-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 58;
+  background: var(--scrim);
+}
+
+.kap {
+  position: fixed;
+  z-index: 59;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(94vw, 26rem);
+  max-height: min(88svh, 42rem);
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  box-shadow: 0 32px 70px -24px rgba(0, 0, 0, 0.55);
+  overflow: hidden;
+}
+
+.kap-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1rem 0.9rem 1.25rem;
+  border-bottom: 1px solid var(--line);
+  flex: none;
+}
+
+.kap-kicker {
+  margin: 0 0 0.15rem;
+  font-size: var(--step--3);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.kap-head h2 {
+  margin: 0;
+  font-size: var(--step-1);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.kap-close {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  flex: none;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--ink-2);
+}
+
+.kap-close:hover {
+  color: var(--ink);
+  border-color: var(--ink-3);
+}
+
+/* Drawn at 34, hit at 44. */
+.kap-close::after {
+  content: "";
+  position: absolute;
+  inset: 50% auto auto 50%;
+  transform: translate(-50%, -50%);
+  width: 44px;
+  height: 44px;
+}
+
+.kap-close svg {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+}
+
+.kap-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.1rem 1.25rem 1.25rem;
+  overflow-y: auto;
+}
+
+.kap-lede,
+.kap-done {
+  margin: 0;
+  font-size: var(--step--1);
+  line-height: 1.55;
+  color: var(--ink-2);
+}
+
+.kap-done b {
+  color: var(--ink);
+}
+
+.kap-note {
+  margin: 0;
+  padding: 0.6rem 0.75rem;
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+  font-size: var(--step--2);
+  color: var(--ink-2);
+}
+
+.kap-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  font-size: var(--step--2);
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+.kap-at {
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0 0.8rem;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  color: var(--ink-3);
+  font-size: var(--step-0);
+  font-weight: 600;
+}
+
+.kap-at:focus-within {
+  border-color: var(--ink);
+}
+
+.kap-at input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.7rem 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+}
+
+.kap-bad {
+  font-weight: 500;
+  color: var(--warn);
+}
+
+.kap-wallet {
+  margin: 0;
+  padding: 0.65rem 0.8rem;
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+  font-size: var(--step--2);
+  font-weight: 500;
+  color: var(--ink-3);
+}
+
+.kap-wallet b {
+  margin-right: 0.35rem;
+  color: var(--ink);
+  font-size: var(--step--1);
+}
+
+.kap-error {
+  margin: 0;
+  padding: 0.65rem 0.8rem;
+  border-radius: var(--r-sm);
+  background: var(--warn-wash);
+  color: var(--warn);
+  font-size: var(--step--2);
+  line-height: 1.5;
+}
+
+.kap-fine {
+  margin: -0.4rem 0 0;
+  font-size: var(--step--3);
+  line-height: 1.5;
+  color: var(--ink-3);
+  text-align: center;
+}

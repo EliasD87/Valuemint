@@ -9,6 +9,7 @@ import { Art } from "@/components/Art";
 import { ConnectButton } from "@/components/ConnectButton";
 import { Soso } from "@/components/Soso";
 import { KolEnvelope } from "@/components/KolEnvelope";
+import { KolApply } from "@/components/KolApply";
 import { KolWall } from "@/components/KolWall";
 import { KOLS, kolImage, kolLocal, xHandle, type Kol } from "@/config/kols";
 import { useKolRewards, type Stage } from "@/hooks/useKolRewards";
@@ -217,6 +218,8 @@ export default function Kols() {
             </p>
           </div>
 
+          {/* For people who are not in the set yet and would like to be. */}
+          <KolApply />
         </div>
 
         {/* The letters carry meaning now, so the row is announced as the word it
