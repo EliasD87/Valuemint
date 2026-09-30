@@ -436,6 +436,37 @@
   white-space: nowrap;
 }
 
+/* A strip across the bottom of the card: nothing else lives on this line. */
+.kol-card-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  margin: 0;
+  padding: 0.4rem 0.75rem;
+  border-top: 1px solid var(--line);
+  background: var(--surface-2);
+  font-size: var(--step--3);
+  font-weight: 600;
+  color: var(--ink-3);
+}
+
+.kol-card-status.is-claimed {
+  background: var(--up-wash);
+  color: var(--up);
+  font-weight: 700;
+}
+
+.kol-card-status svg {
+  width: 12px;
+  height: 12px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 .kol-card-x svg {
   flex: none;
   width: 12px;
@@ -657,14 +688,6 @@
 }
 
 /* ------------------------------------------------------------- roster ---- */
-
-.kol-card-chip {
-  position: absolute;
-  top: 0.55rem;
-  left: 0.55rem;
-  z-index: 1;
-  box-shadow: var(--shadow-sm);
-}
 
 /* Their own card in the roster, marked so they can find themselves in it. */
 .kol-card.is-mine {

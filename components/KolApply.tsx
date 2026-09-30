@@ -57,6 +57,20 @@ export function KolApply() {
     setSentAs(read(SENT_KEY));
   }, []);
 
+  /*
+   * Development only: `?kap-preview=found` opens straight onto the "seat
+   * found" sequence, so it can be looked at without a wallet signature and a
+   * real row in the database. `NODE_ENV` is inlined at build time, so this
+   * whole block is dead code in production and removed.
+   */
+  useEffect(() => {
+    if (process.env.NODE_ENV !== "development") return;
+    if (new URLSearchParams(window.location.search).get("kap-preview") !== "found") return;
+    setSentAs("yourhandle");
+    setPhase("sent");
+    setOpen(true);
+  }, []);
+
   const edit = (v: string) => {
     setHandle(v);
     setError(null);
@@ -217,15 +231,7 @@ function ApplyDialog({
         </div>
 
         {phase === "sent" ? (
-          <div className="kap-body">
-            <p className="kap-done">
-              Thanks, <b>@{sentAs ?? clean}</b>. You&rsquo;re on the list. If you&rsquo;re picked, we&rsquo;ll reach
-              out on X and make your 1/1 portrait.
-            </p>
-            <button type="button" className="btn btn-primary btn-block" onClick={onClose}>
-              Done
-            </button>
-          </div>
+          <SeatFound handle={sentAs ?? clean ?? ""} onClose={onClose} />
         ) : (
           <form
             className="kap-body"
@@ -286,5 +292,74 @@ function ApplyDialog({
       </div>
     </>,
     document.body,
+  );
+}
+
+/**
+ * What the applicant sees once their application is saved: the empty seat
+ * from the button is "found" and filled.
+ *
+ * Every line in it is something that has actually happened by the time it
+ * shows — the wallet signed, the handle received, the row saved — because this
+ * only mounts after /api/kol-apply said ok. It does not pretend to check their
+ * posts or anything else nobody checked.
+ *
+ * The sequence is driven by timers setting a stage, not by CSS animation
+ * delays: content never waits on an animation that might not run, and the
+ * final state is simply the last stage. With reduced motion it starts there.
+ */
+function SeatFound({ handle, onClose }: { handle: string; onClose: () => void }) {
+  const [stage, setStage] = useState(0);
+  const done = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setStage(4);
+      return;
+    }
+    const timers = [450, 900, 1350, 1900].map((ms, i) => window.setTimeout(() => setStage(i + 1), ms));
+    return () => timers.forEach((t) => window.clearTimeout(t));
+  }, []);
+  useEffect(() => {
+    if (stage === 4) done.current?.focus();
+  }, [stage]);
+
+  const checks = ["Wallet signed", `@${handle} received`, "Saved to the list"];
+  const found = stage >= 4;
+
+  return (
+    <div className={`kap-body kap-found${found ? " is-found" : ""}`} aria-live="polite">
+      <div className="kap-radar" aria-hidden="true">
+        <span className="kap-ring" />
+        <span className="kap-ring is-late" />
+        <span className="kap-sweep" />
+        <span className="kap-burst">
+          {Array.from({ length: 10 }, (_, i) => (
+            <i key={i} style={{ ["--a" as string]: `${i * 36}deg` }} />
+          ))}
+        </span>
+        <span className="kap-radar-seat">{found ? "✓" : "+"}</span>
+      </div>
+
+      <p className="kap-found-title">{found ? "You’re on the list" : "Finding you a seat…"}</p>
+
+      <ul className="kap-checks">
+        {checks.map((c, i) => (
+          <li key={c} className={stage > i ? "is-on" : undefined}>
+            <span aria-hidden="true">{stage > i ? "✓" : ""}</span>
+            {c}
+          </li>
+        ))}
+      </ul>
+
+      <div className={`kap-found-end${found ? " is-on" : ""}`}>
+        <p className="kap-done">
+          We&rsquo;ll reach out to you on X if you&rsquo;re picked, <b>@{handle}</b>. Keep showing up 🧡
+        </p>
+        <button ref={done} type="button" className="btn btn-primary btn-block" onClick={onClose} disabled={!found}>
+          Done
+        </button>
+      </div>
+    </div>
   );
 }

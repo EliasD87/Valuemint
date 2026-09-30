@@ -259,9 +259,6 @@ export default function Kols() {
               <article className={`kol-card${rewards.mine?.kol.n === k.n ? " is-mine" : ""}`} key={k.n}>
                 <div className="kol-card-art">
                   <Art src={kolImage(k)} alt={k.name} sizes="(max-width: 700px) 45vw, 240px" />
-                  {rewards.statuses.get(k.n)?.claimed ? (
-                    <span className="chip chip-up kol-card-chip">Claimed</span>
-                  ) : null}
                 </div>
                 <div className="kol-card-foot">
                   <b>{k.name}</b>
@@ -281,6 +278,23 @@ export default function Kols() {
                     {xHandle(k.x)}
                   </a>
                 )}
+                {/* Claim status on its own line under the handle, so it covers
+                    neither the portrait nor the handle. Only once claiming has
+                    opened; before that there is nothing to report. */}
+                {live ? (
+                  <p className={`kol-card-status${rewards.statuses.get(k.n)?.claimed ? " is-claimed" : ""}`}>
+                    {rewards.statuses.get(k.n)?.claimed ? (
+                      <>
+                        <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+                          <path d="M3.5 8.5l3 3 6-7" />
+                        </svg>
+                        Claimed
+                      </>
+                    ) : (
+                      "Not claimed yet"
+                    )}
+                  </p>
+                ) : null}
               </article>
             ))}
           </div>
