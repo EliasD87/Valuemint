@@ -10,6 +10,7 @@ import { FocusLine } from "./FocusLine";
 import { Search } from "./Search";
 import { SodexLogo } from "./SodexLogo";
 import { GuideWelcome } from "./GuideWelcome";
+import { NavProgress } from "./NavProgress";
 import { deployment } from "@/config/contracts";
 import { SEAPORT } from "@/config/seaport";
 import "./Layout.css";
@@ -130,6 +131,7 @@ export function Layout({ children }: { children: ReactNode }) {
 
   return (
     <>
+      <NavProgress />
       <a className="skip" href="#main">
         Skip to content
       </a>

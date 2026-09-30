@@ -1,0 +1,54 @@
+/* The page-on-its-way bar. Above the sticky header (100), below dialogs. */
+.nav-progress {
+  position: fixed;
+  inset: 0 0 auto 0;
+  height: 3px;
+  z-index: 150;
+  pointer-events: none;
+}
+
+.nav-progress-bar {
+  height: 100%;
+  background: var(--accent);
+  transform-origin: left center;
+  transform: scaleX(0.9);
+}
+
+/* Quick at first, then slower and slower: it never claims to be finished. */
+.nav-progress.is-running .nav-progress-bar {
+  animation: nav-progress-grow 8s cubic-bezier(0.1, 0.8, 0.2, 1) both;
+}
+@keyframes nav-progress-grow {
+  from {
+    transform: scaleX(0.06);
+  }
+  to {
+    transform: scaleX(0.9);
+  }
+}
+
+/* Arrived: full width, then gone. */
+.nav-progress.is-done .nav-progress-bar {
+  animation: nav-progress-done 400ms ease-out both;
+}
+@keyframes nav-progress-done {
+  from {
+    transform: scaleX(1);
+    opacity: 1;
+  }
+  to {
+    transform: scaleX(1);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-progress.is-running .nav-progress-bar {
+    animation: none;
+    transform: scaleX(0.5);
+  }
+  .nav-progress.is-done .nav-progress-bar {
+    animation: none;
+    opacity: 0;
+  }
+}
