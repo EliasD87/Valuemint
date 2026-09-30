@@ -1,0 +1,486 @@
+/*
+ * The KOLs' posts on /kols, as a tree growing out of the collection, each card
+ * hanging from its line like a sign on a rope. Colours are tokens only: lines in --accent-line, the nodes on
+ * them in --accent, cards on --surface like every other thing on the page.
+ */
+
+.kw {
+  margin: clamp(3.5rem, 8vw, 6rem) 0 0;
+}
+
+/* ------------------------------------------------------------------ tree */
+
+.kw-tree {
+  position: relative;
+  max-width: 1040px;
+  margin: 0 auto;
+  padding-bottom: 1rem;
+}
+
+/* The dotted ground, fading out at the edges. On its own layer so the mask
+   never touches the cards. */
+.kw-tree::before {
+  content: "";
+  position: absolute;
+  inset: -2.5rem -1rem -1rem;
+  background-image: radial-gradient(var(--line-strong) 1.1px, transparent 1.6px);
+  background-size: 22px 22px;
+  -webkit-mask-image: radial-gradient(ellipse 70% 65% at 50% 45%, #000 35%, transparent 80%);
+  mask-image: radial-gradient(ellipse 70% 65% at 50% 45%, #000 35%, transparent 80%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.kw-tree > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* The node every line leaves from or arrives at. */
+.kw-root::after,
+.kw-card::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  width: 11px;
+  height: 11px;
+  margin-left: -5.5px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 2px solid var(--accent);
+  box-sizing: border-box;
+}
+
+.kw-root {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 0.65rem 1rem 0.65rem 0.7rem;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-md);
+}
+
+.kw-root::after {
+  bottom: -6px;
+}
+
+.kw-root b {
+  font-size: var(--step-0);
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.kw-root-meta {
+  padding-left: 0.7rem;
+  border-left: 1px solid var(--line);
+  font-size: var(--step--2);
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+
+.kw-root-thumbs {
+  display: flex;
+}
+
+.kw-root-thumbs img {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--surface-2);
+  border: 2px solid var(--surface);
+}
+
+.kw-root-thumbs img + img {
+  margin-left: -10px;
+}
+
+/* ---------------------------------------------------------------- branches */
+
+.kw-fork {
+  position: relative;
+  height: 120px;
+}
+
+.kw-fork svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.kw-branch {
+  fill: none;
+  stroke: var(--accent-line);
+  stroke-width: 2;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.kw-branch.is-dashed {
+  stroke-dasharray: 6 7;
+}
+
+/* A label sitting on the right branch, as a stop on the line. */
+.kw-chip {
+  position: absolute;
+  left: 75%;
+  top: 92px;
+  translate: -50% -50%;
+  padding: 0.3rem 0.75rem;
+  font-size: var(--step--2);
+  font-weight: 600;
+  color: var(--ink-2);
+  white-space: nowrap;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  box-shadow: var(--shadow-sm);
+}
+
+/* ------------------------------------------------------------------ columns */
+
+.kw-cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: start;
+}
+
+.kw-col {
+  --gap: 3.25rem;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--gap);
+  padding: 0.9rem 1rem 0;
+}
+
+/* The right side starts lower: past the label on its branch. */
+.kw-col.is-right {
+  padding-top: 3.75rem;
+}
+
+/* The line from the branch's end down to the column's first card. */
+.kw-col::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 2px;
+  margin-left: -1px;
+  height: 0.9rem;
+  background: var(--accent-line);
+}
+
+.kw-col.is-right::before {
+  height: 3.75rem;
+}
+
+.kw-col.is-left::before {
+  background: repeating-linear-gradient(var(--accent-line) 0 6px, transparent 6px 13px);
+}
+
+/* ------------------------------------------------------------------- cards */
+
+/* The outer box holds still: it carries the line and the node the card hangs
+   from. The body inside is the card, and it is what swings. */
+.kw-card {
+  --tilt: 0deg;
+  position: relative;
+  width: min(100%, 23.5rem);
+}
+
+.kw-card-body {
+  padding: 1rem 1.1rem 0.9rem;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-lg);
+  rotate: var(--tilt);
+  /* The node sits on the top edge's centre: that is the rope. */
+  transform-origin: 50% 0;
+}
+
+.kw-card::after {
+  top: -6px;
+}
+
+/* The line up to the card above. */
+.kw-card + .kw-card::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 100%;
+  width: 2px;
+  margin-left: -1px;
+  height: var(--gap);
+  background: var(--accent-line);
+}
+
+.kw-col.is-left .kw-card + .kw-card::before {
+  background: repeating-linear-gradient(var(--accent-line) 0 6px, transparent 6px 13px);
+}
+
+/* The left side hangs loose, the way the dashed branch into it does. */
+.kw-col.is-left .kw-card:nth-child(odd) {
+  --tilt: -1.6deg;
+}
+
+.kw-col.is-left .kw-card:nth-child(even) {
+  --tilt: 1.3deg;
+}
+
+.kw-card-head {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.kw-avatar {
+  width: 44px;
+  height: 44px;
+  flex: none;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+}
+
+.kw-who {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.25;
+}
+
+.kw-who b {
+  font-size: var(--step-0);
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.kw-who span {
+  font-size: var(--step--2);
+  color: var(--ink-3);
+}
+
+/* Where it was posted: a mark, not a button — the cards link nowhere. */
+.kw-x {
+  margin-left: auto;
+  flex: none;
+  display: flex;
+}
+
+.kw-x svg {
+  width: 15px;
+  height: 15px;
+  fill: var(--ink-3);
+}
+
+.kw-text {
+  margin: 0.8rem 0 0.9rem;
+  font-size: var(--step-0);
+  line-height: 1.55;
+  color: var(--ink);
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+/* @handles, #tags and $tickers: weight, not colour — the accent is below AA
+   as text on --surface. */
+.kw-tag-word {
+  font-weight: 650;
+}
+
+.kw-translated {
+  margin: -0.45rem 0 0.9rem;
+  font-size: var(--step--2);
+  font-style: italic;
+  color: var(--ink-3);
+}
+
+.kw-card-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: var(--step--2);
+  color: var(--ink-3);
+}
+
+.kw-tag {
+  padding: 0.15rem 0.55rem;
+  border-radius: var(--r-pill);
+  background: var(--surface-2);
+  color: var(--ink-2);
+  font-weight: 600;
+}
+
+/* ------------------------------------------------------------------- phone */
+
+/* One column: the root on the left, a rail down from it, every post hanging
+   off the rail in list order. The fork and the tilt are desktop things. */
+@media (max-width: 760px) {
+  .kw-root {
+    margin: 0;
+  }
+
+  .kw-root::after {
+    left: 1.1rem;
+  }
+
+  .kw-fork {
+    display: none;
+  }
+
+  .kw-cols {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 1.75rem;
+    margin-top: 1.75rem;
+    padding-left: 2.1rem;
+  }
+
+  .kw-cols::before {
+    content: "";
+    position: absolute;
+    left: calc(1.1rem - 1px);
+    top: -1.75rem;
+    bottom: 1.5rem;
+    width: 2px;
+    background: var(--accent-line);
+  }
+
+  .kw-col {
+    display: contents;
+  }
+
+  .kw-col::before,
+  .kw-card + .kw-card::before {
+    content: none;
+  }
+
+  .kw-card,
+  .kw-col.is-left .kw-card:nth-child(odd),
+  .kw-col.is-left .kw-card:nth-child(even) {
+    --tilt: 0deg;
+    width: 100%;
+  }
+
+  /* Hung from the rail at its side here, so it swings from that point. */
+  .kw-card-body {
+    transform-origin: -1rem 1.35rem;
+  }
+
+  /* The node where the card meets the rail. */
+  .kw-card::after {
+    top: 1.35rem;
+    left: calc(-2.1rem + 1.1rem);
+  }
+}
+
+/* ------------------------------------------------------------------ motion */
+
+/*
+ * Scroll-driven, where the browser has it: the branches wipe in downward and
+ * each card rises into place as it enters the viewport. Tied to scroll
+ * position rather than time, so there is no moment at which content waits on
+ * a clock — and without support, or with reduced motion asked for, none of
+ * this applies and everything is simply there.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: view()) {
+    .kw-card,
+    .kw-root,
+    .kw-chip {
+      animation: kw-rise linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 70%;
+    }
+
+    .kw-fork svg {
+      animation: kw-wipe linear both;
+      animation-timeline: view();
+      animation-range: entry 40% cover 45%;
+    }
+  }
+}
+
+@keyframes kw-rise {
+  from {
+    opacity: 0;
+    translate: 0 2.25rem;
+    scale: 0.96;
+  }
+}
+
+/* The chip is centred with `translate`, so it rises by opacity alone. */
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: view()) {
+    .kw-chip {
+      animation-name: kw-fade;
+    }
+  }
+}
+
+@keyframes kw-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes kw-wipe {
+  from {
+    clip-path: inset(0 0 100% 0);
+  }
+  to {
+    clip-path: inset(0);
+  }
+}
+
+/*
+ * The swing: hovering a card knocks it, and it rocks on its rope and settles,
+ * each swing smaller than the last, back to where it hung. Every card, both
+ * sides. KolWall.tsx adds `is-swinging` on hover and removes it only when the
+ * swing ends, so a swing always finishes even after the pointer has moved on.
+ * Only for a real pointer — a tap is not a hover — and never when less motion
+ * is asked for (the component checks the same query before adding the class).
+ */
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .kw-card-body.is-swinging {
+    animation: kw-swing 1.9s ease-in-out;
+  }
+}
+
+@keyframes kw-swing {
+  0% {
+    rotate: var(--tilt);
+  }
+  14% {
+    rotate: calc(var(--tilt) + 5deg);
+  }
+  32% {
+    rotate: calc(var(--tilt) - 4deg);
+  }
+  50% {
+    rotate: calc(var(--tilt) + 2.6deg);
+  }
+  67% {
+    rotate: calc(var(--tilt) - 1.5deg);
+  }
+  83% {
+    rotate: calc(var(--tilt) + 0.6deg);
+  }
+  100% {
+    rotate: var(--tilt);
+  }
+}

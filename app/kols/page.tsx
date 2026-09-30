@@ -9,6 +9,7 @@ import { Art } from "@/components/Art";
 import { ConnectButton } from "@/components/ConnectButton";
 import { Soso } from "@/components/Soso";
 import { KolEnvelope } from "@/components/KolEnvelope";
+import { KolWall } from "@/components/KolWall";
 import { KOLS, kolImage, kolLocal, xHandle, type Kol } from "@/config/kols";
 import { useKolRewards, type Stage } from "@/hooks/useKolRewards";
 import { formatSoso } from "@/lib/format";
@@ -317,6 +318,9 @@ export default function Kols() {
               </article>
             ))}
           </div>
+
+          {/* Their posts. Renders nothing until there are some. */}
+          <KolWall claimed={rewards.claimedCount} total={rewards.minted ?? KOLS.length} live={live} />
 
           {/* All of them together, closing the page: a thank-you, then the
               group cut-out supplied by the owner (2026-09-26). */}
