@@ -15,7 +15,7 @@ import { SealIcon } from "@/components/Unrevealed";
 import { Art } from "@/components/Art";
 import { Wordmark } from "@/components/Wordmark";
 import { wordmarkSaying } from "@/config/wordmarks";
-import { soleArtworkFor } from "@/config/covers";
+import { bundledArtworkFor, soleArtworkFor } from "@/config/covers";
 import { offersAllowed } from "@/config/kols";
 import "./TokenCard.css";
 import { Soso } from "@/components/Soso";
@@ -164,7 +164,7 @@ export function TokenCard({
    * for these collections the two are the same picture, and the local file is
    * the smaller, lighter, faster-serving one. See `soleArtworkFor`.
    */
-  const image = soleArtworkFor(collection) ?? token.image;
+  const image = soleArtworkFor(collection) ?? bundledArtworkFor(token.image, token.uri) ?? token.image;
 
   /** The collection's drawn name, if this piece's name is the word it draws. */
   const titleMark = wordmarkSaying(collection, token.design);

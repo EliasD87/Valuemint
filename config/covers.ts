@@ -217,3 +217,63 @@ export function soleArtworkFor(address: string | undefined): string | undefined 
   if (address === undefined) return undefined;
   return SOLE_ARTWORK[address.toLowerCase()];
 }
+
+/**
+ * Artwork we ship ourselves, by the IPFS CID a token's metadata names.
+ *
+ * SoDEX Treasure Box has 71,000-odd boxes and four pictures — one per level —
+ * each a ~1.4 MB PNG on a public gateway. Its cards went through `/api/still`,
+ * and a still the CDN has not got costs a gateway fetch and a resize: measured
+ * 2026-09-30, 4.2-5.7 s per picture, and every deploy empties that cache, so
+ * the first visitor after each push waited that long for every box on the
+ * market. These are the same four pictures, re-encoded from SoDEX's originals
+ * to 512px WebP (19-31 KB) and served with the site, so a box costs nothing
+ * but its metadata.
+ *
+ * Keyed by CID rather than collection, so it only ever replaces the exact
+ * picture the token names — a fifth level, or a changed image, falls through
+ * to the token's own artwork untouched.
+ */
+const BUNDLED_ARTWORK: Record<string, string> = {
+  /** Treasure Box, Common — sobox/0. */
+  bafybeibltyk5zokqdookfnccsfcoebl3qzp4gkx45bhtgrllm2t23kp67u: "/boxes/sobox/common.webp",
+  /** Uncommon — sobox/1. */
+  bafybeif3cbqz2l5amcqk7yw4irrw2sjx6pwioxpcgu2cnjsaadadocvefa: "/boxes/sobox/uncommon.webp",
+  /** Rare — sobox/2. */
+  bafybeih7427beihagqyxfnxwugn6p7gyxiekstpaps4qcsjaeumbuosc2u: "/boxes/sobox/rare.webp",
+  /** SuperRare — sobox/3. */
+  bafybeihqcahgiep6s2ech2imswhn2azwylilhq2cvuvuzquyhs5xccrvmu: "/boxes/sobox/superrare.webp",
+};
+
+/**
+ * The same four pictures, by the metadata URI a box's `tokenURI` returns.
+ *
+ * A Treasure Box's `tokenURI` is its level's document — every Common box
+ * answers `…/sobox/0` — so the URI alone says which picture it is. Matching it
+ * here puts the box on the card as soon as the chain has answered, without
+ * waiting ~1.5 s for SoDEX's host to serve a document that only repeats it.
+ */
+const BUNDLED_BY_URI: Record<string, string> = {
+  "https://mainnet-gw.sodex.dev/api/v1/nft/token/sobox/0": "/boxes/sobox/common.webp",
+  "https://mainnet-gw.sodex.dev/api/v1/nft/token/sobox/1": "/boxes/sobox/uncommon.webp",
+  "https://mainnet-gw.sodex.dev/api/v1/nft/token/sobox/2": "/boxes/sobox/rare.webp",
+  "https://mainnet-gw.sodex.dev/api/v1/nft/token/sobox/3": "/boxes/sobox/superrare.webp",
+};
+
+/**
+ * Our own copy of this exact picture, if we ship one.
+ *
+ * Accepts the image however the metadata or a gateway spelled it —
+ * `ipfs://<cid>` or `https://<gateway>/ipfs/<cid>` — and matches the bare CID
+ * only, never a path inside it. Before the document has arrived, the token's
+ * metadata URI can answer on its own (`BUNDLED_BY_URI`).
+ */
+export function bundledArtworkFor(image: string | undefined, uri?: string): string | undefined {
+  if (image !== undefined) {
+    const cid =
+      /^ipfs:\/\/(?:ipfs\/)?([a-z0-9]+)\/?$/i.exec(image)?.[1] ??
+      /\/ipfs\/([a-z0-9]+)\/?(?:[?#].*)?$/i.exec(image)?.[1];
+    return cid === undefined ? undefined : BUNDLED_ARTWORK[cid];
+  }
+  return uri === undefined ? undefined : BUNDLED_BY_URI[uri.trim()];
+}
