@@ -85,35 +85,37 @@ export function KolApply() {
   return (
     <>
       {/* Three faces from the set (not the three the gift line above already
-          shows) and an empty seat beside them: the offer,
-          said as a picture. Once applied, the seat shows a tick instead. */}
-      <button
-        ref={opener}
-        type="button"
-        className={`kap-open${sentAs === null ? "" : " is-sent"}`}
-        onClick={() => setOpen(true)}
-      >
-        <span className="kap-faces" aria-hidden="true">
-          {KOLS.slice(3, 6).map((k) => (
-            <Image key={k.n} src={kolLocal(k)} alt="" width={56} height={56} loading="eager" />
-          ))}
-          <span className="kap-seat">{sentAs === null ? "+" : "✓"}</span>
-        </span>
-        <span className="kap-label">
-          {sentAs === null ? (
-            <>
-              Want in? <b>Apply to join</b>
-            </>
-          ) : (
-            <>
-              You&rsquo;ve applied <b>Update</b>
-            </>
-          )}
-        </span>
-        <span className="kap-arrow" aria-hidden="true">
-          →
-        </span>
-      </button>
+          shows) and an empty seat beside them: the offer, said as a picture.
+          Once this browser has applied, it becomes a plain badge with the seat
+          ticked: there is nothing more for them to do, so nothing to open. */}
+      {sentAs === null ? (
+        <button ref={opener} type="button" className="kap-open" onClick={() => setOpen(true)}>
+          <span className="kap-faces" aria-hidden="true">
+            {KOLS.slice(3, 6).map((k) => (
+              <Image key={k.n} src={kolLocal(k)} alt="" width={56} height={56} loading="eager" />
+            ))}
+            <span className="kap-seat">+</span>
+          </span>
+          <span className="kap-label">
+            Want in? <b>Apply to join</b>
+          </span>
+          <span className="kap-arrow" aria-hidden="true">
+            →
+          </span>
+        </button>
+      ) : (
+        <p className="kap-open is-sent">
+          <span className="kap-faces" aria-hidden="true">
+            {KOLS.slice(3, 6).map((k) => (
+              <Image key={k.n} src={kolLocal(k)} alt="" width={56} height={56} loading="eager" />
+            ))}
+            <span className="kap-seat">✓</span>
+          </span>
+          <span className="kap-label">
+            Applied as <b>@{sentAs}</b>
+          </span>
+        </p>
+      )}
       {open ? (
         <ApplyDialog
           handle={handle}
@@ -217,18 +219,28 @@ function ApplyDialog({
   return createPortal(
     <>
       <div className="kap-scrim" onClick={onClose} aria-hidden="true" />
-      <div className="kap" role="dialog" aria-modal="true" aria-labelledby="kap-title">
-        <div className="kap-head">
-          <div>
-            <p className="kap-kicker">ValueMint KOL collection</p>
-            <h2 id="kap-title">{phase === "sent" ? "Application received" : "Apply to join"}</h2>
-          </div>
-          <button type="button" className="kap-close" aria-label="Close" onClick={onClose}>
+      <div className={`kap${phase === "sent" ? " is-found" : ""}`} role="dialog" aria-modal="true" aria-labelledby="kap-title">
+        {/* Once sent, the confirmation has its own stage and title; the form's
+            header would only repeat it. */}
+        {phase === "sent" ? (
+          <button type="button" className="kap-close is-floating" aria-label="Close" onClick={onClose}>
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M6 6l12 12M18 6L6 18" />
             </svg>
           </button>
-        </div>
+        ) : (
+          <div className="kap-head">
+            <div>
+              <p className="kap-kicker">ValueMint KOL collection</p>
+              <h2 id="kap-title">Apply to join</h2>
+            </div>
+            <button type="button" className="kap-close" aria-label="Close" onClick={onClose}>
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M6 6l12 12M18 6L6 18" />
+              </svg>
+            </button>
+          </div>
+        )}
 
         {phase === "sent" ? (
           <SeatFound handle={sentAs ?? clean ?? ""} onClose={onClose} />
@@ -244,12 +256,6 @@ function ApplyDialog({
               For the people who keep showing up around SoDEX. Tell us who you are, and if you&rsquo;re picked
               we&rsquo;ll make your 1/1 portrait.
             </p>
-            {sentAs !== null ? (
-              <p className="kap-note">
-                You applied as <b>@{sentAs}</b>. Sending again from the same wallet updates it.
-              </p>
-            ) : null}
-
             <label className="kap-field">
               <span>Your X handle</span>
               <span className="kap-at">
@@ -296,17 +302,18 @@ function ApplyDialog({
 }
 
 /**
- * What the applicant sees once their application is saved: the empty seat
- * from the button is "found" and filled.
+ * What the applicant sees once their application is saved, in the claim
+ * envelope's language: a KOL card on the warm stage, theirs but not yet drawn.
+ * A band of light scans the empty portrait while the steps tick in, then the
+ * card is stamped "On the list".
  *
- * Every line in it is something that has actually happened by the time it
- * shows — the wallet signed, the handle received, the row saved — because this
- * only mounts after /api/kol-apply said ok. It does not pretend to check their
- * posts or anything else nobody checked.
+ * Every step shown is one that has actually happened by the time it shows —
+ * the wallet signed, the handle received, the row saved — because this only
+ * mounts after /api/kol-apply said ok. Nothing pretends to check their posts.
  *
- * The sequence is driven by timers setting a stage, not by CSS animation
- * delays: content never waits on an animation that might not run, and the
- * final state is simply the last stage. With reduced motion it starts there.
+ * Stages are set by timers, not by CSS animation end states, so content never
+ * waits on an animation that might not run; with reduced motion it starts at
+ * the end.
  */
 function SeatFound({ handle, onClose }: { handle: string; onClose: () => void }) {
   const [stage, setStage] = useState(0);
@@ -317,48 +324,58 @@ function SeatFound({ handle, onClose }: { handle: string; onClose: () => void })
       setStage(4);
       return;
     }
-    const timers = [450, 900, 1350, 1900].map((ms, i) => window.setTimeout(() => setStage(i + 1), ms));
+    const timers = [550, 1050, 1550, 2150].map((ms, i) => window.setTimeout(() => setStage(i + 1), ms));
     return () => timers.forEach((t) => window.clearTimeout(t));
   }, []);
   useEffect(() => {
     if (stage === 4) done.current?.focus();
   }, [stage]);
 
-  const checks = ["Wallet signed", `@${handle} received`, "Saved to the list"];
+  const steps = ["Wallet signed", `@${handle} received`, "Saved"];
   const found = stage >= 4;
 
   return (
-    <div className={`kap-body kap-found${found ? " is-found" : ""}`} aria-live="polite">
-      <div className="kap-radar" aria-hidden="true">
-        <span className="kap-ring" />
-        <span className="kap-ring is-late" />
-        <span className="kap-sweep" />
-        <span className="kap-burst">
-          {Array.from({ length: 10 }, (_, i) => (
-            <i key={i} style={{ ["--a" as string]: `${i * 36}deg` }} />
-          ))}
-        </span>
-        <span className="kap-radar-seat">{found ? "✓" : "+"}</span>
+    <div className={`kap-found${found ? " is-found" : ""}`} aria-live="polite">
+      <div className="kap-stage" aria-hidden="true">
+        <div className="kap-glow" />
+        <div className="kap-pcard">
+          <div className="kap-pcard-head">
+            <span>ValueMint KOLs</span>
+            <span>#??</span>
+          </div>
+          <div className="kap-pcard-art">
+            <svg className="kap-silhouette" viewBox="0 0 100 100" focusable="false">
+              <circle cx="50" cy="38" r="15" />
+              <path d="M20 92c2-18 14-28 30-28s28 10 30 28" />
+            </svg>
+            <span className="kap-scan" />
+            <span className="kap-stamp">On the list</span>
+          </div>
+          <div className="kap-pcard-foot">
+            <b>@{handle}</b>
+            <span>{found ? "In review" : "Pending"}</span>
+          </div>
+        </div>
       </div>
 
-      <p className="kap-found-title">{found ? "You’re on the list" : "Finding you a seat…"}</p>
-
-      <ul className="kap-checks">
-        {checks.map((c, i) => (
-          <li key={c} className={stage > i ? "is-on" : undefined}>
-            <span aria-hidden="true">{stage > i ? "✓" : ""}</span>
-            {c}
-          </li>
-        ))}
-      </ul>
-
-      <div className={`kap-found-end${found ? " is-on" : ""}`}>
-        <p className="kap-done">
-          We&rsquo;ll reach out to you on X if you&rsquo;re picked, <b>@{handle}</b>. Keep showing up 🧡
-        </p>
-        <button ref={done} type="button" className="btn btn-primary btn-block" onClick={onClose} disabled={!found}>
-          Done
-        </button>
+      <div className="kap-found-copy">
+        <p className="kap-found-eyebrow">{found ? "Application saved" : "Finding you a seat"}</p>
+        <h2 id="kap-title">{found ? `You’re on the list, @${handle}.` : "Hold tight…"}</h2>
+        <ol className="kap-steps">
+          {steps.map((t, i) => (
+            <li key={t} className={stage > i ? "is-on" : undefined}>
+              {t}
+            </li>
+          ))}
+        </ol>
+        <div className={`kap-found-end${found ? " is-on" : ""}`}>
+          <p className="kap-found-lede">
+            We&rsquo;ll reach out to you on X if you&rsquo;re picked. Keep showing up 🧡
+          </p>
+          <button ref={done} type="button" className="btn btn-primary btn-block" onClick={onClose} disabled={!found}>
+            Done
+          </button>
+        </div>
       </div>
     </div>
   );

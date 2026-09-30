@@ -19,7 +19,13 @@ import { indexConfigured, SupabaseError, upsert } from "@/lib/supabase";
  */
 
 const HOUR = 60 * 60 * 1000;
-const PER_CALLER_PER_HOUR = 8;
+/**
+ * Per connection, generous on purpose. People share addresses: a mobile
+ * carrier, an office, an event's Wi-Fi. At 8 the owner's own testing locked the
+ * form for an hour. The per-wallet limit below is what stops one applicant
+ * repeating themselves; this one only stops a flood.
+ */
+const PER_CALLER_PER_HOUR = 30;
 const PER_WALLET_PER_HOUR = 4;
 
 const bad = (error: string, status = 400) => NextResponse.json({ error }, { status });
