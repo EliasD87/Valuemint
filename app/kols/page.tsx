@@ -112,10 +112,6 @@ export default function Kols() {
   const rewards = useKolRewards();
   const stage = rewards.stage ?? "soon";
   const live = stage === "open" || stage === "ended";
-  const total = rewards.totalRewards > 0n ? formatSoso(rewards.totalRewards) : undefined;
-  // Everyone gets the same amount (the plan), so the header says what one
-  // person receives; if amounts ever differ it falls back to the total.
-  const each = rewards.sameReward !== undefined && rewards.sameReward > 0n ? formatSoso(rewards.sameReward) : undefined;
 
   return (
     <div className="kol">
@@ -221,39 +217,6 @@ export default function Kols() {
             </p>
           </div>
 
-          {/* What each of them receives and how many have. Only once claiming
-              has opened: before that the numbers are not settled, and a row of
-              blanks reads as broken rather than as "soon". */}
-          {live ? (
-            <dl className="kol-facts">
-              <div>
-                <dt>Portraits</dt>
-                <dd>{rewards.minted ?? KOLS.length}</dd>
-              </div>
-              {each !== undefined ? (
-                <div>
-                  <dt>Each receives</dt>
-                  <dd>
-                    <Soso size={16}>{each}</Soso>
-                  </dd>
-                </div>
-              ) : total !== undefined ? (
-                <div>
-                  <dt>SOSO rewards</dt>
-                  <dd>
-                    <Soso size={16}>{total}</Soso>
-                  </dd>
-                </div>
-              ) : null}
-              <div>
-                <dt>Claimed</dt>
-                <dd>
-                  {rewards.claimedCount}
-                  <span className="kol-facts-of"> / {rewards.minted ?? KOLS.length}</span>
-                </dd>
-              </div>
-            </dl>
-          ) : null}
         </div>
 
         {/* The letters carry meaning now, so the row is announced as the word it
