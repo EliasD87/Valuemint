@@ -10,6 +10,17 @@ import { collectionShare } from "@/lib/shareMeta";
  * image a bare ERC-721 can be asked for without knowing anything about how the
  * collection was made.
  */
+/**
+ * Rendered once per collection on first request, then cached for an hour — the
+ * same reasoning as the token route: the page is drawn in the browser, and the
+ * server only builds the share preview, which an hour cannot make wrong.
+ */
+export const revalidate = 3600;
+
+export async function generateStaticParams() {
+  return [];
+}
+
 export async function generateMetadata({
   params,
 }: {

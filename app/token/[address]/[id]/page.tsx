@@ -15,6 +15,27 @@ import { tokenShare } from "@/lib/shareMeta";
  * For an NFT marketplace that is a growth defect as much as a technical one —
  * a shared piece that shows no picture is a shared piece nobody clicks.
  */
+/**
+ * Rendered once per piece on first request, then served from the cache for an
+ * hour.
+ *
+ * This shell was rendered on every request. Everything a visitor sees is drawn
+ * in the browser by `TokenView`; the server's whole job is the share preview
+ * below, which reads the chain and a metadata document — about a second of
+ * function time each time. Grids prefetch every card in view, so one scroll of
+ * /market cost 35 of those (measured 2026-09-30), for previews nobody was
+ * going to share. An hour-old preview is still the right picture and name.
+ *
+ * `generateStaticParams` returns nothing: no piece is built ahead of time, any
+ * piece is built when first asked for. That empty list is what makes the
+ * route cacheable at all.
+ */
+export const revalidate = 3600;
+
+export async function generateStaticParams() {
+  return [];
+}
+
 export async function generateMetadata({
   params,
 }: {
