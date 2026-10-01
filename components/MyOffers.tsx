@@ -190,7 +190,7 @@ function OfferRow({ order, name, own }: { order: SeaportOrder; name: string; own
             {item}
           </span>
         ) : (
-          <Link className="tr-stack" href={`/token/${order.collection}/${order.tokenId}`} title={name}>
+          <Link className="tr-stack" href={`/token/${order.collection}/${order.tokenId}`} prefetch={false} title={name}>
             {item}
           </Link>
         )}

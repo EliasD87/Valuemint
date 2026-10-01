@@ -56,7 +56,7 @@ function Row({
       <span className={`act-kind act-kind-${row.kind}`}>{LABEL[row.kind]}</span>
 
       {showToken ? (
-        <Link className="act-token" href={`/token/${row.collection}/${row.tokenId}`}>
+        <Link className="act-token" href={`/token/${row.collection}/${row.tokenId}`} prefetch={false}>
           #{row.tokenId.toString()}
         </Link>
       ) : null}

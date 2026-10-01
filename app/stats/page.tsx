@@ -457,7 +457,7 @@ export default function StatsPage() {
                       <Link className="ps-what" href={`/collection/${row.collection}`}>
                         {nameFor(row.collection) ?? shortAddress(row.collection)}
                       </Link>
-                      <Link className="ps-id" href={`/token/${row.collection}/${row.tokenId}`}>
+                      <Link className="ps-id" href={`/token/${row.collection}/${row.tokenId}`} prefetch={false}>
                         #{row.tokenId.toString()}
                       </Link>
                       <span className="ps-price">

@@ -366,7 +366,7 @@ function InboxRow({
 
   return (
     <li className="inbox-row">
-      <Link className="inbox-piece" href={`/token/${token.collection}/${token.id}`}>
+      <Link className="inbox-piece" href={`/token/${token.collection}/${token.id}`} prefetch={false}>
         <span className="inbox-thumb">
           {token.image !== undefined ? (
             <Art src={token.image} alt="" sizes="56px" />

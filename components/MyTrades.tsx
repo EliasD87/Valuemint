@@ -201,6 +201,7 @@ export function MyTrades({
                         <Link
                           className="tr-piece"
                           href={`/token/${r.collection}/${r.tokenId}`}
+                          prefetch={false}
                           title={nameFor(r.collection)}
                         >
                           #{r.tokenId.toString()}

@@ -196,6 +196,7 @@ export function TokenCard({
     <article className="tcard">
       <Link
         href={`/token/${collection}/${token.id}`}
+        prefetch={false}
         className="tcard-hit"
         aria-label={`${token.design ?? collectionName ?? "Token"} #${token.id.toString()}`}
       />
@@ -385,7 +386,7 @@ export function TokenCard({
           */}
           <span className="tcard-acts">
             {listing !== undefined && !isYours ? (
-              <Link className="tcard-buy-btn" href={`/token/${collection}/${token.id}`}>
+              <Link className="tcard-buy-btn" href={`/token/${collection}/${token.id}`} prefetch={false}>
                 Buy
               </Link>
             ) : null}
