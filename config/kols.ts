@@ -82,6 +82,24 @@ export const KOLS: Kol[] = [
   { n: 36, name: "El Turco", image: "Qmd9GmPeReh4SvvSioZbRoFZhUA7qvXWuH9b8ehtzatrQK", x: "https://x.com/birataturkcu88" },
   // Back 2026-09-26, after #1-36 were minted: appended, never inserted.
   { n: 37, name: "ELIAS", image: "Qmb7cBjWjstatn3QZXj1wfvBv23BtmttEPfJyAmWBBdNG7", x: "https://x.com/eliasing__" },
+  // Second round, 2026-10-02: chosen from the "Apply to join" applications.
+  // Portrait only, no SOSO. Appended in the owner's order; mintBatch numbers
+  // them 38-52 in exactly this sequence.
+  { n: 38, name: "Jun", image: "QmX3NDYDw7ApJP1gzbZUsohTfcyrZFQkGMJUecJWE7bT6n", x: "https://x.com/junxcrypto" },
+  { n: 39, name: "Goodynation", image: "QmSjwff4yYRVfkHUmYmqBicEq268UniMbERLpJUNSPofFR", x: "https://x.com/Goodybtc" },
+  { n: 40, name: "Mwirigih", image: "QmcokMU3TJWVPDm4mT7KV41ah5PnWe5vbAmQEC7GtrUxLr", x: "https://x.com/lew53399" },
+  { n: 41, name: "takimi NFT", image: "QmYTTjMZHj1Edda3zg3FoqCWa8WVb6EgQ2T87FzshxivBq", x: "https://x.com/takimi_NFT" },
+  { n: 42, name: "Peter Shikamaru", image: "QmecRF2USHowBRGWA4cSm35AQcqFbPLZ7j6Cq2fNnrfLH1", x: "https://x.com/PShikamaru" },
+  { n: 43, name: "KAIRO", image: "QmYUEqe5kZxaRHkExH7Gy4QdbFiqwPCQegFehs8WAt4SaL", x: "https://x.com/0xKairom" },
+  { n: 44, name: "crypt charles", image: "Qmcw9TPQWjoer8zKJU3B61uyUhYWm5TDL2VnLPfj1izY7W", x: "https://x.com/crypt_charles" },
+  { n: 45, name: "Masa", image: "QmWs9hy4ASqxfK9oQPQpm4jkHn7QRkeUr6T9weet91K9NB", x: "https://x.com/Masa_MMGG" },
+  { n: 46, name: "ravnao", image: "QmVKUEVdtJwW8buSjSghBwDLGpp9rrh1rTP1twMQ2TUweA", x: "https://x.com/ravnao10" },
+  { n: 47, name: "sohan", image: "QmPwAtTwa4TdLSJVB2QQvYNJDcWsJQPYP9hADyEewsyz6g", x: "https://x.com/sohan269" },
+  { n: 48, name: "lötte", image: "QmUdFpNe7BdQwUrakZLFCEwzXEwXxBHn5KW7Q8ckVqq7Ti", x: "https://x.com/lottechain" },
+  { n: 49, name: "freeman", image: "QmePax9hEorZR4meQFSakdkCepyShd5Umq5VTewhiSbBz7", x: "https://x.com/FreemanCoiner" },
+  { n: 50, name: "Dato", image: "QmU4k1yHCFzKVFtpTQ74Y1EjBZWxvpj7v5iNpBj8gdQW5K", x: "https://x.com/DatoAIRDROPS" },
+  { n: 51, name: "Snazzy", image: "QmeLQ7186gCqtUP3TBtJXbDPEYadqLNjVnQTJ7nCBkngPm", x: "https://x.com/kingsle409" },
+  { n: 52, name: "miraiko", image: "QmWJsJFUBRnS45eEW8wZk3CiYqzv59CANVYPWUiSHmkbAg", x: "https://x.com/miraitomiraiko" },
 ];
 
 /** "https://x.com/VaultSeek" → "@VaultSeek". */
