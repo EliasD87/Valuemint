@@ -70,24 +70,30 @@ export const HELD_BACK: Record<string, HeldBack> = {
     `setBaseURI` that reopened minting against the hidden manifest, which is
     what makes it a commitment rather than a claim.
 
-    The tiers below are the real breakdown and were checked against the pinned
-    manifest: 10 Common, 10 Rare, 2 Epic, 1 Legendary, totalling 23.
+    2026-10-02: the minted ones, #78-#85, were revealed on the announced date
+    (tx 0x5485cc0b…df2e84). #86-#100 stay sealed — revealing them while unminted
+    would show which design each id carries, and mints go in id order.
+
+    The tiers below are what is left of the pot, derived from the live manifest
+    (declared design counts minus the 85 published): 7 Common, 6 Rare, 1 Epic,
+    1 Legendary, totalling 15. Before the partial reveal it was 10/10/2/1 of 23.
   */
   "0x5fadc59297e86acea20bff519aea0f9651cdc90b": {
-    count: 23,
+    count: 15,
     tiers: [
-      { name: "Common", count: 10 },
-      { name: "Rare", count: 10 },
-      { name: "Epic", count: 2 },
+      { name: "Common", count: 7 },
+      { name: "Rare", count: 6 },
+      { name: "Epic", count: 1 },
       { name: "Legendary", count: 1 },
     ],
     commitmentTx: "0x3763dc71d4c82ce6830634ac4e0220bc1e2a72d387b243000fae813d4fd0a27f",
-    hiddenCid: "QmT8fzm3mRQkZWGGqGxXZyPwRhThszfMeyivkj8KAeqd74",
-    /* Set by the owner, 2026-09-23. A named date rather than "at mint-out":
-       21 of the 23 are unminted, and an open-ended promise leaves whoever
-       holds the last few waiting on strangers. Revealing is one setBaseURI,
-       so the date can always be beaten, never missed. */
-    revealBy: "2026-10-02",
+    /* The manifest Genesis points at since the partial reveal: #1-#85 published. */
+    hiddenCid: "QmaiYADuP5ZzM5v9n4nNeoDtoHopvu6V8KmUhZyCryT3ea",
+    /* Set by the owner, 2026-09-23, as 2 October; moved by the owner to
+       15 October on 2026-10-02 for the pieces still unminted after the first
+       reveal. Revealing is one setBaseURI, so the date can always be beaten,
+       never missed. */
+    revealBy: "2026-10-15",
   },
 };
 
