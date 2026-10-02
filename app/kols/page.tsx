@@ -414,7 +414,7 @@ function Yours({
         </h2>
 
         {claimed ? (
-          <ClaimedActions kol={kol} portraits={rewards.portraits} />
+          <ClaimedActions kol={kol} portraits={rewards.portraits} share={share} />
         ) : stage === "preparing" ? (
           <p className="kol-yours-lede">
             Your portrait is set aside for this wallet. Claiming opens soon, so check back here.
@@ -465,8 +465,22 @@ function Yours({
   );
 }
 
-/** After the claim: where it is, and a post to tell people about it. */
-function ClaimedActions({ kol, portraits }: { kol: Kol; portraits: `0x${string}` | undefined }) {
+/**
+ * After the claim: where it is, and a post to tell people about it.
+ *
+ * `share` is what they actually received in SOSO, or undefined when their line
+ * paid the portrait alone (the second round, 2026-10-02). It used to say "your
+ * SOSO" to everyone, which told portrait-only KOLs about money that never came.
+ */
+function ClaimedActions({
+  kol,
+  portraits,
+  share,
+}: {
+  kol: Kol;
+  portraits: `0x${string}` | undefined;
+  share: string | undefined;
+}) {
   const text = "Just claimed my one-of-one portrait on ValueMint, made for the people who show up on SoDEX.";
   const intent =
     `https://x.com/intent/post?text=${encodeURIComponent(text)}` +
@@ -474,7 +488,15 @@ function ClaimedActions({ kol, portraits }: { kol: Kol; portraits: `0x${string}`
 
   return (
     <>
-      <p className="kol-yours-lede">Your portrait and your SOSO are in this wallet. Thank you for showing up.</p>
+      <p className="kol-yours-lede">
+        {share === undefined ? (
+          "Your portrait is in this wallet. Thank you for showing up."
+        ) : (
+          <>
+            Your portrait and <Soso size={14}>{share}</Soso> are in this wallet. Thank you for showing up.
+          </>
+        )}
+      </p>
       <div className="kol-yours-actions">
         {portraits === undefined ? null : (
           <Link className="btn btn-primary" href={`/token/${portraits}/${kol.n}`}>
