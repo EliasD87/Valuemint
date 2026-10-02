@@ -6,7 +6,7 @@ import { Art } from "@/components/Art";
 import { SodexLogo } from "@/components/SodexLogo";
 import { Wordmark } from "@/components/Wordmark";
 import { wordmarkFor } from "@/config/wordmarks";
-import { FEATURED, PINNED_COLLECTIONS } from "@/config/featured";
+import { FEATURED, HEADLINE_COLLECTIONS } from "@/config/featured";
 import { tierClass } from "@/lib/tokenMetadata";
 import { WarmCollection } from "@/components/WarmChain";
 /**
@@ -99,12 +99,12 @@ export function FeaturedGrid() {
         /**
          * The two collections this marketplace is about, given a moving ring.
          *
-         * Read from `PINNED_COLLECTIONS` rather than counted by position, so it
-         * is the same named list that already leads /collections and the home
-         * rail. Reordering the featured pieces cannot light the wrong card, and
-         * there is one place to change which two are the headline.
+         * Read from `HEADLINE_COLLECTIONS` rather than counted by position, so
+         * reordering the featured pieces cannot light the wrong card, and there
+         * is one place to change which two are the headline. Not the pinned
+         * list: that one decides order, and grew a third entry without a ring.
          */
-        const lit = PINNED_COLLECTIONS.some(
+        const lit = HEADLINE_COLLECTIONS.some(
           (p) => p.toLowerCase() === piece.collection.toLowerCase(),
         );
 

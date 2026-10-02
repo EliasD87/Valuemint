@@ -291,6 +291,21 @@ export const PINNED_COLLECTIONS: ReadonlyArray<`0x${string}`> = [
 
   /** Cybereator, the real one. */
   "0xCD30D4bCaa99E556B70A2C4bDFC4050D26E48D30",
+
+  /** ValueChain Genesis, third — the owner's call, 2026-10-02. */
+  "0x5Fadc59297e86aceA20Bff519aea0f9651Cdc90B",
+];
+
+/**
+ * The two collections the featured grid gives a moving ring.
+ *
+ * Its own list since Genesis joined `PINNED_COLLECTIONS`: pinning decides an
+ * ORDER, the ring says "this is what the marketplace is about", and the owner
+ * asked for the first without the second.
+ */
+export const HEADLINE_COLLECTIONS: ReadonlyArray<`0x${string}`> = [
+  "0x371c4F7F68bE3e558b89cC1f0fB113851C76E750", // SoDEX Treasure Box
+  "0xCD30D4bCaa99E556B70A2C4bDFC4050D26E48D30", // Cybereator
 ];
 
 /**
