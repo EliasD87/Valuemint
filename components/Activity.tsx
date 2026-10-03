@@ -55,11 +55,14 @@ function Row({
     <li className={`act-row act-${row.kind}`}>
       <span className={`act-kind act-kind-${row.kind}`}>{LABEL[row.kind]}</span>
 
-      {showToken ? (
+      {!showToken ? null : row.collectionOffer === true ? (
+        /* An offer on any piece, or on a trait, names no token to link to. */
+        <span className="act-token act-token-any">Collection offer</span>
+      ) : (
         <Link className="act-token" href={`/token/${row.collection}/${row.tokenId}`} prefetch={false}>
           #{row.tokenId.toString()}
         </Link>
-      ) : null}
+      )}
 
       <span className="act-price">
         {row.price === undefined ? (

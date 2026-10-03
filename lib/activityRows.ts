@@ -28,6 +28,13 @@ export interface ActivityRow {
   kind: ActivityKind;
   collection: `0x${string}`;
   tokenId: bigint;
+  /**
+   * An offer, or its cancellation, that names no single piece: any piece in
+   * the collection, or every piece with a trait. `tokenId` is then 0 only as a
+   * placeholder and must not be shown as "#0" or linked to — the owner found
+   * exactly that on a batch offer, 2026-10-03.
+   */
+  collectionOffer?: true;
   /** Units moved. Always 1n for ERC-721; the lot size for an edition. */
   amount: bigint;
   /** Per unit, so an edition sale is comparable with a single-piece one. */
@@ -79,7 +86,7 @@ export function buildActivityRows(streams: ActivityStreams): ActivityRow[] {
   const rows: ActivityRow[] = [];
 
   /** Order hash -> what it was, so a cancellation can say which token it freed. */
-  const known = new Map<string, { collection: `0x${string}`; tokenId: bigint }>();
+  const known = new Map<string, { collection: `0x${string}`; tokenId: bigint; collectionOffer?: true }>();
 
   for (const log of streams.validated ?? []) {
     const params = log.args.orderParameters as OrderParameters | undefined;
@@ -89,8 +96,13 @@ export function buildActivityRows(streams: ActivityStreams): ActivityRow[] {
     const read = readOrder(params);
     if (read === undefined) continue;
 
-    if (hash !== undefined && read.tokenId !== undefined) {
-      known.set(hash.toLowerCase(), { collection: read.collection, tokenId: read.tokenId });
+    if (hash !== undefined) {
+      known.set(
+        hash.toLowerCase(),
+        read.tokenId !== undefined
+          ? { collection: read.collection, tokenId: read.tokenId }
+          : { collection: read.collection, tokenId: 0n, collectionOffer: true as const },
+      );
     }
 
     rows.push({
@@ -102,6 +114,7 @@ export function buildActivityRows(streams: ActivityStreams): ActivityRow[] {
        * ever surfaces in the unfiltered feed.
        */
       tokenId: read.tokenId ?? 0n,
+      ...(read.tokenId === undefined ? { collectionOffer: true as const } : {}),
       amount: read.amount,
       price: read.priceWei,
       from: read.maker,
@@ -143,7 +156,9 @@ export function buildActivityRows(streams: ActivityStreams): ActivityRow[] {
     const hash = log.args.orderHash as string | undefined;
     const was =
       log.collection !== undefined
-        ? { collection: log.collection, tokenId: log.tokenId ?? 0n }
+        ? log.tokenId !== undefined
+          ? { collection: log.collection, tokenId: log.tokenId }
+          : { collection: log.collection, tokenId: 0n, collectionOffer: true as const }
         : hash === undefined
           ? undefined
           : known.get(hash.toLowerCase());
@@ -153,6 +168,7 @@ export function buildActivityRows(streams: ActivityStreams): ActivityRow[] {
       kind: "cancelled",
       collection: was.collection,
       tokenId: was.tokenId,
+      ...(was.collectionOffer === true ? { collectionOffer: true as const } : {}),
       amount: 1n,
       from: log.args.offerer as `0x${string}`,
       blockNumber: log.blockNumber,

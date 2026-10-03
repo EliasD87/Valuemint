@@ -291,3 +291,45 @@ describe("a narrowed feed", () => {
     expect(rows.find((r) => r.kind === "cancelled")?.tokenId).toBe(99n);
   });
 });
+
+/**
+ * An offer on any piece — or a batch offer for several — names no token, and
+ * was being shown as "#0" with a link to a token that does not exist
+ * (2026-10-03). It is marked instead, and so is its cancellation.
+ */
+describe("collection offers in the feed", () => {
+  const BATCH = "0xbbbb000000000000000000000000000000000000000000000000000000000002";
+  const offerLog: ActivityLog = {
+    args: {
+      orderHash: BATCH,
+      orderParameters: buildOffer({ bidder: BUYER, collection: COLLECTION, priceWei: parseEther("1"), quantity: 5n }),
+    },
+    blockNumber: 10n,
+    logIndex: 0,
+  };
+
+  it("marks a batch offer as a collection offer, priced each, for five", () => {
+    const [row] = buildActivityRows({ validated: [offerLog] });
+    expect(row?.kind).toBe("offer");
+    expect(row?.collectionOffer).toBe(true);
+    expect(row?.price).toBe(parseEther("1"));
+    expect(row?.amount).toBe(5n);
+  });
+
+  it("marks its cancellation the same way", () => {
+    const rows = buildActivityRows({
+      validated: [offerLog],
+      cancelled: [{ args: { orderHash: BATCH, offerer: BUYER }, blockNumber: 11n, logIndex: 0 }],
+    });
+    const cancelled = rows.find((r) => r.kind === "cancelled");
+    expect(cancelled?.collectionOffer).toBe(true);
+  });
+
+  it("leaves an offer on one piece pointing at that piece", () => {
+    const [row] = buildActivityRows({
+      validated: [{ args: { orderHash: HASH, orderParameters: buildOffer({ bidder: BUYER, collection: COLLECTION, tokenId: 7n, priceWei: TEN }) }, blockNumber: 1n }],
+    });
+    expect(row?.collectionOffer).toBeUndefined();
+    expect(row?.tokenId).toBe(7n);
+  });
+});

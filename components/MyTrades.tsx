@@ -198,14 +198,21 @@ export function MyTrades({
                         <span className={`act-kind act-kind-${r.kind === "sale" ? tone : r.kind}`}>
                           {label}
                         </span>
-                        <Link
-                          className="tr-piece"
-                          href={`/token/${r.collection}/${r.tokenId}`}
-                          prefetch={false}
-                          title={nameFor(r.collection)}
-                        >
-                          #{r.tokenId.toString()}
-                        </Link>
+                        {r.collectionOffer === true ? (
+                          /* Any piece or a trait: no single token, so no "#0" and no link. */
+                          <span className="tr-piece" title={nameFor(r.collection)}>
+                            Collection offer
+                          </span>
+                        ) : (
+                          <Link
+                            className="tr-piece"
+                            href={`/token/${r.collection}/${r.tokenId}`}
+                            prefetch={false}
+                            title={nameFor(r.collection)}
+                          >
+                            #{r.tokenId.toString()}
+                          </Link>
+                        )}
                       </span>
                       <span className="tr-l2 tr-coll" title={nameFor(r.collection)}>
                         {nameFor(r.collection)}
