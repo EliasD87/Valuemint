@@ -3,12 +3,11 @@
 import { useMemo } from "react";
 import { useReadContracts } from "wagmi";
 import { erc721Abi } from "viem";
-import { SEAPORT } from "@/config/seaport";
 import { useTokenDocuments } from "@/hooks/useTokenDocuments";
 import { resolveMediaUrl } from "@/lib/format";
 import { toListing } from "@/lib/seaport";
 import { useAllCollections } from "@/hooks/useAllCollections";
-import { useSeaportListings } from "@/hooks/useSeaportOrders";
+import { useSeaportListings, useSeaportOrders } from "@/hooks/useSeaportOrders";
 import type { TokenMetadata } from "@/hooks/useCollection";
 import type { ChainToken } from "@/hooks/useEverything";
 import { tierOf, traitOf } from "@/lib/tokenMetadata";
@@ -21,6 +20,7 @@ import { oneListingPerToken } from "@/lib/oneListingPerToken";
 export function useListingFeed() {
   const { collections, isLoading: loadingCollections } = useAllCollections();
   const { listings: everything, isLoading: loadingOrders, logsUnavailable } = useSeaportListings();
+  const { candidateListings } = useSeaportOrders();
 
   /**
    * Only collections this marketplace actually knows.
@@ -44,32 +44,51 @@ export function useListingFeed() {
   }, [everything, collections]);
 
   /**
-   * Ownership, approval and artwork for each listed token.
+   * Each listed token's `tokenURI`, asked of every token a listing NAMES —
+   * before the order book has decided which listings stand.
    *
-   * `isApprovedForAll` is asked per listing rather than per seller. It would
-   * deduplicate, but the calls are batched into a single multicall either way,
-   * and keeping the arrays index-aligned with `listings` is what stops a
-   * mismatched offset silently pairing one listing's price with another's
-   * approval.
+   * This used to read `ownerOf`, `tokenURI` and `isApprovedForAll` for the
+   * verified listings, which meant waiting for the book's two rounds of checks
+   * and then making a third: measured 2026-09-30 from the owner's connection,
+   * three sequential multicalls of seconds each before /market drew a card.
+   * Ownership and approval were also exactly the pair the book had just read
+   * to decide `fillable`, so they were asked twice. Now the book's answer
+   * stands for both, and the one thing it does not read, the URI, goes out
+   * alongside its checks. Only verified listings are ever shown; the handful
+   * of extra URIs are for listings the checks then drop.
    */
-  const { data: state, isLoading: loadingState } = useReadContracts({
-    contracts: listings.flatMap((l) => [
-      { address: l.collection, abi: erc721Abi, functionName: "ownerOf" as const, args: [l.tokenId ?? 0n] },
-      { address: l.collection, abi: erc721Abi, functionName: "tokenURI" as const, args: [l.tokenId ?? 0n] },
-      {
-        address: l.collection,
-        abi: erc721Abi,
-        functionName: "isApprovedForAll" as const,
-        args: [l.maker, SEAPORT],
-      },
-    ]),
-    query: { enabled: listings.length > 0, refetchInterval: 25_000 },
+  const uriTargets = useMemo(() => {
+    if (collections.length === 0) return [];
+    const known = new Set(collections.map((c) => c.address.toLowerCase()));
+    const seen = new Set<string>();
+    return candidateListings.filter((t) => {
+      const key = `${t.collection.toLowerCase()}-${t.tokenId}`;
+      if (!known.has(t.collection.toLowerCase()) || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }, [candidateListings, collections]);
+
+  const { data: uriReads, isLoading: loadingUris } = useReadContracts({
+    contracts: uriTargets.map((t) => ({
+      address: t.collection,
+      abi: erc721Abi,
+      functionName: "tokenURI" as const,
+      args: [t.tokenId],
+    })),
+    query: { enabled: uriTargets.length > 0 },
   });
 
-  const uris = listings.map((_, i) => {
-    const entry = state?.[i * 3 + 1];
-    return entry?.status === "success" ? (entry.result as string) : undefined;
-  });
+  const uriByToken = useMemo(() => {
+    const out = new Map<string, string>();
+    uriTargets.forEach((t, i) => {
+      const entry = uriReads?.[i];
+      if (entry?.status === "success") out.set(`${t.collection.toLowerCase()}-${t.tokenId}`, entry.result as string);
+    });
+    return out;
+  }, [uriTargets, uriReads]);
+
+  const uris = listings.map((l) => uriByToken.get(`${l.collection.toLowerCase()}-${l.tokenId ?? 0n}`));
 
   const { documents: metadata, isLoading: loadingMeta } = useTokenDocuments(uris);
 
@@ -77,25 +96,26 @@ export function useListingFeed() {
     collections.find((c) => c.address.toLowerCase() === address.toLowerCase())?.name ?? "Collection";
 
   const tokens: Array<ChainToken & { active: boolean }> = listings.map((order, i) => {
-    const ownerEntry = state?.[i * 3];
-    const approvalEntry = state?.[i * 3 + 2];
-    const owner = ownerEntry?.status === "success" ? (ownerEntry.result as `0x${string}`) : undefined;
-    const approved = approvalEntry?.status === "success" ? (approvalEntry.result as boolean) : false;
     const m = metadata?.[i];
 
     return {
       collection: order.collection,
       collectionName: nameOf(order.collection),
       id: order.tokenId ?? 0n,
-      owner,
+      /**
+       * The seller. Every listing here is `fillable`, which the book decides
+       * from these same two reads — the token's owner is the maker, and the
+       * maker has approved Seaport — so this is what `ownerOf` answered.
+       */
+      owner: order.maker,
       listing: toListing(order),
       /**
-       * Fillable right now. Unknown ownership counts as not active rather than
-       * active: a buy shown against a listing that reverts costs the buyer gas
-       * and costs us their trust, while a listing briefly hidden costs a refresh.
+       * Fillable right now, by the book's own reads. Unknown ownership counts
+       * as not fillable there, so a listing is never active on a guess: a buy
+       * shown against a listing that reverts costs the buyer gas and costs us
+       * their trust, while a listing briefly hidden costs a refresh.
        */
-      active:
-        owner !== undefined && approved && owner.toLowerCase() === order.maker.toLowerCase(),
+      active: order.fillable,
       metadata: m,
       design: traitOf(m, "Design") ?? m?.name,
       tier: tierOf(m),
@@ -113,7 +133,7 @@ export function useListingFeed() {
      */
     tokens: oneListingPerToken(tokens),
     collections,
-    isLoading: loadingCollections || loadingOrders || loadingState || loadingMeta,
+    isLoading: loadingCollections || loadingOrders || loadingUris || loadingMeta,
     logsUnavailable,
   };
 }

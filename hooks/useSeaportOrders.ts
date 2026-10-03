@@ -410,54 +410,98 @@ function useOrderBookSource(enabled: boolean) {
    * actually carry an order, which is a small set.
    */
   /**
+   * Asked of every CANDIDATE, at the same moment as `getOrderStatus` — not of
+   * the orders that status read leaves standing, after it.
+   *
+   * Waiting for the status answer before asking these made two round trips to
+   * the node out of what is one question, and on a slow connection each is
+   * seconds: measured 2026-09-30 from the owner's connection, /market sat
+   * through a status multicall, then this one, then the feed's own reads,
+   * before it drew a card. The extra reads are only for candidates Seaport
+   * then reports filled or cancelled — the index already dropped most of
+   * those — and every order still needs both answers before it is shown.
+   *
    * Typed explicitly because the two branches use different ABIs, and inference
    * over a mixed `flatMap` collapses to `unknown[]`.
    */
-  const fillabilityReads = standing.flatMap((o): ContractFunctionParameters[] => {
+  const { fillabilityReads, fillSlots } = useMemo(() => {
+    const reads: ContractFunctionParameters[] = [];
+    /** One read per distinct question: key -> its place in `reads`. */
+    const asked = new Map<string, number>();
+    const ask = (key: string, read: ContractFunctionParameters) => {
+      const known = asked.get(key);
+      if (known !== undefined) return known;
+      reads.push(read);
+      asked.set(key, reads.length - 1);
+      return reads.length - 1;
+    };
+    /** Each order's two answers: where its first and second read sit in `reads`. */
+    const slots = new Map<string, [number, number]>();
+
+    for (const { read: o, params, hash } of candidates) {
+      const maker = o.maker.toLowerCase();
+      let first: number;
+      let second: number;
       if (o.kind === "listing") {
-        const isMulti = o.params.offer[0]?.itemType === ItemType.ERC1155;
-        return [
-          isMulti
-            ? {
-                address: o.collection,
-                abi: erc1155BalanceAbi,
-                functionName: "balanceOf" as const,
-                args: [o.maker, o.tokenId ?? 0n],
-              }
-            : {
-                address: o.collection,
-                abi: erc721Abi,
-                functionName: "ownerOf" as const,
-                args: [o.tokenId ?? 0n],
-              },
-          {
-            address: o.collection,
-            abi: erc721Abi,
-            functionName: "isApprovedForAll" as const,
-            args: [o.maker, SEAPORT],
-          },
-        ];
-      }
-      /**
-       * A bid is only real while the money is. A bidder who spent or unwrapped
-       * their WSOSO leaves an offer a holder can accept, pay gas for, and watch
-       * revert — which is worse than the offer never showing at all.
-       */
-      return [
-        { address: o.currency, abi: erc20Abi, functionName: "balanceOf" as const, args: [o.maker] },
-        {
+        const isMulti = params.offer[0]?.itemType === ItemType.ERC1155;
+        const token = o.tokenId ?? 0n;
+        const collection = o.collection.toLowerCase();
+        first = isMulti
+          ? ask(`balance1155:${collection}:${maker}:${token}`, {
+              address: o.collection,
+              abi: erc1155BalanceAbi,
+              functionName: "balanceOf" as const,
+              args: [o.maker, token],
+            })
+          : ask(`owner:${collection}:${token}`, {
+              address: o.collection,
+              abi: erc721Abi,
+              functionName: "ownerOf" as const,
+              args: [token],
+            });
+        /**
+         * Approval is per seller and collection, not per listing, so it is
+         * asked once however many pieces that seller has listed. It used to be
+         * asked per listing — 504 listings, 195 distinct sellers-by-collection
+         * on 2026-09-30 — and every one of those reads is bytes up and down a
+         * connection that, for the owner, is the slow part.
+         */
+        second = ask(`approval:${collection}:${maker}`, {
+          address: o.collection,
+          abi: erc721Abi,
+          functionName: "isApprovedForAll" as const,
+          args: [o.maker, SEAPORT],
+        });
+      } else {
+        /**
+         * A bid is only real while the money is. A bidder who spent or unwrapped
+         * their WSOSO leaves an offer a holder can accept, pay gas for, and watch
+         * revert — which is worse than the offer never showing at all.
+         */
+        const currency = o.currency.toLowerCase();
+        first = ask(`balance20:${currency}:${maker}`, {
+          address: o.currency,
+          abi: erc20Abi,
+          functionName: "balanceOf" as const,
+          args: [o.maker],
+        });
+        second = ask(`allowance:${currency}:${maker}`, {
           address: o.currency,
           abi: erc20Abi,
           functionName: "allowance" as const,
           args: [o.maker, SEAPORT],
-        },
-      ];
-  });
+        });
+      }
+      slots.set(hash.toLowerCase(), [first, second]);
+    }
+    return { fillabilityReads: reads, fillSlots: slots };
+  }, [candidates]);
 
   const { data: fillChecks, isError: fillChecksFailed } = useReadContracts({
     contracts: fillabilityReads,
-    query: { enabled: standing.length > 0, refetchInterval: 25_000 },
+    query: { enabled: candidates.length > 0, refetchInterval: 25_000 },
   });
+
 
   /**
    * Whether fillability is known yet, as opposed to true or false.
@@ -472,12 +516,13 @@ function useOrderBookSource(enabled: boolean) {
 
   const all = useMemo<SeaportOrder[]>(
     () =>
-      standing.map((o, i) => {
+      standing.map((o) => {
         /* A new batch still loading: an order already checked keeps its answer. */
         if (fillChecks === undefined) {
           const known = fillMemory.current.get(o.hash.toLowerCase());
           if (known !== undefined) return { ...o, ...known };
         }
+        const slot = fillSlots.get(o.hash.toLowerCase());
         /**
          * Three states, not two: not checked yet, checked and refused, checked
          * and answered. `resolveFillable` in `lib/seaport.ts` is the rule and
@@ -486,9 +531,9 @@ function useOrderBookSource(enabled: boolean) {
          * is what keeps that from reading as an empty market.
          */
         const checks =
-          fillChecks === undefined
+          fillChecks === undefined || slot === undefined
             ? undefined
-            : { first: fillChecks[i * 2], second: fillChecks[i * 2 + 1] };
+            : { first: fillChecks[slot[0]], second: fillChecks[slot[1]] };
 
         const verdict = {
           fillable: resolveFillable(o, checks),
@@ -501,7 +546,7 @@ function useOrderBookSource(enabled: boolean) {
         if (checks !== undefined) fillMemory.current.set(o.hash.toLowerCase(), verdict);
         return { ...o, ...verdict };
       }),
-    [standing, fillChecks],
+    [standing, fillChecks, fillSlots],
   );
 
   /**
@@ -539,10 +584,28 @@ function useOrderBookSource(enabled: boolean) {
    */
   const logsUnavailable = (error !== null && error !== undefined) || fillChecksFailed;
 
+  /**
+   * Every token some listing names, before any of them is verified.
+   *
+   * NOT a list of things for sale — nothing here has been checked against
+   * Seaport or the token's owner. It exists so a page can start reading what
+   * it will need about those tokens (their `tokenURI`) in the same round trip
+   * as the checks, rather than after them. See `useListingFeed`.
+   */
+  const candidateListings = useMemo(
+    () =>
+      candidates.flatMap((c) =>
+        c.read.kind === "listing" && c.read.tokenId !== undefined
+          ? [{ collection: c.read.collection, tokenId: c.read.tokenId }]
+          : [],
+      ),
+    [candidates],
+  );
+
   /** Stable while nothing changed, so the provider does not re-render every reader for nothing. */
   return useMemo(
-    () => ({ orders, traitOffers, isLoading, logsUnavailable }),
-    [orders, traitOffers, isLoading, logsUnavailable],
+    () => ({ orders, traitOffers, candidateListings, isLoading, logsUnavailable }),
+    [orders, traitOffers, candidateListings, isLoading, logsUnavailable],
   );
 }
 
