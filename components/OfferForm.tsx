@@ -11,6 +11,7 @@ import { useAccount } from "wagmi";
 import { deployment } from "@/config/contracts";
 import { TxResult } from "@/components/TxResult";
 import { Select } from "@/components/Select";
+import { MAX_BATCH_OFFER } from "@/lib/seaport";
 
 /**
  * Expiry choices. Every one of them is bounded, deliberately.
@@ -33,6 +34,13 @@ const WINDOWS = [
   { label: "3 months", days: 90 },
 ];
 
+/** The pieces a batch offer is for, as typed: 1 to MAX_BATCH_OFFER, blank as one. */
+function clampQuantity(raw: string): bigint {
+  const n = Number.parseInt(raw, 10);
+  if (!Number.isFinite(n) || n < 1) return 1n;
+  return BigInt(Math.min(n, Number(MAX_BATCH_OFFER)));
+}
+
 /**
  * What this form is placing an offer against.
  *
@@ -53,7 +61,13 @@ export interface OfferTarget {
   spender: `0x${string}`;
   /** What the bidder is buying, in words: "this piece", "any piece". */
   buying: string;
-  place: (amount: string, days: number) => void;
+  /**
+   * Whether the offer can be for several pieces — a batch offer. Collection
+   * and trait offers only; an offer on one named piece is for that piece.
+   */
+  batch?: boolean;
+  /** `amount` is per piece; `quantity` how many pieces, one unless `batch`. */
+  place: (amount: string, days: number, quantity?: bigint) => void;
   signing: boolean;
   confirming: boolean;
   busy: boolean;
@@ -81,6 +95,9 @@ export function OfferForm({
 }) {
   const [amount, setAmount] = useState("");
   const [days, setDays] = useState(7);
+  /** How many pieces, as typed. Only on a batch-capable target; blank reads as one. */
+  const [count, setCount] = useState("1");
+  const quantity = target.batch === true ? clampQuantity(count) : 1n;
 
   /**
    * Which rung of the ladder was last pressed.
@@ -93,13 +110,16 @@ export function OfferForm({
    */
   const [step, setStep] = useState<"wrap" | "allow" | "offer" | undefined>(undefined);
 
-  const wanted = (() => {
+  /** Per piece, as typed. */
+  const each = (() => {
     try {
       return parseEther(amount || "0");
     } catch {
       return 0n;
     }
   })();
+  /** What the whole offer commits: every piece at once, because each must be covered. */
+  const wanted = each * quantity;
 
   /**
    * Allowances are exact now, so approving for this bid alone would revoke the
@@ -138,8 +158,21 @@ export function OfferForm({
   return (
     <div className="offers-make">
       <div className="offers-fields">
+        {target.batch === true ? (
+          <label className="offers-qty">
+            <span className="offers-label">How many</span>
+            <input
+              inputMode="numeric"
+              placeholder="1"
+              value={count}
+              onChange={(e) => setCount(e.target.value.replace(/[^0-9]/g, "").slice(0, 3))}
+              onBlur={() => setCount(clampQuantity(count).toString())}
+            />
+          </label>
+        ) : null}
+
         <label className="offers-amount">
-          <span className="offers-label">Amount</span>
+          <span className="offers-label">{target.batch === true ? "Price each" : "Amount"}</span>
           <div className="field-suffix">
             <input
               inputMode="decimal"
@@ -174,6 +207,14 @@ export function OfferForm({
         So the sentence names the part that is committed. A bidder with no
         standing bids sees the short version, unchanged.
       */}
+      {quantity > 1n && each > 0n ? (
+        <p className="offers-total">
+          {quantity.toString()} pieces at <b className="mono">{formatEther(each)}</b> each ={" "}
+          <b className="mono">{formatEther(wanted)}</b> WSOSO in total. Holders sell to you one or
+          more at a time, each at that price, until you have {quantity.toString()}.
+        </p>
+      ) : null}
+
       <p className="offers-balance">
         You hold <b className="mono">{formatEther(wsoso.balance)}</b> WSOSO
         {standing > 0n ? (
@@ -270,7 +311,7 @@ export function OfferForm({
              * lingers next to this one's and the banner reports the wrong thing.
              */
             wsoso.reset();
-            target.place(amount, days);
+            target.place(amount, days, quantity);
           }}
         >
           {target.signing
@@ -279,7 +320,9 @@ export function OfferForm({
               ? "Placing…"
               : replacing
                 ? "Replace offer"
-                : "Place offer"}
+                : quantity > 1n
+                  ? `Place offer for ${quantity.toString()}`
+                  : "Place offer"}
         </button>
       )}
 
@@ -355,13 +398,15 @@ export function useCollectionOfferTarget(
 
   return {
     spender: SEAPORT,
+    batch: true,
     buying:
       trait === undefined
         ? "any piece in this collection"
         : trait.bound !== undefined
           ? `any piece with ${trait.label} minted so far`
           : `any piece with ${trait.label} (${trait.count.toLocaleString()} ${trait.count === 1 ? "piece" : "pieces"})`,
-    place: (amount, days) => trade.makeOffer(undefined, amount, days, trait?.root, trait?.bound),
+    place: (amount, days, quantity) =>
+      trade.makeOffer(undefined, amount, days, trait?.root, trait?.bound, quantity ?? 1n),
     signing: trade.signing,
     confirming: trade.confirming,
     busy: trade.busy,

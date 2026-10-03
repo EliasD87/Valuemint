@@ -46,6 +46,7 @@ import {
   unfillableReason,
   type SeaportOrder,
   resolveFillable,
+  remainingPieces,
 } from "@/lib/seaport";
 
 export type { SeaportOrder } from "@/lib/seaport";
@@ -762,7 +763,12 @@ export function useOwnOfferExposure(maker: Address | undefined, currency?: Addre
       .filter((o) => o.kind === "offer")
       .filter((o) => sameAddress(o.maker, maker))
       .filter((o) => currency === undefined || sameAddress(o.currency, currency))
-      .reduce((total, o) => total + o.priceWei, 0n);
+      /*
+        Per piece times the pieces still wanted: a batch offer for ten at 4
+        has 40 standing behind it, less whatever has already been sold into it.
+        Counting it as 4 would size the next allowance to cover one piece of it.
+      */
+      .reduce((total, o) => total + o.priceWei * remainingPieces(o), 0n);
   }, [orders, traitOffers, maker, currency]);
 }
 

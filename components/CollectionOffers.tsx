@@ -14,7 +14,8 @@ import { Soso } from "@/components/Soso";
 import { AddressLink } from "@/components/AddressLink";
 import { whenExpires } from "@/components/Offers";
 import { formatSoso } from "@/lib/format";
-import { currencyLabel, type SeaportOrder } from "@/lib/seaport";
+import { currencyLabel, remainingPieces, type SeaportOrder } from "@/lib/seaport";
+import { SellIntoOffer } from "@/components/SellIntoOffer";
 import "./OfferDialog.css";
 import "./CollectionOffers.css";
 
@@ -76,19 +77,22 @@ export function CollectionOffers({ collection }: { collection: `0x${string}` }) 
     })),
   });
   const checkingTraits = memberships.some((q) => q.isLoading);
-  const pieceFor = (o: SeaportOrder): bigint | undefined => {
-    if (isMine(o)) return undefined;
-    if (o.criteria === undefined || o.criteria === 0n) return myIds[0];
+  const pieceFor = (o: SeaportOrder): bigint | undefined => piecesFor(o)[0];
+  /** Every piece the viewer holds that this offer can take. */
+  const piecesFor = (o: SeaportOrder): bigint[] => {
+    if (isMine(o)) return [];
+    if (o.criteria === undefined || o.criteria === 0n) return myIds;
     const key = rootKey(o.criteria);
-    const i = myIds.findIndex((_, n) => memberships[n]?.data?.has(key) === true);
-    return i < 0 ? undefined : myIds[i];
+    return myIds.filter((_, n) => memberships[n]?.data?.has(key) === true);
   };
+  /** A batch offer the viewer could sell several pieces into, in one go. */
+  const [selling, setSelling] = useState<{ offer: SeaportOrder; label: string } | undefined>(undefined);
   /**
    * Accept, or — while the viewer's pieces are still being checked — a small
    * spinner in its place, so the button does not pop in beside an offer that
    * has been on screen for seconds.
    */
-  const accept = (o: SeaportOrder) => {
+  const accept = (o: SeaportOrder, label: string) => {
     if (address === undefined || isMine(o)) return null;
     const trait = o.criteria !== undefined && o.criteria !== 0n;
     /*
@@ -106,6 +110,20 @@ export function CollectionOffers({ collection }: { collection: `0x${string}` }) 
     }
     if (checkingPieces || (trait && checkingTraits)) {
       return <span className="co-accept-wait" role="status" aria-label="Checking your pieces" />;
+    }
+    /*
+      A batch offer that wants more than one, and a viewer with more than one
+      piece it can take: sell several at once, from here, in one transaction.
+      Anything less is the single accept on the piece's own page, as before.
+    */
+    const eligible = piecesFor(o);
+    if (o.amount > 1n && remainingPieces(o) > 1n && eligible.length > 1) {
+      const most = Math.min(eligible.length, Number(remainingPieces(o)));
+      return (
+        <button type="button" className="btn btn-sm co-accept" onClick={() => setSelling({ offer: o, label })}>
+          Sell up to {most}
+        </button>
+      );
     }
     const id = pieceFor(o);
     return id === undefined ? null : (
@@ -194,13 +212,13 @@ export function CollectionOffers({ collection }: { collection: `0x${string}` }) 
                   {g.type === undefined ? null : <span className="co-type">{g.type}</span>}
                   <b>{g.value}</b>
                 </span>
-                <span className="co-count">{g.offers.length === 1 ? "1 offer" : `${g.offers.length} offers`}</span>
+                <span className="co-count">{wantedLabel(g.offers)}</span>
                 <span className="co-best">
                   <Soso size={14} unit={currencyLabel(top.currency)}>
                     {formatSoso(top.priceWei)}
                   </Soso>
                 </span>
-                <span className="co-act">{target === undefined ? null : accept(target)}</span>
+                <span className="co-act">{target === undefined ? null : accept(target, g.type === undefined ? g.value : `${g.type}: ${g.value}`)}</span>
               </li>
             );
           })}
@@ -211,6 +229,17 @@ export function CollectionOffers({ collection }: { collection: `0x${string}` }) 
         <button type="button" className="co-toggle" onClick={() => setExpanded((v) => !v)} aria-expanded={expanded}>
           {expanded ? "Show fewer" : `+${groups.length - ROWS} more`}
         </button>
+      ) : null}
+
+      {selling !== undefined ? (
+        <SellIntoOffer
+          collection={collection}
+          offer={selling.offer}
+          eligible={piecesFor(selling.offer)}
+          bounds={bounds}
+          label={selling.label}
+          onClose={() => setSelling(undefined)}
+        />
       ) : null}
 
       {open ? (
@@ -408,4 +437,14 @@ function CollectionOfferDialog({
     </>,
     document.body,
   );
+}
+
+/**
+ * How much a row of offers stands for: offers, and the pieces they still want
+ * when that is more — a batch offer for ten is one offer and ten pieces.
+ */
+function wantedLabel(offers: readonly SeaportOrder[]): string {
+  const pieces = offers.reduce((n, o) => n + remainingPieces(o), 0n);
+  const head = offers.length === 1 ? "1 offer" : `${offers.length} offers`;
+  return pieces > BigInt(offers.length) ? `${head} · ${pieces.toString()} wanted` : head;
 }

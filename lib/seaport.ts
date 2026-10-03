@@ -221,10 +221,28 @@ interface OfferInput {
    * only those pieces can be sold into the offer. Omitted: any piece.
    */
   criteria?: Hex;
+  /** What the bidder pays for ONE piece, fee included. */
   priceWei: bigint;
+  /**
+   * How many pieces the offer is for — a batch offer when above one.
+   *
+   * Collection and trait offers only: a bid naming one token can only ever be
+   * for that token. See `MAX_BATCH_OFFER` and the batch rule in `unsafeReason`.
+   */
+  quantity?: bigint;
   days?: number;
   salt?: bigint;
 }
+
+/**
+ * The most pieces one batch offer may ask for.
+ *
+ * Each piece is a separate fill of the same order, and selling several at once
+ * repeats the order once per piece in a single transaction — so this is also a
+ * ceiling on what one accept can carry. A hundred is far beyond any real bid on
+ * these collections and comfortably inside a block.
+ */
+export const MAX_BATCH_OFFER = 100n;
 
 /**
  * Bid on an NFT, in WSOSO.
@@ -242,16 +260,28 @@ interface OfferInput {
  */
 export function buildOffer(input: OfferInput): OrderParameters {
   const wsoso = deployment.wsoso as Address;
-  const { fee } = splitFee(input.priceWei);
   const anyToken = input.tokenId === undefined;
+
+  /**
+   * A batch offer is the single offer multiplied through: the money, the fee
+   * and the number of pieces all scale by `quantity`, and the order is
+   * PARTIAL_OPEN so each piece sold takes exactly 1/quantity of each. Every
+   * amount is a whole multiple of the quantity by construction — Seaport
+   * refuses a fraction that does not divide evenly, and so does `unsafeReason`.
+   */
+  const quantity = input.quantity ?? 1n;
+  if (quantity < 1n || quantity > MAX_BATCH_OFFER) throw new Error("An offer is for 1 to 100 pieces.");
+  if (quantity > 1n && !anyToken) throw new Error("Only a collection or trait offer can be for several pieces.");
+  const fee = splitFee(input.priceWei).fee * quantity;
+  const total = input.priceWei * quantity;
 
   const consideration: ConsiderationItem[] = [
     {
       itemType: anyToken ? ItemType.ERC721_WITH_CRITERIA : ItemType.ERC721,
       token: input.collection,
       identifierOrCriteria: input.tokenId ?? (input.criteria === undefined ? 0n : BigInt(input.criteria)),
-      startAmount: 1n,
-      endAmount: 1n,
+      startAmount: quantity,
+      endAmount: quantity,
       recipient: input.bidder,
     },
     /**
@@ -282,12 +312,12 @@ export function buildOffer(input: OfferInput): OrderParameters {
         itemType: ItemType.ERC20,
         token: wsoso,
         identifierOrCriteria: 0n,
-        startAmount: input.priceWei,
-        endAmount: input.priceWei,
+        startAmount: total,
+        endAmount: total,
       },
     ],
     consideration,
-    orderType: OrderType.FULL_OPEN,
+    orderType: quantity > 1n ? OrderType.PARTIAL_OPEN : OrderType.FULL_OPEN,
     ...timing(input.days, input.salt),
     totalOriginalConsiderationItems: BigInt(consideration.length),
   };
@@ -349,9 +379,12 @@ export interface ReadOrder {
   maker: Address;
   /** Native SOSO (the zero address) on a listing, WSOSO on an offer. */
   currency: Address;
-  /** What the counterparty pays in total, fee included. */
+  /**
+   * What the counterparty pays, fee included: for the whole lot on a listing,
+   * for ONE piece on a bid (a batch offer is divided out — see `readOrder`).
+   */
   priceWei: bigint;
-  /** ERC-1155 quantity; 1 for ERC-721. */
+  /** A listing's ERC-1155 quantity, or how many pieces a bid is for; 1 otherwise. */
   amount: bigint;
   endTime: bigint;
 }
@@ -396,7 +429,7 @@ export const MAX_FULFILLER_OUTLAY_BPS = 1_000n;
  *
  * The order has said so all along; nothing was reading it.
  */
-export function fulfillerOutlay(p: OrderParameters): bigint {
+export function fulfillerOutlay(p: OrderParameters, pieces: bigint = 1n): bigint {
   let outlay = 0n;
   for (const i of p.consideration) {
     // Only ERC-20 lines cost the acceptor anything; the NFT line is what they
@@ -405,7 +438,28 @@ export function fulfillerOutlay(p: OrderParameters): bigint {
     if (i.itemType !== ItemType.ERC20) continue;
     outlay += i.startAmount;
   }
-  return outlay;
+  /**
+   * For `pieces` sold, not for the whole order. A batch offer's fee line covers
+   * every piece it asks for, and each sale pays its share; quoting the whole
+   * line against one piece would show a holder ten times the fee they pay.
+   */
+  const asked = p.consideration.find(
+    (i) => i.itemType === ItemType.ERC721_WITH_CRITERIA || i.itemType === ItemType.ERC721,
+  )?.startAmount;
+  return asked === undefined || asked <= 1n ? outlay * pieces : (outlay / asked) * pieces;
+}
+
+/**
+ * How many pieces a bid still wants.
+ *
+ * Seaport reports progress as a fraction, `filled / size`, in whatever terms
+ * the fills reduced it to, so it is scaled back to pieces here. An order with
+ * nothing filled reports `size` 0.
+ */
+export function remainingPieces(order: { amount: bigint; filled: bigint; size: bigint }): bigint {
+  if (order.size === 0n) return order.amount;
+  if (order.filled >= order.size) return 0n;
+  return order.amount - (order.amount * order.filled) / order.size;
 }
 
 /** More than this many payees is not a shape this app can present honestly. */
@@ -649,9 +703,36 @@ export function unsafeReason(p: OrderParameters): UnsafeReason | undefined {
    * Nothing displayed a bid's quantity — not the token page, not the inbox — so
    * a bid for 10,000 editions rendered identically to a bid for one, and a
    * holder of 10,000 would have handed over the lot at the price of a single.
-   * Until a surface shows the quantity, only single-unit bids are accepted.
+   *
+   * One is still the rule for every bid but one shape: the BATCH OFFER
+   * (2026-10-03), exactly as `buildOffer` makes it with a `quantity`, and
+   * nothing looser. Every surface prices it per piece (`readOrder` divides it
+   * out), and each piece sold takes 1/quantity of everything. The conditions
+   * are what make that division honest:
+   *
+   *   - ERC721_WITH_CRITERIA. A bid on one named token has no "several".
+   *   - PARTIAL_OPEN. Under FULL_OPEN the whole quantity moves at once, which
+   *     for ERC-721 cannot settle — and a holder must never be asked to.
+   *   - at most MAX_BATCH_OFFER.
+   *   - EVERY amount a whole multiple of the quantity. Seaport refuses a
+   *     fraction that does not divide (settled in
+   *     contracts/test/SeaportBatchOrders.test.ts), so an order that does not
+   *     divide could be displayed and never sold into; and rounding it here
+   *     would show a price per piece the chain does not pay.
+   *
+   * The fee ceiling below is a ratio, so it holds per piece exactly as it holds
+   * for the whole.
    */
-  if (nfts[0]!.startAmount !== 1n) return "bid-quantity-unsupported";
+  const quantity = nfts[0]!.startAmount;
+  if (quantity !== 1n) {
+    if (nfts[0]!.itemType !== ItemType.ERC721_WITH_CRITERIA) return "bid-quantity-unsupported";
+    if (p.orderType !== OrderType.PARTIAL_OPEN) return "bid-quantity-unsupported";
+    if (quantity < 1n || quantity > MAX_BATCH_OFFER) return "bid-quantity-unsupported";
+    if (offered.startAmount % quantity !== 0n) return "bid-quantity-unsupported";
+    for (const i of p.consideration) {
+      if (i.startAmount % quantity !== 0n) return "bid-quantity-unsupported";
+    }
+  }
 
   /**
    * Everything the accepting holder pays, beyond the token itself, must be in
@@ -734,6 +815,18 @@ export function readOrder(p: OrderParameters): ReadOrder | undefined {
     const criteria =
       nftWanted.itemType === ItemType.ERC721_WITH_CRITERIA ||
       nftWanted.itemType === ItemType.ERC1155_WITH_CRITERIA;
+    /**
+     * A bid's price is PER PIECE, and `amount` is how many pieces it is for.
+     *
+     * Every surface that shows, ranks or checks a bid was written when a bid was
+     * for one piece and reads `priceWei` as "what you get for yours". A batch
+     * offer for ten at 4 offers 40 in total, and showing 40 against one piece —
+     * or ranking it above a single 5 — would be the lot-versus-unit mistake this
+     * file warns about at `lotPrice`. So the division happens here, once, at the
+     * door every order comes through, and stays exact because `unsafeReason`
+     * refuses any batch whose amounts do not divide.
+     */
+    const pieces = nftWanted.startAmount > 0n ? nftWanted.startAmount : 1n;
     return {
       kind: "offer",
       collection: nftWanted.token,
@@ -747,8 +840,8 @@ export function readOrder(p: OrderParameters): ReadOrder | undefined {
       ...(criteria ? { criteria: nftWanted.identifierOrCriteria } : {}),
       maker: p.offerer,
       currency: currencyOffered.token,
-      priceWei: currencyOffered.startAmount,
-      amount: nftWanted.startAmount,
+      priceWei: currencyOffered.startAmount / pieces,
+      amount: pieces,
       endTime: p.endTime,
     };
   }
@@ -1237,6 +1330,92 @@ export function planBulkListing(input: {
   const batches: OrderParameters[][] = [];
   for (let i = 0; i < orders.length; i += perTx) batches.push(orders.slice(i, i + perTx));
   return batches;
+}
+
+/**
+ * Several of one seller's orders, as `cancel` takes them, in batches.
+ *
+ * `cancel` takes `OrderComponents[]` and this app had always passed one, so a
+ * seller repricing twenty boxes withdrew them one confirmation at a time. A
+ * cancelled order carries its whole parameter set, the same size as the
+ * `validate` it undoes, so the same per-transaction ceiling applies for the
+ * same reason (see `LISTINGS_PER_TX`).
+ *
+ * Only the seller's own orders, and each once: Seaport refuses a cancel for an
+ * order somebody else made, and one refusal reverts the whole batch — so
+ * filtering here keeps a stray order from costing the other forty-nine.
+ * Settled against real Seaport in contracts/test/SeaportBatchOrders.test.ts.
+ */
+export function planBulkCancel(input: {
+  seller: Address;
+  orders: ReadonlyArray<{ hash: string; params: OrderParameters }>;
+  counter: bigint;
+  perTx?: number;
+}): OrderComponents[][] {
+  const perTx = input.perTx ?? LISTINGS_PER_TX;
+  if (perTx < 1) throw new Error("A batch must carry at least one order.");
+
+  const seen = new Set<string>();
+  const mine = input.orders.filter((o) => {
+    const key = o.hash.toLowerCase();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return o.params.offerer.toLowerCase() === input.seller.toLowerCase();
+  });
+
+  const components = mine.map((o) => toComponents(toWire(o.params), input.counter));
+  const batches: OrderComponents[][] = [];
+  for (let i = 0; i < components.length; i += perTx) batches.push(components.slice(i, i + perTx));
+  return batches;
+}
+
+/**
+ * The arguments to `fulfillAvailableAdvancedOrders` for selling several pieces
+ * into one batch offer — the order repeated once per piece at 1/quantity, the
+ * offered money as one transfer, each piece as its own, the fee as one.
+ *
+ * Pure and here, rather than built inline in the hook, so the exact calldata
+ * the app sends can be simulated against mainnet state by a script and
+ * matched against contracts/test/SeaportBatchOrders.test.ts, which settles the
+ * same structure on real Seaport bytecode.
+ */
+export function sellManyArgs(
+  params: OrderParameters,
+  quantity: bigint,
+  pieces: ReadonlyArray<{ tokenId: bigint; proof?: readonly Hex[] }>,
+  recipient: Address,
+) {
+  const index = params.consideration.findIndex(
+    (c) => c.itemType === ItemType.ERC721_WITH_CRITERIA || c.itemType === ItemType.ERC1155_WITH_CRITERIA,
+  );
+  if (index < 0) throw new Error("Not an offer pieces can be sold into.");
+  const fee = params.consideration.findIndex((c, i) => i !== index && c.itemType === ItemType.ERC20);
+  const unique = [...new Map(pieces.map((p) => [p.tokenId.toString(), p])).values()];
+
+  return [
+    unique.map(() => ({
+      parameters: toWire(params),
+      numerator: 1n,
+      denominator: quantity,
+      signature: "0x" as Hex,
+      extraData: "0x" as Hex,
+    })),
+    unique.map((p, i) => ({
+      orderIndex: BigInt(i),
+      side: 1, // consideration
+      index: BigInt(index),
+      identifier: p.tokenId,
+      criteriaProof: [...(p.proof ?? [])] as Hex[],
+    })),
+    [unique.map((_, i) => ({ orderIndex: BigInt(i), itemIndex: 0n }))],
+    [
+      ...unique.map((_, i) => [{ orderIndex: BigInt(i), itemIndex: BigInt(index) }]),
+      ...(fee < 0 ? [] : [unique.map((_, i) => ({ orderIndex: BigInt(i), itemIndex: BigInt(fee) }))]),
+    ],
+    CONDUIT_KEY,
+    recipient,
+    BigInt(unique.length),
+  ] as const;
 }
 
 /** Turn order parameters back into the shape `cancel` and `getOrderHash` want. */

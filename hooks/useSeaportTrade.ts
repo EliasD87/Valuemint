@@ -20,6 +20,7 @@ import {
   buildOffer,
   lotPrice,
   randomSalt,
+  sellManyArgs,
   toComponents,
   asOrder,
   toWire,
@@ -244,6 +245,8 @@ export function useSeaportTrade(collection: Address | undefined) {
       days: number = DEFAULT_ORDER_DAYS,
       criteria?: Hex,
       bound?: bigint,
+      /** Pieces wanted, for a batch offer; one by default. Price is per piece. */
+      quantity: bigint = 1n,
     ) => {
       if (collection === undefined || address === undefined) return;
       reset();
@@ -264,6 +267,7 @@ export function useSeaportTrade(collection: Address | undefined) {
                   ? { salt: saltWithBound(bound, randomSalt()) }
                   : {}),
                 priceWei: parseEther(priceInSoso),
+                ...(tokenId === undefined && quantity > 1n ? { quantity } : {}),
                 days,
               }),
             ),
@@ -346,7 +350,7 @@ interface FillRequest {
   chainId: number;
   address: Address;
   abi: typeof SeaportAbi;
-  functionName: "fulfillOrder" | "fulfillAdvancedOrder";
+  functionName: "fulfillOrder" | "fulfillAdvancedOrder" | "fulfillAvailableAdvancedOrders";
   args: readonly unknown[];
   value?: bigint;
 }
@@ -555,7 +559,12 @@ export function useSeaportFill() {
         abi: SeaportAbi,
         functionName: "fulfillAdvancedOrder",
         args: [
-          asAdvanced(order.params),
+          /**
+           * One piece's share of the order. A batch offer for ten is filled a
+           * tenth at a time — the whole order asks for ten ERC-721s, which one
+           * fill cannot move — and a single offer is the whole of itself.
+           */
+          asAdvanced(order.params, 1n, order.amount > 1n ? order.amount : 1n),
           [
             {
               orderIndex: 0n,
@@ -573,6 +582,45 @@ export function useSeaportFill() {
     [address, send],
   );
 
+  /**
+   * Sell several pieces into one batch offer, in one transaction.
+   *
+   * The order is repeated once per piece at 1/quantity each, which is how
+   * Seaport fills one partially fillable order several times in a single call
+   * (settled in contracts/test/SeaportBatchOrders.test.ts). The money for all
+   * of them arrives as one transfer, each piece goes as its own, and the fee is
+   * paid once for the lot. If the offer has fewer pieces left than are sent,
+   * Seaport fills what is left and skips the rest rather than failing — the
+   * pieces it skips simply stay where they are.
+   */
+  const acceptOfferMany = useCallback(
+    (order: SeaportOrder, pieces: ReadonlyArray<{ tokenId: bigint; proof?: readonly Hex[] }>) => {
+      if (address === undefined || pieces.length === 0) return;
+      if (order.tokenId !== undefined || order.amount <= 1n) return;
+      const index = criteriaIndex(order.params);
+      if (index < 0) return;
+      const isTrait = order.criteria !== undefined && order.criteria !== 0n;
+      if (isTrait && pieces.some((p) => p.proof === undefined)) return;
+
+      void send(
+        {
+          chainId: valuechain.id,
+          address: SEAPORT,
+          abi: SeaportAbi,
+          functionName: "fulfillAvailableAdvancedOrders",
+          args: sellManyArgs(
+            order.params,
+            order.amount,
+            pieces.map((p) => ({ tokenId: p.tokenId, proof: isTrait ? p.proof : undefined })),
+            address,
+          ),
+        },
+        "offer",
+      );
+    },
+    [address, send],
+  );
+
   useEffect(() => {
     if (reverted) refreshBook();
   }, [reverted, refreshBook]);
@@ -581,6 +629,7 @@ export function useSeaportFill() {
     buy,
     buyPartial,
     acceptOffer,
+    acceptOfferMany,
     signing,
     confirming,
     /**

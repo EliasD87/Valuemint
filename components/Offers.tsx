@@ -8,7 +8,7 @@ import { useSeaportFill, useSeaportTrade } from "@/hooks/useSeaportTrade";
 import { useCanPayFeeInWsoso } from "@/hooks/useWsoso";
 import { formatSoso } from "@/lib/format";
 import { AddressLink } from "@/components/AddressLink";
-import { currencyLabel, fulfillerOutlay } from "@/lib/seaport";
+import { currencyLabel, fulfillerOutlay, remainingPieces } from "@/lib/seaport";
 import { deployment } from "@/config/contracts";
 import { FillBlocked } from "@/components/FillBlocked";
 import { OfferForm, useTokenOfferTarget } from "@/components/OfferForm";
@@ -53,7 +53,7 @@ export function Offers({
   onChange: () => void;
 }) {
   const { address, isConnected } = useAccount();
-  const { offers: direct, logsUnavailable } = useOffersForToken(collection, tokenId);
+  const { offers: direct, logsUnavailable, isLoading: loadingDirect } = useOffersForToken(collection, tokenId);
 
   /**
    * Trait offers this piece can be sold into: only those whose set the server
@@ -61,8 +61,15 @@ export function Offers({
    * for a trait this piece does not have never appears here — and could not be
    * filled if it did, because Seaport checks the proof against the root.
    */
-  const { offers: traitAll } = useTraitOffers(collection);
-  const { byRoot: memberships } = useTokenCriteria(collection, tokenId, boundsOf(traitAll));
+  const { offers: traitAll, isLoading: loadingTraits } = useTraitOffers(collection);
+  const { byRoot: memberships, isLoading: loadingMemberships } = useTokenCriteria(collection, tokenId, boundsOf(traitAll));
+  /**
+   * Still finding out. The list used to say "No offers yet" for the seconds
+   * the book took to arrive, and a bidder who opened their piece in that
+   * window reported their offer gone (2026-10-03: eleven live offers, all
+   * standing, all funded). Saying nothing is there is a claim, so it waits.
+   */
+  const loadingOffers = loadingDirect || loadingTraits || (traitAll.length > 0 && loadingMemberships);
   const offers = useMemo(() => {
     const trait = traitAll.flatMap((o) => {
       const m = o.criteria === undefined ? undefined : memberships.get(rootKey(o.criteria));
@@ -163,6 +170,10 @@ export function Offers({
           Offers could not be loaded just now — the node would not serve event logs.
           This does not mean there are none.
         </p>
+      ) : offers.length === 0 && loadingOffers ? (
+        <p className="offers-empty" role="status">
+          Checking offers…
+        </p>
       ) : offers.length === 0 ? (
         <p className="offers-empty">No offers yet.</p>
       ) : (
@@ -180,6 +191,7 @@ export function Offers({
                   {mineRow ? "You" : <AddressLink address={o.maker} chars={4} />}
                   <span className="offers-when">
                     {o.trait !== undefined ? `${o.trait} · ` : o.tokenId === undefined ? "any piece · " : ""}
+                    {o.amount > 1n ? `${remainingPieces(o).toString()} of ${o.amount.toString()} wanted · ` : ""}
                     {whenExpires(o.endTime)}
                   </span>
                 </span>

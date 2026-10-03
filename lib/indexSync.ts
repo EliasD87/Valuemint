@@ -245,7 +245,7 @@ async function markStatus(hashes: string[], status: "filled" | "cancelled"): Pro
     const slice = unique.slice(i, i + HASHES_PER_PATCH);
     if (slice.length === 0) continue;
     const list = slice.map((h) => `"${h}"`).join(",");
-    await patch(`orders?order_hash=in.(${encodeURIComponent(list)})`, {
+    await patch(`orders?order_hash=in.(${encodeURIComponent(list)})${status === "filled" ? ONLY_WHOLE_ORDERS : ""}`, {
       status,
       updated_at: new Date().toISOString(),
     });
@@ -253,6 +253,19 @@ async function markStatus(hashes: string[], status: "filled" | "cancelled"): Pro
 
   return unique.length;
 }
+
+/**
+ * A fill retires an order only if the order fills all at once.
+ *
+ * `OrderFulfilled` fires on every fill, and a partially fillable order — a
+ * batch offer for ten, an edition listed by the dozen — is still open after
+ * its first. Marking it filled then took it out of the book for every visitor
+ * while it still wanted nine more. So only FULL_OPEN / FULL_RESTRICTED orders
+ * are retired here; a partial one stays open, and the reader's own
+ * `getOrderStatus` says how much of it is left and drops it when nothing is.
+ * Filter checked against the live index, read-only, before this shipped.
+ */
+const ONLY_WHOLE_ORDERS = `&${encodeURIComponent("params->>orderType")}=in.(0,2)`;
 
 /**
  * One pass: read what is new, write it, move the watermark.

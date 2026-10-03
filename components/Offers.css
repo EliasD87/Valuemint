@@ -176,6 +176,25 @@
   pointer-events: none;
 }
 
+/* A batch offer adds "How many" in front: a short number, then the price
+   each, then the expiry. */
+.offers-fields:has(> .offers-qty) {
+  grid-template-columns: 5.5rem 1fr 9.5rem;
+}
+
+/* What the whole batch commits, said before anything is signed. */
+.offers-total {
+  margin: 0.7rem 0 0;
+  font-size: var(--step--2);
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+
+.offers-total b {
+  color: var(--ink);
+  font-weight: 700;
+}
+
 .offers-balance {
   margin: 0.7rem 0 0.85rem;
   font-size: var(--step--2);
@@ -197,7 +216,8 @@
 /* One column below the point where a 9.5rem select and an amount field stop
    coexisting without squeezing the number. */
 @media (max-width: 460px) {
-  .offers-fields {
+  .offers-fields,
+  .offers-fields:has(> .offers-qty) {
     grid-template-columns: 1fr;
   }
 

@@ -682,8 +682,21 @@
   text-decoration: none;
 }
 
+/* The piece's name truncates like the collection under it. As an inline run
+   it did not, and in the narrow Offers panel "Level: Uncommon" ran on into the
+   price beside it. */
 .tr-stack b {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  /* A step down from the price beside it: the piece is what you scan for, the
+     figure is what you read. */
+  font-size: var(--step--2);
   font-weight: 650;
+}
+
+.tr-stack .tr-coll {
+  font-size: var(--step--3);
 }
 
 a.tr-stack:hover b {

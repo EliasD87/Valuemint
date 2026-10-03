@@ -10,6 +10,7 @@ import type { SeaportOrder } from "@/hooks/useSeaportOrders";
 import { formatSosoFixed, shortAddress } from "@/lib/format";
 import { whenExpires } from "@/components/Offers";
 import { Soso } from "@/components/Soso";
+import { remainingPieces } from "@/lib/seaport";
 import "@/styles/activity.css";
 
 /**
@@ -62,7 +63,8 @@ export function MyOffers({
   const { offers, isLoading } = useOrdersBy(address);
 
   const committed = useMemo(
-    () => offers.reduce((total, o) => total + o.priceWei, 0n),
+    /* A batch offer commits its price for every piece it still wants. */
+    () => offers.reduce((total, o) => total + o.priceWei * remainingPieces(o), 0n),
     [offers],
   );
 
@@ -202,7 +204,16 @@ function OfferRow({ order, name, own }: { order: SeaportOrder; name: string; own
             {formatSosoFixed(order.priceWei)}
           </Soso>
         </span>
-        <span className="tr-l2">{whenExpires(order.endTime)}</span>
+        <span className="tr-l2">
+          {/* A batch offer is priced each: "×5" until something is sold into it, then how many are left.
+              Kept short — this column is narrow, and a long line here squeezes the piece's name. */}
+          {order.amount > 1n
+            ? remainingPieces(order) === order.amount
+              ? `×${order.amount.toString()} · `
+              : `${remainingPieces(order).toString()} of ${order.amount.toString()} left · `
+            : ""}
+          {whenExpires(order.endTime)}
+        </span>
       </td>
 
       {own ? (

@@ -1,0 +1,76 @@
+/* Selling several pieces into one batch offer. Sits inside the shared dialog
+   (OfferDialog.css); only its own lines are styled here. */
+.sio {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.sio-offer {
+  margin: 0;
+  font-size: var(--step--1);
+  line-height: 1.55;
+  color: var(--ink-2);
+}
+
+.sio-offer b {
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.sio-count {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  max-width: 10rem;
+}
+
+.sio-count input {
+  width: 100%;
+  min-height: 44px;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+  color: var(--ink);
+  font-size: max(16px, var(--step--1));
+  font-variant-numeric: tabular-nums;
+}
+
+.sio-count small {
+  font-size: var(--step--3);
+  color: var(--ink-3);
+}
+
+.sio-pieces {
+  margin: 0;
+  font-size: var(--step--2);
+  line-height: 1.5;
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.sio-sum {
+  margin: 0;
+  font-size: var(--step--1);
+  line-height: 1.55;
+  color: var(--ink-2);
+}
+
+.sio-sum b {
+  color: var(--ink);
+}
+
+.sio-note {
+  margin: 0;
+  font-size: var(--step--3);
+  line-height: 1.5;
+  color: var(--ink-3);
+}
+
+.sio-error {
+  margin: 0;
+  font-size: var(--step--2);
+  color: var(--danger);
+}

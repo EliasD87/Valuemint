@@ -16,7 +16,7 @@ import { FillBlocked } from "@/components/FillBlocked";
 import { useCanPayFeeInWsoso } from "@/hooks/useWsoso";
 import { formatSoso } from "@/lib/format";
 import { AddressLink } from "@/components/AddressLink";
-import { currencyLabel, fulfillerOutlay } from "@/lib/seaport";
+import { currencyLabel, fulfillerOutlay, remainingPieces } from "@/lib/seaport";
 import { deployment } from "@/config/contracts";
 import "./OfferInbox.css";
 
@@ -388,6 +388,7 @@ function InboxRow({
         </Soso>
         <span className="inbox-meta">
           {row.trait !== undefined ? `for ${row.trait} · ` : offer.tokenId === undefined ? "for any piece · " : ""}
+          {offer.amount > 1n ? `wants ${remainingPieces(offer).toString()} · ` : ""}
           from <AddressLink address={offer.maker} chars={4} /> · {whenExpires(offer.endTime)}
         </span>
       </span>
