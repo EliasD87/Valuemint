@@ -457,9 +457,15 @@ export default function StatsPage() {
                       <Link className="ps-what" href={`/collection/${row.collection}`}>
                         {nameFor(row.collection) ?? shortAddress(row.collection)}
                       </Link>
-                      <Link className="ps-id" href={`/token/${row.collection}/${row.tokenId}`} prefetch={false}>
-                        #{row.tokenId.toString()}
-                      </Link>
+                      {row.collectionOffer === true ? (
+                        /* An offer on any piece or a trait names no token: say how
+                           many it is for instead of a "#0" that does not exist. */
+                        <span className="ps-id">{row.amount > 1n ? `×${row.amount.toString()}` : "any"}</span>
+                      ) : (
+                        <Link className="ps-id" href={`/token/${row.collection}/${row.tokenId}`} prefetch={false}>
+                          #{row.tokenId.toString()}
+                        </Link>
+                      )}
                       <span className="ps-price">
                         {row.price === undefined ? (
                           <span className="dim">&mdash;</span>
@@ -627,7 +633,13 @@ function Ticker({
     <span className="pt-item" key={`${row.blockNumber}-${row.logIndex}-${index}`}>
       <i className={`pt-dot pt-${row.kind}`} />
       <b>{nameFor(row.collection) ?? shortAddress(row.collection)}</b>
-      <span className="dim">#{row.tokenId.toString()}</span>
+      <span className="dim">
+        {row.collectionOffer === true
+          ? row.amount > 1n
+            ? `×${row.amount.toString()}`
+            : "any piece"
+          : `#${row.tokenId.toString()}`}
+      </span>
       {LABEL[row.kind].toLowerCase()}
       {row.price === undefined ? null : <b>{formatSoso(row.price)} SOSO</b>}
     </span>
