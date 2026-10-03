@@ -10,7 +10,9 @@
 
 .pf-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(min(19rem, 100%), 21rem);
+  /* 24rem since 2026-10-03: at 21 the Offers table cut every trait name to
+     "Level: Com…" beside its price. */
+  grid-template-columns: minmax(0, 1fr) minmax(min(21rem, 100%), 24rem);
   gap: clamp(1.5rem, 4vw, 3rem);
   align-items: start;
 }

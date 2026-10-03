@@ -4,6 +4,7 @@ import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { holdingsAnchor } from "@/lib/anchors";
 import { BulkList } from "@/components/BulkList";
+import { BulkCancel } from "@/components/BulkCancel";
 import { TokenCard } from "@/components/TokenCard";
 import { Soso } from "@/components/Soso";
 import { useGridColumns } from "@/hooks/useGridColumns";
@@ -179,6 +180,15 @@ export function HoldingsGroup({
               items={group.items
                 .filter((t) => t.listing === undefined)
                 .map((t) => ({ id: t.id, tier: t.tier }))}
+            />
+          ) : null}
+          {/* Beside it, the way back out: withdraw several listings at once. */}
+          {own ? (
+            <BulkCancel
+              collectionName={group.name}
+              items={group.items.flatMap((t) =>
+                t.listing === undefined ? [] : [{ id: t.id, tier: t.tier, order: t.listing.order }],
+              )}
             />
           ) : null}
           <Link className="head-link" href={`/collection/${group.address}`}>
