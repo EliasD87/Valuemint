@@ -88,9 +88,9 @@ export function CollectionStats({
         </Cell>
 
         {/*
-          The floor beside it, set against what the last day's sales averaged —
-          see lib/floorVsSales.ts. Handed the same floor the cell above shows,
-          so the two can never be two different numbers.
+          The floor's change since the same hour yesterday — see
+          lib/floorChange.ts. Handed the same floor the cell above shows, so
+          the two can never be two different numbers.
         */}
         <FloorChange collection={collection} floorWei={s.floorWei} />
 
