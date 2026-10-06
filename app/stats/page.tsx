@@ -95,7 +95,26 @@ const WINDOWS: { value: string; label: string; hours?: number }[] = [
 ];
 
 export default function StatsPage() {
-  const { rows: all, isLoading, logsUnavailable, logsPartial, refetch } = useActivity(undefined);
+  const { rows: feed, isLoading, logsUnavailable, logsPartial, refetch } = useActivity(undefined);
+  /**
+   * Every sale, on its own.
+   *
+   * The feed above is capped at the newest 2,000 events of every kind, and
+   * listings and offers are most of them: on 2026-10-06 the cap reached back
+   * only to 22 September, so the first week of trading fell off the end and
+   * "SOSO settled" read about 16k when every sale summed to more (327 of 376
+   * sales). Sales alone are a few hundred rows, so their whole history is
+   * fetched separately and stands in for the capped copy of them.
+   */
+  const { rows: everySale, isLoading: salesLoading } = useActivity(undefined, undefined, { salesOnly: true });
+  const all = useMemo(() => {
+    if (everySale.length === 0) return feed;
+    const merged = [...feed.filter((r) => r.kind !== "sale"), ...everySale];
+    merged.sort((x, y) =>
+      x.blockNumber === y.blockNumber ? y.logIndex - x.logIndex : x.blockNumber > y.blockNumber ? -1 : 1,
+    );
+    return merged;
+  }, [feed, everySale]);
   const { collections } = useAllCollections();
   /** Wallets that minted here, which the marketplace events alone never showed. */
   const { minters, loading: mintersLoading } = useMinters();
@@ -125,7 +144,7 @@ export default function StatsPage() {
    * to an empty stretch is not a loading page, and treating it as one would
    * replace a true answer with a shimmer.
    */
-  const loading = isLoading && visible.length === 0;
+  const loading = (isLoading || salesLoading) && visible.length === 0;
 
   /**
    * The chosen window, or everything.
