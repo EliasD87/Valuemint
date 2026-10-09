@@ -124,7 +124,10 @@ function Intro({ forSale }: { forSale: number | undefined }) {
 /* ------------------------------------------------------------- spotlight */
 
 /** How long each collection holds the banner before the next slides in. */
-const SPOTLIGHT_MS = 5500;
+const SPOTLIGHT_MS = 1500;
+
+/** The slide itself; must match `.ex-banner-track`'s transition in explore.css. */
+const SLIDE_MS = 650;
 
 /** Whether the visitor has asked for less motion. Off until known, so nothing moves on a guess. */
 function useReducedMotion(): boolean {
@@ -140,12 +143,18 @@ function useReducedMotion(): boolean {
 }
 
 /**
- * Four collections on a track that slides sideways on its own (2026-10-09).
+ * Four collections on a track that slides sideways on its own, forever in one
+ * direction (2026-10-09).
  *
- * It moves every few seconds and stops the moment somebody is looking at it:
- * a pointer over it, keyboard focus inside it, or the pause button. It never
- * moves for anyone who asks for reduced motion, and it does not tick while the
- * tab is hidden. Only the slide on show can be tabbed into.
+ * A loop, not a rewind: a copy of the first slide waits after the last. The
+ * track slides onto it, and once it has arrived the track jumps back to the
+ * real first slide with no animation, which looks identical. Stepping back
+ * from the first slide does the same in reverse.
+ *
+ * It pauses while a pointer is over it. Keyboard focus inside it also holds it
+ * still, only when the focus came from the keyboard, so a mouse click on an
+ * arrow does not leave it paused. It never moves for anyone who asks for
+ * reduced motion, and it does not tick while the tab is hidden.
  *
  * A slide carries the same layers as its collection page's header: the
  * picture, then any cut-out standing on it, and the collection's own wordmark
@@ -153,22 +162,66 @@ function useReducedMotion(): boolean {
  */
 function Spotlight({ market }: { market: Market }) {
   const count = SPOTLIGHT.length;
-  const [at, setAt] = useState(0);
-  const [held, setHeld] = useState(false);
-  const [paused, setPaused] = useState(false);
+  /** The track's position: 0..count, where `count` is the copy of the first slide. */
+  const [pos, setPos] = useState(0);
+  /** True for the one frame the track jumps instead of sliding. */
+  const [instant, setInstant] = useState(false);
+  const [hovered, setHovered] = useState(false);
+  const [keyboard, setKeyboard] = useState(false);
   const reduce = useReducedMotion();
-  const playing = !held && !paused && !reduce;
+  const playing = !hovered && !keyboard && !reduce;
+  const at = pos % count;
 
-  /* Restarted on every change of slide, so a click resets the clock rather than racing it. */
+  /* Restarted on every move, so a click resets the clock rather than racing it. */
   useEffect(() => {
     if (!playing) return;
     const id = window.setInterval(() => {
-      if (document.visibilityState === "visible") setAt((i) => (i + 1) % count);
+      if (document.visibilityState === "visible") setPos((p) => Math.min(p + 1, count));
     }, SPOTLIGHT_MS);
     return () => window.clearInterval(id);
-  }, [playing, at, count]);
+  }, [playing, pos, count]);
 
-  const go = (i: number) => setAt(((i % count) + count) % count);
+  /* Landed on the copy of the first slide: jump to the real one once the slide has finished. */
+  useEffect(() => {
+    if (pos !== count) return;
+    const id = window.setTimeout(() => {
+      setInstant(true);
+      setPos(0);
+    }, SLIDE_MS + 40);
+    return () => window.clearTimeout(id);
+  }, [pos, count]);
+
+  /* Sliding comes back on once the jump has been painted. */
+  useEffect(() => {
+    if (!instant) return;
+    let second = 0;
+    const first = requestAnimationFrame(() => {
+      second = requestAnimationFrame(() => setInstant(false));
+    });
+    return () => {
+      cancelAnimationFrame(first);
+      cancelAnimationFrame(second);
+    };
+  }, [instant]);
+
+  const next = () => setPos((p) => Math.min(p + 1, count));
+  const prev = () => {
+    if (pos > 0) {
+      setPos(pos - 1);
+      return;
+    }
+    /* From the first slide: jump to its copy at the end, then slide back onto the last. */
+    setInstant(true);
+    setPos(count);
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => {
+        setInstant(false);
+        setPos(count - 1);
+      }),
+    );
+  };
+
+  const slides = [...SPOTLIGHT, SPOTLIGHT[0]!];
 
   return (
     <section className="ex page">
@@ -186,27 +239,35 @@ function Spotlight({ market }: { market: Market }) {
         aria-roledescription="carousel"
         aria-label="Collection spotlight"
         data-playing={playing ? "" : undefined}
-        onPointerEnter={() => setHeld(true)}
-        onPointerLeave={() => setHeld(false)}
-        onFocus={() => setHeld(true)}
+        onPointerEnter={() => setHovered(true)}
+        onPointerLeave={() => setHovered(false)}
+        onFocus={(e) => {
+          if (e.target.matches(":focus-visible")) setKeyboard(true);
+        }}
         onBlur={(e) => {
-          if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setHeld(false);
+          if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setKeyboard(false);
         }}
       >
-        <div className="ex-banner-track" style={vars({ "--at": at })} aria-live={playing ? "off" : "polite"}>
-          {SPOTLIGHT.map((slide, i) => {
+        <div
+          className="ex-banner-track"
+          style={vars({ "--at": pos })}
+          data-instant={instant ? "" : undefined}
+          aria-live={playing ? "off" : "polite"}
+        >
+          {slides.map((slide, i) => {
             const m = market.get(slide.address);
             const mark = wordmarkFor(slide.address);
-            const shown = i === at;
+            const copy = i === count;
+            const shown = i === pos;
             return (
               <div
-                key={slide.address}
+                key={`${slide.address}-${i}`}
                 className="ex-slide"
-                role="group"
-                aria-roledescription="slide"
-                aria-label={`${i + 1} of ${count}: ${slide.name}`}
-                aria-hidden={!shown}
-                inert={!shown}
+                role={copy ? undefined : "group"}
+                aria-roledescription={copy ? undefined : "slide"}
+                aria-label={copy ? undefined : `${i + 1} of ${count}: ${slide.name}`}
+                aria-hidden={copy || !shown}
+                inert={copy || !shown}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
@@ -261,51 +322,25 @@ function Spotlight({ market }: { market: Market }) {
               className={i === at ? "ex-dot is-on" : "ex-dot"}
               aria-label={`Show ${slide.name}`}
               aria-current={i === at ? "true" : undefined}
-              onClick={() => go(i)}
+              onClick={() => setPos(i)}
             >
               <span>
-                <i key={i === at ? `on-${at}` : "off"} style={vars({ "--dur": `${SPOTLIGHT_MS}ms` })} />
+                <i key={i === at ? `on-${pos}` : "off"} style={vars({ "--dur": `${SPOTLIGHT_MS}ms` })} />
               </span>
             </button>
           ))}
         </div>
 
         <div className="ex-banner-nav">
-          {reduce ? null : (
-            <button
-              type="button"
-              className="ex-round ex-round-soft"
-              aria-label={paused ? "Play the spotlight" : "Pause the spotlight"}
-              onClick={() => setPaused((p) => !p)}
-            >
-              {paused ? <PlayIcon /> : <PauseIcon />}
-            </button>
-          )}
-          <button type="button" className="ex-round" aria-label="Previous collection" onClick={() => go(at - 1)}>
+          <button type="button" className="ex-round" aria-label="Previous collection" onClick={prev}>
             <Chevron left />
           </button>
-          <button type="button" className="ex-round" aria-label="Next collection" onClick={() => go(at + 1)}>
+          <button type="button" className="ex-round" aria-label="Next collection" onClick={next}>
             <Chevron />
           </button>
         </div>
       </div>
     </section>
-  );
-}
-
-function PauseIcon() {
-  return (
-    <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
-      <path d="M5 3.5v9M11 3.5v9" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function PlayIcon() {
-  return (
-    <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
-      <path d="M5 3.2v9.6L12.5 8z" fill="currentColor" />
-    </svg>
   );
 }
 
