@@ -1,9 +1,9 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { decodeParams, type JsonEventArgs, type JsonOrderParameters } from "@/lib/indexRows";
 import { indexLagMs } from "@/lib/indexLag";
-import type { ActivityLog, ActivityStreams } from "@/lib/activityRows";
+import type { ActivityStreams } from "@/lib/activityRows";
+import { decodeIndexedEvents, type IndexedEvent } from "@/lib/indexEvents";
 
 /**
  * Trade history from the index, when there is one.
@@ -23,19 +23,9 @@ import type { ActivityLog, ActivityStreams } from "@/lib/activityRows";
 /** Matches the order book's tolerance, and for the same reasons. */
 const STALE_MS = 180_000;
 
-interface EventIn {
-  tx_hash: string;
-  log_index: number;
-  kind: "fulfilled" | "validated" | "cancelled";
-  order_hash: string | null;
-  block_number: number;
-  args: JsonEventArgs;
-  collection: string | null;
-  token_id: string | null;
-}
 
 interface Payload {
-  events: EventIn[];
+  events: IndexedEvent[];
   indexedAt: string | null;
   servedAt?: string;
 }
@@ -75,83 +65,10 @@ async function fetchActivity(filter: ActivityFilter): Promise<ActivityStreams | 
   const lag = indexLagMs(payload);
   if (!Number.isFinite(lag) || lag > STALE_MS) return null;
 
-  const validated: ActivityLog[] = [];
-  const fulfilled: ActivityLog[] = [];
-  const cancelled: ActivityLog[] = [];
-
-  for (const event of payload.events) {
-    const args = event.args as Record<string, unknown>;
-
-    /**
-     * Rebuilt into the shape a scanned log has, bigints and all.
-     *
-     * Not a convenience: `buildActivityRows` hands these straight to
-     * `readOrder` and `readFulfilment`, which compare and divide them. A string
-     * where a bigint belongs does not throw there — `"10" > "9"` is false — it
-     * quietly produces the wrong answer.
-     */
-    if (event.kind === "validated") {
-      const params = args.orderParameters as JsonOrderParameters | undefined;
-      if (params === undefined) continue;
-      validated.push({
-        args: { orderHash: args.orderHash, orderParameters: decodeParams(params) },
-        blockNumber: BigInt(event.block_number),
-        logIndex: event.log_index,
-      });
-      continue;
-    }
-
-    if (event.kind === "fulfilled") {
-      fulfilled.push({
-        args: {
-          orderHash: args.orderHash,
-          offerer: args.offerer,
-          recipient: args.recipient,
-          offer: (args.offer as SpentIn[] | undefined ?? []).map(spent),
-          consideration: (args.consideration as ReceivedIn[] | undefined ?? []).map((i) => ({
-            ...spent(i),
-            recipient: i.recipient,
-          })),
-        },
-        blockNumber: BigInt(event.block_number),
-        logIndex: event.log_index,
-      });
-      continue;
-    }
-
-    cancelled.push({
-      args: { orderHash: args.orderHash, offerer: args.offerer },
-      blockNumber: BigInt(event.block_number),
-      logIndex: event.log_index,
-      /**
-       * Resolved when the index wrote the row, so a narrowed query does not
-       * lose its cancellations to a validation that fell outside the window.
-       */
-      collection: (event.collection ?? undefined) as `0x${string}` | undefined,
-      tokenId: event.token_id === null ? undefined : BigInt(event.token_id),
-    });
-  }
-
-  return { validated, fulfilled, cancelled };
+  /** The same decoder the server's Explore summary uses (lib/indexEvents.ts). */
+  return decodeIndexedEvents(payload.events);
 }
 
-interface SpentIn {
-  itemType: number;
-  token: string;
-  identifier: string;
-  amount: string;
-}
-
-interface ReceivedIn extends SpentIn {
-  recipient: string;
-}
-
-const spent = (i: SpentIn) => ({
-  itemType: i.itemType,
-  token: i.token as `0x${string}`,
-  identifier: BigInt(i.identifier),
-  amount: BigInt(i.amount),
-});
 
 export function useIndexedActivity(filter: ActivityFilter, enabled = true) {
   const { data, isLoading, isError } = useQuery({

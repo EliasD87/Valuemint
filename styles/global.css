@@ -1349,9 +1349,8 @@ textarea {
 
 /* ================================================================= search ===
  *
- * Address lookup. Narrow on purpose: there is no indexer on this chain, so a
- * text search over token names would mean loading every collection's metadata
- * per keystroke. The lookup people actually need is by address.
+ * Collections by name, a piece by collection and number, or an address. Token
+ * metadata is never searched; see components/Search.tsx.
  * ========================================================================== */
 
 .search-trigger {
@@ -1424,6 +1423,83 @@ textarea {
 
 .search-actions .btn {
   flex: 1 1 auto;
+}
+
+/* Results (2026-10-09): collections, pieces and addresses, one per row. */
+.search-label {
+  margin: 0 0 -0.4rem;
+  font-size: var(--step--3);
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.search-results {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  max-height: min(22rem, 55vh);
+  overflow-y: auto;
+}
+
+.search-result {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.5rem 0.6rem;
+  border-radius: var(--r-md);
+  cursor: pointer;
+}
+
+.search-result.is-active {
+  background: var(--surface-2);
+}
+
+.search-art {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--r-sm);
+  object-fit: cover;
+  background: var(--surface-2);
+}
+
+.search-art-empty {
+  border: 1px solid var(--line);
+}
+
+.search-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.search-text b {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 650;
+  color: var(--ink);
+}
+
+.search-text small {
+  font-size: var(--step--2);
+  color: var(--ink-3);
+}
+
+.search-enter {
+  visibility: hidden;
+  font-size: var(--step--1);
+  color: var(--ink-3);
+}
+
+.search-result.is-active .search-enter {
+  visibility: visible;
 }
 
 /* ============================================================ identity alarm */

@@ -1,63 +1,57 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
+import { useAllCollections } from "@/hooks/useAllCollections";
+import { searchResults, type SearchResult } from "@/lib/search";
 
 /**
- * Search by address.
+ * Search: collections by name, a piece by collection and number, or an address.
  *
- * Deliberately narrow. There is no indexer on this chain, so a general text
- * search over token names would mean loading every collection's metadata on
- * every keystroke - and the one lookup people actually need is by address:
- * whose wallet is this, or what is this contract.
+ * It was addresses only, on the grounds that a text search would mean loading
+ * every collection's metadata on every keystroke. Names were never that
+ * expensive: the collection registry is one cached read, and it is only loaded
+ * when the dialog opens (2026-10-09), so no page pays for search until somebody
+ * searches. Token metadata is still never searched; "treasure 79565" opens
+ * piece #79565 of the collection that matches "treasure".
  *
- * It routes on shape rather than asking. Both a wallet and a collection are
- * forty hex characters, and the two destinations are different, so the input
- * accepts either and `useCollectionProbe`-style disambiguation happens on the
- * page it lands on. A wallet is the common case, so that is the default; the
- * collection option is offered explicitly rather than guessed at.
+ * An address that is a known collection opens the collection. Any other
+ * address still offers both readings, wallet first, as before: the two are the
+ * same forty hex characters and only the page they land on can tell them apart.
  */
 
-const ADDRESS = /^0x[0-9a-fA-F]{40}$/;
-
 export function Search() {
-  const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [value, setValue] = useState("");
-  const inputRef = useRef<HTMLInputElement>(null);
 
-  // Focus on open, so the dialog is usable without a second click.
+  /**
+   * "/" or Ctrl/Cmd+K opens it from anywhere, unless someone is typing.
+   * Always listening, and that is all it does until it fires: the dialog and
+   * the registry it reads mount only when it opens.
+   */
   useEffect(() => {
-    if (open) inputRef.current?.focus();
-  }, [open]);
-
-  // Escape closes, as it must for anything modal.
-  useEffect(() => {
-    if (!open) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
+      const target = e.target as HTMLElement | null;
+      const typing =
+        target !== null &&
+        (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.tagName === "SELECT" || target.isContentEditable);
+      const shortcut = (e.key === "k" || e.key === "K") && (e.ctrlKey || e.metaKey);
+      if (shortcut || (e.key === "/" && !typing && !e.ctrlKey && !e.metaKey && !e.altKey)) {
+        e.preventDefault();
+        setOpen(true);
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [open]);
-
-  const trimmed = value.trim();
-  const isAddress = ADDRESS.test(trimmed);
-
-  const go = (kind: "wallet" | "collection") => {
-    if (!isAddress) return;
-    setOpen(false);
-    setValue("");
-    router.push(kind === "wallet" ? `/address/${trimmed}` : `/collection/${trimmed}`);
-  };
+  }, []);
 
   return (
     <>
       <button
         type="button"
         className="search-trigger"
-        aria-label="Search by address"
+        aria-label="Search collections, pieces and addresses"
+        title="Search (press /)"
         onClick={() => setOpen(true)}
       >
         {/* Inline rather than an icon font: one glyph, no extra request. */}
@@ -67,35 +61,43 @@ export function Search() {
         </svg>
       </button>
 
-      {open ? <Dialog
-        value={value}
-        setValue={setValue}
-        isAddress={isAddress}
-        onGo={go}
-        onClose={() => setOpen(false)}
-        inputRef={inputRef}
-      /> : null}
+      {open ? <Dialog onClose={() => setOpen(false)} /> : null}
     </>
   );
 }
 
-function Dialog({
-  value,
-  setValue,
-  isAddress,
-  onGo,
-  onClose,
-  inputRef,
-}: {
-  value: string;
-  setValue: (v: string) => void;
-  isAddress: boolean;
-  onGo: (kind: "wallet" | "collection") => void;
-  onClose: () => void;
-  inputRef: React.RefObject<HTMLInputElement | null>;
-}) {
+function Dialog({ onClose }: { onClose: () => void }) {
+  const router = useRouter();
+  const { collections, isLoading } = useAllCollections();
+  const [value, setValue] = useState("");
+  const [active, setActive] = useState(0);
+  const inputRef = useRef<HTMLInputElement>(null);
   const [mounted, setMounted] = useState(false);
+
   useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    if (mounted) inputRef.current?.focus();
+  }, [mounted]);
+
+  // Escape closes, as it must for anything modal.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  const found = useMemo(() => searchResults(collections, value), [collections, value]);
+  const results = Array.isArray(found) ? found : [];
+  const current = Math.min(active, Math.max(0, results.length - 1));
+
+  const go = (r: SearchResult | undefined) => {
+    if (r === undefined) return;
+    onClose();
+    router.push(r.href);
+  };
+
   if (!mounted) return null;
 
   /**
@@ -111,41 +113,72 @@ function Dialog({
         className="search-dialog"
         role="dialog"
         aria-modal="true"
-        aria-label="Search by address"
+        aria-label="Search"
         onClick={(e) => e.stopPropagation()}
       >
         <input
           ref={inputRef}
           className="search-input"
-          placeholder="0x… wallet or collection address"
+          placeholder="Collection, piece (Genesis 45) or 0x address"
           value={value}
           spellCheck={false}
           autoComplete="off"
-          onChange={(e) => setValue(e.target.value)}
+          role="combobox"
+          aria-expanded={results.length > 0}
+          aria-controls="search-results"
+          aria-activedescendant={results[current] === undefined ? undefined : `search-${results[current]!.key}`}
+          onChange={(e) => {
+            setValue(e.target.value);
+            setActive(0);
+          }}
           onKeyDown={(e) => {
-            if (e.key === "Enter" && isAddress) onGo("wallet");
+            if (e.key === "ArrowDown") {
+              e.preventDefault();
+              setActive((i) => Math.min(i + 1, results.length - 1));
+            } else if (e.key === "ArrowUp") {
+              e.preventDefault();
+              setActive((i) => Math.max(i - 1, 0));
+            } else if (e.key === "Enter") {
+              go(results[current]);
+            }
           }}
         />
 
-        {value.trim() === "" ? (
-          <p className="search-hint">
-            Paste an address to see everything it holds on ValueChain, or to open a
-            collection this site has not indexed yet.
-          </p>
-        ) : !isAddress ? (
-          <p className="search-hint search-hint-bad">
-            That is not an address. A ValueChain address is 0x followed by 40 hex
-            characters.
-          </p>
+        {!Array.isArray(found) ? (
+          <p className="search-hint">{found.hint}</p>
+        ) : results.length === 0 ? (
+          <p className="search-hint">{isLoading ? "Loading collections…" : "No collections yet."}</p>
         ) : (
-          <div className="search-actions">
-            <button type="button" className="btn btn-primary" onClick={() => onGo("wallet")}>
-              See what this wallet holds
-            </button>
-            <button type="button" className="btn" onClick={() => onGo("collection")}>
-              Open as a collection
-            </button>
-          </div>
+          <>
+            {value.trim() === "" ? <p className="search-label">Collections</p> : null}
+            <ul className="search-results" id="search-results" role="listbox">
+              {results.map((r, i) => (
+                <li
+                  key={r.key}
+                  id={`search-${r.key}`}
+                  role="option"
+                  aria-selected={i === current}
+                  className={i === current ? "search-result is-active" : "search-result"}
+                  onPointerEnter={() => setActive(i)}
+                  onClick={() => go(r)}
+                >
+                  {r.art === undefined ? (
+                    <span className="search-art search-art-empty" aria-hidden="true" />
+                  ) : (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img className="search-art" src={r.art} alt="" loading="lazy" decoding="async" />
+                  )}
+                  <span className="search-text">
+                    <b>{r.title}</b>
+                    <small>{r.sub}</small>
+                  </span>
+                  <span className="search-enter" aria-hidden="true">
+                    ↵
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </>
         )}
       </div>
     </div>,
