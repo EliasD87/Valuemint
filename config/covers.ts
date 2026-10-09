@@ -148,6 +148,19 @@ export const COLLECTION_COVERS: Record<string, string[]> = {
   "0xc486e7aa1c971a61c2a9c6b8ccf671acb0ffd064": [
     "/covers/c486e7aa-1.webp",
   ],
+
+  /*
+    Wickborn (2026-10-09) — small looping GIFs of the five animations (256px,
+    0.16-0.57 MB), squared with their own off-white ground so nobody loses a
+    head. Local and plain, so the card plays them with no /api/still work.
+  */
+  "0x5dbd25366a60bbd07960535760cf6eef36128404": [
+    "/covers/wickborn-1.gif",
+    "/covers/wickborn-2.gif",
+    "/covers/wickborn-3.gif",
+    "/covers/wickborn-4.gif",
+    "/covers/wickborn-5.gif",
+  ],
 };
 
 /**

@@ -292,7 +292,10 @@ export const PINNED_COLLECTIONS: ReadonlyArray<`0x${string}`> = [
   /** Cybereator, the real one. */
   "0xCD30D4bCaa99E556B70A2C4bDFC4050D26E48D30",
 
-  /** ValueChain Genesis, third — the owner's call, 2026-10-02. */
+  /** Wickborn, third: the owner's new animated drop, 2026-10-09. */
+  "0x5DbD25366a60bbD07960535760Cf6eef36128404",
+
+  /** ValueChain Genesis, third from 2026-10-02 (the owner's call), fourth since Wickborn. */
   "0x5Fadc59297e86aceA20Bff519aea0f9651Cdc90B",
 ];
 
@@ -320,6 +323,7 @@ export const HEADLINE_COLLECTIONS: ReadonlyArray<`0x${string}`> = [
 export const MAIN_COLLECTIONS: ReadonlyArray<`0x${string}`> = [
   "0x371c4F7F68bE3e558b89cC1f0fB113851C76E750", // SoDEX Treasure Box
   "0xCD30D4bCaa99E556B70A2C4bDFC4050D26E48D30", // Cybereator
+  "0x5DbD25366a60bbD07960535760Cf6eef36128404", // Wickborn
   "0xaAb0dC8f2835Ed903b35d2f52FF17c4bc92Bec19", // The Trenches
   "0x5Fadc59297e86aceA20Bff519aea0f9651Cdc90B", // ValueChain Genesis
   "0x01c28095bfffc9973Da4c4e8A34E9d5b6649C988", // Hypno Plush

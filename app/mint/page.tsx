@@ -6,6 +6,7 @@ import { mintIndexState } from "@/lib/mintIndex";
 import { formatCount, formatSoso } from "@/lib/format";
 import { CollectionCard, CollectionCardSkeleton } from "@/components/CollectionCard";
 import { useCollectionArt } from "@/hooks/useCollectionArt";
+import { PINNED_COLLECTIONS } from "@/config/featured";
 import "@/styles/collections.css";
 import "@/styles/home.css";
 
@@ -34,7 +35,19 @@ import "@/styles/home.css";
 export default function Mint() {
   const { collections, isLoading, statePending } = useAllCollections();
 
-  const minting = collections.filter((c) => c.publicMintEnabled === true);
+  /**
+   * Pinned collections first, in their pinned order (2026-10-09, the owner's
+   * ask for Wickborn); the rest keep the registry's order behind them.
+   */
+  const pinRank = (address: string) => {
+    const i = PINNED_COLLECTIONS.findIndex((p) => p.toLowerCase() === address.toLowerCase());
+    return i === -1 ? PINNED_COLLECTIONS.length : i;
+  };
+  const minting = collections
+    .filter((c) => c.publicMintEnabled === true)
+    .map((c, i) => ({ c, i }))
+    .sort((a, b) => pinRank(a.c.address) - pinRank(b.c.address) || a.i - b.i)
+    .map(({ c }) => c);
 
   /**
    * "Nothing is minting" and "we do not know yet" are different sentences, and

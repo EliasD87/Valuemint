@@ -47,6 +47,19 @@ const RULES: Array<{ test: RegExp; say: string }> = [
       "and that no other wallet request is still waiting.",
   },
   {
+    /**
+     * The wallet numbered this transaction the same as the one just sent
+     * (2026-10-09, minting twice in a row): its node had not yet seen the first
+     * one land, so it handed out the same nonce and the network refused it. The
+     * raw text, "nonce too low: next nonce 517, tx nonce 516", reads like a
+     * contract failure; nothing was sent, and a retry a moment later works.
+     */
+    test: /nonce too low|nonce has already been used|NONCE_EXPIRED|nonce.{0,20}too low/i,
+    say:
+      "Your wallet reused the number of your last transaction because its network had not caught up yet. " +
+      "Nothing was sent and nothing was charged. Wait a few seconds and try again.",
+  },
+  {
     test: /insufficient funds|exceeds the balance|gas required exceeds/i,
     say: "Not enough SOSO in this wallet to cover the amount and the gas.",
   },

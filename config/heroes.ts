@@ -241,6 +241,17 @@ export const COLLECTION_HEROES: Record<string, HeroArt> = {
     position: "center 60%",
   },
 
+  /*
+    Wickborn (2026-10-09) — the five characters lined up over a faint candle
+    chart, composed from the first frame of each animation (2400x900). Faces
+    sit high on purpose: the band keeps a ~5:1 strip, and near the top it is
+    heads and outfits rather than shoes.
+  */
+  "0x5dbd25366a60bbd07960535760cf6eef36128404": {
+    background: "/heroes/wickborn.webp",
+    position: "center 8%",
+  },
+
   /** TestCybereator — the same artwork, from the same two files. */
   "0x412d8af16b7ff3fe75e1cd380bd86ef33dd8ad0f": {
     background: "/heroes/cybereator-bg.webp",

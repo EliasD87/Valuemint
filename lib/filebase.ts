@@ -147,7 +147,28 @@ export async function pinFile(
 ): Promise<PinnedFile> {
   const body = typeof content === "string" ? new TextEncoder().encode(content) : content;
 
-  const res = await signedFetch({ method: "PUT", key: name, body, contentType });
+  /**
+   * Retried, because one dropped connection used to fail a whole collection
+   * (2026-10-09): five GIFs going up, the network blipped, and the creator saw
+   * only Node's bare "fetch failed". A PUT to the same key is idempotent, so
+   * trying again is safe. Only network failures and the service's own 5xx and
+   * 429 are retried; a 4xx is an answer, not a hiccup.
+   */
+  let res: Response | undefined;
+  for (let attempt = 1; ; attempt++) {
+    try {
+      res = await signedFetch({ method: "PUT", key: name, body, contentType });
+      if (res.ok || (res.status < 500 && res.status !== 429) || attempt === 3) break;
+    } catch (error) {
+      if (attempt === 3) {
+        throw new Error(
+          `Could not reach the storage service while uploading "${name}" ` +
+            `(${error instanceof Error ? error.message : "network error"}). Nothing was created; try again.`,
+        );
+      }
+    }
+    await new Promise((r) => setTimeout(r, attempt * 1000));
+  }
   if (!res.ok) {
     const detail = (await res.text()).slice(0, 300);
     throw new Error(`Filebase rejected "${name}" (HTTP ${res.status}): ${detail}`);

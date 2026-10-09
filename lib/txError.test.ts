@@ -71,6 +71,13 @@ describe("explainTxError", () => {
     expect(explainTxError("")).toBe("That transaction failed.");
   });
 
+  it("explains a reused nonce as the wallet catching up, not a contract failure", () => {
+    const raw =
+      'The contract function "mint" reverted with the following reason: RPC 0x45f9f Custom ' +
+      "eth_sendRawTransaction: nonce too low: next nonce 517, tx nonce 516";
+    expect(explainTxError(raw)).toContain("Wait a few seconds and try again");
+  });
+
   it("puts cancellation ahead of every other rule", () => {
     // A rejection whose text also mentions funds is still a rejection.
     expect(explainTxError("User rejected: insufficient funds warning shown")).toBe(
