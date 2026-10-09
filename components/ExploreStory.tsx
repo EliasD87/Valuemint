@@ -72,7 +72,6 @@ function Intro({ forSale }: { forSale: number | undefined }) {
   return (
     <section className="ex page ex-intro">
       <div className="ex-intro-copy">
-        <p className="eyebrow">The marketplace</p>
         <h2 className="ex-h">
           Buy, sell and bid on <span className="ex-mute">everything minted on</span> ValueChain.
         </h2>
@@ -175,7 +174,6 @@ function Spotlight({ market }: { market: Market }) {
     <section className="ex page">
       <div className="ex-head">
         <div>
-          <p className="eyebrow">Spotlight</p>
           <h2 className="ex-h">
             Gateway to <span className="ex-mute">the collections</span> people are trading.
           </h2>
@@ -431,7 +429,6 @@ function Featured({ market }: { market: Market }) {
   return (
     <section className="ex page ex-feature">
       <div className="ex-feature-copy">
-        <p className="eyebrow">Featured</p>
         <h2 className="ex-h">
           Fresh from <span className="ex-mute">every collection.</span>
         </h2>
@@ -531,7 +528,6 @@ function Bento() {
     <section className="ex page">
       <div className="ex-head ex-head-center">
         <div>
-          <p className="eyebrow">Built for trading</p>
           <h2 className="ex-h">
             Every trade <span className="ex-mute">tells a story.</span>
           </h2>
@@ -625,7 +621,6 @@ function Mints({ collections }: { collections: readonly CollectionSummary[] }) {
     <section className="ex page">
       <div className="ex-head">
         <div>
-          <p className="eyebrow">Open to mint</p>
           <h2 className="ex-h">
             Mint <span className="ex-mute">before it&rsquo;s gone.</span>
           </h2>
