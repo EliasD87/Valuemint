@@ -24,7 +24,7 @@ import { ShareLink } from "@/components/ShareLink";
 import { formatSoso, resolveMediaUrl } from "@/lib/format";
 import { AddressLink } from "@/components/AddressLink";
 import { MovingArt } from "@/components/MovingArt";
-import { soleArtworkFor } from "@/config/covers";
+import { bundledArtworkFor, soleArtworkFor } from "@/config/covers";
 import { Wordmark } from "@/components/Wordmark";
 import { TokenStats } from "@/components/TokenStats";
 import { TokenTraits } from "@/components/TokenTraits";
@@ -364,7 +364,9 @@ export function TokenView({
    * See `soleArtworkFor` — for these collections they are the same picture and
    * ours is a third of the frames.
    */
-  const image = soleArtworkFor(collection) ?? resolveMediaUrl(metadata?.image);
+  /* And any design we bundle ourselves, as the cards already do (Wickborn, 2026-10-09). */
+  const image =
+    soleArtworkFor(collection) ?? bundledArtworkFor(metadata?.image) ?? resolveMediaUrl(metadata?.image);
 
   /**
    * The contract answered, and its answer was nothing.

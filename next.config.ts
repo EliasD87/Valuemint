@@ -159,7 +159,19 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   async headers() {
-    return [{ source: "/:path*", headers: securityHeaders }];
+    return [
+      { source: "/:path*", headers: securityHeaders },
+      /**
+       * Our own artwork under /art never changes in place: a new picture gets
+       * a new file name. So browsers may keep it for a year without asking
+       * again (2026-10-09, the Wickborn GIFs). Vercel serves public files with
+       * `max-age=0, must-revalidate` otherwise, which is a request per visit.
+       */
+      {
+        source: "/art/:path*",
+        headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }],
+      },
+    ];
   },
   /* The stats page was called Pulse and lived at /pulse. Permanent, so shared
      links and anything a search engine indexed land on the page they meant. */

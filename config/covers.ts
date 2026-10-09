@@ -152,14 +152,15 @@ export const COLLECTION_COVERS: Record<string, string[]> = {
   /*
     Wickborn (2026-10-09) — small looping GIFs of the five animations (256px,
     0.16-0.57 MB), squared with their own off-white ground so nobody loses a
-    head. Local and plain, so the card plays them with no /api/still work.
+    head. Local and plain, so the card plays them with no /api/still work, and
+    under /art/wickborn, which is cached for a year (next.config.ts).
   */
   "0x5dbd25366a60bbd07960535760cf6eef36128404": [
-    "/covers/wickborn-1.gif",
-    "/covers/wickborn-2.gif",
-    "/covers/wickborn-3.gif",
-    "/covers/wickborn-4.gif",
-    "/covers/wickborn-5.gif",
+    "/art/wickborn/cover-1.gif",
+    "/art/wickborn/cover-2.gif",
+    "/art/wickborn/cover-3.gif",
+    "/art/wickborn/cover-4.gif",
+    "/art/wickborn/cover-5.gif",
   ],
 };
 
@@ -256,6 +257,18 @@ const BUNDLED_ARTWORK: Record<string, string> = {
   bafybeih7427beihagqyxfnxwugn6p7gyxiekstpaps4qcsjaeumbuosc2u: "/boxes/sobox/rare.webp",
   /** SuperRare — sobox/3. */
   bafybeihqcahgiep6s2ech2imswhn2azwylilhq2cvuvuzquyhs5xccrvmu: "/boxes/sobox/superrare.webp",
+
+  /*
+    Wickborn (2026-10-09) — the five minted GIFs themselves, byte for byte, from
+    our own CDN. Shown as the GIF from the first frame rather than a still that
+    later turns into an animation built by /api/still: the owner wanted these
+    always moving, and served once and cached for a year (next.config.ts).
+  */
+  QmXFQmpCF9UwhVx3QxP1E5xBD2Np3ktJEQfTwLvWm4GUh7: "/art/wickborn/the-dealer.gif",
+  QmTkyK6WUPSZUL2ejqFoKMzdAP93mqp2pybUXKJztMwAZM: "/art/wickborn/margin-call.gif",
+  QmQ4NbyjgsjPCU8fZeYiYLxws3rcj1tW9Hs55Qb44gXQZK: "/art/wickborn/jade-ledger.gif",
+  QmRDuLqGZUobVkNV2GBW1G7wWdYdVSAmsfvrqK74ikoMJE: "/art/wickborn/golden-cross.gif",
+  QmUFdDAYnxA9fE9G7B4hyPzEyY7VRHJrbhrREqnZaceCiM: "/art/wickborn/ghost-liquidity.gif",
 };
 
 /**

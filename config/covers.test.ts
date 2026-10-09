@@ -38,4 +38,20 @@ describe("bundledArtworkFor", () => {
       expect(existsSync(join(process.cwd(), "public/boxes/sobox", `${level}.webp`))).toBe(true);
     }
   });
+
+  it("serves Wickborn's five minted GIFs from our own files, by their Filebase address", () => {
+    const designs: Record<string, string> = {
+      QmXFQmpCF9UwhVx3QxP1E5xBD2Np3ktJEQfTwLvWm4GUh7: "the-dealer",
+      QmTkyK6WUPSZUL2ejqFoKMzdAP93mqp2pybUXKJztMwAZM: "margin-call",
+      QmQ4NbyjgsjPCU8fZeYiYLxws3rcj1tW9Hs55Qb44gXQZK: "jade-ledger",
+      QmRDuLqGZUobVkNV2GBW1G7wWdYdVSAmsfvrqK74ikoMJE: "golden-cross",
+      QmUFdDAYnxA9fE9G7B4hyPzEyY7VRHJrbhrREqnZaceCiM: "ghost-liquidity",
+    };
+    for (const [cid, slug] of Object.entries(designs)) {
+      const local = `/art/wickborn/${slug}.gif`;
+      expect(bundledArtworkFor(`https://ipfs.filebase.io/ipfs/${cid}`)).toBe(local);
+      expect(bundledArtworkFor(`ipfs://${cid}/`)).toBe(local);
+      expect(existsSync(join(process.cwd(), "public", local))).toBe(true);
+    }
+  });
 });
