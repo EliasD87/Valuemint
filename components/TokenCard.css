@@ -571,3 +571,42 @@
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
+
+/* Picking for a bulk buy: the whole card is one toggle, above the link and
+   the buttons, with a tick in the corner. */
+.tcard-pick {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  padding: 0;
+  border: 0;
+  border-radius: inherit;
+  background: transparent;
+  cursor: pointer;
+}
+.tcard-pick:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+.tcard-pick-mark {
+  position: absolute;
+  top: 0.6rem;
+  left: 0.6rem;
+  display: grid;
+  place-items: center;
+  width: 1.6rem;
+  height: 1.6rem;
+  border: 2px solid var(--surface);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--ink) 30%, transparent);
+  color: transparent;
+  box-shadow: 0 1px 4px color-mix(in srgb, var(--ink) 25%, transparent);
+}
+.tcard.is-picked {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent);
+}
+.tcard.is-picked .tcard-pick-mark {
+  background: var(--accent);
+  color: var(--accent-ink);
+}

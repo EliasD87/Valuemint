@@ -19,7 +19,7 @@ import "@/styles/portfolio.css";
 import { ConnectButton } from "@/components/ConnectButton";
 
 export default function Portfolio() {
-  const { address, isConnected } = useAccount();
+  const { address, isConnected, status } = useAccount();
   const {
     tokens: mine,
     collections,
@@ -90,6 +90,20 @@ export default function Portfolio() {
     }
     return [...map.values()];
   }, [mine]);
+
+  /**
+   * Restoring last visit's wallet takes a moment after the page loads (see
+   * `ssr` in config/wagmi.ts). Asking somebody to connect a wallet that is
+   * connecting is the wrong thing to show for that moment.
+   */
+  if (status === "reconnecting" || status === "connecting") {
+    return (
+      <section className="page section market-empty" aria-busy="true">
+        <p className="eyebrow">Portfolio</p>
+        <p className="muted">Reconnecting your wallet…</p>
+      </section>
+    );
+  }
 
   if (!isConnected) {
     return (

@@ -123,6 +123,8 @@ export async function GET(): Promise<NextResponse> {
          */
         indexedBlock: head?.last_block ?? 0,
         indexedAt: head?.updated_at ?? null,
+        /** When this copy was built, so the client measures lag by server clocks (lib/indexLag.ts). */
+        servedAt: new Date().toISOString(),
       },
       {
         headers: {

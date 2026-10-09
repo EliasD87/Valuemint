@@ -1,0 +1,114 @@
+/* Choosing exactly which pieces. Sits inside the bulk list panel and the
+   sell-into-offer dialog, so it borrows their surface and adds only a well. */
+.pp {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.pp-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.25rem 0.75rem;
+  font-size: var(--step--2);
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.pp-count b {
+  color: var(--ink);
+}
+
+.pp-cap {
+  color: var(--ink-3);
+}
+
+.pp-acts {
+  display: inline-flex;
+  gap: 0.75rem;
+}
+
+.pp-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* The switch between the count and the picker: a real button (`btn btn-sm`),
+   sized to its words rather than stretched across the panel. */
+.pp-toggle {
+  align-self: flex-start;
+}
+
+.pp-link:disabled {
+  color: var(--ink-4);
+  cursor: default;
+}
+
+.pp-link:focus-visible,
+.pp-chip:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+/* Scrolls on its own, so a wallet of six hundred boxes does not push the
+   price and the button off the screen. */
+.pp-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  max-height: 13rem;
+  overflow-y: auto;
+  padding: 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+  overscroll-behavior: contain;
+}
+
+.pp-chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.3rem;
+  min-height: 32px;
+  padding: 0.3rem 0.6rem;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  color: var(--ink-2);
+  font-size: var(--step--2);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition:
+    border-color var(--fast),
+    background var(--fast),
+    color var(--fast);
+}
+
+.pp-chip small {
+  font-weight: 500;
+  color: var(--ink-3);
+}
+
+.pp-chip:hover:not(:disabled) {
+  border-color: var(--ink-3);
+  color: var(--ink);
+}
+
+.pp-chip.is-on {
+  border-color: var(--accent);
+  background: var(--accent-wash);
+  color: var(--ink);
+}
+
+.pp-chip:disabled {
+  opacity: 0.45;
+  cursor: default;
+}

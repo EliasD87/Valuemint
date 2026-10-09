@@ -13,6 +13,7 @@ import { useAccount } from "wagmi";
 import { useOwnOfferExposure, useSeaportOrders, type SeaportOrder } from "@/hooks/useSeaportOrders";
 import { useSeaportFill, useSeaportTrade } from "@/hooks/useSeaportTrade";
 import { FillBlocked } from "@/components/FillBlocked";
+import { Select } from "@/components/Select";
 import { useCanPayFeeInWsoso } from "@/hooks/useWsoso";
 import { formatSoso } from "@/lib/format";
 import { AddressLink } from "@/components/AddressLink";
@@ -55,6 +56,12 @@ interface Row {
   /** A trait offer's name, and this piece's proof into its set. */
   trait?: string;
   proof?: Hex[];
+  /**
+   * Every held piece this offer can take, `token` first (2026-10-09). An offer
+   * on any piece, or on a trait, can be settled with whichever of them the
+   * holder would rather part with; one naming a token has just that one.
+   */
+  choices: Array<{ token: Held; proof?: Hex[] }>;
 }
 
 /** A sale made from this inbox, kept after its row is gone. */
@@ -164,14 +171,15 @@ export function OfferInbox({
        * Keyed by order hash so one offer is one row. Listing a collection-wide
        * bid against every matching piece would report one offer as five.
        */
-      const match = holdings.find(
+      const matches = holdings.filter(
         (h) =>
           h.collection.toLowerCase() === offer.collection.toLowerCase() &&
           (offer.tokenId === undefined || offer.tokenId === h.id),
       );
+      const match = matches[0];
       if (match === undefined) continue;
 
-      found.set(offer.hash, { token: match, offer });
+      found.set(offer.hash, { token: match, offer, choices: matches.map((token) => ({ token })) });
     }
 
     /**
@@ -182,14 +190,16 @@ export function OfferInbox({
     for (const offer of traitOffers) {
       if (!offer.fillable || offer.criteria === undefined || isMine(offer)) continue;
       const key = rootKey(offer.criteria);
+      let row: Row | undefined;
       for (let i = 0; i < candidates.length; i++) {
         const h = candidates[i]!;
         if (h.collection.toLowerCase() !== offer.collection.toLowerCase()) continue;
         const m = memberships[i]?.data?.find((x) => rootKey(x.root) === key);
         if (m === undefined) continue;
-        found.set(offer.hash, { token: h, offer, trait: traitLabel(m), proof: m.proof });
-        break;
+        if (row === undefined) row = { token: h, offer, trait: traitLabel(m), proof: m.proof, choices: [] };
+        row.choices.push({ token: h, proof: m.proof });
       }
+      if (row !== undefined) found.set(offer.hash, row);
     }
 
     // Best money first - the reason anyone opens this.
@@ -316,7 +326,16 @@ function InboxRow({
   onSold: (s: Sold) => void;
   onGone: (g: Gone) => void;
 }) {
-  const { token, offer } = row;
+  const { offer } = row;
+
+  /**
+   * The piece this sale would use. The first that qualifies until the holder
+   * picks another: with five Commons held, an offer on any Common says #4567
+   * and they may well mean a different one.
+   */
+  const [pick, setPick] = useState<string | undefined>(undefined);
+  const choice = row.choices.find((c) => c.token.id.toString() === pick) ?? row.choices[0] ?? { token: row.token, proof: row.proof };
+  const token = choice.token;
   const trade = useSeaportTrade(token.collection);
   const fill = useSeaportFill();
   const { address } = useAccount();
@@ -394,6 +413,21 @@ function InboxRow({
       </span>
 
       <span className="inbox-act">
+        {row.choices.length > 1 ? (
+          <span className="inbox-pick">
+            <span className="inbox-fine">Sell with</span>
+            <Select
+              label="Which of your pieces to sell into this offer"
+              value={token.id.toString()}
+              onChange={setPick}
+              options={row.choices.map((c) => ({
+                value: c.token.id.toString(),
+                label: `#${c.token.id.toString()}`,
+                note: c.token.design,
+              }))}
+            />
+          </span>
+        ) : null}
         <button
           type="button"
           className="btn btn-primary btn-sm"
@@ -408,7 +442,7 @@ function InboxRow({
           onClick={() => {
             if (mustApprove) trade.approve();
             else if (mustAllowFee) feeAllowance.allow();
-            else fill.acceptOffer(offer, token.id, row.proof);
+            else fill.acceptOffer(offer, token.id, choice.proof);
           }}
         >
           {busy

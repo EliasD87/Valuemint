@@ -241,3 +241,10 @@
     animation: none;
   }
 }
+
+/* Which held piece goes, when an offer would take any of several. */
+.inbox-pick {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}

@@ -179,7 +179,7 @@ export function HoldingsGroup({
               collectionName={group.name}
               items={group.items
                 .filter((t) => t.listing === undefined)
-                .map((t) => ({ id: t.id, tier: t.tier }))}
+                .map((t) => ({ id: t.id, tier: t.tier, name: t.design }))}
             />
           ) : null}
           {/* Beside it, the way back out: withdraw several listings at once. */}

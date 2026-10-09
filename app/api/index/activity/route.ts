@@ -115,7 +115,8 @@ export async function GET(request: Request): Promise<NextResponse> {
     ]);
 
     return NextResponse.json(
-      { events, indexedAt: cursor[0]?.updated_at ?? null },
+      /** `servedAt`: when this copy was built, which the edge may hold for minutes (lib/indexLag.ts). */
+      { events, indexedAt: cursor[0]?.updated_at ?? null, servedAt: new Date().toISOString() },
       {
         headers: {
           /**

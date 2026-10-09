@@ -8,6 +8,8 @@ import { formatSoso, formatCount } from "@/lib/format";
 import { splitFee } from "@/lib/seaport";
 import { tierClass } from "@/lib/tokenMetadata";
 import { parseEther } from "viem";
+import { PiecePicker, type PieceChoice } from "@/components/PiecePicker";
+import { chosenPieces, firstPieces } from "@/lib/piecePick";
 import "@/styles/bulklist.css";
 
 /**
@@ -73,6 +75,8 @@ function clampCount(raw: string, max: number): string {
 export interface BulkListItem {
   id: bigint;
   tier?: string;
+  /** The design, shown beside the id when choosing pieces by hand. */
+  name?: string;
 }
 
 export function BulkList({
@@ -135,15 +139,33 @@ export function BulkList({
   const [count, setCount] = useState("");
   const [price, setPrice] = useState("");
 
+  /**
+   * Choosing pieces by hand (2026-10-09). Off, the count takes the first N of
+   * the level, as it always has. On, `selected` is exactly what gets listed,
+   * starting from those same N.
+   */
+  const [choosing, setChoosing] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(() => new Set());
+  /** Whether the chips are showing. Hiding them keeps the choice. */
+  const [pickerOpen, setPickerOpen] = useState(false);
+
   /** Unlisted holdings grouped by level, largest group first. */
   const groups = useMemo(() => {
-    const map = new Map<string, bigint[]>();
+    const map = new Map<string, BulkListItem[]>();
     for (const it of items) {
       const key = it.tier ?? NO_LEVEL;
-      map.set(key, [...(map.get(key) ?? []), it.id]);
+      map.set(key, [...(map.get(key) ?? []), it]);
     }
     return [...map.entries()]
-      .map(([name, ids]) => ({ name, ids }))
+      .map(([name, members]) => {
+        /* A design is worth showing on each chip only where it differs. */
+        const varied = new Set(members.map((m) => m.name)).size > 1;
+        return {
+          name,
+          ids: members.map((m) => m.id),
+          pieces: members.map((m): PieceChoice => ({ id: m.id, note: varied ? m.name : undefined })),
+        };
+      })
       .sort((a, b) => b.ids.length - a.ids.length);
   }, [items]);
 
@@ -156,12 +178,19 @@ export function BulkList({
   const max = chosen?.ids.length ?? 0;
 
   /** How many to list: blank means all of that level, which is the common intent. */
-  const wanted = useMemo(() => {
+  const counted = useMemo(() => {
     if (count.trim() === "") return max;
     const n = Number.parseInt(count, 10);
     if (!Number.isFinite(n) || n < 1) return 0;
     return Math.min(n, max);
   }, [count, max]);
+
+  /** Exactly what will be listed: the first N, or what was chosen by hand. */
+  const ids = useMemo(
+    () => (chosen === undefined ? [] : choosing ? chosenPieces(chosen.ids, selected) : chosen.ids.slice(0, counted)),
+    [chosen, choosing, selected, counted],
+  );
+  const wanted = ids.length;
 
   const priceWei = priceOf(price);
   const ready = wanted > 0 && priceWei !== undefined && !progress.busy;
@@ -245,6 +274,8 @@ export function BulkList({
             onClick={() => {
               setLevel(g.name);
               setCount("");
+              /* Blank means all of the new level, by hand as by count. */
+              if (choosing) setSelected(firstPieces(g.ids, g.ids.length));
             }}
           >
             {g.name}
@@ -263,7 +294,12 @@ export function BulkList({
             inputMode="numeric"
             placeholder={String(max)}
             value={count}
-            onChange={(e) => setCount(clampCount(e.target.value, max))}
+            onChange={(e) => {
+              const next = clampCount(e.target.value, max);
+              setCount(next);
+              /* While choosing, a count starts the selection over from the top. */
+              if (choosing) setSelected(firstPieces(chosen.ids, next === "" ? max : Number(next)));
+            }}
             disabled={progress.busy}
           />
           <small>
@@ -284,6 +320,54 @@ export function BulkList({
           <small>SOSO</small>
         </label>
       </div>
+
+      {max > 1 ? (
+        <button
+          type="button"
+          className="btn btn-sm pp-toggle"
+          aria-expanded={choosing && pickerOpen}
+          disabled={progress.busy}
+          onClick={() => {
+            /* Once chosen by hand it stays chosen by hand; this only shows or hides the chips. */
+            if (!choosing) {
+              setSelected(firstPieces(chosen.ids, counted));
+              setChoosing(true);
+              setPickerOpen(true);
+            } else setPickerOpen(!pickerOpen);
+          }}
+        >
+          {!choosing
+            ? `Choose which ${chosen.name === NO_LEVEL ? "" : `${chosen.name} `}pieces`
+            : pickerOpen
+              ? "Hide the list"
+              : "Change which pieces"}
+        </button>
+      ) : null}
+
+      {choosing && !pickerOpen ? (
+        <p className="bulk-chosen">
+          Listing{" "}
+          {ids.length === 0
+            ? "nothing yet"
+            : ids.length <= 12
+              ? ids.map((id) => `#${id.toString()}`).join(", ")
+              : `${ids.slice(0, 10).map((id) => `#${id.toString()}`).join(", ")} and ${ids.length - 10} more`}
+        </p>
+      ) : null}
+
+      {choosing && pickerOpen ? (
+        <PiecePicker
+          label={`${chosen.name} pieces to list`}
+          pieces={chosen.pieces}
+          selected={selected}
+          disabled={progress.busy}
+          onChange={(next) => {
+            setSelected(next);
+            const n = chosenPieces(chosen.ids, next).length;
+            setCount(n === max ? "" : String(n));
+          }}
+        />
+      ) : null}
 
       {/* Said before the first prompt, not discovered during it: a run of 626 is
           thirteen wallet confirmations and there is no way around that. */}
@@ -334,7 +418,7 @@ export function BulkList({
             disabled={!ready}
             onClick={() => {
               reset();
-              void listMany(chosen.ids.slice(0, wanted), price);
+              void listMany(ids, price);
             }}
           >
             {progress.busy

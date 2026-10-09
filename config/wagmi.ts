@@ -71,6 +71,19 @@ export const wagmiConfig = createConfig({
   chains: [valuechain],
   connectors,
   /**
+   * Restore the wallet after hydration, not during it (2026-10-09).
+   *
+   * Without this wagmi rehydrates its stored connection the moment the config
+   * is created, and in a slow (dev) hydration the extension had reconnected
+   * before React reached /portfolio: the server had drawn "Connect your
+   * wallet", the browser drew the holdings, and React threw the tree away and
+   * rebuilt it on the client — which is also what made React warn about the
+   * theme `<script>` in the root layout, since rebuilding the root creates it
+   * client-side. With `ssr`, the first client render matches the server's
+   * disconnected one and the reconnect happens in an effect straight after.
+   */
+  ssr: true,
+  /**
    * Aggregate independent `eth_call`s into multicall3, not just the ones a
    * single `useReadContracts` asks for.
    *

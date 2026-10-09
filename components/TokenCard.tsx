@@ -38,6 +38,12 @@ interface Props {
   owner?: `0x${string}`;
   viewerAddress?: `0x${string}`;
   /**
+   * Picking for a bulk buy (2026-10-09). When given, the whole card becomes
+   * one toggle — a press selects or clears it rather than opening the piece —
+   * and `on` draws the tick. Left out, the card behaves exactly as before.
+   */
+  pick?: { on: boolean; toggle: () => void };
+  /**
    * Does anything vouch for this collection — the factory, or `known.ts`?
    *
    * `undefined` means the caller does not know and the card says nothing. The
@@ -101,6 +107,7 @@ export function TokenCard({
   /* On by default: a mixed grid is the common case, and that is where the
      badge earns its place. */
   markOwned = true,
+  pick,
 }: Props) {
   const { isConnected } = useAccount();
   const isYours =
@@ -193,7 +200,7 @@ export function TokenCard({
    * one target; the button is a smaller one on top of it.
    */
   return (
-    <article className="tcard">
+    <article className={`tcard${pick?.on === true ? " is-picked" : ""}`}>
       <Link
         href={`/token/${collection}/${token.id}`}
         prefetch={false}
@@ -398,6 +405,23 @@ export function TokenCard({
           </span>
         </div>
       </div>
+
+      {/* Above the link and both buttons, so a press while picking only ever picks. */}
+      {pick === undefined ? null : (
+        <button
+          type="button"
+          className="tcard-pick"
+          aria-pressed={pick.on}
+          aria-label={`${pick.on ? "Remove" : "Add"} ${token.design ?? collectionName ?? "token"} #${token.id.toString()} ${pick.on ? "from" : "to"} the bulk buy`}
+          onClick={pick.toggle}
+        >
+          <span className="tcard-pick-mark" aria-hidden="true">
+            <svg viewBox="0 0 16 16" width="12" height="12">
+              <path d="M3.5 8.5l3 3 6-7" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </span>
+        </button>
+      )}
 
       {offering ? (
         <OfferDialog

@@ -251,3 +251,13 @@
   outline: 2px solid var(--ink);
   outline-offset: 2px;
 }
+
+/* The hand-picked pieces, while the chips are hidden. */
+.bulk-chosen {
+  margin: 0;
+  font-size: var(--step--2);
+  line-height: 1.5;
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}

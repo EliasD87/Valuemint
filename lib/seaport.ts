@@ -1418,6 +1418,49 @@ export function sellManyArgs(
   ] as const;
 }
 
+/**
+ * The most listings one bulk buy carries. A listing fill is heavier than the
+ * `validate` that put it up, so this sits well under `LISTINGS_PER_TX`; ten
+ * also keeps the total readable and the wallet prompt a sensible size.
+ */
+export const MAX_BULK_BUY = 10;
+
+/**
+ * The arguments to `fulfillAvailableAdvancedOrders` for buying several
+ * listings in one transaction, and the SOSO to send with it (2026-10-09).
+ *
+ * Each listing is filled whole. Each piece goes to the buyer as its own
+ * transfer; the payments are grouped by who receives them — one transfer to
+ * each seller however many of their pieces are bought, and one for the fee.
+ *
+ * `value` is every listing's price added up. If one has been bought or
+ * withdrawn by the time this lands, Seaport skips it and returns its share of
+ * the SOSO rather than failing the rest (settled in
+ * contracts/test/SeaportBatchOrders.test.ts).
+ */
+export function buyManyArgs(orders: readonly OrderParameters[], recipient: Address) {
+  const components = new Map<string, Array<{ orderIndex: bigint; itemIndex: bigint }>>();
+  let value = 0n;
+  orders.forEach((p, i) => {
+    p.consideration.forEach((c, j) => {
+      if (c.itemType === ItemType.NATIVE) value += c.startAmount;
+      const key = `${c.itemType}:${c.token.toLowerCase()}:${c.identifierOrCriteria}:${c.recipient.toLowerCase()}`;
+      components.set(key, [...(components.get(key) ?? []), { orderIndex: BigInt(i), itemIndex: BigInt(j) }]);
+    });
+  });
+
+  const args = [
+    orders.map((p) => ({ parameters: toWire(p), numerator: 1n, denominator: 1n, signature: "0x" as Hex, extraData: "0x" as Hex })),
+    [],
+    orders.map((_, i) => [{ orderIndex: BigInt(i), itemIndex: 0n }]),
+    [...components.values()],
+    CONDUIT_KEY,
+    recipient,
+    BigInt(orders.length),
+  ] as const;
+  return { args, value };
+}
+
 /** Turn order parameters back into the shape `cancel` and `getOrderHash` want. */
 export function toComponents(p: OrderParameters, counter: bigint): OrderComponents {
   const { totalOriginalConsiderationItems: _total, ...rest } = p;

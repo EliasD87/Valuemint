@@ -13,6 +13,9 @@ import "@/styles/home.css";
 import "@/styles/market.css";
 import { useFloors } from "@/hooks/useFloors";
 import { Select } from "@/components/Select";
+import { BulkBuyBar } from "@/components/BulkBuyBar";
+import { MAX_BULK_BUY } from "@/lib/seaport";
+import type { SeaportOrder } from "@/hooks/useSeaportOrders";
 
 type Sort = "traded" | "price-asc" | "price-desc" | "recent";
 
@@ -87,6 +90,41 @@ export default function Market() {
    * three hundred cards of a new order.
    */
   const view = `${sort}|${filterTo}`;
+
+  /**
+   * Bulk buy (2026-10-09): "Bulk buy" turns the grid into a picker — a press on
+   * a card picks it instead of opening it — and the bar at the bottom buys
+   * every pick in one signature. Your own listings cannot be picked. Picks are
+   * kept by order hash, so they survive a change of sort or filter.
+   */
+  const [picking, setPicking] = useState(false);
+  const [picked, setPicked] = useState<Map<string, SeaportOrder>>(() => new Map());
+
+  /**
+   * Picks still for sale. The book re-checks every listing on chain every 25
+   * seconds, so a pick somebody else buys drops out of `listed` well before
+   * the index catches up; it then stops counting toward the total and the
+   * bar says so. Kept in `picked` rather than deleted, so the bar can count
+   * it, and so a pick that only blinked out during a refresh comes back.
+   */
+  const forSale = useMemo(
+    () => new Set(listed.flatMap((t) => (t.listing === undefined ? [] : [t.listing.order.hash.toLowerCase()]))),
+    [listed],
+  );
+  const stillPicked = [...picked.values()].filter(
+    (o) => listed.length === 0 || forSale.has(o.hash.toLowerCase()),
+  );
+  const togglePick = (order: SeaportOrder) =>
+    setPicked((m) => {
+      const next = new Map(m);
+      if (next.has(order.hash)) next.delete(order.hash);
+      else if (stillPicked.length < MAX_BULK_BUY) next.set(order.hash, order);
+      return next;
+    });
+  const stopPicking = () => {
+    setPicking(false);
+    setPicked(new Map());
+  };
   const [paging, setPaging] = useState({ view, limit: PAGE });
   const limit = paging.view === view ? paging.limit : PAGE;
 
@@ -303,6 +341,14 @@ export default function Market() {
           filtering is the frequent act and sorting is occasional.
         */}
         <div className="mk-sorts">
+          <button
+            type="button"
+            className={`btn btn-sm mk-bulk${picking ? " is-on" : ""}`}
+            aria-pressed={picking}
+            onClick={() => (picking ? stopPicking() : setPicking(true))}
+          >
+            {picking ? "Done" : "Bulk buy"}
+          </button>
           <Select
             label="Sort listings"
             value={sort}
@@ -383,6 +429,11 @@ export default function Market() {
                 owner={t.owner}
                 viewerAddress={address}
                 vouched={vouchedFor.get(t.collection.toLowerCase())}
+                pick={
+                  picking && t.listing !== undefined && (address === undefined || t.listing.seller.toLowerCase() !== address.toLowerCase())
+                    ? { on: picked.has(t.listing.order.hash), toggle: () => togglePick(t.listing!.order) }
+                    : undefined
+                }
               />
             ))}
           </div>
@@ -403,6 +454,18 @@ export default function Market() {
         </>
       )}
 
+      {picking ? (
+        <>
+          {/* Room under the last row, so the bar never sits on top of it. */}
+          <div className="mk-bulk-spacer" aria-hidden="true" />
+          <BulkBuyBar
+            picked={stillPicked}
+            gone={picked.size - stillPicked.length}
+            onClear={() => setPicked(new Map())}
+            onDone={() => setPicked(new Map())}
+          />
+        </>
+      ) : null}
     </section>
   );
 }

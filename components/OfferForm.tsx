@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { formatEther, parseEther } from "viem";
 import { SEAPORT } from "@/config/seaport";
 import { Steps } from "@/components/Steps";
@@ -87,11 +87,17 @@ export function OfferForm({
   target,
   replacing,
   onDone,
+  onPlaced,
 }: {
   target: OfferTarget;
   /** True when the connected wallet already has a standing offer here. */
   replacing: boolean;
   onDone: () => void;
+  /**
+   * Called a moment after the offer itself is on chain, by a pop-up that
+   * should close then. Inline forms leave it out and stay ready for another.
+   */
+  onPlaced?: () => void;
 }) {
   const [amount, setAmount] = useState("");
   const [days, setDays] = useState(7);
@@ -154,6 +160,26 @@ export function OfferForm({
   useEffect(() => {
     if (step === "offer" && target.isSuccess) setAmount("");
   }, [step, target.isSuccess]);
+
+  /**
+   * In a pop-up, placing the offer is the end of the job (2026-10-09).
+   *
+   * The dialog stayed open with the box emptied, which read as the pop-up
+   * starting over for a second offer nobody asked to make. Now "Offer placed"
+   * shows for a beat, long enough to register, and the dialog closes; it opens
+   * again only from its button. Wrapping and allowing are steps on the way,
+   * not the end, so only the offer step closes it.
+   *
+   * Through a ref, because callers pass an inline arrow: as a dependency it
+   * would restart the timer on every render and the dialog would never close.
+   */
+  const placed = useRef(onPlaced);
+  placed.current = onPlaced;
+  useEffect(() => {
+    if (step !== "offer" || !target.isSuccess || placed.current === undefined) return;
+    const t = window.setTimeout(() => placed.current?.(), 1200);
+    return () => window.clearTimeout(t);
+  }, [step, target.isSuccess, target.hash]);
 
   return (
     <div className="offers-make">

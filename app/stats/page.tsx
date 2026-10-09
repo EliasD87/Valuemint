@@ -346,8 +346,11 @@ export default function StatsPage() {
 
           <ul className="pulse-figures">
             <li>
+              {/* Pending until every sale has landed: the feed alone stops at
+                  2,000 events and undercounts, and a figure that settled low
+                  then jumped read as wrong. */}
               <span className="pulse-fig">
-                <CountUp value={stats.sales} />
+                <CountUp value={stats.sales} pending={salesLoading} />
               </span>
               <span className="pulse-cap">pieces sold</span>
             </li>
@@ -362,6 +365,7 @@ export default function StatsPage() {
                   value={Number(stats.volume) / 1e18}
                   decimals={2}
                   final={formatSoso(stats.volume, 2)}
+                  pending={salesLoading}
                 />
               </span>
               {/* "through Seaport" was plumbing showing through the paint. */}

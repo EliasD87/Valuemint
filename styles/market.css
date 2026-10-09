@@ -288,3 +288,20 @@
   color: var(--ink-2);
   font-weight: 700;
 }
+
+/* Bulk buy: the toggle beside the sort, and room under the grid for the bar. */
+.mk-sorts {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.mk-bulk {
+  white-space: nowrap;
+}
+.mk-bulk.is-on {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.mk-bulk-spacer {
+  height: 6rem;
+}

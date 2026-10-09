@@ -1,15 +1,16 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAccount, usePublicClient, useReadContract } from "wagmi";
 import { useWriteContract } from "@/hooks/useChainWrite";
 import { useQueryClient } from "@tanstack/react-query";
 import { useTxOutcome } from "@/hooks/useTxOutcome";
-import { parseEther, zeroHash, type Address, type Hex } from "viem";
+import { parseEther, parseGwei, zeroHash, type Address, type Hex } from "viem";
 import { ValueChainCollectionAbi } from "@/config/contracts";
-import { rememberValidatedOrders } from "@/lib/pendingOrders";
+import { rememberValidatedOrders, rememberWithdrawals } from "@/lib/pendingOrders";
 import { SEAPORT, SeaportAbi } from "@/config/seaport";
 import { classifyFillFailure, type FillBlock } from "@/lib/fillCheck";
+import { ALL_GONE, BULK_REVERTED, countBought } from "@/lib/bulkBuy";
 import { valuechain } from "@/config/chain";
 import { useVerifiedContracts } from "@/hooks/useVerifiedContracts";
 import {
@@ -21,6 +22,8 @@ import {
   lotPrice,
   randomSalt,
   sellManyArgs,
+  buyManyArgs,
+  MAX_BULK_BUY,
   toComponents,
   asOrder,
   toWire,
@@ -128,7 +131,10 @@ export function useSeaportTrade(collection: Address | undefined) {
    * report, while everyone else waits for the chain as they should.
    */
   useEffect(() => {
-    if (isSuccess) rememberValidatedOrders(receipt);
+    if (!isSuccess) return;
+    rememberValidatedOrders(receipt);
+    /* A withdrawal, the same way: gone from the page the moment it confirms. */
+    rememberWithdrawals(receipt);
   }, [isSuccess, receipt]);
 
   /**
@@ -353,7 +359,18 @@ interface FillRequest {
   functionName: "fulfillOrder" | "fulfillAdvancedOrder" | "fulfillAvailableAdvancedOrders";
   args: readonly unknown[];
   value?: bigint;
+  /** Set only for the big multi-order fills — see `BULK_GAS_PRICE`. */
+  gasPrice?: bigint;
 }
+
+/**
+ * ValueChain's suggested gas price is enough for a small transaction and not
+ * for a large one, which can sit unmined and freeze the wallet's later
+ * transactions behind it (the same reason `useBulkList` sets one). A bulk buy
+ * of ten listings is a large transaction. 0.05 gwei is still a fraction of a
+ * cent.
+ */
+const BULK_GAS_PRICE = parseGwei("0.05");
 
 /**
  * The taking side: buying a listing, and accepting a bid.
@@ -369,13 +386,14 @@ export const FILL_REVERTED = {
     "The sale did not go through: someone else most likely sold into this offer, or the bidder withdrew it, a moment before yours landed. Nothing was sold; you paid only a little gas.",
   listing:
     "The purchase did not go through: someone else most likely bought this, or the seller withdrew it, a moment before yours landed. Nothing was bought; you paid only a little gas.",
+  bulk: BULK_REVERTED,
 } as const;
 
 export function useSeaportFill() {
   const { address } = useAccount();
   const client = usePublicClient();
   const { writeContract, data: hash, isPending: signing, error: sendError, reset } = useWriteContract();
-  const { isLoading: confirming, isSuccess, reverted } = useTxOutcome({ hash });
+  const { isLoading: confirming, isSuccess, reverted, data: receipt } = useTxOutcome({ hash });
 
   /**
    * A fill that passed the check and was then beaten to the order on chain
@@ -383,7 +401,7 @@ export function useSeaportFill() {
    * page showed nothing at all: no error, no success. The side of the last
    * attempt decides how the failure is worded.
    */
-  const [side, setSide] = useState<"listing" | "offer">("listing");
+  const [side, setSide] = useState<"listing" | "offer" | "bulk">("listing");
   const error = sendError ?? (reverted ? new Error(FILL_REVERTED[side]) : null);
 
   /**
@@ -484,6 +502,113 @@ export function useSeaportFill() {
     },
     [send],
   );
+
+  /** The last bulk buy: how many were picked, and which of them were sent. */
+  const [bulk, setBulk] = useState<{ asked: number; sent: readonly SeaportOrder[] } | undefined>(undefined);
+
+  /**
+   * Buy several listings in one transaction (2026-10-09).
+   *
+   * Every listing is filled whole and the SOSO sent is all their prices added
+   * up. The check before signing does more than for one listing: it finds out
+   * which picks are still for sale and sends only those, so a pick somebody
+   * else bought while this one was being chosen is never paid for. One bought
+   * between the check and this landing is skipped by Seaport and its SOSO
+   * returned in the same transaction, rather than failing the rest (settled on
+   * real Seaport in contracts/test/SeaportBatchOrders.test.ts). The receipt
+   * then says how many actually arrived; see lib/bulkBuy.ts.
+   */
+  const buyMany = useCallback(
+    async (orders: readonly SeaportOrder[]) => {
+      if (address === undefined || orders.length === 0) return;
+      reset();
+      setBlocked(undefined);
+      setSide("bulk");
+      setBulk(undefined);
+
+      const asked = orders.slice(0, MAX_BULK_BUY);
+      const request = (picks: readonly SeaportOrder[]): FillRequest => {
+        const { args, value } = buyManyArgs(
+          picks.map((o) => o.params),
+          address,
+        );
+        return {
+          chainId: valuechain.id,
+          address: SEAPORT,
+          abi: SeaportAbi,
+          functionName: "fulfillAvailableAdvancedOrders",
+          args,
+          value,
+          gasPrice: BULK_GAS_PRICE,
+        };
+      };
+
+      let live = asked;
+      if (client !== undefined) {
+        setChecking(true);
+        try {
+          /**
+           * Seaport answers this directly: the first thing
+           * `fulfillAvailableAdvancedOrders` returns is which orders it would
+           * fill.
+           */
+          const { result } = (await client.simulateContract({ ...request(asked), account: address } as never)) as {
+            result: readonly [readonly boolean[], unknown];
+          };
+          live = asked.filter((_, i) => result[0][i] === true);
+        } catch {
+          /**
+           * One pick that would revert the lot, a seller who has since moved
+           * the piece say, fails the whole simulation and hides which one it
+           * was. So each is tried alone, and only those failing for a reason
+           * about the listing itself are left out. Anything else, not enough
+           * SOSO included, goes on to the wallet as it always has.
+           */
+          const alone = await Promise.all(
+            asked.map((o) =>
+              client
+                .simulateContract({
+                  chainId: valuechain.id,
+                  address: SEAPORT,
+                  abi: SeaportAbi,
+                  functionName: "fulfillOrder",
+                  args: [asOrder(o.params), CONDUIT_KEY],
+                  value: o.priceWei,
+                  account: address,
+                } as never)
+                .then(
+                  () => true,
+                  (err: unknown) => classifyFillFailure(err instanceof Error ? err.message : String(err)) === undefined,
+                ),
+            ),
+          );
+          live = asked.filter((_, i) => alone[i]);
+        } finally {
+          setChecking(false);
+        }
+      }
+
+      if (live.length === 0) {
+        setBlocked(ALL_GONE);
+        refreshBook();
+        return;
+      }
+      if (live.length < asked.length) refreshBook();
+
+      setBulk({ asked: asked.length, sent: live });
+      writeContract(request(live) as never);
+    },
+    [address, client, refreshBook, reset, writeContract],
+  );
+
+  /** How many of the last bulk buy's picks arrived, once it has landed. */
+  const bought = useMemo(() => {
+    if (!isSuccess || receipt === undefined || bulk === undefined) return undefined;
+    return countBought(
+      receipt.logs,
+      bulk.sent.map((o) => o.hash),
+    );
+  }, [isSuccess, receipt, bulk]);
 
   /** Take part of an ERC-1155 listing: `units` of the order's total `amount`. */
   const buyPartial = useCallback(
@@ -627,6 +752,15 @@ export function useSeaportFill() {
 
   return {
     buy,
+    buyMany,
+    /**
+     * The last bulk buy: picked, sent after the check, and bought once it
+     * landed. The bar turns these into "someone else got 2 first".
+     */
+    bulk:
+      bulk === undefined
+        ? undefined
+        : { asked: bulk.asked, sent: bulk.sent.length, bought },
     buyPartial,
     acceptOffer,
     acceptOfferMany,

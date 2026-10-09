@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import type { Hex } from "viem";
 import { decodeParams, type JsonOrderParameters } from "@/lib/indexRows";
+import { indexLagMs } from "@/lib/indexLag";
 import { readOrder, type OrderParameters, type ReadOrder } from "@/lib/seaport";
 
 /**
@@ -52,6 +53,7 @@ interface Payload {
   counters: Array<{ offerer: string; blockNumber: number }>;
   indexedBlock: number;
   indexedAt: string | null;
+  servedAt?: string;
 }
 
 /**
@@ -73,9 +75,9 @@ async function fetchBook(): Promise<IndexedBook | null> {
   const payload = (await response.json()) as Payload;
 
   if (payload.indexedAt === null) return null;
-  const age = Date.now() - new Date(payload.indexedAt).getTime();
-  if (!Number.isFinite(age) || age > STALE_MS) {
-    console.warn(`[order book] index is ${Math.round(age / 1000)}s stale; reading the chain.`);
+  const lag = indexLagMs(payload);
+  if (!Number.isFinite(lag) || lag > STALE_MS) {
+    console.warn(`[order book] index is ${Math.round(lag / 1000)}s stale; reading the chain.`);
     return null;
   }
 

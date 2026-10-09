@@ -2,6 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { decodeParams, type JsonEventArgs, type JsonOrderParameters } from "@/lib/indexRows";
+import { indexLagMs } from "@/lib/indexLag";
 import type { ActivityLog, ActivityStreams } from "@/lib/activityRows";
 
 /**
@@ -36,6 +37,7 @@ interface EventIn {
 interface Payload {
   events: EventIn[];
   indexedAt: string | null;
+  servedAt?: string;
 }
 
 /**
@@ -70,8 +72,8 @@ async function fetchActivity(filter: ActivityFilter): Promise<ActivityStreams | 
   const payload = (await response.json()) as Payload;
   if (payload.indexedAt === null) return null;
 
-  const age = Date.now() - new Date(payload.indexedAt).getTime();
-  if (!Number.isFinite(age) || age > STALE_MS) return null;
+  const lag = indexLagMs(payload);
+  if (!Number.isFinite(lag) || lag > STALE_MS) return null;
 
   const validated: ActivityLog[] = [];
   const fulfilled: ActivityLog[] = [];

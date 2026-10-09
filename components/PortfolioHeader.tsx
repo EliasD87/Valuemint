@@ -78,7 +78,16 @@ export function PortfolioHeader({
   const wsoso = wsosoRaw ?? 0n;
   const [unwrapping, setUnwrapping] = useState(false);
 
-  const usd = balance === undefined || price === undefined ? undefined : sosoToUsd(balance, price);
+  /**
+   * Dollars for everything spendable: SOSO and WSOSO together (2026-10-09).
+   * WSOSO is SOSO one for one, so leaving it out understated the wallet by
+   * exactly what its owner had put behind offers. Held back until both reads
+   * are in, so the figure does not land once and then jump.
+   */
+  const usd =
+    balance === undefined || wsosoRaw === undefined || price === undefined
+      ? undefined
+      : sosoToUsd(balance + wsoso, price);
 
   return (
     <section className="ph" aria-label={heading}>
@@ -129,7 +138,14 @@ export function PortfolioHeader({
               SOSO
             </span>
             {usd === undefined ? null : (
-              <span className="ph-total-usd" title="At CoinGecko's current SOSO price">
+              <span
+                className="ph-total-usd"
+                title={
+                  wsoso > 0n
+                    ? `${formatSosoFixed(balance)} SOSO + ${formatSosoFixed(wsoso)} WSOSO, at CoinGecko's current SOSO price`
+                    : "At CoinGecko's current SOSO price"
+                }
+              >
                 {formatUsd(usd)}
               </span>
             )}
@@ -142,8 +158,16 @@ export function PortfolioHeader({
             tell them that was their sale. */}
         {wsoso > 0n ? (
           <div className="ph-wrapped-block">
+            {/* The same figure-and-chip as the balance above, a size down, so
+                the two read as one wallet in two forms rather than a footnote. */}
             <p className="ph-wrapped">
-              + <Soso size={12} unit="WSOSO">{formatSosoFixed(wsoso)}</Soso>
+              <span className="ph-wrapped-amount" title={`${formatSoso(wsoso, 18)} WSOSO`}>
+                + {formatSosoFixed(wsoso)}
+              </span>
+              <span className="ph-total-unit ph-wrapped-unit">
+                <SosoMark size={15} />
+                WSOSO
+              </span>
               {own ? (
                 <button type="button" className="btn btn-sm ph-unwrap" onClick={() => setUnwrapping(true)}>
                   Unwrap to SOSO

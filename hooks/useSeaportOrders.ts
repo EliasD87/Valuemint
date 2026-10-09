@@ -35,6 +35,9 @@ import {
   pendingOrdersServerSnapshot,
   pendingOrdersSnapshot,
   subscribePendingOrders,
+  subscribeWithdrawn,
+  withdrawnServerSnapshot,
+  withdrawnSnapshot,
 } from "@/lib/pendingOrders";
 import {
   ItemType,
@@ -355,6 +358,12 @@ function useOrderBookSource(enabled: boolean) {
    */
   const statusMemory = useRef(new Map<string, [boolean, boolean, bigint, bigint]>());
 
+  /**
+   * Orders this tab has just withdrawn, from the cancel's own receipt. Gone at
+   * once, rather than after the next status read or the index (lib/pendingOrders.ts).
+   */
+  const withdrawn = useSyncExternalStore(subscribeWithdrawn, withdrawnSnapshot, withdrawnServerSnapshot);
+
   /** Orders that Seaport itself still considers open. Fillability comes next. */
   const standing = useMemo(() => {
     const voidedAfter = data?.voidedAfter ?? new Map<string, bigint>();
@@ -384,6 +393,9 @@ function useOrderBookSource(enabled: boolean) {
         const [isValidated, isCancelled, filled, size] = result;
 
         if (!isValidated || isCancelled) return undefined;
+        if (withdrawn.hashes.has(c.hash.toLowerCase())) return undefined;
+        const voidedHere = withdrawn.voidedAfter.get(c.read.maker.toLowerCase());
+        if (voidedHere !== undefined && voidedHere >= c.blockNumber) return undefined;
         // `size` is 0 until something is filled; once set, filled >= size is done.
         if (size > 0n && filled >= size) return undefined;
         if (isExpired(c.read.endTime, now)) return undefined;
@@ -394,7 +406,7 @@ function useOrderBookSource(enabled: boolean) {
         return { ...c.read, hash: c.hash, params: c.params, blockNumber: c.blockNumber, filled, size };
       })
       .filter((o): o is Omit<SeaportOrder, "fillable"> => o !== undefined);
-  }, [candidates, statuses, data]);
+  }, [candidates, statuses, data, withdrawn]);
 
   /**
    * Can the maker still deliver what they promised?

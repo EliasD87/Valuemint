@@ -16,6 +16,8 @@ import { TxResult } from "@/components/TxResult";
 import { AddressLink } from "@/components/AddressLink";
 import { formatSoso } from "@/lib/format";
 import { currencyLabel, fulfillerOutlay, remainingPieces } from "@/lib/seaport";
+import { PiecePicker } from "@/components/PiecePicker";
+import { chosenPieces, firstPieces } from "@/lib/piecePick";
 import "./OfferDialog.css";
 import "./SellIntoOffer.css";
 
@@ -35,9 +37,9 @@ import "./SellIntoOffer.css";
  *     and a sale the bidder cannot cover reverts the whole transaction
  *   - 50, the ceiling one transaction carries comfortably
  *
- * Pieces of one level are interchangeable, so the dialog takes the count and
- * picks the pieces, lowest ids first, and lists exactly which before anything
- * is signed.
+ * The count picks the pieces, lowest ids first, and lists exactly which before
+ * anything is signed. "Choose which" then lets the holder swap any of them for
+ * another they would rather part with (2026-10-09).
  */
 const PER_TRANSACTION = 50;
 
@@ -85,12 +87,19 @@ export function SellIntoOffer({
   const max = Math.max(0, Math.min(wanted, sorted.length, funded ?? 0, PER_TRANSACTION));
 
   const [count, setCount] = useState("");
-  const n = (() => {
+  const counted = (() => {
     const typed = Number.parseInt(count, 10);
     if (count.trim() === "" || !Number.isFinite(typed)) return max;
     return Math.max(0, Math.min(typed, max));
   })();
-  const pieces = sorted.slice(0, n);
+
+  /** Off: the first `counted`. On: exactly the pieces chosen, never past `max`. */
+  const [choosing, setChoosing] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(() => new Set());
+  /** Whether the chips are showing. Hiding them keeps the choice. */
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const pieces = choosing ? chosenPieces(sorted, selected, max) : sorted.slice(0, counted);
+  const n = pieces.length;
 
   const nb = BigInt(n);
   const fee = fulfillerOutlay(offer.params, nb);
@@ -206,17 +215,54 @@ export function SellIntoOffer({
                   placeholder={String(max)}
                   value={count}
                   disabled={busy || done}
-                  onChange={(e) => setCount(e.target.value.replace(/[^0-9]/g, "").slice(0, 3))}
+                  onChange={(e) => {
+                    const next = e.target.value.replace(/[^0-9]/g, "").slice(0, 3);
+                    setCount(next);
+                    if (choosing) setSelected(firstPieces(sorted, next === "" ? max : Number(next)));
+                  }}
                 />
                 <small>up to {max}</small>
               </label>
 
-              <p className="sio-pieces">
-                Selling{" "}
-                {pieces.length <= 12
-                  ? pieces.map((id) => `#${id.toString()}`).join(", ")
-                  : `${pieces.slice(0, 10).map((id) => `#${id.toString()}`).join(", ")} and ${pieces.length - 10} more`}
-              </p>
+              {choosing && pickerOpen ? (
+                <PiecePicker
+                  label="Pieces to sell"
+                  pieces={sorted.map((id) => ({ id }))}
+                  selected={selected}
+                  max={max}
+                  disabled={busy || done}
+                  onChange={(next) => {
+                    setSelected(next);
+                    const chosen = chosenPieces(sorted, next, max).length;
+                    setCount(chosen === max ? "" : String(chosen));
+                  }}
+                />
+              ) : (
+                <p className="sio-pieces">
+                  Selling{" "}
+                  {pieces.length <= 12
+                    ? pieces.map((id) => `#${id.toString()}`).join(", ")
+                    : `${pieces.slice(0, 10).map((id) => `#${id.toString()}`).join(", ")} and ${pieces.length - 10} more`}
+                </p>
+              )}
+              {sorted.length > 1 ? (
+                <button
+                  type="button"
+                  className="btn btn-sm pp-toggle"
+                  aria-expanded={choosing && pickerOpen}
+                  disabled={busy || done}
+                  onClick={() => {
+                    /* Once chosen by hand it stays chosen by hand; this only shows or hides the chips. */
+                    if (!choosing) {
+                      setSelected(firstPieces(sorted, counted));
+                      setChoosing(true);
+                      setPickerOpen(true);
+                    } else setPickerOpen(!pickerOpen);
+                  }}
+                >
+                  {!choosing ? "Choose which pieces" : pickerOpen ? "Hide the list" : "Change which pieces"}
+                </button>
+              ) : null}
 
               <p className="sio-sum">
                 You receive{" "}

@@ -99,7 +99,7 @@ export function OfferDialog({
             </p>
           )}
 
-          <OfferForm target={offerTarget} replacing={false} onDone={() => undefined} />
+          <OfferForm target={offerTarget} replacing={false} onDone={() => undefined} onPlaced={onClose} />
         </div>
       </div>
     </>,

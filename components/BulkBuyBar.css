@@ -1,0 +1,58 @@
+/* Fixed to the bottom while picking, clear of the phone's home bar. */
+.bbb {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 60;
+  padding: 0.7rem 16px calc(0.7rem + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--line-strong);
+  background: var(--surface);
+  box-shadow: 0 -6px 24px color-mix(in srgb, var(--ink) 12%, transparent);
+}
+
+.bbb-inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem 1rem;
+  max-width: var(--page-max, 1200px);
+  margin: 0 auto;
+}
+
+.bbb-sum {
+  margin: 0;
+  font-size: var(--step--1);
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.bbb-sum b {
+  color: var(--ink);
+}
+
+.bbb-cap {
+  color: var(--ink-3);
+}
+
+.bbb-acts {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.bbb-status {
+  max-width: var(--page-max, 1200px);
+  margin: 0 auto;
+}
+
+.bbb-status:empty {
+  display: none;
+}
+
+/* Picks that went to someone else. News, not an error: nobody was charged. */
+.bbb-note {
+  margin: 0.5rem 0 0;
+  font-size: var(--step--1);
+  color: var(--ink-2);
+}

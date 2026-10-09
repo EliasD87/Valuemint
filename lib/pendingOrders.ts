@@ -174,3 +174,98 @@ export function forgetSeenOrders(hashes: Iterable<string>): void {
   }
   if (removed) publish();
 }
+
+/* ------------------------------------------------------------------------- *
+ * Withdrawals, the other direction (2026-10-09).
+ *
+ * The same lag hid the opposite change: an offer withdrawn and confirmed stayed
+ * on screen, with its Withdraw button, until the index noticed or the next
+ * status read came round, and the only thing that seemed to help was reloading.
+ * So the receipt of a `cancel` (or `incrementCounter`) is read the same way and
+ * the book stops showing those orders at once.
+ *
+ * A cancellation is final in Seaport, so nothing here has to be taken back.
+ * The TTL only bounds memory: well before it runs out, the chain's own status
+ * read and the index both say the same thing.
+ * ------------------------------------------------------------------------- */
+
+const ORDER_CANCELLED = parseAbiItem(
+  "event OrderCancelled(bytes32 orderHash, address indexed offerer, address indexed zone)",
+);
+const COUNTER_INCREMENTED = parseAbiItem("event CounterIncremented(uint256 newCounter, address indexed offerer)");
+
+export interface Withdrawn {
+  /** Order hashes cancelled one by one, lower-cased. */
+  hashes: ReadonlySet<string>;
+  /** Makers who voided everything, and the block they did it in: orders up to it are gone. */
+  voidedAfter: ReadonlyMap<string, bigint>;
+}
+
+const NOTHING_WITHDRAWN: Withdrawn = { hashes: new Set(), voidedAfter: new Map() };
+
+const cancelled = new Map<string, number>();
+const voided = new Map<string, { block: bigint; at: number }>();
+let withdrawnSnap: Withdrawn = NOTHING_WITHDRAWN;
+const withdrawnListeners = new Set<() => void>();
+
+function publishWithdrawn(): void {
+  const now = Date.now();
+  for (const [hash, at] of cancelled) if (now - at > TTL_MS) cancelled.delete(hash);
+  for (const [maker, v] of voided) if (now - v.at > TTL_MS) voided.delete(maker);
+  withdrawnSnap =
+    cancelled.size === 0 && voided.size === 0
+      ? NOTHING_WITHDRAWN
+      : {
+          hashes: new Set(cancelled.keys()),
+          voidedAfter: new Map([...voided].map(([maker, v]) => [maker, v.block])),
+        };
+  for (const listener of withdrawnListeners) listener();
+}
+
+export function subscribeWithdrawn(listener: () => void): () => void {
+  withdrawnListeners.add(listener);
+  return () => withdrawnListeners.delete(listener);
+}
+
+export function withdrawnSnapshot(): Withdrawn {
+  return withdrawnSnap;
+}
+
+export function withdrawnServerSnapshot(): Withdrawn {
+  return NOTHING_WITHDRAWN;
+}
+
+/**
+ * Take every cancellation this receipt carries and stop showing those orders.
+ *
+ * Read from Seaport's own `OrderCancelled` and `CounterIncremented` logs, so
+ * only what the chain actually did is acted on: a reverted transaction has no
+ * logs, and a receipt from anything else has none of Seaport's.
+ */
+export function rememberWithdrawals(receipt: TransactionReceipt | undefined): void {
+  if (receipt === undefined || receipt.status !== "success") return;
+
+  let changed = false;
+  const now = Date.now();
+
+  for (const log of receipt.logs) {
+    if (log.address.toLowerCase() !== SEAPORT.toLowerCase()) continue;
+    try {
+      const { args } = decodeEventLog({ abi: [ORDER_CANCELLED], data: log.data, topics: log.topics });
+      cancelled.set((args.orderHash as Hex).toLowerCase(), now);
+      changed = true;
+      continue;
+    } catch {
+      /* Not a cancellation. */
+    }
+    try {
+      const { args } = decodeEventLog({ abi: [COUNTER_INCREMENTED], data: log.data, topics: log.topics });
+      voided.set((args.offerer as string).toLowerCase(), { block: receipt.blockNumber, at: now });
+      changed = true;
+    } catch {
+      /* Some other Seaport event. */
+    }
+  }
+
+  if (changed) publishWithdrawn();
+}

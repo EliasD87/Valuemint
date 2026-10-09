@@ -431,7 +431,9 @@ function CollectionOfferDialog({
             </ul>
           ) : null}
 
-          {undecided ? null : <OfferForm target={target} replacing={false} onDone={() => undefined} />}
+          {undecided ? null : (
+            <OfferForm target={target} replacing={false} onDone={() => undefined} onPlaced={onClose} />
+          )}
         </div>
       </div>
     </>,

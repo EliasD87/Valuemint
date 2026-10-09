@@ -4,9 +4,11 @@ import {
   ItemType,
   LISTINGS_PER_TX,
   MAX_BATCH_OFFER,
+  MAX_BULK_BUY,
   OrderType,
   buildListing,
   buildOffer,
+  buyManyArgs,
   fulfillerOutlay,
   planBulkCancel,
   readOrder,
@@ -199,5 +201,35 @@ describe("planBulkCancel", () => {
     const orders = Array.from({ length: LISTINGS_PER_TX * 2 + 3 }, (_, i) => listingOf(BigInt(i + 1)));
     const batches = planBulkCancel({ seller: SELLER, orders, counter: 0n });
     expect(batches.map((b) => b.length)).toEqual([LISTINGS_PER_TX, LISTINGS_PER_TX, 3]);
+  });
+});
+
+describe("buyManyArgs", () => {
+  const BUYER = BIDDER;
+  const listing = (tokenId: bigint, seller: `0x${string}` = SELLER, priceWei = FOUR) =>
+    buildListing({ seller, collection: COLLECTION, tokenId, priceWei });
+
+  it("sends every price added up, and fills each listing whole", () => {
+    const { args, value } = buyManyArgs([listing(1n), listing(2n, STRANGER, FOUR * 2n)], BUYER);
+    expect(value).toBe(FOUR * 3n);
+    expect(args[0].every((o) => o.numerator === 1n && o.denominator === 1n)).toBe(true);
+    expect(args[5]).toBe(BUYER);
+    expect(args[6]).toBe(2n);
+  });
+
+  it("sends each piece to the buyer on its own", () => {
+    const { args } = buyManyArgs([listing(1n), listing(2n), listing(3n)], BUYER);
+    expect(args[2]).toEqual([0n, 1n, 2n].map((i) => [{ orderIndex: i, itemIndex: 0n }]));
+  });
+
+  it("pays each seller once and the fee once, however many pieces", () => {
+    const { args } = buyManyArgs([listing(1n), listing(2n, STRANGER), listing(3n)], BUYER);
+    // Seller (orders 0 and 2), stranger (order 1), fee (all three).
+    expect(args[3]).toHaveLength(3);
+    expect(args[3].map((g) => g.length).sort()).toEqual([1, 2, 3]);
+  });
+
+  it("keeps a bulk buy to ten", () => {
+    expect(MAX_BULK_BUY).toBe(10);
   });
 });

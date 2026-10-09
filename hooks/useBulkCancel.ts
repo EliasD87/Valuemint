@@ -9,6 +9,7 @@ import { SEAPORT, SeaportAbi } from "@/config/seaport";
 import { valuechain } from "@/config/chain";
 import { LISTINGS_PER_TX, planBulkCancel } from "@/lib/seaport";
 import { useVerifiedContracts } from "@/hooks/useVerifiedContracts";
+import { rememberWithdrawals } from "@/lib/pendingOrders";
 import type { SeaportOrder } from "@/hooks/useSeaportOrders";
 
 /**
@@ -95,6 +96,8 @@ export function useBulkCancel() {
           if (receipt.status !== "success") {
             throw new Error(`Batch ${i + 1} of ${batches.length} was rejected on chain.`);
           }
+          /* Off every page now, batch by batch, not when the index catches up. */
+          rememberWithdrawals(receipt);
           cancelled += batch.length;
           setProgress({ done: i + 1, total: batches.length, cancelled, requested, busy: i + 1 < batches.length });
         } catch (e) {
