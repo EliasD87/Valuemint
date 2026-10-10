@@ -144,3 +144,15 @@ export function kolForToken(tokenId: number): Kol | undefined {
  * an entry above, run it, and the mirror catches up.
  */
 export const kolLocal = (k: Kol) => `/kols/roster/${String(k.n).padStart(2, "0")}.webp`;
+
+/**
+ * The portrait on a /kols card and in its detail, from our own CDN (2026-10-09).
+ *
+ * These went through `/api/still` from the IPFS gateway, and that URL carries
+ * the deploy id, so every deploy gave all 52 new addresses: each visitor
+ * downloaded them again, and the first waited on cold gateway fetches. These
+ * are 480px copies (1.14 MB for all 52, less than the 1.49 MB the route sent)
+ * under /art, which is cached for a year and never changes in place: a new
+ * portrait goes into a new folder, v2, made by `localise-kols.mjs`.
+ */
+export const kolCard = (k: Kol) => `/art/kols/v1/${String(k.n).padStart(2, "0")}.webp`;

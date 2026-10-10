@@ -11,7 +11,7 @@ import { Soso } from "@/components/Soso";
 import { KolEnvelope } from "@/components/KolEnvelope";
 import { KolApply } from "@/components/KolApply";
 import { KolWall } from "@/components/KolWall";
-import { KOLS, kolImage, kolLocal, xHandle, type Kol } from "@/config/kols";
+import { KOLS, kolLocal, xHandle, type Kol, kolCard } from "@/config/kols";
 import { useKolRewards, type Stage } from "@/hooks/useKolRewards";
 import { formatSoso } from "@/lib/format";
 import "@/styles/kols.css";
@@ -258,7 +258,7 @@ export default function Kols() {
             {KOLS.map((k) => (
               <article className={`kol-card${rewards.mine?.kol.n === k.n ? " is-mine" : ""}`} key={k.n}>
                 <div className="kol-card-art">
-                  <Art src={kolImage(k)} alt={k.name} sizes="(max-width: 700px) 45vw, 240px" />
+                  <Art src={kolCard(k)} alt={k.name} sizes="(max-width: 700px) 45vw, 240px" />
                 </div>
                 <div className="kol-card-foot">
                   <b>{k.name}</b>
@@ -402,7 +402,7 @@ function Yours({
   return (
     <section className={`kol-yours${claimed ? " is-claimed" : ""}`} aria-labelledby="kol-yours-title">
       <div className="kol-yours-art">
-        <Art src={kolImage(kol)} alt={kol.name} sizes="(max-width: 760px) 90vw, 420px" />
+        <Art src={kolCard(kol)} alt={kol.name} sizes="(max-width: 760px) 90vw, 420px" />
       </div>
 
       <div className="kol-yours-body">
