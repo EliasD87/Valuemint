@@ -455,7 +455,7 @@
   border-radius: var(--r-sm);
 }
 
-/* --------------------------------------------------------------- marquee */
+/* ----------------------------------------------------------------- chips */
 
 .ex-trust {
   display: flex;
@@ -473,32 +473,28 @@
   color: var(--ink);
 }
 
-/* The mask only shapes alpha at the ends; it shows no colour of its own. */
-.ex-marquee {
-  overflow: hidden;
-  mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);
-}
-
-.ex-marquee-track {
+/* One row, drawn once, wrapping where it runs out of room. */
+.ex-chips {
   display: flex;
-  width: max-content;
-  animation: ex-slide var(--ex-dur, 40s) linear infinite;
-}
-
-.ex-marquee:hover .ex-marquee-track {
-  animation-play-state: paused;
-}
-
-/* Padding equal to the gap, so two groups loop without a seam. */
-.ex-marquee-group {
-  display: flex;
+  flex-wrap: wrap;
   gap: 0.75rem;
-  padding-right: 0.75rem;
 }
 
-@keyframes ex-slide {
-  to {
-    translate: -50% 0;
+/* On a phone ten chips wrap to seven rows; swipe one row instead. */
+@media (max-width: 640px) {
+  .ex-chips {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding-bottom: 2px;
+  }
+
+  .ex-chips::-webkit-scrollbar {
+    display: none;
+  }
+
+  .ex-chip {
+    flex: none;
   }
 }
 
@@ -681,72 +677,6 @@
   white-space: nowrap;
   font-size: var(--step--3);
   color: var(--ink-3);
-}
-
-/* ---------------------------------------------------------------- crowd */
-
-.ex-among {
-  position: relative;
-  overflow: clip;
-}
-
-.ex-among-row {
-  display: flex;
-  justify-content: space-between;
-  gap: 0.5rem;
-  max-width: var(--page-max, 1200px);
-  margin: 0 auto;
-  padding-inline: var(--gutter);
-}
-
-.ex-among-thumb {
-  width: clamp(44px, 5.4vw, 70px);
-  height: auto;
-  aspect-ratio: 1;
-  object-fit: cover;
-  border: 2px solid var(--surface);
-  border-radius: var(--r-md);
-  background: var(--surface-2);
-  box-shadow: var(--shadow-md);
-  translate: 0 var(--y, 0);
-  rotate: var(--r, 0deg);
-  animation: ex-bob 7s ease-in-out infinite;
-  animation-delay: calc(var(--i) * -0.85s);
-}
-
-/* A scatter, not a row: alternate heights and tilts. */
-.ex-among-thumb:nth-child(3n + 1) {
-  --y: 14px;
-  --r: -4deg;
-}
-
-.ex-among-thumb:nth-child(3n + 2) {
-  --y: -10px;
-  --r: 3deg;
-}
-
-.ex-among-thumb:nth-child(4n) {
-  --y: 22px;
-  --r: 5deg;
-}
-
-@keyframes ex-bob {
-  50% {
-    transform: translateY(-8px);
-  }
-}
-
-.ex-among-copy {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1rem;
-  padding-block: clamp(2rem, 5vw, 3rem);
-  text-align: center;
-}
-
-.ex-among-copy .ex-lede {
-  max-width: 40ch;
 }
 
 /* ---------------------------------------------------------------- bento */
@@ -1020,59 +950,6 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* ----------------------------------------------------------------- band */
-
-/* `clip`, not `hidden`: the tilted band overhangs, and the page must not scroll sideways. */
-.ex-band-wrap {
-  overflow: clip;
-  padding-block: clamp(2rem, 5vw, 3.5rem);
-}
-
-.ex-band {
-  width: 104%;
-  margin-left: -2%;
-  padding-block: clamp(0.8rem, 2vw, 1.3rem);
-  background: var(--accent);
-  color: var(--accent-ink);
-  rotate: -2deg;
-}
-
-.ex-band-track {
-  display: flex;
-  width: max-content;
-  animation: ex-slide 32s linear infinite;
-}
-
-.ex-band-group,
-.ex-band-item {
-  display: flex;
-  align-items: center;
-  gap: clamp(1rem, 2.5vw, 2rem);
-}
-
-.ex-band-group {
-  padding-right: clamp(1rem, 2.5vw, 2rem);
-}
-
-.ex-band-word {
-  font-family: var(--display);
-  font-size: clamp(2rem, 5.5vw, 4.25rem);
-  font-weight: 800;
-  line-height: 1;
-  letter-spacing: -0.03em;
-  white-space: nowrap;
-}
-
-.ex-band-art {
-  width: clamp(2.2rem, 5vw, 3.6rem);
-  height: auto;
-  aspect-ratio: 1;
-  object-fit: cover;
-  border-radius: var(--r-md);
-  box-shadow: var(--shadow-md);
-  rotate: 6deg;
-}
-
 /* --------------------------------------------------------------- closing */
 
 .ex-closing {
@@ -1210,10 +1087,6 @@
     display: none;
   }
 
-  .ex-among-thumb:nth-child(n + 6) {
-    display: none;
-  }
-
   .ex-cell-copy {
     max-width: 62%;
   }
@@ -1226,9 +1099,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .ex-marquee-track,
-  .ex-band-track,
-  .ex-among-thumb,
   .ex-dot i,
   .ex-w {
     animation: none;

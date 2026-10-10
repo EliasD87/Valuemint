@@ -7,7 +7,7 @@ import { Soso } from "@/components/Soso";
 import { Wordmark } from "@/components/Wordmark";
 import { wordmarkFor } from "@/config/wordmarks";
 import { FEATURED } from "@/config/featured";
-import { AMONG, BAND_ART, CASCADE, SPOTLIGHT } from "@/config/exploreStory";
+import { BAND_ART, CASCADE, SPOTLIGHT, WALLET_ART } from "@/config/exploreStory";
 import { coverFor } from "@/config/covers";
 import { CREATE_ENABLED } from "@/config/features";
 import { formatCount, formatSoso } from "@/lib/format";
@@ -54,13 +54,11 @@ export function ExploreStory({
     <>
       <Intro forSale={summary?.totals.forSale} />
       <Spotlight market={market} />
-      <Marquee summary={summary} collections={collections} />
+      <Chips summary={summary} collections={collections} />
       <Statement />
       <Featured market={market} />
-      <Among traders={summary?.totals.traders} forSale={summary?.totals.forSale} />
       <Bento />
       <Mints collections={collections} />
-      <Band />
       <Closing />
     </>
   );
@@ -359,9 +357,14 @@ function Chevron({ left = false }: { left?: boolean }) {
   );
 }
 
-/* --------------------------------------------------------------- marquee */
+/* ----------------------------------------------------------------- chips */
 
-function Marquee({
+/*
+ * One row of chips, drawn once. It was a marquee, which has to draw every chip
+ * twice to loop without a seam: ten extra images for a strip nobody reads in
+ * motion anyway.
+ */
+function Chips({
   summary,
   collections,
 }: {
@@ -384,34 +387,19 @@ function Marquee({
 
   if (items.length < 3) return null;
 
-  const group = (hidden: boolean) => (
-    <div className="ex-marquee-group" aria-hidden={hidden || undefined}>
-      {items.map((c) => (
-        <Link
-          key={c.address}
-          className="ex-chip"
-          href={`/collection/${c.address}`}
-          tabIndex={hidden ? -1 : undefined}
-          prefetch={false}
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={c.art} alt="" width={28} height={28} loading="lazy" decoding="async" />
-          {c.name}
-        </Link>
-      ))}
-    </div>
-  );
-
   return (
     <section className="ex page ex-trust">
       <p className="ex-trust-title">
         Home to <span className="ex-mute">every collection on ValueChain.</span>
       </p>
-      <div className="ex-marquee" style={vars({ "--ex-dur": `${items.length * 5}s` })}>
-        <div className="ex-marquee-track">
-          {group(false)}
-          {group(true)}
-        </div>
+      <div className="ex-chips">
+        {items.map((c) => (
+          <Link key={c.address} className="ex-chip" href={`/collection/${c.address}`} prefetch={false}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={c.art} alt="" width={28} height={28} loading="lazy" decoding="async" />
+            {c.name}
+          </Link>
+        ))}
       </div>
     </section>
   );
@@ -513,49 +501,6 @@ function Featured({ market }: { market: Market }) {
   );
 }
 
-/* ---------------------------------------------------------------- crowd */
-
-function Among({ traders, forSale }: { traders: number | undefined; forSale: number | undefined }) {
-  const row = (srcs: string[], where: string) => (
-    <div className={`ex-among-row ${where}`} aria-hidden="true">
-      {srcs.map((src, i) => (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          key={src}
-          className="ex-among-thumb"
-          style={vars({ "--i": i })}
-          src={src}
-          alt=""
-          width={68}
-          height={68}
-          loading="lazy"
-          decoding="async"
-        />
-      ))}
-    </div>
-  );
-
-  return (
-    <section className="ex ex-among">
-      {row(AMONG.above, "ex-among-above")}
-      <div className="ex-among-copy page">
-        <h2 className="ex-h">
-          You&rsquo;ll find yourself <span className="ex-mute">among us.</span>
-        </h2>
-        <p className="ex-lede">
-          {traders === undefined || forSale === undefined
-            ? "Collectors and holders from all over ValueChain buy, sell and bid here every day."
-            : `${formatCount(BigInt(traders))} collectors have bought or sold here, and ${formatCount(BigInt(forSale))} pieces are for sale right now.`}
-        </p>
-        <Link className="btn btn-primary" href="/market">
-          Start collecting
-        </Link>
-      </div>
-      {row(AMONG.below, "ex-among-below")}
-    </section>
-  );
-}
-
 /* ---------------------------------------------------------------- bento */
 
 function Bento() {
@@ -609,7 +554,7 @@ function Bento() {
 
         <Link className="ex-cell ex-cell-dark" href="/portfolio">
           <span className="ex-wallet" aria-hidden="true">
-            {AMONG.above.slice(0, 4).map((src) => (
+            {WALLET_ART.map((src) => (
               // eslint-disable-next-line @next/next/no-img-element
               <img key={src} src={src} alt="" loading="lazy" decoding="async" />
             ))}
@@ -715,35 +660,6 @@ function Mints({ collections }: { collections: readonly CollectionSummary[] }) {
               })}
         </div>
       )}
-    </section>
-  );
-}
-
-/* ----------------------------------------------------------------- band */
-
-const BAND_WORDS = ["Collect", "Trade", "Bid", "Mint", "Hold"];
-
-function Band() {
-  const group = (hidden: boolean) => (
-    <div className="ex-band-group" aria-hidden={hidden || undefined}>
-      {BAND_WORDS.map((word, i) => (
-        <span key={word} className="ex-band-item">
-          <span className="ex-band-word">{word}</span>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img className="ex-band-art" src={BAND_ART[i % BAND_ART.length]} alt="" loading="lazy" decoding="async" />
-        </span>
-      ))}
-    </div>
-  );
-
-  return (
-    <section className="ex-band-wrap" aria-label="Collect, trade, bid, mint and hold on ValueChain">
-      <div className="ex-band">
-        <div className="ex-band-track">
-          {group(false)}
-          {group(true)}
-        </div>
-      </div>
     </section>
   );
 }

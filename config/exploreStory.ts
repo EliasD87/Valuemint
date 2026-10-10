@@ -66,31 +66,15 @@ export const CASCADE: CascadeCard[] = [
   { image: "/boxes/cybereator.webp", collection: "0xcd30d4bcaa99e556b70a2c4bdfc4050d26e48d30", name: "Cybereator" },
 ];
 
-/** The pieces scattered around "among us": a row above the words, a row below. */
-export const AMONG: { above: string[]; below: string[] } = {
-  above: [
-    "/covers/371c4f7f-1.webp",
-    "/covers/5fadc592-1.webp",
-    "/covers/01c28095-1.webp",
-    "/covers/fe7b74f5-1.webp",
-    "/covers/aab0dc8f-halo.webp",
-    "/covers/c486e7aa-1.webp",
-    "/covers/0273df41-1.webp",
-    "/covers/371c4f7f-3.webp",
-  ],
-  below: [
-    "/covers/5fadc592-3.webp",
-    "/covers/fe7b74f5-2.webp",
-    "/boxes/cybereator.webp",
-    "/covers/01c28095-3.webp",
-    "/covers/aab0dc8f-verdant.webp",
-    "/covers/371c4f7f-4.webp",
-    "/covers/fe7b74f5-4.webp",
-    "/covers/5fadc592-2.webp",
-  ],
-};
+/** The four pieces fanned out on the bento's portfolio card. */
+export const WALLET_ART: string[] = [
+  "/covers/371c4f7f-1.webp",
+  "/covers/5fadc592-1.webp",
+  "/covers/01c28095-1.webp",
+  "/covers/fe7b74f5-1.webp",
+];
 
-/** Small pictures between the words on the moving band. */
+/** The four box levels, on the bento's bulk-buy and listing cards. */
 export const BAND_ART: string[] = [
   "/boxes/sobox/common.webp",
   "/boxes/sobox/uncommon.webp",
