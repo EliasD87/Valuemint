@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useReadContracts } from "wagmi";
 import { ValueChainCollectionAbi, deployment } from "@/config/contracts";
 import { MAIN_COLLECTIONS, PINNED_COLLECTIONS } from "@/config/featured";
+import { KNOWN_COLLECTIONS } from "@/config/known";
+import { isHidden } from "@/config/hidden";
 import { CREATE_ENABLED } from "@/config/features";
 import { useRegistry } from "@/hooks/useRegistry";
 import { useDiscoveredCollections } from "@/hooks/useDiscovery";
@@ -37,6 +39,26 @@ export default function Collections() {
       string,
       { address: `0x${string}`; name: string; symbol: string; creator?: string; fromFactory: boolean }
     >();
+
+    /**
+     * Named collections first, so they are here whatever the explorer is doing.
+     *
+     * Cybereator and the Treasure Box were deployed by SoDEX, not through the
+     * factory, so the explorer's token list was the only thing putting them on
+     * this page. When it went down (2026-10-11) they vanished while every
+     * factory collection stayed. `known.ts` already named them for every other
+     * list on the site; this page built its own and never read it. Lowest
+     * precedence: the explorer and the registry still overwrite these entries.
+     */
+    for (const c of KNOWN_COLLECTIONS) {
+      if (isHidden(c.address)) continue;
+      byAddress.set(c.address.toLowerCase(), {
+        address: c.address,
+        name: c.name,
+        symbol: c.symbol,
+        fromFactory: false,
+      });
+    }
 
     for (const c of discovered ?? []) {
       byAddress.set(c.address.toLowerCase(), {
@@ -187,10 +209,9 @@ export default function Collections() {
             at is the header search, which takes an address and opens the
             collection at it — that still exists.
           */}
-          The block explorer&rsquo;s token list is unavailable right now, so this shows only the
-          collections deployed through ValueMint. Others are still tradeable &mdash; search an
-          address to open one &mdash; and they reappear here as soon as the explorer answers
-          again.
+          The block explorer&rsquo;s token list is unavailable right now, so some smaller
+          collections are missing from this page. They are still tradeable (search an address to
+          open one) and reappear here as soon as the explorer answers again.
         </p>
       ) : null}
 
