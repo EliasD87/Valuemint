@@ -189,12 +189,6 @@ export default function Collections() {
         ) : null}
       </div>
 
-      <p className="coll-intro muted">
-        Discovered from the chain itself, not a curated list. The marketplace trades any NFT
-        on ValueChain — single pieces and editions alike — including collections that were
-        never deployed through here.
-      </p>
-
       {error !== null ? (
         <p className="coll-warn">
           {/*

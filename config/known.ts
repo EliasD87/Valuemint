@@ -112,4 +112,13 @@ export const KNOWN_COLLECTIONS: KnownCollection[] = [
       "collection one day old is exactly what a token index has not noticed " +
       "yet, and the home page links straight to it.",
   },
+  {
+    address: "0x8A22d660611D0Dc2051AB515dA950dD9FcafbbBD",
+    name: "ValueMint KOLs",
+    symbol: "KOL",
+    reason:
+      "Ours, deployed by script on 2026-09-26 and owned by the Safe, not made " +
+      "through the factory, so the explorer was the only thing listing it. " +
+      "When the explorer went down (2026-10-11) it vanished from /collections.",
+  },
 ];
