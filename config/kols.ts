@@ -108,9 +108,8 @@ export const KOLS: Kol[] = [
   { n: 55, name: "MtroX", image: "QmQpiAEDhuwUZDHG2HHbhy9swGNoXBqzwgUa3TS5yxDwNT", x: "https://x.com/MtroX207" },
   { n: 56, name: "Antar", image: "QmPxiQvN2PdTKdMp5CgNuWzkd2LCWvy5D4H8j2AoKDcEjz", x: "https://x.com/AntarSark" },
   { n: 57, name: "动感少年", image: "QmfC3QikArB5ZbT7j1FawpE6gf87d8Pq5MJ7vvG5ot5mhX", x: "https://x.com/_motionkid" },
-  // 2026-10-12: @0xariif, from the applications. His X account is suspended,
-  // so no link until he has one again.
-  { n: 58, name: "0xariif", image: "QmZBYK1Ga7GqE5C4zYVgPJb757g3xtzJKdJnUDDTnZoVQD" },
+  // 2026-10-12: applied as @0xariif, an account since suspended; his X is now @0xbile.
+  { n: 58, name: "bile", image: "QmZBYK1Ga7GqE5C4zYVgPJb757g3xtzJKdJnUDDTnZoVQD", x: "https://x.com/0xbile" },
 ];
 
 /** "https://x.com/VaultSeek" → "@VaultSeek". */
