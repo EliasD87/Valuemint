@@ -14,6 +14,7 @@ import { useOwnOfferExposure, useSeaportOrders, type SeaportOrder } from "@/hook
 import { useSeaportFill, useSeaportTrade } from "@/hooks/useSeaportTrade";
 import { FillBlocked } from "@/components/FillBlocked";
 import { Select } from "@/components/Select";
+import { SellIntoOffer } from "@/components/SellIntoOffer";
 import { useCanPayFeeInWsoso } from "@/hooks/useWsoso";
 import { formatSoso } from "@/lib/format";
 import { AddressLink } from "@/components/AddressLink";
@@ -301,7 +302,14 @@ export function OfferInbox({
       {shown.length === 0 ? null : (
         <ul className="inbox-list">
           {shown.map((r) => (
-            <InboxRow key={r.offer.hash} row={r} onChange={onChange} onSold={onSold} onGone={onGone} />
+            <InboxRow
+              key={r.offer.hash}
+              row={r}
+              bounds={boundsByCollection.get(r.offer.collection.toLowerCase()) ?? []}
+              onChange={onChange}
+              onSold={onSold}
+              onGone={onGone}
+            />
           ))}
         </ul>
       )}
@@ -317,11 +325,14 @@ export function OfferInbox({
  */
 function InboxRow({
   row,
+  bounds,
   onChange,
   onSold,
   onGone,
 }: {
   row: Row;
+  /** The snapshots this collection's trait offers were made at, for the proofs. */
+  bounds: readonly bigint[];
   onChange: () => void;
   onSold: (s: Sold) => void;
   onGone: (g: Gone) => void;
@@ -383,6 +394,18 @@ function InboxRow({
   const mustAllowFee = !mustApprove && feeAllowance.needsAllowance;
   const busy = trade.busy || fill.busy || feeAllowance.busy;
 
+  /**
+   * Several at once (2026-10-12). A batch offer that still wants more than one,
+   * and a holder with more than one piece it takes: an offer for ten Commons
+   * and five Commons held was five separate accepts, five confirmations. The
+   * collection page's offers board already sold them as one transaction; the
+   * inbox, where a holder actually looks, did not. Same dialog, same checks
+   * (the bidder's funds, the proofs, the 50-per-transaction ceiling).
+   */
+  const [sellingMany, setSellingMany] = useState(false);
+  const canSellMany = offer.amount > 1n && remainingPieces(offer) > 1n && row.choices.length > 1;
+  const most = Math.min(row.choices.length, Number(remainingPieces(offer)));
+
   return (
     <li className="inbox-row">
       <Link className="inbox-piece" href={`/token/${token.collection}/${token.id}`} prefetch={false}>
@@ -428,31 +451,40 @@ function InboxRow({
             />
           </span>
         ) : null}
-        <button
-          type="button"
-          className="btn btn-primary btn-sm"
-          disabled={busy}
-          /**
-           * No price floor is passed. A Seaport order is immutable — a bidder
-           * cannot lower an offer in place, only cancel it and make a different
-           * one with a different hash. The previous marketplace needed a
-           * `minPrice` guard precisely because its offers could be overwritten
-           * downward in the block before an accept landed.
-           */
-          onClick={() => {
-            if (mustApprove) trade.approve();
-            else if (mustAllowFee) feeAllowance.allow();
-            else fill.acceptOffer(offer, token.id, choice.proof);
-          }}
-        >
-          {busy
-            ? "Working…"
-            : mustApprove
-              ? "Approve, then accept"
-              : mustAllowFee
-                ? "Allow fee, then accept"
-                : "Accept offer"}
-        </button>
+        <span className="inbox-buttons">
+          {canSellMany ? (
+            <button type="button" className="btn btn-sm" disabled={busy} onClick={() => setSellingMany(true)}>
+              Sell up to {most}
+            </button>
+          ) : null}
+          <button
+            type="button"
+            className="btn btn-primary btn-sm"
+            disabled={busy}
+            /**
+             * No price floor is passed. A Seaport order is immutable — a bidder
+             * cannot lower an offer in place, only cancel it and make a different
+             * one with a different hash. The previous marketplace needed a
+             * `minPrice` guard precisely because its offers could be overwritten
+             * downward in the block before an accept landed.
+             */
+            onClick={() => {
+              if (mustApprove) trade.approve();
+              else if (mustAllowFee) feeAllowance.allow();
+              else fill.acceptOffer(offer, token.id, choice.proof);
+            }}
+          >
+            {busy
+              ? "Working…"
+              : mustApprove
+                ? "Approve, then accept"
+                : mustAllowFee
+                  ? "Allow fee, then accept"
+                  : canSellMany
+                    ? "Accept 1"
+                    : "Accept offer"}
+          </button>
+        </span>
         {mustApprove ? (
           <span className="inbox-fine">One approval per collection, then accept.</span>
         ) : mustAllowFee ? (
@@ -475,6 +507,21 @@ function InboxRow({
         error={fill.error ?? trade.error ?? feeAllowance.error}
         successLabel="Sold"
       />
+
+      {sellingMany ? (
+        <SellIntoOffer
+          collection={token.collection}
+          offer={offer}
+          eligible={row.choices.map((c) => c.token.id)}
+          bounds={bounds}
+          label={row.trait ?? "Any piece"}
+          onClose={() => {
+            setSellingMany(false);
+            // Whatever was sold has left the wallet: re-read the pieces and the book.
+            onChange();
+          }}
+        />
+      ) : null}
     </li>
   );
 }
