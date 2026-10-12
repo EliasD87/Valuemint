@@ -478,3 +478,17 @@ export const CACHE_HEADERS = {
   // Marketplaces and explorers fetch this from their own origins.
   "Access-Control-Allow-Origin": "*",
 } as const;
+
+/**
+ * For a batch that came back short: some ids it asked for have no document.
+ *
+ * Every document in it is still final, but the *absence* is not. A token that
+ * does not exist yet gets one later — the KOL roster grows after a mint, a
+ * hidden tail is revealed — and an hour of browser cache plus a day at the edge
+ * kept serving "nothing for #53-#57" after they were minted and pushed
+ * (2026-10-12). A minute is enough to absorb a page's burst of asks.
+ */
+export const PARTIAL_CACHE_HEADERS = {
+  "Cache-Control": "public, max-age=60, s-maxage=60",
+  "Access-Control-Allow-Origin": "*",
+} as const;

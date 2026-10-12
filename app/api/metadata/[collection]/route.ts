@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { CACHE_HEADERS, tokenDocument, willFetch } from "@/lib/tokenDocument";
+import { CACHE_HEADERS, PARTIAL_CACHE_HEADERS, tokenDocument, willFetch } from "@/lib/tokenDocument";
 import { callerKey, limiter } from "@/lib/rateLimit";
 
 /**
@@ -117,5 +117,8 @@ export async function GET(
    * collection that does exist, and the caller distinguishes it by the object
    * being empty. A 404 here would be a statement about the collection.
    */
-  return NextResponse.json({ documents }, { headers: CACHE_HEADERS });
+  // Cached hard only when every id asked for came back; a missing one may
+  // exist a minute from now (see PARTIAL_CACHE_HEADERS).
+  const complete = Object.keys(documents).length === ids.length;
+  return NextResponse.json({ documents }, { headers: complete ? CACHE_HEADERS : PARTIAL_CACHE_HEADERS });
 }
