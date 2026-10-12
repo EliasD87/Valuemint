@@ -100,6 +100,14 @@ export const KOLS: Kol[] = [
   { n: 50, name: "Dato", image: "QmU4k1yHCFzKVFtpTQ74Y1EjBZWxvpj7v5iNpBj8gdQW5K", x: "https://x.com/DatoAIRDROPS" },
   { n: 51, name: "Snazzy", image: "QmeLQ7186gCqtUP3TBtJXbDPEYadqLNjVnQTJ7nCBkngPm", x: "https://x.com/kingsle409" },
   { n: 52, name: "miraiko", image: "QmWJsJFUBRnS45eEW8wZk3CiYqzv59CANVYPWUiSHmkbAg", x: "https://x.com/miraitomiraiko" },
+  // Third round, 2026-10-12: five more from the applications, portrait only,
+  // in the owner's order. Jet, ProSlow and MtroX came at 724px, the size the
+  // owner has.
+  { n: 53, name: "Jet", image: "QmZUFp7Ns3h59ELVUz7ZcfYLKUN6uxA1i9AMZfjfmS2d4C", x: "https://x.com/agbe_jet" },
+  { n: 54, name: "ProSlow", image: "QmSqKtpLKFLKKEYkM5oGeGERLCtcHAHyjLLY3ssBeH5zFk", x: "https://x.com/ha_chan_dream" },
+  { n: 55, name: "MtroX", image: "QmQpiAEDhuwUZDHG2HHbhy9swGNoXBqzwgUa3TS5yxDwNT", x: "https://x.com/MtroX207" },
+  { n: 56, name: "Antar", image: "QmPxiQvN2PdTKdMp5CgNuWzkd2LCWvy5D4H8j2AoKDcEjz", x: "https://x.com/AntarSark" },
+  { n: 57, name: "动感少年", image: "QmfC3QikArB5ZbT7j1FawpE6gf87d8Pq5MJ7vvG5ot5mhX", x: "https://x.com/_motionkid" },
 ];
 
 /** "https://x.com/VaultSeek" → "@VaultSeek". */
