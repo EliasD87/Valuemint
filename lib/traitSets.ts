@@ -4,6 +4,7 @@ import { RPC_HTTP, valuechain } from "@/config/chain";
 import { criteriaTree, type CriteriaTree } from "@/lib/criteria";
 import { isFilterable } from "@/lib/traitRoles";
 import { tokenDocument, tokenIdsOf } from "@/lib/tokenDocument";
+import { isTransientRpcError, withRpcRetry } from "@/lib/rpcRetry";
 
 /**
  * The token sets trait offers are made over: for one collection, every piece
@@ -69,15 +70,27 @@ const OURS = /^https:\/\/(?:www\.)?valuemint\.store\/api\/metadata\/([^/?#]+)\/?
  * then `tokenURI(1)` for older contracts that do not (ValueChain Genesis).
  */
 export async function metadataKeyOf(collection: Address): Promise<string | undefined> {
+  /*
+    A revert is an answer (no such function, nothing minted) and means "not one
+    of ours". A node failure is not: it used to be swallowed the same way, and
+    the collection was then cached as having no traits for ten minutes (and
+    five more at the CDN), so its trait offers quietly vanished during an RPC
+    hiccup. Now it is retried, and if it keeps failing the route answers 503,
+    which nothing caches.
+  */
   const read = async (fn: "baseURI" | "tokenURI") => {
     try {
-      return (await client.readContract({
-        address: collection,
-        abi: ABI,
-        functionName: fn,
-        args: fn === "tokenURI" ? [1n] : [],
-      } as never)) as string;
-    } catch {
+      return await withRpcRetry(
+        async () =>
+          (await client.readContract({
+            address: collection,
+            abi: ABI,
+            functionName: fn,
+            args: fn === "tokenURI" ? [1n] : [],
+          } as never)) as string,
+      );
+    } catch (err) {
+      if (isTransientRpcError(err)) throw err;
       return undefined;
     }
   };
@@ -156,11 +169,11 @@ const ERC721A_SLOT = BigInt(keccak256(toBytes("ERC721A.contracts.storage.ERC721A
  * - 1` must equal `totalSupply()`, or the layout is not what this assumes and
  * nothing is built.
  */
-async function mintedUpTo(collection: Address): Promise<bigint> {
+async function mintedUpTo(collection: Address, blockNumber: bigint): Promise<bigint> {
   const [index, burned, supply] = await Promise.all([
-    client.getStorageAt({ address: collection, slot: numberToHex(ERC721A_SLOT, { size: 32 }) }),
-    client.getStorageAt({ address: collection, slot: numberToHex(ERC721A_SLOT + 1n, { size: 32 }) }),
-    client.readContract({ address: collection, abi: LEVEL_ABI, functionName: "totalSupply" }),
+    client.getStorageAt({ address: collection, slot: numberToHex(ERC721A_SLOT, { size: 32 }), blockNumber }),
+    client.getStorageAt({ address: collection, slot: numberToHex(ERC721A_SLOT + 1n, { size: 32 }), blockNumber }),
+    client.readContract({ address: collection, abi: LEVEL_ABI, functionName: "totalSupply", blockNumber }),
   ]);
   const next = BigInt(index ?? "0x0");
   if (next === 0n || next - BigInt(burned ?? "0x0") - 1n !== supply) {
@@ -169,10 +182,31 @@ async function mintedUpTo(collection: Address): Promise<bigint> {
   return next - 1n;
 }
 
+/**
+ * The block every read of one build is pinned to (2026-10-13).
+ *
+ * Reads used to go to "latest", and `rpc.valuechain.xyz` spreads them over
+ * several nodes. Two things went wrong, both in production logs:
+ *   - "latest" sometimes reached nodes that had the newest block's header but
+ *     not yet its state: "missing trie node … is not available" (-32014).
+ *   - the three reads in `mintedUpTo` landed on nodes at different heights, so
+ *     `_currentIndex - _burnCounter - 1` and `totalSupply()` came from different
+ *     moments of a collection that mints all day, disagreed, and the build
+ *     refused ("Level storage no longer matches ERC721A").
+ * A few blocks back, every node has the state, and one block number makes the
+ * three reads one moment. Each retry steps a little further back.
+ */
+const BEHIND = 3n;
+
+async function pinnedBlock(attempt: number): Promise<bigint> {
+  const head = await client.getBlockNumber({ cacheTime: 0 });
+  return head - BEHIND - BigInt(attempt) * 2n;
+}
+
 /** Packed level words that are complete — every id in them minted — never change. */
 const settledWords = new Map<string, bigint>();
 
-async function levelWords(collection: Address, bound: bigint, minted: bigint): Promise<bigint[]> {
+async function levelWords(collection: Address, bound: bigint, minted: bigint, blockNumber: bigint): Promise<bigint[]> {
   const last = Number(bound >> 7n);
   const key = (w: number) => `${collection.toLowerCase()}:${w}`;
   const missing: number[] = [];
@@ -181,16 +215,26 @@ async function levelWords(collection: Address, bound: bigint, minted: bigint): P
   const read =
     missing.length === 0
       ? []
-      : await client.multicall({
-          contracts: missing.map((w) => ({
-            address: collection,
-            abi: LEVEL_ABI,
-            functionName: "packedBoxLevels" as const,
-            args: [BigInt(w)] as const,
-          })),
-          allowFailure: false,
-          batchSize: 8192,
-        });
+      : /*
+          At the block `minted` was read at, never an earlier one: before a box
+          is minted its level reads as 0, and a set that counted an unminted id
+          as Common would let a Common offer be filled with whatever box later
+          took that id. A retry asks the same block again, of whichever node
+          answers next.
+        */
+        await withRpcRetry(() =>
+          client.multicall({
+            contracts: missing.map((w) => ({
+              address: collection,
+              abi: LEVEL_ABI,
+              functionName: "packedBoxLevels" as const,
+              args: [BigInt(w)] as const,
+            })),
+            allowFailure: false,
+            batchSize: 8192,
+            blockNumber,
+          }),
+        );
 
   const fresh = new Map<number, bigint>();
   missing.forEach((w, i) => {
@@ -201,8 +245,11 @@ async function levelWords(collection: Address, bound: bigint, minted: bigint): P
   return Array.from({ length: last + 1 }, (_, w) => fresh.get(w) ?? settledWords.get(key(w))!);
 }
 
-/** The bound the current sets are built at, re-read every TTL. */
-const currentBound = new Map<string, { at: number; bound: bigint }>();
+/** The bound the current sets are built at, and the block it was read at; re-read every TTL. */
+const currentBound = new Map<string, { at: number; bound: bigint; block: bigint }>();
+
+/** After a failed refresh, how soon to try again while serving what was already built. */
+const RETRY_AFTER_FAILURE_MS = 30_000;
 
 /** Sets at a given bound never change, so they are kept — only a few, they are large. */
 const atBound = new Map<string, Promise<TraitSet[]>>();
@@ -212,8 +259,23 @@ async function levelSetsOf(collection: Address, source: LevelSource, bound?: big
   const c = collection.toLowerCase();
   let now = currentBound.get(c);
   if (now === undefined || Date.now() - now.at >= TTL_MS) {
-    now = { at: Date.now(), bound: await mintedUpTo(collection) };
-    currentBound.set(c, now);
+    try {
+      now = await withRpcRetry(async (attempt) => {
+        const block = await pinnedBlock(attempt);
+        return { at: Date.now(), bound: await mintedUpTo(collection, block), block };
+      });
+      currentBound.set(c, now);
+    } catch (err) {
+      /*
+        The sets already built were right a few minutes ago, and a box's level
+        never changes, so keep answering with them and try again shortly. Only
+        a cold instance, with nothing built yet, has to fail.
+      */
+      if (now === undefined) throw err;
+      console.warn("[criteria] refresh failed, serving the last sets", err instanceof Error ? err.message : err);
+      now = { ...now, at: Date.now() - TTL_MS + RETRY_AFTER_FAILURE_MS };
+      currentBound.set(c, now);
+    }
   }
 
   const target = bound ?? now.bound;
@@ -222,7 +284,7 @@ async function levelSetsOf(collection: Address, source: LevelSource, bound?: big
   const k = `${c}:${target}`;
   let pending = atBound.get(k);
   if (pending === undefined) {
-    pending = buildLevels(collection, source, target, now.bound);
+    pending = buildLevels(collection, source, target, now.bound, now.block);
     atBound.set(k, pending);
     pending.catch(() => atBound.delete(k));
     while (atBound.size > AT_BOUND_KEPT) atBound.delete(atBound.keys().next().value!);
@@ -235,8 +297,9 @@ async function buildLevels(
   source: LevelSource,
   bound: bigint,
   minted: bigint,
+  blockNumber: bigint,
 ): Promise<TraitSet[]> {
-  const words = await levelWords(collection, bound, minted);
+  const words = await levelWords(collection, bound, minted, blockNumber);
   const groups: bigint[][] = source.values.map(() => []);
   /* Token ids start at 1. Burned boxes stay in: a burned id can never be
      transferred again or minted twice, so it can never fill an offer. */
