@@ -930,12 +930,46 @@
   margin: 0 auto;
   padding: 1.5rem var(--gutter) 2.5rem;
   border-top: 1px solid var(--dark-line);
-  display: flex;
-  justify-content: space-between;
+  /* Three columns with equal outer tracks, so the X link sits on the true
+     centre line however long the two side notes are. */
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
   gap: 1rem;
-  flex-wrap: wrap;
   font-size: var(--step--2);
   color: var(--dark-ink-2);
+}
+.footer-base > :last-child {
+  justify-self: end;
+}
+
+/* The project's X account: as quiet as the notes either side of it. */
+.footer-social {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 24px;
+  color: var(--dark-ink-2);
+  transition: color var(--fast);
+}
+.footer-social svg {
+  width: 12px;
+  height: 12px;
+  flex: none;
+}
+.footer-social:hover {
+  color: var(--dark-ink);
+}
+
+@media (max-width: 560px) {
+  .footer-base {
+    grid-template-columns: 1fr;
+    justify-items: start;
+    gap: 0.5rem;
+  }
+  .footer-base > :last-child {
+    justify-self: start;
+  }
 }
 
 @media (max-width: 820px) {
