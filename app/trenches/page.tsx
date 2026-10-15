@@ -4,12 +4,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useAccount, useReadContracts } from "wagmi";
 import { Art } from "@/components/Art";
-import { ArrowRight } from "@/components/Arrows";
 import { ConnectButton } from "@/components/ConnectButton";
 import { DepthScene } from "@/components/DepthScene";
 import { SodexLogo } from "@/components/SodexLogo";
 import { TxResult } from "@/components/TxResult";
 import { useTrenchesClaim } from "@/hooks/useTrenchesClaim";
+import { TrenchesPerk } from "@/components/TrenchesPerk";
 import { TIERS, formatVolume, tierImage, type Tier } from "@/config/tiers";
 import { TIER_STRIDE, TRENCHES_ABI, TRENCHES_ADDRESS } from "@/config/trenches";
 import "@/styles/home.css";
@@ -166,25 +166,27 @@ export default function Trenches() {
   return (
     <>
       <section className="page section trx-intro">
+        {/* One line of words (owner, 2026-10-15): the progress and the picture do the talking. */}
         <div className="trx-intro-copy">
-          <p className="eyebrow">The Trenches</p>
           <h1 className="trx-title">How deep have you traded?</h1>
           <p className="trx-lede">
-            Ten free NFTs for SoDEX traders, one for every depth of all-time volume you pass. Free to
-            claim, gas only, one per depth.
+            One free NFT for every depth of all-time SoDEX volume you pass. Gas only.
+            {supply === undefined ? null : (
+              <>
+                {" "}
+                <b>{supply.toLocaleString()}</b> claimed so far.
+              </>
+            )}
           </p>
-          <div className="trx-actions">
-            <a className="btn btn-primary btn-lg" href="#depths">
-              See the ten depths
-              <ArrowRight />
-            </a>
-            {deployed ? (
-              <Link className="btn btn-lg" href={`/collection/${TRENCHES_ADDRESS}`}>
-                Trade them
-              </Link>
-            ) : null}
-          </div>
         </div>
+
+        {/* The wallet's standing, beside the picture. */}
+        <YourDepth
+          state={state}
+          connected={mounted && address !== undefined}
+          onRetry={() => address && void check(address)}
+          onClaimed={() => void refetchReads()}
+        />
 
         <figure className="trx-art">
           <DepthScene
@@ -204,31 +206,13 @@ export default function Trenches() {
             <span>ValueMint</span>
           </figcaption>
         </figure>
-
-        {/* The wallet's standing, the width of the section under both columns. */}
-        <YourDepth
-          state={state}
-          connected={mounted && address !== undefined}
-          onRetry={() => address && void check(address)}
-          onClaimed={() => void refetchReads()}
-        />
       </section>
 
-      <section className="page section" id="depths">
-        <div className="head">
-          <div>
-            <p className="eyebrow">The ladder</p>
-            <h2>Ten depths</h2>
-          </div>
-          <p className="trx-head-note">
-            {supply === undefined ? null : (
-              <>
-                <b>{supply.toLocaleString()}</b> claimed so far
-              </>
-            )}
-          </p>
-        </div>
+      {/* A perk for holders: Cybereator NFTs drawn among depth 5+ (config/draws.ts). */}
+      <TrenchesPerk />
 
+      {/* No title row (owner, 2026-10-15): ten cards need no heading, and the count is in the lede. */}
+      <section className="page section trx-depths" id="depths" aria-label="Ten depths">
         <div className="grid-tokens trx-grid">
           {TIERS.map((t, i) => (
             <DepthCard key={t.n} tier={t} minted={minted[i]} status={statusOf(t, i)} />

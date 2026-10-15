@@ -13,31 +13,42 @@
 
 /* ----------------------------------------------------------------- intro */
 
+/* Compact (owner, 2026-10-15: "it is taking so much space"): one-line title,
+   a smaller picture, normal buttons, and the depth panel close under them. */
 .trx-intro {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 34rem);
-  align-items: center;
-  gap: clamp(1.75rem, 4vw, 3.5rem);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 21rem);
+  align-items: stretch;
+  gap: 0.9rem clamp(1rem, 2vw, 1.5rem);
+}
+/* Row one: the title and its line, across both columns. Row two: the
+   progress card and the picture, side by side and the same height. */
+.trx-intro-copy {
+  grid-column: 1 / -1;
+}
+/* The page's first section: less air above it than a section deep in a page. */
+.trx-intro.section {
+  padding-block: clamp(1.25rem, 3vw, 2rem);
 }
 
 .trx-intro-copy {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 0.9rem;
+  gap: 0.4rem;
   min-width: 0;
 }
 
 .trx-title {
-  font-size: var(--step-4);
+  font-size: clamp(1.4rem, 2vw, 1.75rem);
   font-weight: 800;
-  max-width: 14ch;
+  max-width: none;
 }
 
 .trx-lede {
-  max-width: 46ch;
-  font-size: var(--step-0);
-  line-height: 1.6;
+  max-width: none;
+  font-size: var(--step--1);
+  line-height: 1.5;
   color: var(--ink-2);
 }
 
@@ -45,27 +56,27 @@
   display: flex;
   flex-wrap: wrap;
   gap: 0.6rem;
-  margin-top: 0.3rem;
+  margin-top: 0.15rem;
 }
 
 /* The connected wallet's standing: a full-width row under the hero, so the
    text and the art above it can balance each other. Two halves — the ladder,
    the goal — that stack on a narrow screen. */
 .trx-you {
-  grid-column: 1 / -1;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 19rem), 1fr));
   align-items: start;
-  gap: 1.1rem clamp(1.5rem, 4vw, 3rem);
+  align-content: center;
+  gap: 0.75rem clamp(1.25rem, 3vw, 2.5rem);
   width: 100%;
-  padding: clamp(1rem, 2.2vw, 1.4rem) clamp(1rem, 2.4vw, 1.6rem);
+  padding: 0.85rem clamp(0.9rem, 2vw, 1.25rem);
 }
 .trx-you-main,
 .trx-you-side {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 0.7rem;
+  gap: 0.45rem;
   min-width: 0;
 }
 /* The goal starts level with the ladder's circles, not the card's top. */
@@ -127,9 +138,10 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.35rem;
+  justify-content: center;
+  gap: 0.15rem;
   margin: 0;
-  padding: clamp(0.75rem, 2vw, 1.25rem) clamp(0.5rem, 1.5vw, 1rem) 1.1rem;
+  padding: 0.45rem 0.6rem 0.55rem;
   border: 1px solid var(--line);
   border-radius: var(--r-xl);
   background: var(--surface-2);
@@ -138,15 +150,15 @@
 .trx-lockup {
   display: flex;
   align-items: center;
-  gap: 0.55rem;
-  font-size: var(--step--1);
+  gap: 0.45rem;
+  font-size: var(--step--2);
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--ink-2);
 }
 .trx-lockup-logo {
-  height: 1.05rem;
+  height: 0.85rem;
   width: auto;
   display: block;
 }
@@ -197,12 +209,9 @@
 
 /* ---------------------------------------------------------------- depths */
 
-.trx-head-note {
-  font-size: var(--step--1);
-  color: var(--ink-3);
-}
-.trx-head-note b {
+.trx-lede b {
   color: var(--ink);
+  font-weight: 650;
   font-variant-numeric: tabular-nums;
 }
 
@@ -308,7 +317,7 @@
   display: grid;
   place-items: center;
   width: 100%;
-  max-width: 1.85rem;
+  max-width: 1.4rem;
   aspect-ratio: 1;
   border-radius: 50%;
   background: var(--surface-2);
@@ -372,7 +381,7 @@
   flex-direction: column;
   gap: 0.35rem;
   width: 100%;
-  margin-top: 0.5rem;
+  margin-top: 0;
 }
 .trx-goal-label {
   font-size: var(--step--2);
