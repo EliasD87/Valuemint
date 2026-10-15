@@ -31,8 +31,6 @@ type Phase = "before" | "counting" | "listed" | "drawn";
 
 const fmt = (n: number) => n.toLocaleString("en-US");
 const DEPTH = Object.fromEntries(TIERS.map((t) => [t.n, t]));
-const QUALIFYING = TIERS.filter((t) => t.n >= DRAW.minDepth);
-const FULL_SET = QUALIFYING.filter((t) => t.n < 10).reduce((s, t) => s + t.n, 0);
 
 /** "2d 23h", "4h 12m", "9m". */
 function untilText(blocks: bigint): string {
@@ -290,35 +288,24 @@ export function TrenchesPerk() {
               <path d="m6 9 6 6 6-6" />
             </svg>
           </summary>
+          {/* Plain words only (owner, 2026-10-15: no hashes, no formulas). The
+              mechanics are in lib/draw.ts for anyone who wants them. */}
           <ul>
             <li>
-              Every Trenches piece of <b>depth {DRAW.minDepth} or deeper</b> counts, claimed or bought.
+              Hold a Trenches piece of <b>depth {DRAW.minDepth} or deeper</b>, claimed or bought.
             </li>
             <li>
-              Each piece is worth <b>its depth in tickets</b>: Inferno 5 up to Monolith 10. A full Inferno to Riptide set
-              is {FULL_SET}.
+              Each piece is worth <b>its depth in tickets</b>: Inferno 5 up to Monolith 10.
             </li>
             <li>
-              What counts is what the wallet holds <b>at the snapshot block</b>, {fmt(Number(DRAW.snapshotBlock))}.
-              {DRAW.drawAnnounced ? ` The draw block is ${fmt(Number(DRAW.drawBlock))}.` : null} The times shown are
-              estimates.
+              What counts is what your wallet holds <b>at the snapshot</b>.
             </li>
+            <li>After the snapshot, the full ticket list is published here.</li>
+            <li>The draw is random and public: nobody, ValueMint included, can pick the winners.</li>
             <li>
-              Right after the snapshot, the full list goes up here, every wallet with <b>its own ticket numbers</b>.
+              <b>One NFT per wallet.</b>
             </li>
-            <li>
-              The winners come from the <b>hash of the draw block</b>, which does not exist until the list is fixed.
-              Nobody, ValueMint included, can pick or predict them.
-            </li>
-            <li>
-              <b>One NFT per wallet.</b> A wallet that has won is skipped in the later draws.
-            </li>
-            <li>ValueMint&rsquo;s test and deployer wallets are left out.</li>
-            <li>
-              Anyone can check it: for seat <i>n</i>, the winning ticket is{" "}
-              <code>keccak256(hash, n, attempt) mod total + 1</code>, moving to the next attempt if that wallet has
-              already won.
-            </li>
+            <li>ValueMint&rsquo;s own wallets are left out.</li>
           </ul>
         </details>
       </div>

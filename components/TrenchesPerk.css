@@ -368,15 +368,6 @@
   font-weight: 650;
 }
 
-.perk-how code {
-  font-family: inherit;
-  font-size: 0.95em;
-  padding: 0.05rem 0.35rem;
-  border-radius: var(--r-sm);
-  background: var(--surface-2);
-  color: var(--ink);
-}
-
 /* ---------------------------------------------------------------- narrow */
 
 @media (max-width: 999px) {
