@@ -1,6 +1,16 @@
 import { describe, expect, it } from "vitest";
 import { keccak256, toHex } from "viem";
-import { drawWinners, numberTickets, ownerOfTicket, ticketFor, validateEntries, type DrawEntry } from "./draw";
+import {
+  drawWinners,
+  numberOfPlace,
+  numbersOf,
+  numberTickets,
+  ownerOfTicket,
+  placeOfNumber,
+  ticketFor,
+  validateEntries,
+  type DrawEntry,
+} from "./draw";
 import { ticketsFor } from "@/config/draws";
 
 const wallet = (i: number) => `0x${(i + 1).toString(16).padStart(40, "0")}`;
@@ -101,5 +111,40 @@ describe("drawWinners", () => {
     for (let s = 0; s < N; s++) if (drawWinners(es, seed(s), 1)[0]!.tickets === 35) big++;
     expect(big / N).toBeGreaterThan(35 / 40 - 0.03);
     expect(big / N).toBeLessThan(35 / 40 + 0.03);
+  });
+});
+
+describe("shuffle (ticket numbers)", () => {
+  it("is a bijection on 1..total, and its inverse undoes it", () => {
+    for (const total of [1, 2, 3, 7, 16, 17, 100, 1000, 3830]) {
+      const s = seed(total);
+      const seen = new Set<number>();
+      for (let p = 1; p <= total; p++) {
+        const n = numberOfPlace(p, total, s);
+        expect(n).toBeGreaterThanOrEqual(1);
+        expect(n).toBeLessThanOrEqual(total);
+        expect(placeOfNumber(n, total, s)).toBe(p);
+        seen.add(n);
+      }
+      expect(seen.size).toBe(total);
+    }
+  });
+
+  it("scatters a wallet's run instead of keeping it in one block", () => {
+    const es = list([33, 500, 500]);
+    const nums = numbersOf(es[0]!, 1033, seed(9));
+    expect(nums).toHaveLength(33);
+    expect(nums[nums.length - 1]! - nums[0]!).toBeGreaterThan(500);
+  });
+
+  it("draws by number, and each winning number belongs to its winner", () => {
+    const es = list([14, 5, 21, 6, 8]);
+    const ns = seed(42);
+    const ws = drawWinners(es, seed(7), 3, ns);
+    expect(new Set(ws.map((w) => w.wallet)).size).toBe(3);
+    for (const w of ws) {
+      expect(ownerOfTicket(es, w.ticket, ns)!.wallet).toBe(w.wallet);
+      expect(numbersOf(ownerOfTicket(es, w.ticket, ns)!, 54, ns)).toContain(w.ticket);
+    }
   });
 });

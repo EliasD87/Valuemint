@@ -11,10 +11,14 @@
  *   - The owner takes part with one wallet; the test wallet and the deployer
  *     are left out, so nobody is in twice.
  *   - The list is published as /draws/<id>.json, every wallet with a fixed
- *     range of ticket numbers.
- *   - The winners are picked from the hash of `drawBlock`, a block that does not
- *     exist when the list is fixed (lib/draw.ts). One NFT per wallet.
- *   - The NFTs are sent by hand by the owner; `sent` records each transfer.
+ *     range of ticket numbers (contracts/scripts/draw-snapshot.mjs builds it
+ *     from Transfer logs, so anyone can rebuild it).
+ *   - The same list is uploaded to a TicketDraw contract and locked there
+ *     together with `drawBlock`, a block that does not exist yet. The contract
+ *     then picks the winners from that block's hash, on chain, exactly as
+ *     lib/draw.ts does. One NFT per wallet.
+ *   - The NFTs are sent by hand by the owner (2026-10-16); `sent` records each
+ *     transfer (`STEP=sent` in contracts/scripts/ticket-draw.ts prints it).
  *
  * Block numbers are the rule; the dates beside them are estimates at the
  * chain's measured ~2.04s per block (300,000 blocks to 2026-10-15).
@@ -39,6 +43,12 @@ export interface PerkDraw {
    * no countdown, no block, and no result worked out from `drawBlock`.
    */
   drawAnnounced: boolean;
+  /**
+   * The TicketDraw contract holding the locked list (contracts/TicketDraw.sol),
+   * or "" until it is deployed. Once set, the page takes the draw block, the
+   * winner count and the winners from the chain, not from this file.
+   */
+  drawContract: `0x${string}` | "";
   /** Where the frozen ticket list is published, once it is. */
   listUrl: string;
   /** False until the list for `snapshotBlock` has been generated and published. */
@@ -64,6 +74,7 @@ export const CYBEREATOR_SEATS: PerkDraw = {
   drawAt: "2026-10-18T16:00:00Z",
   // "Coming soon" on the page (owner, 2026-10-15) until the draw is announced.
   drawAnnounced: false,
+  drawContract: "",
   listUrl: "/draws/cybereator-seats-1.json",
   listPublished: false,
   excluded: [
@@ -71,6 +82,8 @@ export const CYBEREATOR_SEATS: PerkDraw = {
     // so the owner is in the draw once.
     "0x36806932bc43047d0ce6363b8dec79c5d5a73136", // owner's test wallet
     "0xe2e4c5e48f514b06f907614b04d7a3f547ee815a", // deployer
+    // 0x0879…BC84 is NOT here: it is the owner's main wallet and takes part
+    // (owner, 2026-10-16: "stop excluding my wallet").
   ],
   sent: {},
 };

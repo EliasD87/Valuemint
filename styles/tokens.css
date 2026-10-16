@@ -74,6 +74,8 @@
   --accent: #ff5c00;
   --accent-hover: #ff6f1f;
   --accent-2: #ff8a3d;
+  /* Cybereator's wordmark yellow (Trenches perk ticket). Deeper on white so it still reads. */
+  --cybereator: #f0b400;
   /**
    * Dark, not white, and the dark theme has always said so.
    *
@@ -313,6 +315,7 @@
   --accent: #ff7a33;
   --accent-hover: #ff8f52;
   --accent-2: #ffa670;
+  --cybereator: #ffd60a;
   --accent-ink: #1a0c04;
   --accent-wash: #2a1509;
   --accent-line: #4d2811;

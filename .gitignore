@@ -36,3 +36,6 @@ ARCHITECTURE.md
 
 # Local session config for Claude Code. Machine-specific, not shared.
 .claude/
+
+# A dev-only stand-in for a draw list (TrenchesPerk ?ticketsPreview). Never published.
+public/draws/preview.json

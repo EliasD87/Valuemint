@@ -1,17 +1,22 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { getAddress, isAddress, type Hex } from "viem";
+import { getAddress, isAddress, keccak256, toHex, zeroHash, type Hex } from "viem";
 import { useAccount, useBlockNumber, usePublicClient } from "wagmi";
 import { AddressLink } from "@/components/AddressLink";
 import { CYBEREATOR_SEATS as DRAW, MEASURED_BLOCK_MS, ticketsFor } from "@/config/draws";
-import { TIERS } from "@/config/tiers";
+import { Art } from "@/components/Art";
+import { TIERS, tierImage } from "@/config/tiers";
 import { TRENCHES_ADDRESS } from "@/config/trenches";
 import { deployment } from "@/config/contracts";
+import { useTicketDraw } from "@/hooks/useTicketDraw";
 import { useTrenchesHoldings } from "@/hooks/useTrenchesHoldings";
-import { drawWinners, type DrawList } from "@/lib/draw";
+import { drawWinners, numbersOf, numberTickets, type DrawList, type DrawWinner } from "@/lib/draw";
+import { TicketLeaderboard } from "@/components/TicketLeaderboard";
+import { TicketShare } from "@/components/TicketShare";
+import { TicketList, rangeText } from "@/components/TicketList";
 import "./TrenchesPerk.css";
 
 /**
@@ -19,8 +24,14 @@ import "./TrenchesPerk.css";
  * (2026-10-15). The rules and the schedule live in config/draws.ts; the draw
  * itself in lib/draw.ts. This only shows them: before the snapshot, how many
  * tickets a wallet holds right now; after it, the frozen list; after the draw
- * block, the winners, worked out here from the block's hash so anyone viewing
- * the page is checking the result, not trusting it.
+ * block, the winners.
+ *
+ * Once `drawContract` is set, the chain is the source: the list the contract
+ * locked is compared line by line with the published file ("Locked on chain"
+ * only when every line matches), the draw block and winner count come from the
+ * lock, and the winners from the contract's own draw. They are also worked out
+ * again here from the seed with lib/draw.ts, so anyone viewing the page is
+ * checking the result, not trusting it.
  *
  * The card says three things at a glance (the prize, the tickets per depth, your
  * tickets) and a timeline; every rule lives in "How it works", as bullets
@@ -32,15 +43,64 @@ type Phase = "before" | "counting" | "listed" | "drawn";
 const fmt = (n: number) => n.toLocaleString("en-US");
 const DEPTH = Object.fromEntries(TIERS.map((t) => [t.n, t]));
 
-/** "2d 23h", "4h 12m", "9m". */
-function untilText(blocks: bigint): string {
-  const ms = Number(blocks) * MEASURED_BLOCK_MS;
-  const m = Math.max(1, Math.round(ms / 60_000));
-  const d = Math.floor(m / 1440);
-  const h = Math.floor((m % 1440) / 60);
-  if (d > 0) return `${d}d ${h}h`;
-  if (h > 0) return `${h}h ${m % 60}m`;
-  return `${m}m`;
+/** A barcode for the stub. Decoration only: bar widths come from the wallet's own characters. */
+function Barcode({ seed }: { seed: string }) {
+  const chars = seed.toLowerCase().replace(/^0x/, "").slice(0, 28);
+  let x = 0;
+  const bars: { x: number; w: number }[] = [];
+  for (const c of chars) {
+    const v = parseInt(c, 36) || 1;
+    const w = 1 + (v % 3);
+    bars.push({ x, w });
+    x += w + 1 + ((v >> 2) % 2);
+  }
+  return (
+    <svg className="tix-barcode" viewBox={`0 0 ${x} 20`} preserveAspectRatio="none" aria-hidden="true">
+      {bars.map((b, i) => (
+        <rect key={i} x={b.x} y={0} width={b.w} height={20} />
+      ))}
+    </svg>
+  );
+}
+
+/** Numbers printed on the stub before "+N more". */
+const STUB_NUMBERS = 8;
+
+/** Preview only: stands in for the contract's numberSeed so shuffled numbers can be seen before one exists. */
+const PREVIEW_NUMBER_SEED = keccak256(toHex("valuemint-preview-numbers"));
+
+/** Days / hours / minutes / seconds to a moment, ticking once a second. */
+function Countdown({ to }: { to: number }) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
+  const left = Math.max(0, Math.floor((to - now) / 1000));
+  const parts: [number, string][] = [
+    [Math.floor(left / 86_400), "days"],
+    [Math.floor((left % 86_400) / 3600), "hrs"],
+    [Math.floor((left % 3600) / 60), "min"],
+    [left % 60, "sec"],
+  ];
+  /* Drop leading zero units (no "00 days" on the last day), keep at least minutes and seconds. */
+  while (parts.length > 2 && parts[0]![0] === 0) parts.shift();
+  return (
+    <span className="perk-clock" role="timer">
+      {parts.map(([v, unit]) => (
+        <span key={unit} className="perk-clock-unit">
+          <b>{String(v).padStart(2, "0")}</b>
+          <i>{unit}</i>
+        </span>
+      ))}
+    </span>
+  );
+}
+
+/** The configured time when it is for this block, else an estimate from the head. */
+function drawAtOf(block: bigint, head: bigint | undefined): string {
+  if (block === DRAW.drawBlock || head === undefined) return DRAW.drawAt;
+  return new Date(Date.now() + Number(block - head) * MEASURED_BLOCK_MS).toISOString();
 }
 
 function whenText(iso: string): string {
@@ -55,50 +115,143 @@ export function TrenchesPerk() {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
+  /* Dev only: /trenches?ticketsPreview shows the page as after the snapshot,
+     with today's list (public/draws/preview.json, gitignored) and the connected
+     wallet added with made-up pieces, so the ticket view can be checked on a
+     real wallet before the real list exists. Inert in a production build. */
+  const [preview, setPreview] = useState(false);
+  useEffect(() => {
+    if (process.env.NODE_ENV !== "development") return;
+    /* Sticky for the tab, so the header's own Trenches link keeps it on; ?ticketsPreview=off ends it. */
+    try {
+      const q = new URLSearchParams(window.location.search).get("ticketsPreview");
+      if (q === "off") sessionStorage.removeItem("ticketsPreview");
+      else if (q !== null) sessionStorage.setItem("ticketsPreview", "1");
+      setPreview(sessionStorage.getItem("ticketsPreview") === "1");
+    } catch {
+      setPreview(new URLSearchParams(window.location.search).has("ticketsPreview"));
+    }
+  }, []);
+
   const { data: head } = useBlockNumber({ query: { refetchInterval: 15_000 } });
-  const phase: Phase =
-    head === undefined || head < DRAW.snapshotBlock
+  const chain = useTicketDraw(DRAW.drawContract).state;
+  /* The lock is the announcement: from then on the block and the count are public on chain anyway. */
+  const locked = chain !== undefined && chain.drawBlock > 0n;
+  const drawBlock = locked ? chain.drawBlock : DRAW.drawBlock;
+  const announced = locked || DRAW.drawAnnounced;
+  const winnerCount = locked ? chain.winners : DRAW.winners;
+  /* With a contract, "drawn" means the contract has drawn; without, that the block exists. */
+  const isDrawn = DRAW.drawContract !== "" ? chain?.drawn === true : head !== undefined && head >= drawBlock;
+  const phase: Phase = preview
+    ? "listed"
+    : head === undefined || head < DRAW.snapshotBlock
       ? "before"
       : !DRAW.listPublished
         ? "counting"
-        : !DRAW.drawAnnounced || head < DRAW.drawBlock
+        : !announced || !isDrawn
           ? "listed"
           : "drawn";
 
-  const { data: list } = useQuery({
-    queryKey: ["draw-list", DRAW.listUrl],
-    enabled: DRAW.listPublished,
+  const listUrl = preview ? "/draws/preview.json" : DRAW.listUrl;
+  const { data: published } = useQuery({
+    queryKey: ["draw-list", listUrl],
+    enabled: DRAW.listPublished || preview,
     staleTime: Infinity,
     queryFn: async () => {
-      const res = await fetch(DRAW.listUrl);
+      const res = await fetch(listUrl);
       if (!res.ok) throw new Error("Could not load the ticket list.");
       return (await res.json()) as DrawList;
     },
   });
+  const list = useMemo(() => {
+    if (!preview || published === undefined || address === undefined) return published;
+    const me = address.toLowerCase();
+    if (published.entries.some((e) => e.wallet === me)) return published;
+    const depths = [9, 7, 6, 6, 5];
+    const entries = numberTickets([
+      ...published.entries.map(({ wallet, depths, tickets }) => ({ wallet, depths, tickets })),
+      { wallet: me, depths, tickets: depths.reduce((a, b) => a + b, 0) },
+    ]);
+    return { ...published, entries, wallets: entries.length, tickets: entries[entries.length - 1]!.to };
+  }, [preview, published, address]);
 
-  /* The draw block's hash, once it exists, picks the winners right here. */
+  /* Block numbers are the rule; for a ticking clock, anchor the head to the wall
+     clock whenever it moves and estimate at the chain's measured pace. */
+  const [anchor, setAnchor] = useState<{ head: bigint; at: number } | undefined>(undefined);
+  useEffect(() => {
+    if (head !== undefined) setAnchor({ head, at: Date.now() });
+  }, [head]);
+  const etaOf = (block: bigint) =>
+    anchor === undefined ? undefined : anchor.at + Number(block - anchor.head) * MEASURED_BLOCK_MS;
+
+  /* Sealed and numbered on chain: from then on the chain's numberSeed is the one that counts. */
+  const numbered = chain !== undefined && chain.numberSeed !== zeroHash;
+  /* The list on chain must be the published file, line for line, with the same shuffle. */
+  const listOnChain =
+    numbered && list !== undefined
+      ? chain.entries.length === list.entries.length &&
+        chain.tickets === list.tickets &&
+        chain.entries.every((e, i) => e.wallet === list.entries[i]!.wallet.toLowerCase() && e.end === list.entries[i]!.to) &&
+        (list.numbers === undefined || list.numbers.seed.toLowerCase() === chain.numberSeed.toLowerCase())
+      : undefined;
+  /* What shuffles places into ticket numbers: the chain's, else the file's, else (preview) a stand-in. */
+  const numberSeed: Hex | undefined = numbered
+    ? chain.numberSeed
+    : (list?.numbers?.seed ?? (preview ? PREVIEW_NUMBER_SEED : undefined));
+
+  /* The draw block's hash picks the winners: the contract's seed, or (no contract) the block itself. */
   const client = usePublicClient();
-  const { data: seed } = useQuery({
-    queryKey: ["draw-seed", DRAW.drawBlock.toString()],
-    enabled: phase === "drawn" && client !== undefined,
+  const { data: blockSeed } = useQuery({
+    queryKey: ["draw-seed", drawBlock.toString()],
+    enabled: phase === "drawn" && DRAW.drawContract === "" && client !== undefined,
     staleTime: Infinity,
-    queryFn: async () => (await client!.getBlock({ blockNumber: DRAW.drawBlock })).hash as Hex,
+    queryFn: async () => (await client!.getBlock({ blockNumber: drawBlock })).hash as Hex,
   });
-  const winners = useMemo(
-    () => (list !== undefined && seed !== undefined ? drawWinners(list.entries, seed, DRAW.winners) : undefined),
-    [list, seed],
+  const seed = DRAW.drawContract !== "" ? (chain?.drawn ? chain.seed : undefined) : blockSeed;
+  const recomputed = useMemo(
+    () => (list !== undefined && seed !== undefined ? drawWinners(list.entries, seed, winnerCount, numberSeed) : undefined),
+    [list, seed, winnerCount, numberSeed],
   );
+  const winners: DrawWinner[] | undefined =
+    DRAW.drawContract === ""
+      ? recomputed
+      : chain?.drawn && list !== undefined
+        ? chain.results.map((r, i) => ({
+            place: i + 1,
+            wallet: r.wallet,
+            ticket: r.ticket,
+            attempt: r.attempt,
+            tickets: list.entries.find((e) => e.wallet.toLowerCase() === r.wallet.toLowerCase())?.tickets ?? 0,
+          }))
+        : undefined;
+  /* Should never be false; if it is, say so rather than quietly show one side. */
+  const agrees =
+    winners === undefined || recomputed === undefined
+      ? undefined
+      : winners.length === recomputed.length &&
+        winners.every((w, i) => w.wallet.toLowerCase() === recomputed[i]!.wallet.toLowerCase());
 
   /* Whose tickets to show: the connected wallet, or one typed in. */
   const [typed, setTyped] = useState("");
+  /* What "Share ticket" captures: the ticket, plus a footer only while capturing. */
+  const shot = useRef<HTMLDivElement>(null);
+  /* The full list's search and open state, lifted so the ticket's "+N more" can open it on this wallet. */
+  const [listQuery, setListQuery] = useState("");
+  const [listOpen, setListOpen] = useState(false);
   /* Any letter case: people paste addresses from everywhere. */
   const typedOk = isAddress(typed.trim(), { strict: false });
   const lookup = typedOk ? getAddress(typed.trim()) : mounted ? address : undefined;
   const isOther = typedOk && lookup?.toLowerCase() !== address?.toLowerCase();
-  const excluded = lookup !== undefined && DRAW.excluded.includes(lookup.toLowerCase());
+  /* In the preview the connected wallet is shown a ticket even if it is one of ours, so the owner can check the view. */
+  const previewSelf = preview && lookup !== undefined && lookup.toLowerCase() === address?.toLowerCase();
+  const excluded = lookup !== undefined && !previewSelf && DRAW.excluded.includes(lookup.toLowerCase());
   const holdings = useTrenchesHoldings(phase === "before" ? lookup : undefined);
   const listed = lookup === undefined ? undefined : list?.entries.find((e) => e.wallet.toLowerCase() === lookup.toLowerCase());
   const won = lookup === undefined ? undefined : winners?.find((w) => w.wallet.toLowerCase() === lookup.toLowerCase());
+  const myNumbers = useMemo(
+    () => (listed === undefined || list === undefined || numberSeed === undefined ? undefined : numbersOf(listed, list.tickets, numberSeed)),
+    [listed, list, numberSeed],
+  );
 
   const depths = phase === "before" ? holdings.depths.filter((d) => d >= DRAW.minDepth) : (listed?.depths ?? []);
   const tickets = phase === "before" ? ticketsFor(holdings.depths, DRAW.minDepth) : (listed?.tickets ?? 0);
@@ -115,12 +268,8 @@ export function TrenchesPerk() {
       when: whenText(DRAW.snapshotAt),
       block: DRAW.snapshotBlock,
       state: phase === "before" ? "now" : "done",
-      note:
-        phase === "before"
-          ? head === undefined
-            ? "Reading the chain…"
-            : `in ${untilText(DRAW.snapshotBlock - head)}`
-          : "Taken",
+      /* While it is ahead, the clock on the ticket says when. */
+      note: phase === "before" ? "" : "Taken",
     },
     {
       key: "list",
@@ -128,136 +277,258 @@ export function TrenchesPerk() {
       when: "After the snapshot",
       block: undefined,
       state: phase === "counting" ? "now" : phase === "before" ? "next" : "done",
-      note: list !== undefined ? `${fmt(list.wallets)} wallets · ${fmt(list.tickets)} tickets` : phase === "counting" ? "Counting…" : "",
+      note:
+        list !== undefined ? (
+          <>
+            {fmt(list.wallets)} wallets · {fmt(list.tickets)} tickets
+            {listOnChain === true ? (
+              <>
+                {" · "}
+                <a href={`${deployment.explorer}/address/${DRAW.drawContract}`} target="_blank" rel="noreferrer">
+                  Locked on chain
+                </a>
+              </>
+            ) : listOnChain === false ? (
+              " · does not match the chain"
+            ) : null}
+          </>
+        ) : phase === "counting" ? (
+          "Counting…"
+        ) : (
+          ""
+        ),
     },
     {
       key: "draw",
       name: "Draw",
-      when: DRAW.drawAnnounced ? whenText(DRAW.drawAt) : "Coming soon",
-      block: DRAW.drawAnnounced ? DRAW.drawBlock : undefined,
+      when: announced ? whenText(drawAtOf(drawBlock, head)) : "Coming soon",
+      block: announced ? drawBlock : undefined,
       state: phase === "listed" ? "now" : phase === "drawn" ? "done" : "next",
       note:
         phase === "drawn"
           ? "Drawn"
-          : DRAW.drawAnnounced && head !== undefined && phase !== "before"
-            ? `in ${untilText(DRAW.drawBlock - head)}`
+          : announced && head !== undefined && phase !== "before" && head >= drawBlock
+            ? "Drawing…" /* before then, the clock on the ticket counts down to it */
             : "",
     },
   ] as const;
 
-  let you: React.ReactNode;
+  /* The one thing the hero counts down to, or says, right now. */
+  const count: { label: string; to?: number; text?: string } =
+    phase === "before"
+      ? { label: "Snapshot in", to: etaOf(DRAW.snapshotBlock), text: "Reading the chain…" }
+      : phase === "counting"
+        ? { label: "Snapshot taken", text: "Counting the tickets…" }
+        : phase === "listed"
+          ? !announced
+            ? { label: "Tickets are in", text: "Draw date coming soon" }
+            : head !== undefined && head < drawBlock
+              ? { label: "Draw in", to: etaOf(drawBlock), text: "…" }
+              : { label: "Draw block reached", text: "Drawing the winners…" }
+          : { label: "The draw is done", text: "Winners below" };
+
+  const chips =
+    held.length > 0 ? (
+      <div className="perk-chips">
+        {held.map(([d, n]) => (
+          <span key={d} className="perk-chip">
+            <i style={{ background: DEPTH[d]?.colour }} aria-hidden="true" />
+            {DEPTH[d]?.name ?? `Depth ${d}`}
+            <b>{d}</b>
+            {n > 1 ? <span className="perk-chip-count">×{n}</span> : null}
+          </span>
+        ))}
+      </div>
+    ) : null;
+
+  /* What the stub of the ticket says for the wallet being looked at. */
+  let stub: React.ReactNode;
   if (lookup === undefined) {
-    you = <p className="perk-you-note">Connect a wallet, or paste one below.</p>;
+    stub = <p className="tix-stub-note">Connect a wallet to see your tickets, or check any wallet below.</p>;
   } else if (excluded) {
-    you = <p className="perk-you-note">This is a ValueMint test or deployer wallet, so it is left out.</p>;
+    stub = <p className="tix-stub-note">A ValueMint test or deployer wallet, so it is left out.</p>;
   } else if (phase === "before" && holdings.loading) {
-    you = <p className="perk-you-note">Reading its Trenches pieces…</p>;
+    stub = <p className="tix-stub-note">Reading its Trenches pieces…</p>;
   } else if (phase === "counting") {
-    you = <p className="perk-you-note">Snapshot taken. Tickets appear here once the list is published.</p>;
-  } else {
-    you = (
+    stub = <p className="tix-stub-note">Snapshot taken. The tickets appear here once the list is out.</p>;
+  } else if (listed !== undefined && list !== undefined) {
+    const share = (listed.tickets / list.tickets) * 100;
+    stub = (
       <>
-        <p className="perk-you-num">
-          {fmt(tickets)}
+        <p className="tix-stub-num">
+          <b>{fmt(listed.tickets)}</b>
+          <span>{listed.tickets === 1 ? "ticket" : "tickets"}</span>
+        </p>
+        {myNumbers !== undefined ? (
+          <div className="tix-nums">
+            {myNumbers.slice(0, STUB_NUMBERS).map((n) => (
+              <span key={n}>#{fmt(n)}</span>
+            ))}
+            {myNumbers.length > STUB_NUMBERS ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setListQuery(listed.wallet);
+                  setListOpen(true);
+                  requestAnimationFrame(() => document.querySelector(".perk-list")?.scrollIntoView({ behavior: "smooth", block: "start" }));
+                }}
+              >
+                +{myNumbers.length - STUB_NUMBERS} more
+              </button>
+            ) : null}
+          </div>
+        ) : (
+          <p className="tix-stub-range">{rangeText(listed)}</p>
+        )}
+        <p className="tix-stub-note">
+          <b>{share < 0.01 ? "<0.01" : share.toFixed(2)}%</b> of all {fmt(list.tickets)} tickets
+        </p>
+        {chips}
+        {won !== undefined ? <p className="tix-stub-won">Won a Cybereator</p> : null}
+      </>
+    );
+  } else {
+    stub = (
+      <>
+        <p className="tix-stub-num">
+          <b>{fmt(tickets)}</b>
           <span>{tickets === 1 ? "ticket" : "tickets"}</span>
         </p>
-        {held.length > 0 ? (
-          <div className="perk-chips">
-            {held.map(([d, n]) => (
-              <span key={d} className="perk-chip">
-                <i style={{ background: DEPTH[d]?.colour }} aria-hidden="true" />
-                {DEPTH[d]?.name ?? `Depth ${d}`}
-                <b>{d}</b>
-                {n > 1 ? <span className="perk-chip-count">×{n}</span> : null}
-              </span>
-            ))}
-          </div>
-        ) : null}
-        {listed !== undefined ? (
-          <p className="perk-you-note">
-            Ticket numbers <b>#{fmt(listed.from)}</b> to <b>#{fmt(listed.to)}</b>
-          </p>
-        ) : tickets === 0 ? (
-          <p className="perk-you-note">
-            {phase === "before" ? (
+        {chips}
+        <p className="tix-stub-note">
+          {tickets === 0 ? (
+            phase === "before" ? (
               <>
                 No depth {DRAW.minDepth}+ piece yet.{" "}
                 <Link href={`/collection/${TRENCHES_ADDRESS}`}>Find one on the market</Link>.
               </>
             ) : (
               `No depth ${DRAW.minDepth}+ piece at the snapshot.`
-            )}
-          </p>
-        ) : phase === "before" ? (
-          <p className="perk-you-note">Counted from what this wallet holds at the snapshot.</p>
-        ) : null}
-        {won !== undefined ? <p className="perk-you-won">Won a Cybereator</p> : null}
+            )
+          ) : phase === "before" ? (
+            "If this wallet still holds them at the snapshot."
+          ) : null}
+        </p>
+        {won !== undefined ? <p className="tix-stub-won">Won a Cybereator</p> : null}
       </>
     );
   }
 
   return (
     <section className="page section perk" id="perks" aria-labelledby="perk-title">
-      <div className="perk-card">
-        <div className="perk-top">
-          {/* The prize, as a picture: the Cybereator cat at its bar. */}
-          <div className="perk-prize" aria-hidden="true">
+      {preview ? (
+        <p className="perk-preview-bar">
+          <b>Preview</b> (localhost only): as after the snapshot, with today&rsquo;s list
+          {address !== undefined ? " and your wallet given made-up pieces" : ". Connect a wallet to get a ticket"}.{" "}
+          <a href="?ticketsPreview=off">Exit</a>
+        </p>
+      ) : null}
+
+      {/* The whole perk is one event ticket (owner, 2026-10-16, after a ticket
+          reference): the art on the left, the event on the face, the wallet's
+          own tickets on a tear-off stub. How many are given is not said (owner,
+          2026-10-15). */}
+      <div className="tix-shot" ref={shot}>
+        <div className="tix">
+          <div className="tix-art" aria-hidden="true">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img className="perk-prize-bg" src="/heroes/cybereator-bg.webp" alt="" />
+            <img className="tix-art-bg" src="/heroes/cybereator-bg.webp" alt="" />
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img className="perk-prize-cat" src="/heroes/cybereator-cat.webp" alt="" />
+            <img className="tix-art-cat" src="/heroes/cybereator-cat.webp" alt="" />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img className="tix-art-logo" src="/brand/cybereator-dark.png" alt="" />
+            <div className="tix-art-pieces">
+              {[5, 9, 10].map((d, i) => {
+                const t = DEPTH[d];
+                return t === undefined ? null : (
+                  <span key={d} className={`tix-piece is-${i}`} style={{ ["--c" as string]: t.colour }}>
+                    <Art src={tierImage(t)} alt="" sizes="72px" />
+                  </span>
+                );
+              })}
+            </div>
           </div>
 
-          {/* One title line, one sentence, one line of dates (owner, 2026-10-15: "crowded").
-              How many are given is not said (owner, 2026-10-15). */}
-          <div className="perk-intro">
-            <h2 className="perk-title" id="perk-title">
-              Win a Cybereator NFT
+          <div className="tix-face">
+            <p className="tix-kicker">SoDEX Trenches · Holder draw</p>
+            <h2 className="tix-title" id="perk-title">
+              Win a{" "}
+              {/* The Cybereator wordmark itself, tinted gold (owner, 2026-10-16); the word stays for screen readers. */}
+              <span className="tix-wordmark">
+                <span className="visually-hidden">Cybereator</span>
+              </span>
             </h2>
-            <p className="perk-lede">
-              For holders of depth {DRAW.minDepth}+. Each piece you hold is worth its depth in tickets.
-            </p>
-            <ol className="perk-timeline">
+
+            <div className="tix-count">
+              <span className="tix-count-label">{count.label}</span>
+              {count.to !== undefined ? <Countdown to={count.to} /> : <span className="tix-count-text">{count.text}</span>}
+            </div>
+
+            <ol className="tix-steps">
               {steps.map((s) => (
                 <li
                   key={s.key}
-                  className={`perk-step is-${s.state}`}
+                  className={`tix-step is-${s.state}`}
                   title={s.block !== undefined ? `Block ${fmt(Number(s.block))}` : undefined}
                 >
-                  <span className="perk-step-dot" aria-hidden="true" />
-                  <span className="perk-step-name">{s.name}</span>
-                  <span className="perk-step-when">{s.when}</span>
-                  {s.note !== "" ? <span className="perk-step-note">{s.note}</span> : null}
+                  <span className="tix-step-name">
+                    <i aria-hidden="true" />
+                    {s.name}
+                  </span>
+                  <span className="tix-step-when">{s.when}</span>
+                  {s.note !== "" ? <span className="tix-step-note">{s.note}</span> : null}
                 </li>
               ))}
             </ol>
           </div>
 
-          <div className="perk-you" aria-live="polite">
-            <p className="perk-you-label">
-              {isOther ? "That wallet" : phase === "before" ? "Your tickets now" : "Your tickets"}
-            </p>
-            {you}
-            <label className="perk-lookup">
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <circle cx="10.5" cy="10.5" r="6.5" />
-                <path d="m15.5 15.5 5 5" />
-              </svg>
-              <input
-                aria-label="Check another wallet"
-                type="text"
-                spellCheck={false}
-                placeholder="Check any wallet 0x…"
-                value={typed}
-                onChange={(e) => setTyped(e.target.value)}
-              />
-            </label>
+          <div className="tix-stub" aria-live="polite">
+            <p className="tix-stub-label">{isOther ? "That wallet" : phase === "before" ? "Your tickets now" : "Your tickets"}</p>
+            {stub}
+            <Barcode seed={lookup ?? DRAW.id} />
+            <span className="tix-admit" aria-hidden="true">
+              Admit one wallet · {DRAW.id}
+            </span>
           </div>
         </div>
 
+        <p className="tix-shot-foot" aria-hidden="true">
+          <span>Cybereator × ValueMint</span>
+          <b>valuemint.store/trenches</b>
+        </p>
+      </div>
+
+      <div className="tix-tools">
+        <TicketShare
+          target={shot}
+          fileName={`cybereator-ticket${lookup !== undefined ? `-${lookup.slice(2, 8).toLowerCase()}` : ""}.png`}
+        />
+        <label className="perk-lookup tix-lookup">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="10.5" cy="10.5" r="6.5" />
+            <path d="m15.5 15.5 5 5" />
+          </svg>
+          <input
+            aria-label="Check another wallet"
+            type="text"
+            spellCheck={false}
+            placeholder="Check any wallet 0x…"
+            value={typed}
+            onChange={(e) => setTyped(e.target.value)}
+          />
+        </label>
+      </div>
+
+      <div className="perk-card">
         {winners !== undefined ? (
           <div className="perk-winners">
             <p className="perk-you-label">Winners</p>
+            {agrees === false ? (
+              <p className="perk-you-note">
+                The contract&rsquo;s result and this page&rsquo;s own check disagree. Do not rely on either until this is
+                looked at.
+              </p>
+            ) : null}
             <ol>
               {winners.map((w) => {
                 const tx = DRAW.sent[w.wallet.toLowerCase()];
@@ -281,6 +552,22 @@ export function TrenchesPerk() {
           </div>
         ) : null}
 
+        {phase === "before" ? <TicketLeaderboard you={lookup?.toLowerCase()} /> : null}
+
+        {list !== undefined && phase !== "before" && phase !== "counting" ? (
+          <TicketList
+            entries={list.entries}
+            tickets={list.tickets}
+            numberSeed={numberSeed}
+            query={listQuery}
+            onQuery={setListQuery}
+            open={listOpen}
+            onOpen={setListOpen}
+            you={lookup?.toLowerCase()}
+            lockedHref={listOnChain === true ? `${deployment.explorer}/address/${DRAW.drawContract}` : undefined}
+          />
+        ) : null}
+
         <details className="perk-how">
           <summary>
             How it works
@@ -300,7 +587,7 @@ export function TrenchesPerk() {
             <li>
               What counts is what your wallet holds <b>at the snapshot</b>.
             </li>
-            <li>After the snapshot, the full ticket list is published here.</li>
+            <li>After the snapshot, the full list is locked on ValueChain and everyone&rsquo;s ticket numbers are given out at random.</li>
             <li>The draw is random and public: nobody, ValueMint included, can pick the winners.</li>
             <li>
               <b>One NFT per wallet.</b>

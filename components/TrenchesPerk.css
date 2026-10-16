@@ -5,6 +5,16 @@
   padding-bottom: clamp(1.25rem, 3vw, 2rem);
 }
 
+/* Dev only: says the page is showing the ticket preview, not the real state. */
+.perk-preview-bar {
+  margin: 0 0 0.6rem;
+  padding: 0.5rem 0.9rem;
+  border-radius: var(--r-md);
+  background: var(--warn-wash);
+  color: var(--warn);
+  font-size: var(--step--2);
+}
+
 .perk-card {
   display: flex;
   flex-direction: column;
@@ -14,29 +24,50 @@
   overflow: hidden;
 }
 
-/* ---------------------------------------------------------------- top row */
 
-/* Calm on purpose (owner, 2026-10-15: "crowded", "random huge font"): a small
-   picture, one title line at body scale, one sentence, one line of dates, and
-   the tickets at the side. Nothing here is larger than --step-2. */
-.perk-top {
-  display: grid;
-  grid-template-columns: 5.5rem minmax(0, 1fr) minmax(0, 17rem);
-  gap: 1.25rem;
-  align-items: center;
-  padding: 1.1rem 1.25rem;
-}
+/* ---------------------------------------------------------------- the ticket */
 
-/* The prize: the Cybereator cat at its bar. */
-.perk-prize {
+/* The whole perk is one event ticket: art | face | stub. The notches and the
+   scalloped ends are circles of --paper (the page) drawn over the ticket, so
+   they read as cut out of it in either theme. The art and the stub keep their
+   own colours in both themes, the way a printed ticket does. */
+.tix {
+  --stub: 16.5rem;
+  --cut: 0.8rem; /* notch radius */
   position: relative;
-  aspect-ratio: 1;
-  overflow: hidden;
+  display: grid;
+  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.25fr) var(--stub);
+  min-height: 19rem;
   border-radius: var(--r-lg);
-  box-shadow: inset 0 0 0 1px var(--ring);
+  background: var(--surface);
+  box-shadow:
+    inset 0 0 0 1px var(--line),
+    var(--shadow-lg);
+  overflow: hidden;
+  isolation: isolate;
 }
 
-.perk-prize-bg {
+/* -- art */
+
+.tix-art {
+  position: relative;
+  overflow: hidden;
+  background: var(--dark);
+}
+
+/* The left end, scalloped like a torn-off ticket. */
+.tix-art::before {
+  content: "";
+  position: absolute;
+  z-index: 3;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 0.7rem;
+  background: radial-gradient(circle at 0 50%, var(--paper) 0.34rem, transparent 0.37rem) 0 0 / 0.7rem 1.15rem repeat-y;
+}
+
+.tix-art-bg {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -45,38 +76,434 @@
   object-position: 40% 50%;
 }
 
-.perk-prize-cat {
+/* Darker towards the top, where the logo sits. */
+.tix-art::after {
+  content: "";
   position: absolute;
-  left: -6%;
-  bottom: -4%;
-  width: 118%;
-  height: auto;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--dark) 70%, transparent) 0%, transparent 45%);
 }
 
-.perk-intro {
+.tix-art-cat {
+  position: absolute;
+  z-index: 1;
+  left: 56%;
+  bottom: -16%;
+  height: 102%;
+  width: auto;
+  max-width: none;
+  transform: translateX(-46%);
+}
+
+.tix-art-logo {
+  position: absolute;
+  z-index: 2;
+  top: 1.1rem;
+  left: 1.5rem;
+  height: 1.35rem;
+  width: auto;
+}
+
+/* Three depths fanned at the bottom, like cards dealt on the bar. */
+.tix-art-pieces {
+  position: absolute;
+  z-index: 2;
+  left: 1.5rem;
+  bottom: 1.1rem;
+  display: flex;
+}
+
+.tix-piece {
+  position: relative;
+  width: 3.6rem;
+  height: 3.6rem;
+  margin-right: -0.9rem;
+  overflow: hidden;
+  border-radius: var(--r-sm);
+  box-shadow:
+    0 0 0 2px var(--c),
+    var(--shadow-art);
+}
+
+.tix-piece.is-0 {
+  transform: rotate(-9deg) translateY(0.2rem);
+}
+
+.tix-piece.is-1 {
+  z-index: 1;
+  transform: rotate(2deg) translateY(-0.35rem);
+}
+
+.tix-piece.is-2 {
+  z-index: 2;
+  transform: rotate(11deg);
+}
+
+/* -- face */
+
+.tix-face {
   display: flex;
   flex-direction: column;
+  justify-content: center;
+  gap: 0.55rem;
+  min-width: 0;
+  padding: 1.6rem 1.9rem;
+}
+
+.tix-kicker {
+  margin: 0;
+  font-size: var(--step--2);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.tix-title {
+  margin: 0;
+  font-family: var(--display);
+  font-size: var(--step-4);
+  font-weight: 800;
+  line-height: 0.95;
+  letter-spacing: -0.025em;
+  color: var(--ink);
+}
+
+/* The Cybereator wordmark: its own logo as a mask, painted in --cybereator. */
+.tix-wordmark {
+  display: block;
+  width: min(100%, 22rem);
+  aspect-ratio: 1410 / 210;
+  margin-top: 0.35em;
+  background: var(--cybereator);
+  -webkit-mask: url("/brand/cybereator-light.png") left center / contain no-repeat;
+  mask: url("/brand/cybereator-light.png") left center / contain no-repeat;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.tix-sub {
+  margin: 0;
+  max-width: 26rem;
+  font-size: var(--step-0);
+  line-height: 1.45;
+  color: var(--ink-2);
+}
+
+/* What happens next: a live clock, or one line. */
+.tix-count {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.75rem;
+  margin-top: 0.35rem;
+}
+
+.tix-count-label {
+  font-size: var(--step--1);
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.tix-count-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.35rem 0.8rem;
+  border-radius: var(--r-pill);
+  background: var(--accent-wash);
+  box-shadow: inset 0 0 0 1px var(--accent-line);
+  color: var(--ink);
+  font-size: var(--step--1);
+  font-weight: 700;
+}
+
+/* A soft pulse: something is about to be announced. */
+.tix-count-text::before {
+  content: "";
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 0 var(--accent);
+  animation: tix-pulse 1.8s var(--ease) infinite;
+}
+
+@keyframes tix-pulse {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 55%, transparent);
+  }
+  70%,
+  100% {
+    box-shadow: 0 0 0 0.45rem transparent;
+  }
+}
+
+.perk-clock {
+  display: inline-flex;
   gap: 0.3rem;
+}
+
+.perk-clock-unit {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 2.7rem;
+  padding: 0.3rem 0.35rem 0.25rem;
+  border-radius: var(--r-sm);
+  background: var(--dark);
+  color: var(--dark-ink);
+}
+
+.perk-clock-unit b {
+  font-size: var(--step-2);
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.perk-clock-unit i {
+  font-style: normal;
+  font-size: var(--step--3);
+  font-weight: 600;
+  color: var(--dark-ink-2);
+}
+
+/* The three dates, printed along the bottom of the face. */
+.tix-steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin: 0.6rem 0 0;
+  padding: 0.75rem 0 0;
+  border-top: 1px dashed var(--line-strong);
+  list-style: none;
+  font-size: var(--step--2);
+  font-variant-numeric: tabular-nums;
+}
+
+.tix-step {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
   min-width: 0;
 }
 
-.perk-title {
-  margin: 0;
-  font-family: var(--sans);
-  font-size: var(--step-1);
+.tix-step-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
   font-weight: 700;
-  letter-spacing: -0.01em;
-  line-height: 1.3;
+  color: var(--ink);
 }
 
-.perk-lede {
-  margin: 0;
+.tix-step-name i {
+  flex: none;
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1.5px var(--line-strong);
+}
+
+.tix-step.is-now .tix-step-name i {
+  background: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-wash);
+}
+
+.tix-step.is-done .tix-step-name i {
+  background: var(--ink-3);
+  box-shadow: none;
+}
+
+.tix-step.is-next .tix-step-name {
   color: var(--ink-2);
-  font-size: var(--step--1);
-  line-height: 1.5;
 }
 
-/* Depths a wallet holds, under its ticket count. */
+.tix-step-when {
+  color: var(--ink-3);
+}
+
+.tix-step-note {
+  font-weight: 650;
+  color: var(--ink-2);
+}
+
+.tix-step.is-now .tix-step-note {
+  color: var(--accent);
+}
+
+/* -- stub */
+
+.tix-stub {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  min-width: 0;
+  padding: 1.4rem 2.6rem 1.3rem 1.5rem;
+  border-left: 2px dashed color-mix(in srgb, var(--accent-ink) 30%, transparent);
+  /* Cybereator yellow, the same as the wordmark (owner, 2026-10-16). */
+  background: var(--cybereator);
+  color: var(--accent-ink);
+}
+
+/* The two notches on the perforation, and the scalloped right end. */
+.tix-stub::before,
+.tix-stub::after {
+  content: "";
+  position: absolute;
+  z-index: 3;
+  left: -1px;
+  width: calc(var(--cut) * 2);
+  height: calc(var(--cut) * 2);
+  border-radius: 50%;
+  background: var(--paper);
+  transform: translateX(-50%);
+}
+
+.tix-stub::before {
+  top: calc(var(--cut) * -1);
+}
+
+.tix-stub::after {
+  bottom: calc(var(--cut) * -1);
+}
+
+.tix-stub-label {
+  margin: 0;
+  font-size: var(--step--2);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.tix-stub-num {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  margin: 0;
+}
+
+.tix-stub-num b {
+  font-family: var(--display);
+  font-size: var(--step-4);
+  font-weight: 800;
+  line-height: 0.9;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+
+.tix-stub-num span {
+  font-size: var(--step-0);
+  font-weight: 700;
+}
+
+.tix-stub-range {
+  margin: 0;
+  font-size: var(--step-1);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+/* The wallet's own ticket numbers, printed as small tickets on the stub. */
+.tix-nums {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.tix-nums span,
+.tix-nums button {
+  padding: 0.12rem 0.45rem;
+  border-radius: var(--r-sm);
+  border: 1.5px dashed color-mix(in srgb, currentColor 45%, transparent);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: var(--step--2);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.tix-nums button {
+  border-style: solid;
+  background: var(--dark);
+  border-color: var(--dark);
+  color: var(--dark-ink);
+  cursor: pointer;
+}
+
+.tix-nums button:hover {
+  background: var(--dark-2);
+}
+
+.tix-stub-note {
+  margin: 0;
+  font-size: var(--step--2);
+  line-height: 1.45;
+}
+
+.tix-stub-note b {
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.tix-stub-note a {
+  color: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+.tix-stub-won {
+  margin: 0;
+  padding: 0.3rem 0.6rem;
+  align-self: flex-start;
+  border-radius: var(--r-pill);
+  background: var(--dark);
+  color: var(--dark-ink);
+  font-size: var(--step--1);
+  font-weight: 800;
+}
+
+.tix-barcode {
+  display: block;
+  width: 100%;
+  height: 2.2rem;
+  margin-top: auto;
+  fill: var(--accent-ink);
+}
+
+/* Printed up the right edge of the stub. */
+.tix-admit {
+  position: absolute;
+  top: 50%;
+  right: 0.55rem;
+  font-size: var(--step--3);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  opacity: 0.75;
+  writing-mode: vertical-rl;
+  transform: translateY(-50%);
+}
+
+/* Depth chips on the stub. */
+.perk-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
 .perk-chip {
   display: inline-flex;
   align-items: center;
@@ -110,130 +537,138 @@
   border-radius: 50%;
 }
 
-/* ---------------------------------------------------------------- timeline */
-
-/* One line of dates under the sentence; the block numbers are in the tooltip
-   and in "How it works". */
-.perk-timeline {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.3rem 1.1rem;
-  margin: 0.25rem 0 0;
-  padding: 0;
-  list-style: none;
-  font-size: var(--step--2);
-  font-variant-numeric: tabular-nums;
-}
-
-.perk-step {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  white-space: nowrap;
-}
-
-.perk-step-dot {
-  flex: none;
-  width: 0.45rem;
-  height: 0.45rem;
-  border-radius: 50%;
-  box-shadow: inset 0 0 0 1.5px var(--line-strong);
-}
-
-.perk-step.is-now .perk-step-dot {
-  background: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-wash);
-}
-
-.perk-step.is-done .perk-step-dot {
-  background: var(--ink-3);
-  box-shadow: none;
-}
-
-.perk-step-name {
-  font-weight: 650;
-  color: var(--ink);
-}
-
-.perk-step.is-next .perk-step-name {
-  color: var(--ink-2);
-}
-
-.perk-step-when {
-  color: var(--ink-3);
-}
-
-.perk-step-note {
-  font-weight: 650;
-  color: var(--ink-2);
-}
-
-.perk-step.is-now .perk-step-note {
-  color: var(--accent);
-}
-
-/* ---------------------------------------------------------------- your tickets */
-
-.perk-you {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-  min-width: 0;
-  padding: 0.75rem 0.9rem;
-  border-radius: var(--r-lg);
-  background: var(--surface-2);
-}
-
-.perk-you-label {
-  margin: 0;
-  font-size: var(--step--2);
-  font-weight: 600;
-  color: var(--ink-3);
-}
-
-.perk-you-num {
-  display: flex;
-  align-items: baseline;
-  gap: 0.35rem;
-  margin: 0;
-  font-size: var(--step-2);
-  font-weight: 750;
-  letter-spacing: -0.02em;
-  line-height: 1.1;
-  font-variant-numeric: tabular-nums;
-}
-
-.perk-you-num span {
-  font-size: var(--step--1);
-  font-weight: 600;
-  letter-spacing: 0;
-  color: var(--ink-3);
-}
-
-.perk-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.25rem;
-}
-
-.perk-you-note {
-  margin: 0;
-  font-size: var(--step--2);
-  color: var(--ink-2);
-  line-height: 1.45;
-}
-
-.perk-you-won {
-  margin: 0;
-  font-size: var(--step--1);
-  font-weight: 700;
-  color: var(--accent);
-}
+/* -- under the ticket */
 
 .perk-lookup {
   position: relative;
   display: block;
-  margin-top: 0.15rem;
+}
+
+/* Under the ticket: share on the left, check any wallet on the right. */
+.tix-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem 1rem;
+  margin-top: 0.75rem;
+}
+
+.tix-lookup {
+  flex: 0 1 24rem;
+  margin: 0;
+}
+
+/* While "Share ticket" captures: a margin of page and a footer, in the picture only. */
+.tix-shot.is-shooting {
+  padding: 28px 28px 18px;
+  background: var(--paper);
+}
+
+.tix-shot-foot {
+  display: none;
+}
+
+.tix-shot.is-shooting .tix-shot-foot {
+  display: flex;
+  justify-content: space-between;
+  margin: 14px 4px 0;
+  font-size: var(--step--1);
+  font-weight: 600;
+  color: var(--ink-3);
+}
+
+.tix-shot-foot b {
+  color: var(--ink);
+  font-weight: 750;
+}
+
+.tix-share {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.tix-share-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.5rem 1rem;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: var(--ink);
+  color: var(--paper);
+  font: inherit;
+  font-size: var(--step--1);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.tix-share-btn:hover {
+  background: var(--ink-hover);
+}
+
+.tix-share-btn svg {
+  width: 1rem;
+  height: 1rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.tix-share-menu {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 0.4rem);
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  min-width: 12rem;
+  padding: 0.3rem;
+  border-radius: var(--r-md);
+  background: var(--surface);
+  box-shadow:
+    inset 0 0 0 1px var(--line),
+    var(--shadow-lg);
+}
+
+.tix-share-menu button {
+  padding: 0.55rem 0.75rem;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--step--1);
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.tix-share-menu button:hover {
+  background: var(--surface-2);
+}
+
+.tix-share-menu button:disabled {
+  color: var(--ink-3);
+  cursor: progress;
+}
+
+.tix-share-status {
+  font-size: var(--step--2);
+  font-weight: 650;
+  color: var(--ink-2);
+}
+
+.tix-share-status.is-done {
+  color: var(--good);
+}
+
+.tix-share-status.is-error {
+  color: var(--danger);
 }
 
 .perk-lookup svg {
@@ -264,6 +699,283 @@
   outline: none;
   border-color: var(--line-strong);
   box-shadow: 0 0 0 3px var(--ring);
+}
+
+/* Winners, the list and How it works sit in a plain card under the ticket. */
+.perk-card {
+  margin-top: 0.75rem;
+}
+
+.perk-you-label {
+  margin: 0;
+  font-size: var(--step--2);
+  font-weight: 600;
+  color: var(--ink-3);
+}
+
+.perk-you-note {
+  margin: 0;
+  font-size: var(--step--2);
+  color: var(--ink-2);
+  line-height: 1.45;
+}
+
+/* ---------------------------------------------------------------- the full list */
+
+.perk-list {
+  border-top: 1px solid var(--line);
+}
+
+.perk-list summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.7rem 1.25rem;
+  cursor: pointer;
+  list-style: none;
+  font-size: var(--step--1);
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.perk-list summary::-webkit-details-marker {
+  display: none;
+}
+
+.perk-list summary small {
+  margin-left: 0.6rem;
+  font-size: var(--step--2);
+  font-weight: 600;
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.perk-list summary svg {
+  flex: none;
+  width: 1rem;
+  height: 1rem;
+  fill: none;
+  stroke: var(--ink-3);
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: transform var(--fast);
+}
+
+.perk-list[open] summary svg {
+  transform: rotate(180deg);
+}
+
+.perk-list summary:hover {
+  background: var(--surface-2);
+}
+
+.perk-list-body {
+  padding: 0 1.25rem 1.1rem;
+}
+
+.perk-list-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+}
+
+.perk-list-search {
+  flex: 1 1 18rem;
+  max-width: 26rem;
+  margin: 0;
+}
+
+.perk-list-rule,
+.perk-list-note {
+  margin: 0;
+  font-size: var(--step--2);
+  color: var(--ink-3);
+}
+
+.perk-list-note {
+  margin-top: 0.6rem;
+  color: var(--ink-2);
+}
+
+.perk-list-table {
+  margin-top: 0.6rem;
+  font-size: var(--step--1);
+  font-variant-numeric: tabular-nums;
+}
+
+.perk-list-table {
+  max-width: 52rem;
+}
+
+.perk-list-row {
+  display: grid;
+  grid-template-columns: minmax(0, 13rem) minmax(0, 1fr) 4.5rem minmax(0, 12rem);
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.45rem 0.6rem;
+  border-top: 1px solid var(--line);
+}
+
+.perk-list-row.is-head {
+  border-top: 0;
+  font-size: var(--step--3);
+  font-weight: 600;
+  color: var(--ink-3);
+}
+
+.perk-list-row.is-you {
+  border-radius: var(--r-sm);
+  background: var(--accent-wash);
+  border-top-color: transparent;
+}
+
+.perk-list-row.is-you + .perk-list-row {
+  border-top-color: transparent;
+}
+
+/* The pinned copy of your row, then a little air before the list proper. */
+.perk-list-row.is-pinned {
+  margin-bottom: 0.4rem;
+}
+
+.perk-list-wallet {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.perk-list-you {
+  padding: 0.05rem 0.4rem;
+  border-radius: var(--r-pill);
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: var(--step--3);
+  font-weight: 700;
+}
+
+.perk-list-pieces {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem 0.55rem;
+  color: var(--ink-2);
+  font-size: var(--step--2);
+  font-weight: 650;
+}
+
+.perk-list-depth {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  white-space: nowrap;
+}
+
+.perk-list-depth i {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+}
+
+.perk-list-depth span {
+  color: var(--ink-3);
+  font-weight: 600;
+}
+
+.perk-list-count {
+  font-weight: 700;
+  text-align: right;
+}
+
+.perk-list-range {
+  color: var(--ink-2);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.perk-list-range small {
+  color: var(--ink-3);
+  font-size: var(--step--2);
+  font-weight: 650;
+}
+
+/* The live leaderboard: rank first, share last. */
+.perk-board .perk-list-row {
+  grid-template-columns: 2rem minmax(0, 13rem) minmax(0, 1fr) 4.5rem;
+}
+
+/* Header cells take their column's alignment. */
+.perk-list-row.is-head .perk-list-count,
+.perk-list-row.is-head .perk-list-range {
+  font-weight: 600;
+  color: var(--ink-3);
+}
+
+.perk-pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-top: 0.85rem;
+  font-size: var(--step--2);
+  font-weight: 650;
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.perk-pager button {
+  padding: 0.4rem 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.perk-pager button:hover:not(:disabled) {
+  background: var(--surface-2);
+}
+
+.perk-pager button:disabled {
+  color: var(--ink-4);
+  cursor: default;
+}
+
+.perk-board-rank {
+  font-weight: 800;
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.perk-board .is-top .perk-board-rank {
+  color: var(--accent);
+}
+
+/* One wallet searched: every number it holds. */
+.perk-list-all {
+  margin-top: 0.75rem;
+  padding: 0.75rem 0.9rem;
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+  color: var(--ink);
+}
+
+.perk-list-all p {
+  margin: 0 0 0.5rem;
+  font-size: var(--step--2);
+  font-weight: 650;
+  color: var(--ink-3);
+}
+
+.perk-list-all .tix-nums span.is-hit {
+  border-style: solid;
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-ink);
 }
 
 /* ---------------------------------------------------------------- winners */
@@ -370,22 +1082,102 @@
 
 /* ---------------------------------------------------------------- narrow */
 
-@media (max-width: 999px) {
-  .perk-top {
-    grid-template-columns: 4.5rem minmax(0, 1fr);
+/* Tablet: the art becomes a band across the top, face and stub side by side. */
+@media (max-width: 1099px) {
+  .tix {
+    grid-template-columns: minmax(0, 1fr) var(--stub);
   }
 
-  .perk-you {
+  .tix-art {
     grid-column: 1 / -1;
+    height: 11rem;
+  }
+
+  .tix-art::before {
+    display: none;
+  }
+
+  .tix-art-cat {
+    left: auto;
+    right: 4%;
+    height: 135%;
+    bottom: -38%;
+    transform: none;
   }
 }
 
-@media (max-width: 640px) {
-  .perk-top {
-    grid-template-columns: 3.5rem minmax(0, 1fr);
-    gap: 0.9rem;
-    align-items: start;
-    padding: 1rem;
+/* Phone: one column, the stub torn off along the bottom. */
+@media (max-width: 680px) {
+  .tix {
+    grid-template-columns: minmax(0, 1fr);
+    border-radius: var(--r-md);
+  }
+
+  .tix-art {
+    height: 9.5rem;
+  }
+
+  .tix-art-logo {
+    left: 1rem;
+    top: 0.9rem;
+    height: 1.1rem;
+  }
+
+  .tix-art-pieces {
+    left: 1rem;
+    bottom: 0.8rem;
+  }
+
+  .tix-piece {
+    width: 2.8rem;
+    height: 2.8rem;
+    margin-right: -0.7rem;
+  }
+
+  .tix-face {
+    padding: 1.2rem 1.1rem 1.3rem;
+  }
+
+  .tix-steps {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.5rem;
+  }
+
+  .tix-step {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 0.1rem 0.5rem;
+  }
+
+  .tix-stub {
+    padding: 1.2rem 1.1rem 1.1rem;
+    border-left: 0;
+    border-top: 2px dashed color-mix(in srgb, var(--accent-ink) 30%, transparent);
+  }
+
+  /* The notches move to the two ends of the perforation. */
+  .tix-stub::before,
+  .tix-stub::after {
+    top: calc(var(--cut) * -1 - 1px);
+    bottom: auto;
+    transform: none;
+  }
+
+  .tix-stub::before {
+    left: calc(var(--cut) * -1);
+  }
+
+  .tix-stub::after {
+    left: auto;
+    right: calc(var(--cut) * -1);
+  }
+
+  .tix-admit {
+    display: none;
+  }
+
+  .tix-lookup {
+    flex-basis: 100%;
   }
 
   .perk-winners li {
@@ -396,9 +1188,82 @@
   .perk-w-ticket {
     display: none;
   }
+
+  .perk-list summary,
+  .perk-list-body {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .perk-list summary small {
+    display: block;
+    margin: 0.1rem 0 0;
+  }
+
+  /* Wallet and numbers on one line, its pieces and count under them. */
+  .perk-list-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.2rem 0.75rem;
+    padding: 0.5rem 0.4rem;
+  }
+
+  .perk-list-row.is-head {
+    display: none;
+  }
+
+  .perk-list-pieces {
+    grid-row: 2;
+  }
+
+  .perk-list-count {
+    grid-row: 2;
+    color: var(--ink-3);
+    font-weight: 600;
+  }
+
+  .perk-list-count::after {
+    content: " tickets";
+  }
+
+  .perk-list-range {
+    grid-row: 1;
+    grid-column: 2;
+    color: var(--ink);
+    font-weight: 650;
+  }
+
+  /* Leaderboard: rank | wallet + pieces | share + tickets. */
+  .perk-board .perk-list-row {
+    grid-template-columns: 1.6rem minmax(0, 1fr) auto;
+  }
+
+  .perk-board .perk-board-rank {
+    grid-row: 1 / span 2;
+    grid-column: 1;
+  }
+
+  .perk-board .perk-list-wallet {
+    grid-row: 1;
+    grid-column: 2;
+  }
+
+  .perk-board .perk-list-pieces {
+    grid-row: 2;
+    grid-column: 2;
+  }
+
+  .perk-board .perk-list-count {
+    grid-row: 1 / span 2;
+    grid-column: 3;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .tix-count-text::before {
+    animation: none;
+  }
+
+  .perk-list summary svg,
   .perk-how summary svg {
     transition: none;
   }
