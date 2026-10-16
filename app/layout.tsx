@@ -30,6 +30,22 @@ const sans = Geist({
   display: "swap",
 });
 
+/**
+ * The link-preview card for every page that does not bring its own art.
+ *
+ * Without it a shared valuemint.store link showed a bare title on X. Named
+ * here rather than as app/opengraph-image.jpg because a file-based image
+ * outranks the metadata object, and the collection and token pages must keep
+ * showing their own artwork. Pages that set `openGraph` replace this whole
+ * block, so the per-page art still wins.
+ */
+const SHARE_IMAGE = {
+  url: "/og.jpg",
+  width: 1200,
+  height: 630,
+  alt: "ValueMint, the NFT marketplace on ValueChain",
+};
+
 export const metadata: Metadata = {
   // Without this, any relative asset in a link preview stays relative and most
   // scrapers drop it.
@@ -46,11 +62,13 @@ export const metadata: Metadata = {
     url: "https://www.valuemint.store",
     siteName: "ValueMint",
     type: "website",
+    images: [SHARE_IMAGE],
   },
   twitter: {
     card: "summary_large_image",
     title: "ValueMint — NFT Marketplace on ValueChain",
     description: "Create, mint, collect and trade NFTs on ValueChain.",
+    images: [SHARE_IMAGE],
   },
 };
 
