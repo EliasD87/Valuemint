@@ -125,10 +125,11 @@ export function useIndexedOrders(enabled = true) {
     enabled,
     /**
      * The same cadence the scan polls at, so switching source changes nothing
-     * anyone can see. The route is cached at the edge for fifteen seconds, so
-     * this costs Supabase far less than one request per visitor.
+     * anyone can see. The route is cached at the edge for a minute, so polling
+     * faster only re-reads the same copy — and every poll is a billed CDN
+     * request (2026-10-18; it was 30s).
      */
-    refetchInterval: 30_000,
+    refetchInterval: 60_000,
     /**
      * One retry, not three. A failing index is not an emergency — it is a cue
      * to read the chain — and three rounds of backoff would hold the page in a

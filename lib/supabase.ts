@@ -100,6 +100,9 @@ async function request(
     apikey: config.key,
     authorization: `Bearer ${config.key}`,
     "content-type": "application/json",
+    /* Compressed on the wire: the order book is ~900 KB of JSON and ~80 KB
+       gzipped, and Supabase bills egress by what it sends. */
+    "accept-encoding": "gzip",
   };
   if (prefer !== undefined) headers["prefer"] = prefer;
 
@@ -107,8 +110,20 @@ async function request(
     ...rest,
     headers,
     signal: AbortSignal.timeout(TIMEOUT_MS),
-    /** Nothing here is ever worth serving stale from Next's fetch cache. */
-    cache: "no-store",
+    /**
+     * No `cache` option, deliberately (2026-10-18).
+     *
+     * This used to say `cache: "no-store"`, and that one word made the home
+     * page dynamic: Next refuses to prerender a route that makes a no-store
+     * fetch, so `revalidate` in app/page.tsx was silently ignored and every
+     * visit re-ran exploreSummary — every sale ever made, read from Supabase
+     * per page view. That was the bulk of the egress that pushed the project
+     * past the free plan, and a server render per visit besides.
+     *
+     * Without it, Next's default applies: nothing is put in the fetch cache,
+     * the API routes stay fresh because they are `force-dynamic`, and the home
+     * page is rebuilt on its `revalidate` schedule as intended.
+     */
   });
 
   if (!response.ok) {

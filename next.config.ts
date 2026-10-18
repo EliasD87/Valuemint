@@ -171,6 +171,24 @@ const nextConfig: NextConfig = {
         source: "/art/:path*",
         headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }],
       },
+      /**
+       * The rest of our own pictures, for a day (2026-10-18).
+       *
+       * Without this Vercel sends `max-age=0, must-revalidate`, so every visit
+       * re-asked for every banner, box and portrait, and each of those 304s is
+       * a billed CDN request — the bulk of what pushed the site past Pro's
+       * included million. Not `immutable` like /art: these folders have had
+       * files replaced in place (the KOL portraits), so a day, then a
+       * revalidation, with a week of serving the old copy meanwhile.
+       */
+      ...["hero", "heroes", "boxes", "brand", "covers", "featured", "kols"].map((dir) => ({
+        source: `/${dir}/:path*`,
+        headers: [{ key: "Cache-Control", value: "public, max-age=86400, stale-while-revalidate=604800" }],
+      })),
+      {
+        source: "/:file(soso-dark.png|soso-light.png|og.jpg)",
+        headers: [{ key: "Cache-Control", value: "public, max-age=86400, stale-while-revalidate=604800" }],
+      },
     ];
   },
   /* The stats page was called Pulse and lived at /pulse. Permanent, so shared

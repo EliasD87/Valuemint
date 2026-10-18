@@ -193,6 +193,12 @@ const ORDER_CANCELLED = parseAbiItem(
   "event OrderCancelled(bytes32 orderHash, address indexed offerer, address indexed zone)",
 );
 const COUNTER_INCREMENTED = parseAbiItem("event CounterIncremented(uint256 newCounter, address indexed offerer)");
+const ORDER_FULFILLED = parseAbiItem(
+  "event OrderFulfilled(bytes32 orderHash, address indexed offerer, address indexed zone, address recipient, (uint8 itemType, address token, uint256 identifier, uint256 amount)[] offer, (uint8 itemType, address token, uint256 identifier, uint256 amount, address recipient)[] consideration)",
+);
+
+/** ERC721 and ERC1155, and their criteria forms: an order whose offer is a token. */
+const NFT_ITEM_TYPES = new Set([2, 3, 4, 5]);
 
 export interface Withdrawn {
   /** Order hashes cancelled one by one, lower-cased. */
@@ -241,6 +247,13 @@ export function withdrawnServerSnapshot(): Withdrawn {
  * Read from Seaport's own `OrderCancelled` and `CounterIncremented` logs, so
  * only what the chain actually did is acted on: a reverted transaction has no
  * logs, and a receipt from anything else has none of Seaport's.
+ *
+ * Purchases too (2026-10-18): an `OrderFulfilled` for an order that OFFERS a
+ * token is a listing, and listings are built FULL_OPEN, so one fill is the
+ * whole order. The buyer's own page drops it at once instead of after the next
+ * status read (every 25s) — which also stopped mattering on the index's cache
+ * age, so that could be lengthened to save Supabase egress. Offers are left
+ * alone: a batch offer is partially fillable and stays open after one sale.
  */
 export function rememberWithdrawals(receipt: TransactionReceipt | undefined): void {
   if (receipt === undefined || receipt.status !== "success") return;
@@ -262,6 +275,16 @@ export function rememberWithdrawals(receipt: TransactionReceipt | undefined): vo
       const { args } = decodeEventLog({ abi: [COUNTER_INCREMENTED], data: log.data, topics: log.topics });
       voided.set((args.offerer as string).toLowerCase(), { block: receipt.blockNumber, at: now });
       changed = true;
+      continue;
+    } catch {
+      /* Not a counter increment. */
+    }
+    try {
+      const { args } = decodeEventLog({ abi: [ORDER_FULFILLED], data: log.data, topics: log.topics });
+      if (args.offer.some((item) => NFT_ITEM_TYPES.has(Number(item.itemType)))) {
+        cancelled.set((args.orderHash as Hex).toLowerCase(), now);
+        changed = true;
+      }
     } catch {
       /* Some other Seaport event. */
     }

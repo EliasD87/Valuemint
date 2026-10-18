@@ -17,8 +17,8 @@ export async function GET(): Promise<NextResponse> {
   }
   return NextResponse.json(summary, {
     headers: {
-      /* The same five minutes the page itself is rebuilt on. */
-      "cache-control": "public, s-maxage=300, stale-while-revalidate=600",
+      /* The same thirty minutes the page itself is rebuilt on (app/page.tsx). */
+      "cache-control": "public, s-maxage=1800, stale-while-revalidate=3600",
     },
   });
 }

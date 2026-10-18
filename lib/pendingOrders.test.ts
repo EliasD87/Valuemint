@@ -13,6 +13,8 @@ import {
   pendingOrdersServerSnapshot,
   pendingOrdersSnapshot,
   rememberValidatedOrders,
+  rememberWithdrawals,
+  withdrawnSnapshot,
 } from "./pendingOrders";
 
 /**
@@ -193,5 +195,41 @@ describe("forgetSeenOrders", () => {
     forgetSeenOrders([("0x" + "cd".repeat(32)) as Hex]);
 
     expect(pendingOrdersSnapshot()).toHaveLength(1);
+  });
+});
+
+describe("rememberWithdrawals: purchases", () => {
+  const ORDER_FULFILLED = parseAbiItem(
+    "event OrderFulfilled(bytes32 orderHash, address indexed offerer, address indexed zone, address recipient, (uint8 itemType, address token, uint256 identifier, uint256 amount)[] offer, (uint8 itemType, address token, uint256 identifier, uint256 amount, address recipient)[] consideration)",
+  );
+  const WSOSO = "0x5050505050505050505050505050505050505050" as const;
+
+  /** A successful receipt carrying one `OrderFulfilled`, as Seaport emits it. */
+  function fulfilled(hash: Hex, offer: { itemType: number; token: `0x${string}`; identifier: bigint; amount: bigint }[]) {
+    const data = encodeAbiParameters(
+      [ORDER_FULFILLED.inputs[0], ORDER_FULFILLED.inputs[3], ORDER_FULFILLED.inputs[4], ORDER_FULFILLED.inputs[5]],
+      [hash, BIDDER, offer as never, [] as never],
+    );
+    const topics = encodeEventTopics({
+      abi: [ORDER_FULFILLED],
+      args: { offerer: BIDDER, zone: "0x0000000000000000000000000000000000000000" },
+    });
+    return {
+      status: "success",
+      blockNumber: 100n,
+      logs: [{ address: SEAPORT, data, topics }],
+    } as unknown as TransactionReceipt;
+  }
+
+  it("drops a bought listing at once", () => {
+    const hash = ("0x" + "e1".repeat(32)) as Hex;
+    rememberWithdrawals(fulfilled(hash, [{ itemType: 2, token: COLLECTION, identifier: 7n, amount: 1n }]));
+    expect(withdrawnSnapshot().hashes.has(hash.toLowerCase())).toBe(true);
+  });
+
+  it("keeps an offer that was sold into, which may still be open for more", () => {
+    const hash = ("0x" + "e2".repeat(32)) as Hex;
+    rememberWithdrawals(fulfilled(hash, [{ itemType: 1, token: WSOSO, identifier: 0n, amount: 10n ** 18n }]));
+    expect(withdrawnSnapshot().hashes.has(hash.toLowerCase())).toBe(false);
   });
 });

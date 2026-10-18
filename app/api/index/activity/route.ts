@@ -125,7 +125,9 @@ export async function GET(request: Request): Promise<NextResponse> {
            * appears a minute late has cost no one anything, and the panel was
            * already held back 900ms behind first paint for the same reason.
            */
-          "cache-control": "public, s-maxage=60, stale-while-revalidate=300",
+          /* Five minutes (was one): history is read, never acted on, and every miss
+             is a Supabase read counted against the free plan's egress. */
+          "cache-control": "public, s-maxage=300, stale-while-revalidate=1800",
         },
       },
     );

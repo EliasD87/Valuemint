@@ -395,6 +395,11 @@ export function useSeaportFill() {
   const { writeContract, data: hash, isPending: signing, error: sendError, reset } = useWriteContract();
   const { isLoading: confirming, isSuccess, reverted, data: receipt } = useTxOutcome({ hash });
 
+  /** What was just bought leaves this tab's market at once (lib/pendingOrders.ts). */
+  useEffect(() => {
+    if (isSuccess) rememberWithdrawals(receipt);
+  }, [isSuccess, receipt]);
+
   /**
    * A fill that passed the check and was then beaten to the order on chain
    * reverts — and this hook used to read only whether it was mined, so the

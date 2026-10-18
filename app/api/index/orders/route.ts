@@ -129,13 +129,14 @@ export async function GET(): Promise<NextResponse> {
       {
         headers: {
           /**
-           * Fifteen seconds at the edge, and a minute of serving the old copy
-           * while a new one is fetched. The reader runs every thirty, so this
-           * never serves anything the chain path would not also have been
-           * holding — and a thousand visitors cost Supabase four requests a
-           * minute rather than a thousand.
+           * A minute at the edge, and five of serving the old copy while a new
+           * one is fetched (2026-10-18; it was 15s/60s). Every miss reads the
+           * whole book from Supabase, and those reads were most of the free
+           * plan's 5 GB monthly egress. A listing still faces Seaport before
+           * anyone can act on it, so a minute-old copy costs a rejected check
+           * at worst, never a wrong trade.
            */
-          "cache-control": "public, s-maxage=15, stale-while-revalidate=60",
+          "cache-control": "public, s-maxage=60, stale-while-revalidate=300",
         },
       },
     );
