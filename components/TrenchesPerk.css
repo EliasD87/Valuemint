@@ -332,15 +332,152 @@
 }
 
 .tix-step-note {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
   font-weight: 650;
   color: var(--ink-2);
 }
 
-/* A line of small print under a step, e.g. why the snapshot came early. */
-.tix-step-fine {
-  font-size: var(--step--3);
-  line-height: 1.35;
+/* "4,125 tickets" / "518 wallets", one figure a line. */
+.tix-step-stat {
+  font-weight: 600;
   color: var(--ink-3);
+}
+
+.tix-step-stat b {
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.tix-step-lock {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-top: 0.2rem;
+  padding: 0.12rem 0.5rem 0.12rem 0.4rem;
+  border-radius: var(--r-pill);
+  background: var(--good-wash);
+  color: var(--good);
+  font-size: var(--step--3);
+  font-weight: 750;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.tix-step-lock:hover {
+  text-decoration: underline;
+}
+
+.tix-step-lock svg {
+  width: 0.75rem;
+  height: 0.75rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.tix-step-warn {
+  color: var(--danger);
+}
+
+/* An "i" beside a step's note; its text shows on hover, focus or tap. */
+.tix-info {
+  position: relative;
+  display: inline-flex;
+}
+
+.tix-step-note:has(.tix-info) {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.tix-info-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 1.1rem;
+  height: 1.1rem;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ink-3);
+  cursor: help;
+}
+
+.tix-info-btn:hover,
+.tix-info-btn:focus-visible {
+  color: var(--ink);
+}
+
+.tix-info-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--ring);
+}
+
+.tix-info-btn svg {
+  width: 0.95rem;
+  height: 0.95rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+}
+
+.tix-info-tip {
+  position: absolute;
+  z-index: 5;
+  bottom: calc(100% + 0.45rem);
+  left: -0.6rem;
+  width: max-content;
+  max-width: 14rem;
+  padding: 0.45rem 0.65rem;
+  border-radius: var(--r-sm);
+  background: var(--dark);
+  color: var(--dark-ink);
+  font-size: var(--step--2);
+  font-weight: 600;
+  line-height: 1.35;
+  box-shadow: var(--shadow-lg);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(0.2rem);
+  transition:
+    opacity var(--fast),
+    transform var(--fast),
+    visibility var(--fast);
+  pointer-events: none;
+}
+
+.tix-info:hover .tix-info-tip,
+.tix-info:focus-within .tix-info-tip {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+}
+
+/* On a phone the "i" ends its row, so the tip opens leftwards. */
+@media (max-width: 680px) {
+  .tix-info-tip {
+    left: auto;
+    right: -0.6rem;
+  }
+
+  /* Figures side by side on one line under the step, not three lines. */
+  .tix-step-note {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.15rem 0.6rem;
+  }
+
+  .tix-step-lock {
+    margin-top: 0;
+  }
 }
 
 .tix-step.is-now .tix-step-note {

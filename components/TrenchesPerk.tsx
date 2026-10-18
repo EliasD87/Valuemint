@@ -280,16 +280,27 @@ export function TrenchesPerk() {
       note:
         list !== undefined ? (
           <>
-            {fmt(list.wallets)} wallets · {fmt(list.tickets)} tickets
+            <span className="tix-step-stat">
+              <b>{fmt(list.tickets)}</b> tickets
+            </span>
+            <span className="tix-step-stat">
+              <b>{fmt(list.wallets)}</b> wallets
+            </span>
             {listOnChain === true ? (
-              <>
-                {" · "}
-                <a href={`${deployment.explorer}/address/${DRAW.drawContract}`} target="_blank" rel="noreferrer">
-                  Locked on chain
-                </a>
-              </>
+              <a
+                className="tix-step-lock"
+                href={`${deployment.explorer}/address/${DRAW.drawContract}`}
+                target="_blank"
+                rel="noreferrer"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <rect x="5" y="11" width="14" height="10" rx="2" />
+                  <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+                </svg>
+                Locked on chain
+              </a>
             ) : listOnChain === false ? (
-              " · does not match the chain"
+              <span className="tix-step-warn">Does not match the chain</span>
             ) : null}
           </>
         ) : phase === "counting" ? (
@@ -476,9 +487,24 @@ export function TrenchesPerk() {
                     {s.name}
                   </span>
                   <span className="tix-step-when">{s.when}</span>
-                  {s.note !== "" ? <span className="tix-step-note">{s.note}</span> : null}
-                  {s.key === "snapshot" && phase !== "before" && DRAW.snapshotNote !== undefined ? (
-                    <span className="tix-step-fine">{DRAW.snapshotNote}</span>
+                  {s.note !== "" ? (
+                    <span className="tix-step-note">
+                      {s.note}
+                      {/* Why the snapshot came early, behind an "i" so the step stays one word. */}
+                      {s.key === "snapshot" && phase !== "before" && DRAW.snapshotNote !== undefined ? (
+                        <span className="tix-info">
+                          <button type="button" className="tix-info-btn" aria-label={DRAW.snapshotNote}>
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                              <circle cx="12" cy="12" r="9" />
+                              <path d="M12 11v5M12 8h.01" />
+                            </svg>
+                          </button>
+                          <span className="tix-info-tip" role="tooltip">
+                            {DRAW.snapshotNote}
+                          </span>
+                        </span>
+                      ) : null}
+                    </span>
                   ) : null}
                 </li>
               ))}
