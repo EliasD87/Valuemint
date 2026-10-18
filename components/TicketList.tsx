@@ -78,8 +78,15 @@ export function TicketList({
   const [page, setPage] = useState(0);
 
   const q = query.trim().toLowerCase().replace(/,/g, "");
+  /* Shown most tickets first (owner, 2026-10-18: address order read as shuffled).
+     `entries` itself stays in address order: that is the order on chain, and
+     ticket lookups depend on it. */
+  const byTickets = useMemo(
+    () => [...entries].sort((a, b) => b.tickets - a.tickets || a.from - b.from),
+    [entries],
+  );
   const result = useMemo(() => {
-    if (q === "") return { rows: entries, note: undefined as string | undefined };
+    if (q === "") return { rows: byTickets, note: undefined as string | undefined };
     const n = q.replace(/^#/, "");
     if (/^\d+$/.test(n)) {
       const owner = ownerOfTicket(entries, Number(n), numberSeed);
@@ -87,11 +94,11 @@ export function TicketList({
         ? { rows: [], note: `No ticket #${fmt(Number(n))}: they run from #1 to #${fmt(tickets)}.` }
         : { rows: [owner], note: `Ticket #${fmt(Number(n))} belongs to this wallet.` };
     }
-    const rows = entries.filter((e) => e.wallet.includes(q));
+    const rows = byTickets.filter((e) => e.wallet.includes(q));
     return { rows, note: rows.length === 0 ? "No wallet in the list matches that." : undefined };
-  }, [entries, q, tickets, numberSeed]);
+  }, [entries, byTickets, q, tickets, numberSeed]);
 
-  /* Your own row is pinned on top while browsing: in address order it can be
+  /* Your own row is pinned on top while browsing: in a long list it can be
      page eighteen. It still sits in its real place further down. */
   const pages = Math.max(1, Math.ceil(result.rows.length / PAGE));
   const at = Math.min(page, pages - 1);

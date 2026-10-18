@@ -68,7 +68,7 @@ export const CYBEREATOR_SEATS: PerkDraw = {
   // Not public until the draw is announced (owner, 2026-10-15: do not say how
   // many). This file ships in the bundle and the repo is public, so the number
   // is set here only together with `drawAnnounced: true`.
-  winners: 0,
+  winners: 11,
   minDepth: 5,
   // Taken early (owner, 2026-10-18): SoDEX announced scheduled maintenance,
   // so the snapshot was taken at once instead of at 09:00 UTC. This is the
@@ -76,10 +76,12 @@ export const CYBEREATOR_SEATS: PerkDraw = {
   snapshotBlock: 15_751_554n,
   snapshotAt: "2026-10-18T06:40:51Z",
   snapshotNote: "Snapshot taken earlier due to SoDEX maintenance",
-  drawBlock: 15_757_418n,
-  drawAt: "2026-10-18T10:00:00Z",
+  // Locked on chain 2026-10-18 (lock tx in block 15,752,044): 11 winners from
+  // block 15,752,336's hash.
+  drawBlock: 15_752_336n,
+  drawAt: "2026-10-18T07:07:25Z",
   // "Coming soon" on the page (owner, 2026-10-15) until the draw is announced.
-  drawAnnounced: false,
+  drawAnnounced: true,
   drawContract: "0x31db41534Fb10438AFc3F691A172041de68af00D",
   listUrl: "/draws/cybereator-seats-1.json",
   listPublished: true,
