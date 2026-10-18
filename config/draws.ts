@@ -68,10 +68,11 @@ export const CYBEREATOR_SEATS: PerkDraw = {
   // is set here only together with `drawAnnounced: true`.
   winners: 0,
   minDepth: 5,
-  // Moved 6 hours earlier, from 15:00 to 09:00 UTC (owner, 2026-10-18, about
-  // 05:00 UTC). The block is ~09:00:02 at the measured pace.
-  snapshotBlock: 15_755_654n,
-  snapshotAt: "2026-10-18T09:00:00Z",
+  // Taken early (owner, 2026-10-18): SoDEX announced scheduled maintenance,
+  // so the snapshot was taken at once instead of at 09:00 UTC. This is the
+  // block the owner said "now" at, 12 deep when the list was built.
+  snapshotBlock: 15_751_554n,
+  snapshotAt: "2026-10-18T06:40:51Z",
   drawBlock: 15_757_418n,
   drawAt: "2026-10-18T10:00:00Z",
   // "Coming soon" on the page (owner, 2026-10-15) until the draw is announced.
