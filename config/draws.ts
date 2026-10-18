@@ -80,9 +80,9 @@ export const CYBEREATOR_SEATS: PerkDraw = {
   drawAt: "2026-10-18T10:00:00Z",
   // "Coming soon" on the page (owner, 2026-10-15) until the draw is announced.
   drawAnnounced: false,
-  drawContract: "",
+  drawContract: "0x31db41534Fb10438AFc3F691A172041de68af00D",
   listUrl: "/draws/cybereator-seats-1.json",
-  listPublished: false,
+  listPublished: true,
   excluded: [
     // The owner's main wallet takes part (owner, 2026-10-15); these two do not,
     // so the owner is in the draw once.
