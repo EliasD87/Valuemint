@@ -16,7 +16,19 @@ import { useEffect, useRef, useState } from "react";
 
 type Status = { kind: "busy" | "done" | "error"; text: string } | undefined;
 
-export function TicketShare({ target, fileName }: { target: React.RefObject<HTMLElement | null>; fileName: string }) {
+export function TicketShare({
+  target,
+  fileName,
+  label = "Share ticket",
+  text = "My tickets for the Cybereator draw 🎟️ valuemint.store/trenches",
+}: {
+  target: React.RefObject<HTMLElement | null>;
+  fileName: string;
+  /** The button: "Share ticket", or "Share my win" on a winner's ticket. */
+  label?: string;
+  /** What the phone's share sheet posts with the picture. */
+  text?: string;
+}) {
   const [open, setOpen] = useState(false);
   const [status, setStatus] = useState<Status>(undefined);
   const [can, setCan] = useState({ copy: false, share: false });
@@ -111,7 +123,7 @@ export function TicketShare({ target, fileName }: { target: React.RefObject<HTML
       "Drawing your ticket…",
       async () => {
         const file = new File([await render()], fileName, { type: "image/png" });
-        await navigator.share({ files: [file], text: "My tickets for the Cybereator draw 🎟️ valuemint.store/trenches" });
+        await navigator.share({ files: [file], text });
       },
       "Shared",
     );
@@ -131,7 +143,7 @@ export function TicketShare({ target, fileName }: { target: React.RefObject<HTML
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <path d="M12 3v12M7 8l5-5 5 5M5 14v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5" />
         </svg>
-        Share ticket
+        {label}
       </button>
 
       {open ? (

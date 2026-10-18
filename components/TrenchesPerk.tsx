@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { getAddress, isAddress, keccak256, toHex, zeroHash, type Hex } from "viem";
 import { useAccount, useBlockNumber, usePublicClient } from "wagmi";
 import { AddressLink } from "@/components/AddressLink";
+import { shortAddress } from "@/lib/format";
 import { CYBEREATOR_SEATS as DRAW, MEASURED_BLOCK_MS, ticketsFor } from "@/config/draws";
 import { Art } from "@/components/Art";
 import { TIERS, tierImage } from "@/config/tiers";
@@ -68,6 +69,11 @@ const STUB_NUMBERS = 8;
 
 /** Preview only: stands in for the contract's numberSeed so shuffled numbers can be seen before one exists. */
 const PREVIEW_NUMBER_SEED = keccak256(toHex("valuemint-preview-numbers"));
+/* Preview only: a made-up draw. The count here is never shown outside a dev build. */
+const PREVIEW_DRAW_SEED = keccak256(toHex("valuemint-preview-draw"));
+const PREVIEW_WINNERS = 11;
+/** The place the connected wallet is given in the made-up draw, so the winner's ticket can be seen. */
+const PREVIEW_MY_PLACE = 3;
 
 /** Days / hours / minutes / seconds to a moment, ticking once a second. */
 function Countdown({ to }: { to: number }) {
@@ -118,18 +124,21 @@ export function TrenchesPerk() {
   /* Dev only: /trenches?ticketsPreview shows the page as after the snapshot,
      with today's list (public/draws/preview.json, gitignored) and the connected
      wallet added with made-up pieces, so the ticket view can be checked on a
-     real wallet before the real list exists. Inert in a production build. */
-  const [preview, setPreview] = useState(false);
+     real wallet before the real list exists. ?ticketsPreview=drawn goes on to a
+     made-up draw that the connected wallet wins, for the winner's ticket.
+     Inert in a production build. */
+  const [preview, setPreview] = useState<false | "listed" | "drawn">(false);
   useEffect(() => {
     if (process.env.NODE_ENV !== "development") return;
+    const read = (v: string | null) => (v === null ? false : v === "drawn" ? "drawn" : "listed");
     /* Sticky for the tab, so the header's own Trenches link keeps it on; ?ticketsPreview=off ends it. */
     try {
       const q = new URLSearchParams(window.location.search).get("ticketsPreview");
       if (q === "off") sessionStorage.removeItem("ticketsPreview");
-      else if (q !== null) sessionStorage.setItem("ticketsPreview", "1");
-      setPreview(sessionStorage.getItem("ticketsPreview") === "1");
+      else if (q !== null) sessionStorage.setItem("ticketsPreview", q === "drawn" ? "drawn" : "listed");
+      setPreview(read(sessionStorage.getItem("ticketsPreview")));
     } catch {
-      setPreview(new URLSearchParams(window.location.search).has("ticketsPreview"));
+      setPreview(read(new URLSearchParams(window.location.search).get("ticketsPreview")));
     }
   }, []);
 
@@ -138,12 +147,12 @@ export function TrenchesPerk() {
   /* The lock is the announcement: from then on the block and the count are public on chain anyway. */
   const locked = chain !== undefined && chain.drawBlock > 0n;
   const drawBlock = locked ? chain.drawBlock : DRAW.drawBlock;
-  const announced = locked || DRAW.drawAnnounced;
-  const winnerCount = locked ? chain.winners : DRAW.winners;
+  const announced = locked || DRAW.drawAnnounced || preview === "drawn";
+  const winnerCount = preview === "drawn" ? PREVIEW_WINNERS : locked ? chain.winners : DRAW.winners;
   /* With a contract, "drawn" means the contract has drawn; without, that the block exists. */
   const isDrawn = DRAW.drawContract !== "" ? chain?.drawn === true : head !== undefined && head >= drawBlock;
   const phase: Phase = preview
-    ? "listed"
+    ? preview
     : head === undefined || head < DRAW.snapshotBlock
       ? "before"
       : !DRAW.listPublished
@@ -155,7 +164,7 @@ export function TrenchesPerk() {
   const listUrl = preview ? "/draws/preview.json" : DRAW.listUrl;
   const { data: published } = useQuery({
     queryKey: ["draw-list", listUrl],
-    enabled: DRAW.listPublished || preview,
+    enabled: DRAW.listPublished || preview !== false,
     staleTime: Infinity,
     queryFn: async () => {
       const res = await fetch(listUrl);
@@ -203,7 +212,7 @@ export function TrenchesPerk() {
   const client = usePublicClient();
   const { data: blockSeed } = useQuery({
     queryKey: ["draw-seed", drawBlock.toString()],
-    enabled: phase === "drawn" && DRAW.drawContract === "" && client !== undefined,
+    enabled: phase === "drawn" && !preview && DRAW.drawContract === "" && client !== undefined,
     staleTime: Infinity,
     queryFn: async () => (await client!.getBlock({ blockNumber: drawBlock })).hash as Hex,
   });
@@ -212,18 +221,34 @@ export function TrenchesPerk() {
     () => (list !== undefined && seed !== undefined ? drawWinners(list.entries, seed, winnerCount, numberSeed) : undefined),
     [list, seed, winnerCount, numberSeed],
   );
+  /* Preview: a made-up draw, with the connected wallet moved into one place so its winner's ticket shows. */
+  const previewWinners = useMemo(() => {
+    if (preview !== "drawn" || list === undefined || numberSeed === undefined) return undefined;
+    const drawn = drawWinners(list.entries, PREVIEW_DRAW_SEED, PREVIEW_WINNERS, numberSeed);
+    const me = address?.toLowerCase();
+    const mine = me === undefined ? undefined : list.entries.find((e) => e.wallet.toLowerCase() === me);
+    if (mine === undefined || drawn.some((w) => w.wallet.toLowerCase() === me)) return drawn;
+    const ticket = numbersOf(mine, list.tickets, numberSeed)[0]!;
+    return drawn.map((w) => (w.place === PREVIEW_MY_PLACE ? { ...w, wallet: mine.wallet, ticket, tickets: mine.tickets, attempt: 0 } : w));
+  }, [preview, list, numberSeed, address]);
+  /* Preview: place 1 shows as sent, the rest as not yet, so both states can be seen. */
+  const sent: Readonly<Record<string, `0x${string}`>> =
+    previewWinners !== undefined ? { [previewWinners[0]!.wallet.toLowerCase()]: keccak256(toHex("valuemint-preview-sent")) } : DRAW.sent;
+
   const winners: DrawWinner[] | undefined =
-    DRAW.drawContract === ""
-      ? recomputed
-      : chain?.drawn && list !== undefined
-        ? chain.results.map((r, i) => ({
-            place: i + 1,
-            wallet: r.wallet,
-            ticket: r.ticket,
-            attempt: r.attempt,
-            tickets: list.entries.find((e) => e.wallet.toLowerCase() === r.wallet.toLowerCase())?.tickets ?? 0,
-          }))
-        : undefined;
+    previewWinners !== undefined
+      ? previewWinners
+      : DRAW.drawContract === ""
+        ? recomputed
+        : chain?.drawn && list !== undefined
+          ? chain.results.map((r, i) => ({
+              place: i + 1,
+              wallet: r.wallet,
+              ticket: r.ticket,
+              attempt: r.attempt,
+              tickets: list.entries.find((e) => e.wallet.toLowerCase() === r.wallet.toLowerCase())?.tickets ?? 0,
+            }))
+          : undefined;
   /* Should never be false; if it is, say so rather than quietly show one side. */
   const agrees =
     winners === undefined || recomputed === undefined
@@ -362,6 +387,30 @@ export function TrenchesPerk() {
     stub = <p className="tix-stub-note">Reading its Trenches pieces…</p>;
   } else if (phase === "counting") {
     stub = <p className="tix-stub-note">Snapshot taken. The tickets appear here once the list is out.</p>;
+  } else if (won !== undefined && list !== undefined) {
+    /* The winner's stub: the ticket that came up, and where the prize is. */
+    const tx = sent[won.wallet.toLowerCase()];
+    stub = (
+      <>
+        <p className="tix-stub-num">
+          <b>#{fmt(won.ticket)}</b>
+        </p>
+        <p className="tix-stub-wallet">{shortAddress(won.wallet as `0x${string}`, 4)}</p>
+        <p className="tix-stub-note">
+          Drawn from all <b>{fmt(list.tickets)}</b> tickets. {isOther ? "It" : "You"} held <b>{fmt(won.tickets)}</b>.
+        </p>
+        {tx !== undefined ? (
+          <a className="tix-stub-sent" href={`${deployment.explorer}/tx/${tx}`} target="_blank" rel="noreferrer">
+            Cybereator sent
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M7 17 17 7M9 7h8v8" />
+            </svg>
+          </a>
+        ) : (
+          <p className="tix-stub-sent is-pending">Cybereator on its way</p>
+        )}
+      </>
+    );
   } else if (listed !== undefined && list !== undefined) {
     const share = (listed.tickets / list.tickets) * 100;
     stub = (
@@ -395,7 +444,7 @@ export function TrenchesPerk() {
           <b>{share < 0.01 ? "<0.01" : share.toFixed(2)}%</b> of all {fmt(list.tickets)} tickets
         </p>
         {chips}
-        {won !== undefined ? <p className="tix-stub-won">Won a Cybereator</p> : null}
+        {phase === "drawn" && winners !== undefined ? <p className="tix-stub-note">Not drawn this time. Thank you for playing.</p> : null}
       </>
     );
   } else {
@@ -420,7 +469,6 @@ export function TrenchesPerk() {
             "If this wallet still holds them at the snapshot."
           ) : null}
         </p>
-        {won !== undefined ? <p className="tix-stub-won">Won a Cybereator</p> : null}
       </>
     );
   }
@@ -439,11 +487,13 @@ export function TrenchesPerk() {
           reference): the art on the left, the event on the face, the wallet's
           own tickets on a tear-off stub. How many are given is not said (owner,
           2026-10-15). */}
-      <div className="tix-shot" ref={shot}>
-        <div className="tix">
+      <div className={`tix-shot${won !== undefined ? " is-won" : ""}`} ref={shot}>
+        <div className={`tix${won !== undefined ? " is-won" : ""}`}>
           <div className="tix-art" aria-hidden="true">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img className="tix-art-bg" src="/heroes/cybereator-bg.webp" alt="" />
+            {/* A winner's ticket: rays of Cybereator gold behind the cat. */}
+            {won !== undefined ? <span className="tix-art-burst" /> : null}
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img className="tix-art-cat" src="/heroes/cybereator-cat.webp" alt="" />
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -463,17 +513,29 @@ export function TrenchesPerk() {
           <div className="tix-face">
             <p className="tix-kicker">SoDEX Trenches · Holder draw</p>
             <h2 className="tix-title" id="perk-title">
-              Win a{" "}
+              {won === undefined ? "Win a" : isOther ? "This wallet won a" : "You won a"}{" "}
               {/* The Cybereator wordmark itself, tinted gold (owner, 2026-10-16); the word stays for screen readers. */}
               <span className="tix-wordmark">
                 <span className="visually-hidden">Cybereator</span>
               </span>
             </h2>
 
-            <div className="tix-count">
-              <span className="tix-count-label">{count.label}</span>
-              {count.to !== undefined ? <Countdown to={count.to} /> : <span className="tix-count-text">{count.text}</span>}
-            </div>
+            {won !== undefined && winners !== undefined ? (
+              <div className="tix-win">
+                <span className="tix-win-place">
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4ZM7 6H4a3 3 0 0 0 3 4M17 6h3a3 3 0 0 1-3 4" />
+                  </svg>
+                  Winner #{won.place} of {winners.length}
+                </span>
+                <span className="tix-win-how">Picked on ValueChain from block {fmt(Number(drawBlock))}</span>
+              </div>
+            ) : (
+              <div className="tix-count">
+                <span className="tix-count-label">{count.label}</span>
+                {count.to !== undefined ? <Countdown to={count.to} /> : <span className="tix-count-text">{count.text}</span>}
+              </div>
+            )}
 
             <ol className="tix-steps">
               {steps.map((s) => (
@@ -512,8 +574,15 @@ export function TrenchesPerk() {
           </div>
 
           <div className="tix-stub" aria-live="polite">
-            <p className="tix-stub-label">{isOther ? "That wallet" : phase === "before" ? "Your tickets now" : "Your tickets"}</p>
+            <p className="tix-stub-label">
+              {won !== undefined ? "Winning ticket" : isOther ? "That wallet" : phase === "before" ? "Your tickets now" : "Your tickets"}
+            </p>
             {stub}
+            {won !== undefined ? (
+              <span className="tix-stamp" aria-hidden="true">
+                Winner
+              </span>
+            ) : null}
             <Barcode seed={lookup ?? DRAW.id} />
             <span className="tix-admit" aria-hidden="true">
               Admit one wallet · {DRAW.id}
@@ -522,7 +591,7 @@ export function TrenchesPerk() {
         </div>
 
         <p className="tix-shot-foot" aria-hidden="true">
-          <span>Cybereator × ValueMint</span>
+          <span>{won !== undefined ? "Cybereator × ValueMint · Trenches holder draw" : "Cybereator × ValueMint"}</span>
           <b>valuemint.store/trenches</b>
         </p>
       </div>
@@ -530,7 +599,15 @@ export function TrenchesPerk() {
       <div className="tix-tools">
         <TicketShare
           target={shot}
-          fileName={`cybereator-ticket${lookup !== undefined ? `-${lookup.slice(2, 8).toLowerCase()}` : ""}.png`}
+          fileName={`cybereator-${won !== undefined ? "winner" : "ticket"}${lookup !== undefined ? `-${lookup.slice(2, 8).toLowerCase()}` : ""}.png`}
+          label={won !== undefined ? (isOther ? "Share this win" : "Share my win") : "Share ticket"}
+          text={
+            won !== undefined
+              ? isOther
+                ? "A winner of the Cybereator holder draw 🏆 valuemint.store/trenches"
+                : "I won a Cybereator in the Trenches holder draw 🏆 valuemint.store/trenches"
+              : "My tickets for the Cybereator draw 🎟️ valuemint.store/trenches"
+          }
         />
         <label className="perk-lookup tix-lookup">
           <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -551,29 +628,54 @@ export function TrenchesPerk() {
       <div className="perk-card">
         {winners !== undefined ? (
           <div className="perk-winners">
-            <p className="perk-you-label">Winners</p>
+            <div className="perk-winners-head">
+              <h3 className="perk-winners-title">
+                {winners.length} {winners.length === 1 ? "winner" : "winners"}
+              </h3>
+              <p className="perk-winners-sub">
+                Picked on ValueChain from block {fmt(Number(drawBlock))}. One Cybereator each.
+              </p>
+            </div>
             {agrees === false ? (
               <p className="perk-you-note">
                 The contract&rsquo;s result and this page&rsquo;s own check disagree. Do not rely on either until this is
                 looked at.
               </p>
             ) : null}
-            <ol>
+            <ol className="perk-winners-grid">
               {winners.map((w) => {
-                const tx = DRAW.sent[w.wallet.toLowerCase()];
+                const tx = sent[w.wallet.toLowerCase()];
+                const me = address !== undefined && w.wallet.toLowerCase() === address.toLowerCase();
+                const shown = lookup !== undefined && w.wallet.toLowerCase() === lookup.toLowerCase();
                 return (
-                  <li key={w.wallet}>
-                    <span className="perk-w-place">{w.place}</span>
-                    <AddressLink address={w.wallet} chars={5} />
-                    <span className="perk-w-ticket">ticket #{fmt(w.ticket)}</span>
-                    <span className="perk-w-held">{fmt(w.tickets)} tickets</span>
-                    {tx !== undefined ? (
-                      <a className="perk-w-sent" href={`${deployment.explorer}/tx/${tx}`} target="_blank" rel="noreferrer">
-                        Sent
-                      </a>
-                    ) : (
-                      <span className="perk-w-pending">Sending soon</span>
-                    )}
+                  <li key={w.wallet} className={`perk-w${me ? " is-you" : ""}${shown ? " is-shown" : ""}`}>
+                    <span className="perk-w-place">#{w.place}</span>
+                    <span className="perk-w-who">
+                      <AddressLink address={w.wallet} chars={5} />
+                      {me ? <span className="perk-list-you">You</span> : null}
+                    </span>
+                    <span className="perk-w-ticket">
+                      Ticket <b>#{fmt(w.ticket)}</b> · held {fmt(w.tickets)}
+                    </span>
+                    <span className="perk-w-foot">
+                      {tx !== undefined ? (
+                        <a className="perk-w-sent" href={`${deployment.explorer}/tx/${tx}`} target="_blank" rel="noreferrer">
+                          Sent
+                        </a>
+                      ) : (
+                        <span className="perk-w-pending">Sending soon</span>
+                      )}
+                      <button
+                        type="button"
+                        className="perk-w-view"
+                        onClick={() => {
+                          setTyped(me ? "" : w.wallet);
+                          requestAnimationFrame(() => shot.current?.scrollIntoView({ behavior: "smooth", block: "center" }));
+                        }}
+                      >
+                        {shown ? "Showing ticket" : "See ticket"}
+                      </button>
+                    </span>
                   </li>
                 );
               })}
