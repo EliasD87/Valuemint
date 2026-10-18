@@ -21,7 +21,7 @@
  *     transfer (`STEP=sent` in contracts/scripts/ticket-draw.ts prints it).
  *
  * Block numbers are the rule; the dates beside them are estimates at the
- * chain's measured ~2.04s per block (300,000 blocks to 2026-10-15).
+ * chain's measured ~2.037s per block (20,000 and 100,000 blocks to 2026-10-18).
  */
 
 export interface PerkDraw {
@@ -68,10 +68,12 @@ export const CYBEREATOR_SEATS: PerkDraw = {
   // is set here only together with `drawAnnounced: true`.
   winners: 0,
   minDepth: 5,
-  snapshotBlock: 15_766_042n,
-  snapshotAt: "2026-10-18T15:00:00Z",
-  drawBlock: 15_767_806n,
-  drawAt: "2026-10-18T16:00:00Z",
+  // Moved 6 hours earlier, from 15:00 to 09:00 UTC (owner, 2026-10-18, about
+  // 05:00 UTC). The block is ~09:00:02 at the measured pace.
+  snapshotBlock: 15_755_654n,
+  snapshotAt: "2026-10-18T09:00:00Z",
+  drawBlock: 15_757_418n,
+  drawAt: "2026-10-18T10:00:00Z",
   // "Coming soon" on the page (owner, 2026-10-15) until the draw is announced.
   drawAnnounced: false,
   drawContract: "",
@@ -89,7 +91,7 @@ export const CYBEREATOR_SEATS: PerkDraw = {
 };
 
 /** Measured, not the nominal 2s: used only to estimate how long until a block. */
-export const MEASURED_BLOCK_MS = 2_041;
+export const MEASURED_BLOCK_MS = 2_037;
 
 /** Tickets one wallet holds for a list of piece depths. */
 export function ticketsFor(depths: readonly number[], minDepth: number): number {
