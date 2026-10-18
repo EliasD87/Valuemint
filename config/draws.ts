@@ -36,6 +36,8 @@ export interface PerkDraw {
   snapshotBlock: bigint;
   /** Announced time of the snapshot, ISO, for display only. */
   snapshotAt: string;
+  /** Small print under the snapshot step once it is taken, if anything about it needs saying. */
+  snapshotNote?: string;
   drawBlock: bigint;
   drawAt: string;
   /**
@@ -73,6 +75,7 @@ export const CYBEREATOR_SEATS: PerkDraw = {
   // block the owner said "now" at, 12 deep when the list was built.
   snapshotBlock: 15_751_554n,
   snapshotAt: "2026-10-18T06:40:51Z",
+  snapshotNote: "Snapshot taken earlier due to SoDEX maintenance",
   drawBlock: 15_757_418n,
   drawAt: "2026-10-18T10:00:00Z",
   // "Coming soon" on the page (owner, 2026-10-15) until the draw is announced.

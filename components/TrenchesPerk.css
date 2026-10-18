@@ -336,6 +336,13 @@
   color: var(--ink-2);
 }
 
+/* A line of small print under a step, e.g. why the snapshot came early. */
+.tix-step-fine {
+  font-size: var(--step--3);
+  line-height: 1.35;
+  color: var(--ink-3);
+}
+
 .tix-step.is-now .tix-step-note {
   color: var(--accent);
 }

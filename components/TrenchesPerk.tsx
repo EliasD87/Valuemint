@@ -477,6 +477,9 @@ export function TrenchesPerk() {
                   </span>
                   <span className="tix-step-when">{s.when}</span>
                   {s.note !== "" ? <span className="tix-step-note">{s.note}</span> : null}
+                  {s.key === "snapshot" && phase !== "before" && DRAW.snapshotNote !== undefined ? (
+                    <span className="tix-step-fine">{DRAW.snapshotNote}</span>
+                  ) : null}
                 </li>
               ))}
             </ol>
