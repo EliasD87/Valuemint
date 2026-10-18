@@ -203,6 +203,52 @@
   }
 }
 
+/* Phones (2026-10-18): one collection per row. Two across left each card
+   ~180px, so the "Minting" chip sat on top of the name and the three figures
+   wrapped onto two lines each. A row gives the name its width back and keeps
+   the figures on one line, spread across the card. */
+@media (max-width: 700px) {
+  .manage-list {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.6rem;
+  }
+
+  .manage-row {
+    gap: 0.6rem;
+    padding: 0.75rem 0.85rem;
+  }
+
+  .manage-row-head > .min-0 {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .manage-row-head b {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .manage-row-head .chip {
+    flex: none;
+  }
+
+  .manage-row-stats {
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding-top: 0.6rem;
+  }
+
+  .manage-row-stats > div:last-child {
+    align-items: flex-end;
+  }
+
+  .manage-row-stats dd {
+    white-space: nowrap;
+  }
+}
+
 .manage-check {
   display: flex;
   align-items: center;

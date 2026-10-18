@@ -714,8 +714,8 @@
   }
 
   .hx-deck {
-    --card-w: min(44vw, 190px);
-    --step: min(24vw, 110px);
+    --card-w: min(40vw, 168px);
+    --step: min(22vw, 98px);
     --tilt: 8deg;
   }
 
@@ -826,9 +826,9 @@
     flex: 1 1 0;
     min-width: 0;
     width: auto;
-    padding: 0.7rem 0.6rem;
+    padding: 0.55rem 0.6rem;
     font-size: var(--step--1);
-    min-height: 44px;
+    min-height: 40px;
     justify-content: center;
   }
 

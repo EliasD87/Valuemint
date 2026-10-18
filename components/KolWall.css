@@ -382,9 +382,12 @@
   }
 
   /* The node where the card meets the rail. */
+  /* Written out as -1rem (the rail at 1.1rem, the card inset 2.1rem): the
+     build dropped `calc(-2.1rem + 1.1rem)` outright, and the node fell back to
+     the desktop 50%, right across the poster's name. */
   .kw-card::after {
     top: 1.35rem;
-    left: calc(-2.1rem + 1.1rem);
+    left: -1rem;
   }
 }
 

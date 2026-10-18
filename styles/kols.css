@@ -479,6 +479,65 @@
   color: var(--ink);
 }
 
+/* ------------------------------------------------------ phones: the wall ===
+ *
+ * 2026-10-18. Fifty-eight portraits two across ran the page to 13,000px on a
+ * 390px phone. Three across is a wall you can take in, the way a profile grid
+ * reads: the portrait, the name and number, the handle, and the claim state as
+ * a small mark rather than a full-width band under every card.
+ * ========================================================================== */
+@media (max-width: 700px) {
+  .kol-grid.kol-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.45rem;
+  }
+
+  .kol-card {
+    border-radius: var(--r-md);
+  }
+
+  .kol-card-foot {
+    gap: 0.25rem;
+    padding: 0.35rem 0.45rem 0.1rem;
+    border-top: 0;
+  }
+
+  .kol-card-foot b {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.6875rem;
+  }
+
+  .kol-card-foot span {
+    flex: none;
+    font-size: 0.5625rem;
+  }
+
+  .kol-card-x {
+    gap: 0.2rem;
+    padding: 0 0.45rem 0.35rem;
+    font-size: 0.5625rem;
+  }
+
+  .kol-card-x svg {
+    width: 9px;
+    height: 9px;
+  }
+
+  .kol-card-status {
+    gap: 0.2rem;
+    padding: 0.2rem 0.45rem;
+    font-size: 0.5625rem;
+  }
+
+  .kol-card-status svg {
+    width: 9px;
+    height: 9px;
+  }
+}
+
 /* ============================================================== the claim ===
  *
  * Everything below appears only once `KolRewards` has an address. Until then

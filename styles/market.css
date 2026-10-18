@@ -146,6 +146,15 @@
   .mk-sorts {
     order: -1;
   }
+
+  /* The grid is the page; the toolbar above it should not cost a screen. */
+  .mk-page.section {
+    padding-top: 1.1rem;
+  }
+
+  .mk-controls {
+    gap: 0.6rem;
+  }
 }
 
 
@@ -171,6 +180,34 @@
 
 .mk-filters .filt em {
   font-size: var(--step--3);
+}
+
+/* Phones: smaller chips, so four or five show at once instead of two and a
+   half. 30px tall still clears the 24px target size with room. */
+@media (max-width: 700px) {
+  .mk-filters.mk-filters {
+    gap: 0.35rem;
+  }
+
+  .mk-filters .filt.filt {
+    min-height: 30px;
+    padding: 0.2rem 0.6rem;
+    font-size: 0.6875rem;
+  }
+
+  .mk-filters .filt em {
+    font-size: 0.625rem;
+  }
+
+  /* The sort control matches the Bulk buy pill beside it: same height, same
+     round ends, so the toolbar reads as one row of controls. */
+  .mk-sorts .sel-trigger {
+    min-height: 32px;
+    padding: 0.3rem 0.75rem;
+    border-color: var(--line-strong);
+    border-radius: var(--r-pill);
+    font-size: 0.75rem;
+  }
 }
 
 /* ------------------------------------------------------------ chip look ---

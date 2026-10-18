@@ -10,6 +10,7 @@ import { toListing, type Listing } from "@/lib/seaport";
 import { useGenericTokens } from "@/hooks/useGenericTokens";
 import { useTokenIds } from "@/hooks/useTokenIds";
 import { MintPanel } from "@/components/MintPanel";
+import { useNarrow } from "@/hooks/useNarrow";
 import { CollectionOffers } from "@/components/CollectionOffers";
 import { TokenCard, TokenCardSkeleton } from "@/components/TokenCard";
 import { formatCount } from "@/lib/format";
@@ -93,6 +94,8 @@ export function CollectionView({ params }: { params: Promise<{ address: string }
   const collection = valid ? (raw as `0x${string}`) : undefined;
 
   const [tab, setTab] = useState<Tab>("items");
+  // Matches `.coll-layout`'s single-column breakpoint in collections.css.
+  const narrow = useNarrow(900);
 
   /**
    * One multicall for the four things everything else waits on.
@@ -343,6 +346,14 @@ export function CollectionView({ params }: { params: Promise<{ address: string }
 
       <CollectionStats collection={collection} supply={supply as bigint | undefined} />
 
+      {/* On a phone the mint card leads, above the offers and the tabs, where it
+          is the page's one primary action; on a desktop it stays in the sidebar. */}
+      {narrow && collection !== undefined ? (
+        <div className="coll-mint-top">
+          <MintPanel address={collection} />
+        </div>
+      ) : null}
+
       {/* Bids on the whole collection or one trait, and the way to place one. */}
       {collection === undefined || !offersAllowed(collection) ? null : <CollectionOffers collection={collection} />}
 
@@ -589,7 +600,7 @@ export function CollectionView({ params }: { params: Promise<{ address: string }
               wrapper has one occupant — kept, because `.coll-side` is what gives
               the column its width and its phone behaviour.
             */}
-            {collection !== undefined ? (
+            {collection !== undefined && !narrow ? (
               <aside className="coll-side">
                 <MintPanel address={collection} />
               </aside>

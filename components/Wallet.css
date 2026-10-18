@@ -350,6 +350,64 @@
   .wallet-bal {
     display: none;
   }
+
+  /* The rule divides the address from the balance; with the balance hidden it
+     was a stray bar hanging off the end of the pill. */
+  .wallet-rule {
+    display: none;
+  }
+
+  /**
+   * Phones: the menu drops from the header's right edge rather than from the
+   * pill, so it lines up with the screen instead of hanging off-centre.
+   *
+   * `position: fixed` resolves against the header here, not the viewport — the
+   * header's backdrop-filter makes it the containing block — which is exactly
+   * the box wanted: its top is the top of the screen and it is full width.
+   */
+  .wallet-menu {
+    position: fixed;
+    top: calc(var(--header-h) + 6px);
+    right: 0.6rem;
+    left: auto;
+    width: min(17rem, calc(100vw - 1.2rem));
+    min-width: 0;
+    padding: 0.5rem;
+    gap: 0.3rem;
+    border-radius: var(--r-lg);
+  }
+
+  .wallet-menu-head {
+    padding: 0.3rem 0.4rem 0.35rem;
+  }
+
+  .wallet-menu-bal {
+    align-items: center;
+    padding: 0.45rem 0.4rem;
+  }
+
+  .wallet-menu-bal-value {
+    font-size: var(--step-0);
+  }
+
+  /* Two actions side by side, each half the width, instead of two rows. */
+  .wallet-menu-actions {
+    flex-direction: row;
+    gap: 0.35rem;
+    padding-top: 0.4rem;
+  }
+
+  .wallet-menu-actions .btn {
+    flex: 1 1 0;
+    justify-content: center;
+    min-height: 32px;
+    border: 1px solid var(--line);
+    border-radius: var(--r-pill);
+  }
+
+  .wallet-menu-actions .btn:hover {
+    border-color: var(--line-strong);
+  }
 }
 
 /**

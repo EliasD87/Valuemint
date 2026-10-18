@@ -181,6 +181,37 @@
   }
 }
 
+/* Phones: the strip as one compact row, label and summary on the left, the
+   button on the right, rather than a box with the button on a line of its own. */
+@media (max-width: 700px) {
+  .co {
+    gap: 0.5rem;
+    padding: 0.65rem 0.75rem;
+  }
+
+  .co-head {
+    flex-wrap: nowrap;
+    gap: 0.75rem;
+  }
+
+  .co-title {
+    flex: 1 1 auto;
+  }
+
+  .co-eyebrow {
+    font-size: 0.625rem;
+  }
+
+  .co-sub {
+    font-size: 0.75rem;
+    line-height: 1.4;
+  }
+
+  .co-head > .btn {
+    flex: none;
+  }
+}
+
 /* Take a standing offer: goes to the viewer's qualifying piece. Small enough
    to sit inside the line without pushing the strip taller. */
 .co-accept {

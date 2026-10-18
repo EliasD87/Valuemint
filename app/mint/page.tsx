@@ -84,8 +84,8 @@ export default function Mint() {
   const { artFor } = useCollectionArt(undefined, state === "list");
 
   return (
-    <section className="page section">
-      <div className="head">
+    <section className="page section mint-page">
+      <div className="head mint-head">
         <div>
           <p className="eyebrow">Mint</p>
           <h2>Collections open right now</h2>
@@ -110,7 +110,7 @@ export default function Mint() {
           </Link>
         </div>
       ) : (
-        <div className="coll-grid">
+        <div className="coll-grid coll-rows">
           {minting.map((c) => (
             <CollectionCard
               key={c.address}
@@ -120,6 +120,11 @@ export default function Mint() {
               address={c.address}
               images={artFor(c.address)}
               badge={<span className="chip chip-up">Minting</span>}
+              progress={
+                c.maxSupply !== undefined && c.maxSupply > 0n
+                  ? Number(c.totalSupply ?? 0n) / Number(c.maxSupply)
+                  : undefined
+              }
               stats={[
                 { label: "Price", value: `${formatSoso(c.mintPrice)} SOSO` },
                 { label: "Available", value: formatCount(c.publicMintRemaining) },

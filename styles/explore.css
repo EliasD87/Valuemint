@@ -1092,6 +1092,437 @@
   }
 }
 
+/* ------------------------------------------------------ phones: compact ===
+ *
+ * 2026-10-18. The home page ran to 6,500px on a 390px phone: desktop-sized
+ * section air, 32px headings, a 4:5 banner and cards drawn at their desktop
+ * size. Everything below is the same content at phone scale. Nothing is
+ * hidden; the order and the copy are unchanged.
+ * ========================================================================== */
+@media (max-width: 700px) {
+  .ex {
+    padding-block: 1.75rem;
+  }
+
+  .ex-trust {
+    gap: 0.75rem;
+    padding-block: 1.25rem;
+  }
+
+  .ex-h {
+    font-size: 1.5rem;
+    line-height: 1.08;
+    letter-spacing: -0.03em;
+  }
+
+  .ex-head {
+    margin-bottom: 1rem;
+  }
+
+  .ex-lede {
+    font-size: 0.875rem;
+    line-height: 1.5;
+  }
+
+  .ex-intro,
+  .ex-feature {
+    gap: 1.25rem;
+  }
+
+  .ex-intro-copy,
+  .ex-feature-copy {
+    gap: 0.75rem;
+  }
+
+  .ex-cascade {
+    width: min(19rem, 86%);
+  }
+
+  .ex-cascade-card {
+    border-width: 2px;
+    border-radius: var(--r-md);
+  }
+
+  /* Square instead of 4:5, and the copy one size down to fit it. */
+  .ex-banner {
+    aspect-ratio: 1 / 1;
+    border-radius: var(--r-lg);
+  }
+
+  .ex-banner-body {
+    bottom: 3.5rem;
+    gap: 0.35rem;
+  }
+
+  .ex-banner-name {
+    font-size: 1.35rem;
+  }
+
+  .ex-banner-fg {
+    height: 56%;
+  }
+
+  .ex-banner-nav {
+    bottom: 0.85rem;
+    right: 0.85rem;
+  }
+
+  .ex-round {
+    width: 32px;
+    height: 32px;
+  }
+
+  .ex-trust-title {
+    font-size: 1rem;
+  }
+
+  .ex-chips {
+    gap: 0.5rem;
+  }
+
+  .ex-chip {
+    padding: 0.25rem 0.75rem 0.25rem 0.25rem;
+    font-size: 0.8125rem;
+  }
+
+  .ex-chip img {
+    width: 22px;
+    height: 22px;
+  }
+
+  .ex-statement-text {
+    font-size: 1.3rem;
+    line-height: 1.25;
+  }
+
+  .ex-panel {
+    padding: 0.6rem;
+    border-radius: var(--r-lg);
+  }
+
+  .ex-panel-bar {
+    padding: 0 0.15rem 0.6rem;
+    font-size: 0.75rem;
+  }
+
+  .ex-panel-bar b {
+    padding: 0.2rem 0.6rem;
+  }
+
+  .ex-tiles {
+    gap: 0.5rem 0.4rem;
+  }
+
+  .ex-tile {
+    gap: 0.15rem;
+  }
+
+  .ex-tile-media {
+    border-radius: var(--r-sm);
+  }
+
+  .ex-bento {
+    gap: 0.75rem;
+  }
+
+  .ex-cell {
+    gap: 0.35rem;
+    padding: 1rem;
+    border-radius: var(--r-lg);
+  }
+
+  .ex-cell h3 {
+    font-size: 1rem;
+  }
+
+  .ex-cell p {
+    font-size: 0.8125rem;
+  }
+
+  .ex-cell-link {
+    padding: 0.3rem 0.75rem;
+    font-size: 0.75rem;
+  }
+
+  .ex-stack {
+    height: 5rem;
+  }
+
+  .ex-stack img {
+    left: calc(var(--i) * 2.4rem);
+    width: 4.5rem;
+    height: 4.5rem;
+    border-width: 2px;
+    border-radius: var(--r-md);
+  }
+
+  .ex-cell-b {
+    min-height: 12rem;
+  }
+
+  .ex-cell-b > img {
+    width: 30%;
+    border-radius: var(--r-md);
+  }
+
+  .ex-strip {
+    gap: 0.4rem;
+  }
+
+  .ex-strip img {
+    border-radius: var(--r-sm);
+  }
+
+  /* One row of four rather than two by two: half the height, and the title
+     under it no longer sits on the second row. */
+  .ex-wallet {
+    grid-template-columns: repeat(4, 3rem);
+    gap: 0.4rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .ex-wallet img {
+    width: 3rem;
+    height: 3rem;
+    border-radius: var(--r-sm);
+  }
+
+  .ex-rail {
+    gap: 0.6rem;
+  }
+
+  .ex-mint {
+    flex-basis: 12.5rem;
+    border-radius: var(--r-md);
+  }
+
+  .ex-mint-wait {
+    height: 15rem;
+  }
+
+  .ex-mint-body {
+    gap: 0.35rem;
+    padding: 0.65rem 0.75rem 0.75rem;
+  }
+
+  .ex-mint-name {
+    font-size: 0.875rem;
+  }
+
+  .ex-closing {
+    gap: 0.75rem;
+  }
+
+  .ex-close {
+    min-height: 13rem;
+    border-radius: var(--r-lg);
+  }
+
+  .ex-close-body {
+    gap: 0.35rem;
+    padding: 1rem;
+  }
+
+  .ex-close h3 {
+    font-size: 1.3rem;
+  }
+
+  .ex-close p {
+    font-size: 0.8125rem;
+    line-height: 1.45;
+  }
+}
+
+/* ------------------------------------------- phones: centred composition ===
+ *
+ * 2026-10-18, second pass. Shrinking alone left a phone page that leaned left:
+ * headings, ledes and buttons hugged the left gutter while the art between
+ * them was centred, so the page zig-zagged. Here every section's copy sits on
+ * the centre line, the four feature cards become one swipeable row (a card
+ * and a peek of the next) instead of four full-width slabs, and the two
+ * closing banners pair up side by side.
+ * ========================================================================== */
+@media (max-width: 700px) {
+  .ex-head,
+  .ex-intro-copy,
+  .ex-feature-copy {
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .ex-head > div:first-child {
+    align-items: center;
+  }
+
+  .ex-lede {
+    margin-inline: auto;
+    max-width: 34ch;
+  }
+
+  .ex-actions,
+  .ex-head-tools {
+    justify-content: center;
+  }
+
+  .ex-link {
+    align-self: center;
+  }
+
+  .ex-cascade {
+    margin-inline: auto;
+  }
+
+  .ex-trust {
+    align-items: center;
+    text-align: center;
+  }
+
+  .ex-trust .ex-chips {
+    justify-content: safe center;
+    max-width: 100%;
+  }
+
+  /* -- the feature cards: one swipeable row, bleeding to the screen edges -- */
+  .ex-bento {
+    display: flex;
+    gap: 0.75rem;
+    margin-inline: calc(-1 * var(--gutter));
+    padding: 0.25rem var(--gutter) 0.5rem;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scroll-padding-inline: var(--gutter);
+    scrollbar-width: none;
+    overscroll-behavior-x: contain;
+  }
+
+  .ex-bento::-webkit-scrollbar {
+    display: none;
+  }
+
+  .ex-cell {
+    flex: 0 0 min(78%, 19rem);
+    min-height: 17rem;
+    align-items: center;
+    justify-content: flex-start;
+    text-align: center;
+    scroll-snap-align: start;
+  }
+
+  .ex-cell:hover {
+    transform: none;
+  }
+
+  .ex-cell p {
+    max-width: 30ch;
+  }
+
+  .ex-cell-link,
+  .ex-cell-dark .ex-cell-link {
+    align-self: center;
+    margin-top: auto;
+  }
+
+  .ex-stack {
+    width: 9.3rem;
+    height: 5.25rem;
+  }
+
+  .ex-strip {
+    width: 100%;
+  }
+
+  .ex-wallet {
+    margin-inline: auto;
+    rotate: none;
+  }
+
+  /* The offers card joins the others' shape: art on top, copy centred. */
+  .ex-cell-b > img {
+    position: static;
+    order: -1;
+    z-index: auto;
+    width: 5.25rem;
+    margin-bottom: 0.5rem;
+    rotate: -6deg;
+  }
+
+  .ex-cell-copy {
+    max-width: none;
+    align-items: center;
+  }
+
+  /* -- the collection banner: centred copy, arrows on either side -- */
+  .ex-banner-body {
+    left: 1rem;
+    right: 1rem;
+    bottom: 1.1rem;
+    align-items: center;
+    text-align: center;
+  }
+
+  .ex-banner-btn {
+    align-self: center;
+  }
+
+  .ex-banner-dots {
+    left: 50%;
+    translate: -50% 0;
+  }
+
+  .ex-banner-fg {
+    right: 50%;
+    translate: 50% 0;
+    bottom: 5.5rem;
+    height: 50%;
+    object-position: bottom center;
+  }
+
+  .ex-banner-nav {
+    inset: 42% 0.6rem auto;
+    justify-content: space-between;
+    translate: 0 -50%;
+    pointer-events: none;
+  }
+
+  .ex-banner-nav > * {
+    pointer-events: auto;
+  }
+
+  .ex-cell {
+    min-height: 15.5rem;
+  }
+
+  /* -- closing: two portrait banners side by side, headline and button -- */
+  .ex-closing {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .ex-close {
+    min-height: 15rem;
+  }
+
+  .ex-close-body {
+    width: 100%;
+    align-items: center;
+    text-align: center;
+    padding: 0.85rem 0.6rem;
+  }
+
+  .ex-close h3 {
+    font-size: 1.05rem;
+    text-wrap: balance;
+  }
+
+  .ex-close p {
+    display: none;
+  }
+
+  .ex-close-btn {
+    align-self: center;
+  }
+}
+
 @media (max-width: 520px) {
   .ex-tiles {
     grid-template-columns: repeat(3, minmax(0, 1fr));

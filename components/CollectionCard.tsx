@@ -35,9 +35,11 @@ interface Props {
   images: string[];
   badge?: ReactNode;
   stats: CollectionStat[];
+  /** How much of the supply is minted, 0 to 1. Drawn as a bar on phones (the mint page). */
+  progress?: number;
 }
 
-export function CollectionCard({ href, name, symbol, address, images, badge, stats }: Props) {
+export function CollectionCard({ href, name, symbol, address, images, badge, stats, progress }: Props) {
   const initials = (symbol || name || "?").slice(0, 2).toUpperCase();
 
   /**
@@ -130,6 +132,12 @@ export function CollectionCard({ href, name, symbol, address, images, badge, sta
             </div>
           ))}
         </dl>
+
+        {progress === undefined ? null : (
+          <span className="coll-card-progress" aria-hidden="true">
+            <i style={{ width: `${Math.round(Math.min(1, Math.max(0, progress)) * 100)}%` }} />
+          </span>
+        )}
       </div>
     </Link>
   );

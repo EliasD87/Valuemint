@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useAccount, useBalance, useConnect, useDisconnect } from "wagmi";
 import { SWITCH_STALLED, useSwitchToChain } from "@/hooks/useChainWrite";
 import { valuechain } from "@/config/chain";
-import { formatSoso, tinyAddress } from "@/lib/format";
+import { formatSosoFixed, tinyAddress } from "@/lib/format";
 
 /**
  * The account's glyph, with the live dot badged onto it.
@@ -236,7 +236,7 @@ export function Wallet() {
 
         <span className="mono wallet-bal">
           <Soso size={13} unit="">
-            {formatSoso(balance?.value)}
+            {formatSosoFixed(balance?.value, 2)}
           </Soso>
         </span>
       </button>
@@ -304,7 +304,7 @@ export function Wallet() {
                 <small>on {valuechain.name}</small>
               </span>
               <span className="mono wallet-menu-bal-value">
-                <Soso size={13}>{formatSoso(balance?.value)}</Soso>
+                <Soso size={13}>{formatSosoFixed(balance?.value, 2)}</Soso>
               </span>
             </div>
 

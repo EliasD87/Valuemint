@@ -420,4 +420,38 @@
   .ch-fg {
     display: none;
   }
+
+  /**
+   * Centred, like a profile (2026-10-18): the avatar sits on the band's centre
+   * line, and the name, actions and chips stack under it on the same axis.
+   * Left-aligned, the block hung off the left edge under a full-width band.
+   */
+  .ch-body {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 0.5rem;
+  }
+
+  .ch-avatar {
+    align-self: center;
+    width: 64px;
+    height: 64px;
+    margin-top: -2.25rem;
+  }
+
+  .ch-id {
+    flex: none;
+    width: 100%;
+    align-items: center;
+  }
+
+  .ch-namerow {
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  .ch-chips {
+    justify-content: center;
+  }
 }

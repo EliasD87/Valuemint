@@ -1018,6 +1018,47 @@ textarea {
   }
 }
 
+/**
+ * Phones: compact controls (2026-10-18).
+ *
+ * The 44px floor above made every button on a phone as tall as the header's
+ * whole row of controls, and the owner asked for a tighter mobile site. 36px
+ * for a button and 32px for a small one still clear WCAG 2.2's 24px target
+ * (2.5.8) comfortably; the padding comes down with them so the label sits
+ * centred rather than floating in a tall pill.
+ *
+ * Footer links drop to 34px: they are a stacked list, nothing beside them to
+ * mis-tap, and at 44px the footer alone was a screen and a half.
+ */
+@media (max-width: 700px) {
+  .btn {
+    min-height: 36px;
+    padding: 0.45rem 0.95rem;
+    font-size: 0.8125rem;
+  }
+
+  .btn-sm {
+    min-height: 32px;
+    padding: 0.35rem 0.8rem;
+    font-size: 0.75rem;
+  }
+
+  .btn-lg {
+    min-height: 40px;
+    padding: 0.55rem 1.15rem;
+    font-size: 0.875rem;
+  }
+
+  .filt {
+    min-height: 36px;
+  }
+
+  .footer-col ul a,
+  .footer-col ul .mono {
+    min-height: 34px;
+  }
+}
+
 /* ==================================================== phones: card density ==
  *
  * Every card grid here is `repeat(auto-fill, minmax(min(Nrem, 100%), 1fr))`,
@@ -1042,9 +1083,7 @@ textarea {
 @media (max-width: 700px) {
   .grid-tokens.grid-tokens,
   .manage-grid.manage-grid,
-  .manage-list.manage-list,
-  .studio-designs.studio-designs,
-  .kol-grid.kol-grid {
+  .studio-designs.studio-designs {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.6rem;
   }
@@ -1207,6 +1246,11 @@ textarea {
   display: inline-flex;
   align-items: center;
   gap: 0.22em;
+}
+
+/* Mark-only amounts (`unit=""`) keep no gap for a label that is not there. */
+.soso-unit:empty {
+  display: none;
 }
 
 /* The unit is context, not the value — one step down so the figure leads. */

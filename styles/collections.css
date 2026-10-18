@@ -377,6 +377,165 @@
   }
 }
 
+/* ----------------------------------------------- phones: collection rows ===
+ *
+ * 2026-10-18. On a phone the mint page stacked full collection cards, each
+ * ~340px: a three-up strip, a name, a symbol, a chip, a rule and three rows
+ * of figures. Seven open mints were 2,200px of scrolling to compare seven
+ * prices.
+ *
+ * Here each one is a row instead: one piece on the left, and beside it the
+ * name with its chip, the figures side by side, and a bar for how much has
+ * minted. The same component; only `.coll-rows` reshapes it. Used by /mint and
+ * /collections.
+ * ========================================================================== */
+
+/* Only the mint page passes a progress figure, and only phones draw it. */
+.coll-card-progress {
+  display: none;
+}
+
+@media (max-width: 700px) {
+  /* The title centred like every phone section heading, and less air above it. */
+  .mint-page.section {
+    padding-top: 1.5rem;
+  }
+
+  .mint-head {
+    justify-content: center;
+    text-align: center;
+    margin-bottom: 1rem;
+  }
+
+  .mint-head > div {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .mint-head h2 {
+    font-size: 1.375rem;
+  }
+
+  .coll-rows {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.6rem;
+  }
+
+  .coll-rows .coll-card {
+    display: grid;
+    grid-template-columns: 6.5rem minmax(0, 1fr);
+    border-radius: var(--r-md);
+  }
+
+  .coll-rows .coll-cover {
+    height: 100%;
+    min-height: 6.5rem;
+    grid-auto-flow: row;
+    border-bottom: 0;
+    border-right: 1px solid var(--line);
+  }
+
+  .coll-rows .coll-cover-cell:not(:first-child) {
+    display: none;
+  }
+
+  .coll-rows .coll-card-body {
+    gap: 0.45rem;
+    padding: 0.6rem 0.75rem 0.65rem;
+  }
+
+  .coll-rows .coll-card-head {
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .coll-rows .coll-card-head .chip {
+    margin-left: auto;
+    padding: 0.1rem 0.45rem;
+    font-size: 0.625rem;
+  }
+
+  .coll-rows .coll-card-name b {
+    font-size: 0.875rem;
+    -webkit-line-clamp: 1;
+  }
+
+  .coll-rows .coll-card-name > span {
+    font-size: 0.6875rem;
+  }
+
+  .coll-rows .coll-card-stats {
+    flex-direction: row;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding-top: 0.45rem;
+  }
+
+  /* Each figure keeps its own width, so on the narrowest phones a third one
+     wraps to a second line rather than printing over its neighbour (measured
+     at 360: "6,099 / 50,000", "0.35 SOSO" and "External" need 250px of 230). */
+  .coll-rows .coll-card-stats {
+    flex-wrap: wrap;
+    row-gap: 0.3rem;
+  }
+
+  .coll-rows .coll-card-stats > div {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0;
+    min-width: auto;
+  }
+
+  .coll-rows .coll-card-stats > div:last-child {
+    align-items: flex-end;
+  }
+
+  /* Four figures (/collections, where a mint price is known) go two by two:
+     side by side they would be 50px each, narrower than "6,099 / 50,000". */
+  .coll-rows .coll-card-stats:has(> div:nth-child(4)) {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.3rem 0.75rem;
+  }
+
+  .coll-rows .coll-card-stats:has(> div:nth-child(4)) > div:nth-child(even) {
+    align-items: flex-end;
+  }
+
+  /* The page title, centred like every phone heading. */
+  .coll-page-head {
+    justify-content: center;
+    text-align: center;
+  }
+
+  .coll-rows .coll-card-stats dt {
+    font-size: 0.625rem;
+  }
+
+  .coll-rows .coll-card-stats dd {
+    font-size: 0.75rem;
+  }
+
+  .coll-card-progress {
+    display: block;
+    height: 4px;
+    overflow: hidden;
+    border-radius: var(--r-pill);
+    background: var(--surface-2);
+  }
+
+  .coll-card-progress i {
+    display: block;
+    height: 100%;
+    min-width: 4px;
+    border-radius: inherit;
+    background: var(--accent);
+  }
+}
+
 /* ------------------------------------------------------ collection controls --
  *
  * Sort and trait filters. The page had neither, which is fine at nine tokens
@@ -465,6 +624,80 @@
 
   .coll-trait .sel {
     width: 100%;
+  }
+}
+
+/**
+ * Phones: the sort pills and trait filters at phone size (2026-10-18).
+ *
+ * Four sort pills on one row at 30px, and the trait dropdowns two across with
+ * their label above each — a label beside a full-width select left "DESIGN"
+ * squeezed against the box.
+ */
+@media (max-width: 700px) {
+  .coll-controls {
+    gap: 0.6rem;
+    margin-bottom: 0.9rem;
+    min-height: 0;
+  }
+
+  .coll-controls .wrap-row {
+    gap: 0.35rem;
+  }
+
+  .coll-controls .filt.filt {
+    min-height: 30px;
+    padding: 0.2rem 0.7rem;
+    font-size: 0.75rem;
+  }
+
+  .coll-traits {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem;
+    width: 100%;
+  }
+
+  .coll-trait {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.2rem;
+    min-width: 0;
+  }
+
+  .coll-trait-label {
+    font-size: 0.625rem;
+  }
+
+  .coll-trait .sel {
+    min-width: 0;
+  }
+
+  .coll-trait .sel-trigger {
+    min-height: 32px;
+    padding: 0.3rem 0.7rem;
+    border-radius: var(--r-pill);
+    font-size: 0.75rem;
+  }
+
+  /* One trait on its own takes the full row rather than half of it. */
+  .coll-trait:only-child {
+    grid-column: 1 / -1;
+  }
+
+  .coll-traits > .filt {
+    grid-column: 1 / -1;
+    justify-self: center;
+  }
+
+  /* The band is the top of the page; 36px of air above it was a gap, not a margin. */
+  .page-compact.section {
+    padding-top: 1rem;
+  }
+
+  /* The mint card, moved up under the stats on a phone. */
+  .coll-mint-top {
+    margin-bottom: 0.9rem;
   }
 }
 

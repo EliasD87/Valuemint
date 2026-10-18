@@ -130,4 +130,68 @@
   line-height: 1.55;
 }
 
+/* ---------------------------------------------------------- phones: panel ==
+ *
+ * 2026-10-18. On a phone the panel leads the collection page, so it is drawn as
+ * one tight card: the price and the count on the first line, a thin bar, the
+ * two small figures, then the button last where a thumb lands. The notes after
+ * a mint keep their place below it.
+ * ========================================================================== */
+@media (max-width: 700px) {
+  .mint-panel {
+    gap: 0.6rem;
+    padding: 0.8rem 0.85rem 0.85rem;
+    border-radius: var(--r-md);
+  }
 
+  .mint-panel-head {
+    align-items: center;
+    padding-bottom: 0;
+    border-bottom: 0;
+    font-size: 0.8125rem;
+  }
+
+  .mint-total {
+    font-size: 1.125rem;
+  }
+
+  .mint-progress {
+    gap: 0.6rem;
+    margin-top: 0;
+  }
+
+  .mint-bar {
+    height: 4px;
+  }
+
+  .mint-bar span {
+    background: var(--accent);
+  }
+
+  .mint-meta {
+    order: 1;
+    justify-content: flex-start;
+    gap: 1.5rem;
+    padding-top: 0;
+    border-top: 0;
+  }
+
+  .mint-meta > div {
+    flex-direction: row;
+    align-items: baseline;
+    gap: 0.35rem;
+  }
+
+  .mint-meta dd {
+    font-size: 0.75rem;
+  }
+
+  .mint-action {
+    order: 2;
+    margin-top: 0.1rem;
+  }
+
+  .mint-note {
+    order: 3;
+  }
+}

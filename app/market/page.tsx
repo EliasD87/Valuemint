@@ -273,7 +273,7 @@ export default function Market() {
    */
 
   return (
-    <section className="page section">
+    <section className="page section page-compact mk-page">
       {/*
         No heading, and nothing replacing it.
 

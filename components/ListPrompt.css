@@ -14,9 +14,9 @@
   bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
   z-index: 60;
 
-  width: min(22rem, calc(100vw - 2rem));
+  width: min(20rem, calc(100vw - 2rem));
   display: grid;
-  gap: 0.7rem;
+  gap: 0.45rem;
 
   /**
    * Never taller than the screen it floats over.
@@ -30,9 +30,9 @@
   overflow-y: auto;
   overscroll-behavior: contain;
 
-  padding: 0.9rem 1rem 1rem;
+  padding: 0.7rem 0.7rem 0.6rem;
   border: 1px solid var(--line);
-  border-radius: var(--r-md);
+  border-radius: var(--r-lg);
   background: var(--surface);
   /* Lifted off the page it floats over — the one place a shadow earns its keep. */
   box-shadow: 0 10px 30px -12px rgb(0 0 0 / 0.28);
@@ -68,8 +68,14 @@
 
 .lp-title {
   margin: 0;
-  font-size: var(--step--1);
-  line-height: 1.45;
+  padding: 0.1rem 0 0 0.3rem;
+  font-size: var(--step--2);
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--ink-2);
+}
+
+.lp-title strong {
   color: var(--ink);
 }
 
@@ -77,9 +83,9 @@
   flex: none;
   display: grid;
   place-items: center;
-  width: 1.65rem;
-  height: 1.65rem;
-  margin: -0.2rem -0.3rem 0 0;
+  width: 1.5rem;
+  height: 1.5rem;
+  margin: -0.15rem -0.15rem 0 0;
   border: 0;
   border-radius: var(--r-sm);
   background: none;
@@ -97,7 +103,7 @@
   padding: 0;
   list-style: none;
   display: grid;
-  gap: 0.5rem;
+  gap: 0.15rem;
 }
 
 /**
@@ -110,8 +116,8 @@
   display: grid;
   grid-template-columns: 1fr auto;
   align-items: center;
-  gap: 0.6rem;
-  font-size: var(--step--1);
+  gap: 0.5rem;
+  font-size: var(--step--2);
   color: var(--ink-2);
   /*
    * Padding on EVERY row, not only the lit one.
@@ -121,8 +127,12 @@
    * the lit row reads as nudged rather than lit. The padding is transparent
    * here and costs the others nothing.
    */
-  padding: 0.4rem;
-  border-radius: var(--r-sm);
+  padding: 0.3rem 0.3rem;
+  border-radius: var(--r-md);
+}
+
+.lp-row:hover {
+  background: var(--surface-2);
 }
 
 /*
@@ -177,10 +187,10 @@
 .lp-thumb {
   position: relative;
   display: block;
-  flex: 0 0 44px;
-  width: 44px;
-  height: 44px;
-  border-radius: var(--r-sm);
+  flex: 0 0 32px;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
   overflow: hidden;
   background: var(--surface-2);
 }
@@ -248,26 +258,40 @@
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  padding: 0.3rem 0.65rem;
+  min-height: 26px;
+  padding: 0.2rem 0.7rem;
   border: 1px solid var(--line-strong);
-  border-radius: var(--r-sm);
+  border-radius: var(--r-pill);
   background: var(--surface);
   color: var(--ink);
-  font-size: var(--step--1);
-  font-weight: 600;
+  font-size: var(--step--2);
+  font-weight: 650;
   text-decoration: none;
   white-space: nowrap;
 }
 
 .lp-go:hover {
-  background: var(--surface-2);
-  border-color: var(--ink-3);
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--paper);
 }
 
+/**
+ * Phones: a compact sheet along the bottom, centred, with the list capped at
+ * about four rows so five or ten collections never cover the page. The rest
+ * scroll inside it.
+ */
 @media (max-width: 480px) {
   .lp {
-    right: 0.75rem;
-    left: 0.75rem;
+    right: 0.6rem;
+    left: 0.6rem;
+    bottom: calc(0.6rem + env(safe-area-inset-bottom, 0px));
     width: auto;
+  }
+
+  .lp-rows {
+    max-height: 10.5rem;
+    overflow-y: auto;
+    overscroll-behavior: contain;
   }
 }

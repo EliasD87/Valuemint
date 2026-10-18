@@ -252,6 +252,34 @@
   }
 }
 
+/* Phones (2026-10-18): the heading centred like every other page's, and the
+   depth cards' second line one size down so "$150M volume" and "None claimed
+   yet" sit on separate lines without crowding. */
+@media (max-width: 700px) {
+  .trx-intro-copy {
+    align-items: center;
+    text-align: center;
+  }
+
+  .trx-title {
+    font-size: 1.5rem;
+  }
+
+  .trx-lede {
+    margin-inline: auto;
+    max-width: 34ch;
+    font-size: 0.8125rem;
+  }
+
+  .trx-card .tcard-meta {
+    font-size: 0.6875rem;
+  }
+
+  .trx-grid {
+    gap: 0.6rem;
+  }
+}
+
 /* Claiming, at the foot of the depth panel. */
 .trx-you .btn-block {
   margin-top: 0.2rem;

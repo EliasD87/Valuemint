@@ -659,6 +659,47 @@
   }
 }
 
+/**
+ * Phones: a compact header row (2026-10-18).
+ *
+ * The bar is 58px here (`--header-h` in tokens.css), so the controls come down
+ * with it: 34px for the wallet button, 34px for the menu, 32px for search. The
+ * transparent 44px hit areas further down still apply, so nothing got harder to
+ * tap; only the drawn size changed.
+ */
+@media (max-width: 700px) {
+  .header-actions > .btn {
+    min-height: 34px;
+    padding: 0.35rem 0.85rem;
+    font-size: 0.78rem;
+  }
+
+  .header-actions .wallet-trigger {
+    min-height: 34px;
+    padding: 0.25rem 0.7rem;
+  }
+
+  .menu-button {
+    width: 34px;
+    height: 34px;
+  }
+
+  .menu-button svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .search-trigger {
+    width: 32px;
+    height: 32px;
+  }
+
+  .brand-mark {
+    width: 30px;
+    height: 30px;
+  }
+}
+
 /* ================================================================ targets */
 
 /**
@@ -978,6 +1019,92 @@
   }
   .footer-lead {
     grid-column: 1 / -1;
+  }
+}
+
+/* Phones: the footer at phone scale (2026-10-18). It was 670px of a 390px
+   screen: a 48px mark, a 22px statement and 44px link rows. */
+@media (max-width: 700px) {
+  .footer-inner {
+    padding-top: 2rem;
+    padding-bottom: 1.25rem;
+    gap: 1.5rem 1rem;
+  }
+  .footer-lead {
+    gap: 0.6rem;
+  }
+  .footer-lead .brand-mark {
+    width: 34px;
+    height: 34px;
+  }
+  .footer-name {
+    font-size: 1.3rem;
+  }
+  .footer-statement {
+    font-size: 1.05rem;
+  }
+  .footer-col h3 {
+    margin-bottom: 0.35rem;
+  }
+  .footer-col ul {
+    gap: 0;
+  }
+  .footer-col ul a,
+  .footer-col ul .mono {
+    font-size: 0.8125rem;
+  }
+  .footer-base {
+    padding-top: 1rem;
+    padding-bottom: 1.5rem;
+    gap: 0.35rem;
+  }
+  /* The brand, its statement and the base line on the middle axis; the two
+     link columns pushed out to the edges either side of it, the first
+     left-aligned and the second right-aligned, so they frame the centre. */
+  .footer-lead {
+    align-items: center;
+    text-align: center;
+  }
+  .footer-statement {
+    margin-inline: auto;
+  }
+  .footer-col {
+    text-align: left;
+  }
+  .footer-col ul {
+    align-items: flex-start;
+  }
+  .footer-col:last-child {
+    text-align: right;
+  }
+  .footer-col:last-child ul {
+    align-items: flex-end;
+  }
+  /* The base line as one line of small print: the three notes in a row,
+     centred, with a dot between each. */
+  .footer-base {
+    display: flex;
+    /* Wraps only on the narrowest phones; the vw term keeps it on one line
+       down to about 360px. */
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 0.2rem 0.4rem;
+    font-size: min(0.625rem, 2.6vw);
+    white-space: nowrap;
+  }
+  .footer-base > * + *::before {
+    content: "·";
+    margin-right: 0.4rem;
+    opacity: 0.6;
+  }
+  .footer-base .footer-social {
+    gap: 0.25rem;
+    font-size: inherit;
+  }
+  .footer-base .footer-social svg {
+    width: 9px;
+    height: 9px;
   }
 }
 

@@ -318,7 +318,7 @@ export function TokenCard({
         <div className="tcard-money">
           {listing !== undefined ? (
             <span className="tcard-amount">
-              <Soso size={15}>
+              <Soso size={15} unit="">
                 {formatSoso(listing.price)}
               </Soso>
             </span>
@@ -353,7 +353,7 @@ export function TokenCard({
             {listing === undefined && floor !== undefined ? (
               <span className="tcard-floor">
                 Floor{" "}
-                <Soso size={12}>
+                <Soso size={12} unit="">
                   {formatSoso(floor)}
                 </Soso>
               </span>

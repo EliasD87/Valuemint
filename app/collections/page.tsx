@@ -142,6 +142,11 @@ export default function Collections() {
         address={c.address}
         images={artFor(c.address)}
         badge={s.open === true ? <span className="chip chip-up">Minting</span> : null}
+        progress={
+          s.maxSupply !== undefined && s.maxSupply > 0n
+            ? Number(s.totalSupply ?? 0n) / Number(s.maxSupply)
+            : undefined
+        }
         stats={[
           {
             label: "Minted",
@@ -177,7 +182,7 @@ export default function Collections() {
 
   return (
     <section className="page section">
-      <div className="head">
+      <div className="head coll-page-head">
         <div>
           {/* The label is the heading; see `.head h2.eyebrow` in global.css. */}
           <h2 className="eyebrow">Collections</h2>
@@ -217,11 +222,11 @@ export default function Collections() {
         </div>
       ) : (
         <>
-          <div className="coll-grid">{main.map(card)}</div>
+          <div className="coll-grid coll-rows">{main.map(card)}</div>
 
           {more.length === 0 ? null : (
             <>
-              {showAll ? <div className="coll-grid coll-grid-more">{more.map(card)}</div> : null}
+              {showAll ? <div className="coll-grid coll-grid-more coll-rows">{more.map(card)}</div> : null}
               <div className="coll-more">
                 <button type="button" className="btn" onClick={() => setShowAll((v) => !v)} aria-expanded={showAll}>
                   {showAll ? "Show fewer" : `See more (${more.length})`}

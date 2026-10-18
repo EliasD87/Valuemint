@@ -509,6 +509,106 @@
   }
 }
 
+/**
+ * Phones: a compact card (2026-10-18).
+ *
+ * Two across on a 390px screen, each card was ~300px tall for a 167px picture:
+ * the title, the price, a ruled line, then "No offers" and Buy on a row of their
+ * own. Here the price and the action share one line, and the offer line only
+ * appears when it has something to say — a best bid, a floor, an edition, a
+ * warning. "No offers" alone is not news on a grid of 500.
+ *
+ * `display: contents` lifts the offer row's two halves into the body's grid.
+ * That also drops the row's own `position`/`z-index`, which is what kept its
+ * buttons above the card-wide link — so the halves take it back themselves.
+ */
+@media (max-width: 700px) {
+  .tcard-body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.3rem 0.4rem;
+    padding: 0.5rem 0.55rem 0.55rem;
+  }
+
+  .tcard-head {
+    grid-column: 1 / -1;
+  }
+
+  .tcard-title {
+    font-size: 0.78rem;
+  }
+
+  .tcard-num {
+    font-size: 0.6875rem;
+  }
+
+  .tcard-money {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  .tcard-amount {
+    height: 1.35rem;
+    font-size: 0.9375rem;
+  }
+
+  .tcard-amount.is-none {
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+
+  .tcard-offer-row {
+    display: contents;
+  }
+
+  .tcard-acts {
+    position: relative;
+    z-index: 2;
+    grid-column: 2;
+    grid-row: 2;
+    gap: 0.3rem;
+  }
+
+  .tcard-meta {
+    position: relative;
+    z-index: 2;
+    grid-column: 1 / -1;
+    grid-row: 3;
+    font-size: 0.6875rem;
+  }
+
+  .tcard-offer-none {
+    display: none;
+  }
+
+  .tcard-meta:not(:has(> :not(.tcard-offer-none))) {
+    display: none;
+  }
+
+  /* "Not listed" and no Buy or Offer button: the meta line takes the empty
+     right-hand slot beside it instead of a row of its own, so the card loses a
+     line. Only then — a real price (or the Trenches depth cards' "$1K volume")
+     is wide enough to collide with it. */
+  .tcard-body:has(.tcard-amount.is-none):not(:has(.tcard-acts > *)) .tcard-meta {
+    grid-column: 2;
+    grid-row: 2;
+    justify-self: end;
+  }
+
+  .tcard-buy-btn,
+  .tcard-offer-btn {
+    min-height: 26px;
+    padding: 0.15rem 0.65rem;
+    font-size: 0.6875rem;
+  }
+
+  .tcard-ribbon {
+    padding: 0.12rem 0.6rem 0.16rem;
+    font-size: 0.5625rem;
+  }
+}
+
 /* An explorer-discovered collection, not one this marketplace created. Quiet
    enough not to shout on every card, loud enough to read before buying. */
 .tcard-unverified {
