@@ -1360,23 +1360,6 @@
   white-space: nowrap;
 }
 
-.perk-w-view {
-  padding: 0.15rem 0.55rem;
-  border: 1px solid var(--line);
-  border-radius: var(--r-pill);
-  background: var(--surface);
-  color: var(--ink-2);
-  font: inherit;
-  font-weight: 650;
-  white-space: nowrap;
-  cursor: pointer;
-}
-
-.perk-w-view:hover {
-  color: var(--ink);
-  border-color: var(--line-strong);
-}
-
 /* ---------------------------------------------------------------- how it works */
 
 .perk-how {

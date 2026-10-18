@@ -665,16 +665,6 @@ export function TrenchesPerk() {
                       ) : (
                         <span className="perk-w-pending">Sending soon</span>
                       )}
-                      <button
-                        type="button"
-                        className="perk-w-view"
-                        onClick={() => {
-                          setTyped(me ? "" : w.wallet);
-                          requestAnimationFrame(() => shot.current?.scrollIntoView({ behavior: "smooth", block: "center" }));
-                        }}
-                      >
-                        {shown ? "Showing ticket" : "See ticket"}
-                      </button>
                     </span>
                   </li>
                 );
