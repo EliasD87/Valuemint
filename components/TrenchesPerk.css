@@ -160,6 +160,36 @@
   color: var(--ink-3);
 }
 
+/* "Completed", beside the kicker once the draw is done. */
+.tix-kicker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.6rem;
+}
+
+.tix-done {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.18rem 0.6rem 0.18rem 0.45rem;
+  border-radius: var(--r-pill);
+  background: var(--good-wash);
+  color: var(--good);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.tix-done svg {
+  width: 0.8rem;
+  height: 0.8rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 .tix-title {
   margin: 0;
   font-family: var(--display);
@@ -235,6 +265,18 @@
   background: var(--accent);
   box-shadow: 0 0 0 0 var(--accent);
   animation: tix-pulse 1.8s var(--ease) infinite;
+}
+
+/* Done: no pulse, nothing is about to happen. */
+.tix-count-text.is-done {
+  background: var(--good-wash);
+  box-shadow: none;
+  color: var(--good);
+}
+
+.tix-count-text.is-done::before {
+  background: currentColor;
+  animation: none;
 }
 
 @keyframes tix-pulse {

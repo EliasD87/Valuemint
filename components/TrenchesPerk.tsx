@@ -390,7 +390,13 @@ export function TrenchesPerk() {
   /* What the stub of the ticket says for the wallet being looked at. */
   let stub: React.ReactNode;
   if (lookup === undefined) {
-    stub = <p className="tix-stub-note">Connect a wallet to see your tickets, or check any wallet below.</p>;
+    stub = (
+      <p className="tix-stub-note">
+        {phase === "drawn"
+          ? "Connect a wallet to see if it won, or check any wallet below."
+          : "Connect a wallet to see your tickets, or check any wallet below."}
+      </p>
+    );
   } else if (excluded) {
     stub = <p className="tix-stub-note">A ValueMint test or deployer wallet, so it is left out.</p>;
   } else if (phase === "before" && holdings.loading) {
@@ -521,9 +527,26 @@ export function TrenchesPerk() {
           </div>
 
           <div className="tix-face">
-            <p className="tix-kicker">SoDEX Trenches · Holder draw</p>
+            <p className="tix-kicker">
+              SoDEX Trenches · Holder draw
+              {/* Once drawn, say so on the ticket itself, so nobody takes it for a draw still open (owner, 2026-10-18). */}
+              {phase === "drawn" ? (
+                <span className="tix-done">
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="m5 12 5 5 9-10" />
+                  </svg>
+                  Completed
+                </span>
+              ) : null}
+            </p>
             <h2 className="tix-title" id="perk-title">
-              {won === undefined ? "Win a" : isOther ? "This wallet won a" : "You won a"}{" "}
+              {won !== undefined
+                ? isOther
+                  ? "This wallet won a"
+                  : "You won a"
+                : phase === "drawn" && winners !== undefined
+                  ? `${winners.length} holders won a`
+                  : "Win a"}{" "}
               {/* The Cybereator wordmark itself, tinted gold (owner, 2026-10-16); the word stays for screen readers. */}
               <span className="tix-wordmark">
                 <span className="visually-hidden">Cybereator</span>
@@ -543,7 +566,7 @@ export function TrenchesPerk() {
             ) : (
               <div className="tix-count">
                 <span className="tix-count-label">{count.label}</span>
-                {count.to !== undefined ? <Countdown to={count.to} /> : <span className="tix-count-text">{count.text}</span>}
+                {count.to !== undefined ? <Countdown to={count.to} /> : <span className={`tix-count-text${phase === "drawn" ? " is-done" : ""}`}>{count.text}</span>}
               </div>
             )}
 
