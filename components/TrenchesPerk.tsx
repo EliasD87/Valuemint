@@ -651,7 +651,7 @@ export function TrenchesPerk() {
                   <li key={w.wallet} className={`perk-w${me ? " is-you" : ""}${shown ? " is-shown" : ""}`}>
                     <span className="perk-w-place">#{w.place}</span>
                     <span className="perk-w-who">
-                      <AddressLink address={w.wallet} chars={5} />
+                      <AddressLink address={w.wallet} chars={4} />
                       {me ? <span className="perk-list-you">You</span> : null}
                     </span>
                     <span className="perk-w-ticket">

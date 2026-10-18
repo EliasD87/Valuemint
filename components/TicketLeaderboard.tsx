@@ -106,7 +106,7 @@ export function TicketLeaderboard({ you }: { you?: string }) {
                     {r.rank}
                   </span>
                   <span role="cell" className="perk-list-wallet">
-                    <AddressLink address={r.wallet} chars={5} />
+                    <AddressLink address={r.wallet} chars={4} />
                     {isYou ? <span className="perk-list-you">You</span> : null}
                   </span>
                   <span role="cell" className="perk-list-pieces">

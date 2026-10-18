@@ -179,7 +179,7 @@ export function TicketList({
                   role="row"
                 >
                   <span role="cell" className="perk-list-wallet">
-                    <AddressLink address={e.wallet} chars={5} />
+                    <AddressLink address={e.wallet} chars={4} />
                     {isYou ? <span className="perk-list-you">You</span> : null}
                   </span>
                   <span role="cell" className="perk-list-pieces">
