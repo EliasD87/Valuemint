@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { getAddress, isAddress, keccak256, toHex, zeroHash, type Hex } from "viem";
 import { useAccount, useBlockNumber, usePublicClient } from "wagmi";
-import { AddressLink } from "@/components/AddressLink";
 import { shortAddress } from "@/lib/format";
 import { CYBEREATOR_SEATS as DRAW, MEASURED_BLOCK_MS, ticketsFor } from "@/config/draws";
 import { Art } from "@/components/Art";
@@ -17,6 +16,7 @@ import { useTrenchesHoldings } from "@/hooks/useTrenchesHoldings";
 import { drawWinners, numbersOf, numberTickets, type DrawList, type DrawWinner } from "@/lib/draw";
 import { TicketLeaderboard } from "@/components/TicketLeaderboard";
 import { TicketShare } from "@/components/TicketShare";
+import { WinnerStrip } from "@/components/WinnerStrip";
 import { TicketList, rangeText } from "@/components/TicketList";
 import "./TrenchesPerk.css";
 
@@ -637,50 +637,22 @@ export function TrenchesPerk() {
 
       <div className="perk-card">
         {winners !== undefined ? (
-          <div className="perk-winners">
-            <div className="perk-winners-head">
-              <h3 className="perk-winners-title">
-                {winners.length} {winners.length === 1 ? "winner" : "winners"}
-              </h3>
-              <p className="perk-winners-sub">
-                Picked on ValueChain from block {fmt(Number(drawBlock))}. One Cybereator each.
-              </p>
-            </div>
+          <>
             {agrees === false ? (
-              <p className="perk-you-note">
+              <p className="perk-you-note perk-disagree">
                 The contract&rsquo;s result and this page&rsquo;s own check disagree. Do not rely on either until this is
                 looked at.
               </p>
             ) : null}
-            <ol className="perk-winners-grid">
-              {winners.map((w) => {
-                const tx = sent[w.wallet.toLowerCase()];
-                const me = address !== undefined && w.wallet.toLowerCase() === address.toLowerCase();
-                const shown = lookup !== undefined && w.wallet.toLowerCase() === lookup.toLowerCase();
-                return (
-                  <li key={w.wallet} className={`perk-w${me ? " is-you" : ""}${shown ? " is-shown" : ""}`}>
-                    <span className="perk-w-place">#{w.place}</span>
-                    <span className="perk-w-who">
-                      <AddressLink address={w.wallet} chars={4} />
-                      {me ? <span className="perk-list-you">You</span> : null}
-                    </span>
-                    <span className="perk-w-ticket">
-                      Ticket <b>#{fmt(w.ticket)}</b> · held {fmt(w.tickets)}
-                    </span>
-                    <span className="perk-w-foot">
-                      {tx !== undefined ? (
-                        <a className="perk-w-sent" href={`${deployment.explorer}/tx/${tx}`} target="_blank" rel="noreferrer">
-                          Sent
-                        </a>
-                      ) : (
-                        <span className="perk-w-pending">Sending soon</span>
-                      )}
-                    </span>
-                  </li>
-                );
-              })}
-            </ol>
-          </div>
+            <WinnerStrip
+              winners={winners}
+              sent={sent}
+              explorer={deployment.explorer}
+              you={address?.toLowerCase()}
+              shown={lookup?.toLowerCase()}
+              drawBlock={drawBlock}
+            />
+          </>
         ) : null}
 
         {phase === "before" ? <TicketLeaderboard you={lookup?.toLowerCase()} /> : null}
