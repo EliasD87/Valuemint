@@ -151,15 +151,21 @@ export function TrenchesPerk() {
   const winnerCount = preview === "drawn" ? PREVIEW_WINNERS : locked ? chain.winners : DRAW.winners;
   /* With a contract, "drawn" means the contract has drawn; without, that the block exists. */
   const isDrawn = DRAW.drawContract !== "" ? chain?.drawn === true : head !== undefined && head >= drawBlock;
+  /* What the config already knows needs no wait: a published list means the
+     snapshot is over, a recorded seed means the draw is. Otherwise the page
+     flashed "Reading the chain" and "Drawing the winners" on every load of a
+     finished draw (owner, 2026-10-18). The chain still checks both. */
   const phase: Phase = preview
     ? preview
-    : head === undefined || head < DRAW.snapshotBlock
-      ? "before"
-      : !DRAW.listPublished
-        ? "counting"
-        : !announced || !isDrawn
+    : DRAW.listPublished && DRAW.drawSeed !== undefined
+      ? "drawn"
+      : DRAW.listPublished
+        ? !announced || !isDrawn
           ? "listed"
-          : "drawn";
+          : "drawn"
+        : head === undefined || head < DRAW.snapshotBlock
+          ? "before"
+          : "counting";
 
   const listUrl = preview ? "/draws/preview.json" : DRAW.listUrl;
   const { data: published } = useQuery({
@@ -216,7 +222,7 @@ export function TrenchesPerk() {
     staleTime: Infinity,
     queryFn: async () => (await client!.getBlock({ blockNumber: drawBlock })).hash as Hex,
   });
-  const seed = DRAW.drawContract !== "" ? (chain?.drawn ? chain.seed : undefined) : blockSeed;
+  const seed = DRAW.drawContract !== "" ? (chain?.drawn ? chain.seed : DRAW.drawSeed) : (DRAW.drawSeed ?? blockSeed);
   const recomputed = useMemo(
     () => (list !== undefined && seed !== undefined ? drawWinners(list.entries, seed, winnerCount, numberSeed) : undefined),
     [list, seed, winnerCount, numberSeed],
@@ -238,9 +244,9 @@ export function TrenchesPerk() {
   const winners: DrawWinner[] | undefined =
     previewWinners !== undefined
       ? previewWinners
-      : DRAW.drawContract === ""
+      : DRAW.drawContract === "" || !chain?.drawn
         ? recomputed
-        : chain?.drawn && list !== undefined
+        : list !== undefined
           ? chain.results.map((r, i) => ({
               place: i + 1,
               wallet: r.wallet,
@@ -251,10 +257,12 @@ export function TrenchesPerk() {
           : undefined;
   /* Should never be false; if it is, say so rather than quietly show one side. */
   const agrees =
-    winners === undefined || recomputed === undefined
-      ? undefined
-      : winners.length === recomputed.length &&
-        winners.every((w, i) => w.wallet.toLowerCase() === recomputed[i]!.wallet.toLowerCase());
+    chain?.drawn && DRAW.drawSeed !== undefined && chain.seed.toLowerCase() !== DRAW.drawSeed.toLowerCase()
+      ? false
+      : winners === undefined || recomputed === undefined
+        ? undefined
+        : winners.length === recomputed.length &&
+          winners.every((w, i) => w.wallet.toLowerCase() === recomputed[i]!.wallet.toLowerCase());
 
   /* Whose tickets to show: the connected wallet, or one typed in. */
   const [typed, setTyped] = useState("");
@@ -360,7 +368,9 @@ export function TrenchesPerk() {
             ? { label: "Tickets are in", text: "Draw date coming soon" }
             : head !== undefined && head < drawBlock
               ? { label: "Draw in", to: etaOf(drawBlock), text: "…" }
-              : { label: "Draw block reached", text: "Drawing the winners…" }
+              : head === undefined
+                ? { label: "Draw", text: "Reading the chain…" }
+                : { label: "Draw block reached", text: "Drawing the winners…" }
           : { label: "The draw is done", text: "Winners below" };
 
   const chips =

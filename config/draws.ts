@@ -41,6 +41,12 @@ export interface PerkDraw {
   drawBlock: bigint;
   drawAt: string;
   /**
+   * The draw block's hash once the draw is done, copied from the contract. With
+   * it the page shows the result at once instead of waiting on the chain; the
+   * contract's own seed and winners are still read and compared.
+   */
+  drawSeed?: `0x${string}`;
+  /**
    * False while the draw's time is still "Coming soon" on the page: no date,
    * no countdown, no block, and no result worked out from `drawBlock`.
    */
@@ -80,6 +86,8 @@ export const CYBEREATOR_SEATS: PerkDraw = {
   // block 15,752,336's hash.
   drawBlock: 15_752_336n,
   drawAt: "2026-10-18T07:07:25Z",
+  // Drawn in block 15,752,346 (tx 0xc4e1974f…b4ab); the contract's seed().
+  drawSeed: "0x06cf2ab2570e6a487fb8795703d47ebdd4f3648bc4981617ec62ce1bde50868b",
   // "Coming soon" on the page (owner, 2026-10-15) until the draw is announced.
   drawAnnounced: true,
   drawContract: "0x31db41534Fb10438AFc3F691A172041de68af00D",
