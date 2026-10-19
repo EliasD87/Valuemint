@@ -91,9 +91,9 @@ export const HELD_BACK: Record<string, HeldBack> = {
     hiddenCid: "QmaiYADuP5ZzM5v9n4nNeoDtoHopvu6V8KmUhZyCryT3ea",
     /* Set by the owner, 2026-09-23, as 2 October; moved by the owner to
        15 October on 2026-10-02 for the pieces still unminted after the first
-       reveal. Revealing is one setBaseURI, so the date can always be beaten,
-       never missed. */
-    revealBy: "2026-10-15",
+       reveal, and to 30 October on 2026-10-19. Revealing is one setBaseURI,
+       so the date can always be beaten, never missed. */
+    revealBy: "2026-10-30",
   },
 };
 
