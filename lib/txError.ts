@@ -60,6 +60,19 @@ const RULES: Array<{ test: RegExp; say: string }> = [
       "Nothing was sent and nothing was charged. Wait a few seconds and try again.",
   },
   {
+    /**
+     * JSON-RPC -32005, "Request exceeds defined limit" (2026-10-20, buying a
+     * Treasure Box: refused twice, then went through on the third press). A node
+     * — usually the wallet's own connection to the chain — turned the request
+     * away for being over its limit at that moment. Nothing reached the chain;
+     * the address's history showed only the purchase that finally worked.
+     */
+    test: /exceeds defined limit|limit exceeded|-32005|rate limit|too many requests/i,
+    say:
+      "The network turned the request away because it was busy for a moment. " +
+      "Nothing was sent and nothing was charged. Wait a few seconds and try again.",
+  },
+  {
     test: /insufficient funds|exceeds the balance|gas required exceeds/i,
     say: "Not enough SOSO in this wallet to cover the amount and the gas.",
   },

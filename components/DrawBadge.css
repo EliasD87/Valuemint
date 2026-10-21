@@ -1,0 +1,183 @@
+/* ============================================================ draw badge ===
+ *
+ * "Next draw" (components/DrawBadge.tsx). Green from the shared `--up` token,
+ * with `--surface` ink, which holds in both themes: white on green in light,
+ * the dark surface on the brighter green in dark.
+ *
+ * The explanation opens on hover, on keyboard focus and on a tap (a tap
+ * focuses the button). It is drawn INSIDE the card's artwork, opening upwards
+ * from the badge across the art's width, because the card clips anything that
+ * leaves it.
+ * ========================================================================== */
+
+.draw {
+  position: relative;
+  display: inline-flex;
+}
+
+.draw-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.24rem 0.42rem 0.24rem 0.4rem;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: var(--up);
+  color: var(--surface);
+  font: inherit;
+  font-size: var(--step--3);
+  font-weight: 750;
+  letter-spacing: 0.01em;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: help;
+  box-shadow: 0 4px 12px -4px rgb(0 0 0 / 0.45);
+}
+
+.draw-pill:focus-visible {
+  outline: 2px solid var(--up);
+  outline-offset: 2px;
+}
+
+.draw-gift,
+.draw-info {
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.draw-gift {
+  width: 13px;
+  height: 13px;
+  stroke-width: 2;
+}
+
+.draw-info {
+  width: 12px;
+  height: 12px;
+  stroke-width: 1.6;
+  opacity: 0.85;
+}
+
+.draw-info-dot {
+  fill: currentColor;
+  stroke: none;
+}
+
+.draw-tip {
+  position: absolute;
+  bottom: calc(100% + 7px);
+  left: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  width: 15rem;
+  padding: 0.7rem 0.8rem;
+  border-radius: var(--r-md);
+  background: var(--surface);
+  color: var(--ink-2);
+  font-size: var(--step--2);
+  font-weight: 500;
+  line-height: 1.45;
+  text-align: left;
+  white-space: normal;
+  box-shadow: 0 0 0 1px var(--line), 0 14px 32px -12px rgb(0 0 0 / 0.5);
+  opacity: 0;
+  visibility: hidden;
+  translate: 0 4px;
+  transition: opacity var(--fast), translate var(--fast), visibility var(--fast);
+  pointer-events: none;
+}
+
+.draw-tip b {
+  color: var(--ink);
+  font-weight: 750;
+}
+
+.draw-tip-fine {
+  color: var(--ink-3);
+  font-size: var(--step--3);
+}
+
+.draw:hover .draw-tip,
+.draw:focus-within .draw-tip {
+  opacity: 1;
+  visibility: visible;
+  translate: 0 0;
+}
+
+/* ---------------------------------------------------------- on a card --- */
+
+/**
+ * Bottom-left of the art, clear of the tier ribbon across the top. The wrapper
+ * spans the art's width (less a margin) so the explanation can use all of it;
+ * only the pill itself takes clicks, so the rest of the card still opens the
+ * piece.
+ */
+.draw-card {
+  position: absolute;
+  left: 0.5rem;
+  right: 0.5rem;
+  bottom: 0.5rem;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.draw-card .draw-pill {
+  pointer-events: auto;
+}
+
+.draw-card .draw-tip {
+  width: auto;
+  right: 0;
+}
+
+@media (max-width: 700px) {
+  .draw-card {
+    left: 0.4rem;
+    right: 0.4rem;
+    bottom: 0.4rem;
+  }
+
+  .draw-card .draw-pill {
+    gap: 0.22rem;
+    padding: 0.16rem 0.32rem;
+    font-size: 0.5625rem;
+  }
+
+  .draw-card .draw-gift {
+    width: 10px;
+    height: 10px;
+  }
+
+  .draw-card .draw-info {
+    width: 9px;
+    height: 9px;
+  }
+
+  .draw-card .draw-tip {
+    gap: 0.25rem;
+    padding: 0.5rem 0.55rem;
+    font-size: 0.625rem;
+  }
+
+  .draw-card .draw-tip-fine {
+    font-size: 0.5625rem;
+  }
+}
+
+/* ------------------------------------------------------- on the token page */
+
+.draw-chip .draw-pill {
+  padding: 0.3rem 0.55rem 0.3rem 0.5rem;
+  font-size: var(--step--2);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .draw-tip {
+    transition: none;
+  }
+}

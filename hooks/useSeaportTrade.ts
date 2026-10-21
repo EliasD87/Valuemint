@@ -453,10 +453,25 @@ export function useSeaportFill() {
       setBlocked(undefined);
       setSide(side);
 
+      /**
+       * The gas, estimated here rather than by the wallet (2026-10-20).
+       *
+       * A wallet estimates through its own connection to the chain, and that is
+       * where a Treasure Box purchase was refused twice with -32005 before the
+       * third press went through. Handing it a figure — from the same node that
+       * just simulated the fill, with a fifth on top — takes that request off
+       * the wallet. If this estimate fails, the wallet estimates as before.
+       */
+      let gas: bigint | undefined;
+
       if (client !== undefined && address !== undefined) {
         setChecking(true);
         try {
           await client.simulateContract({ ...request, account: address } as never);
+          gas = await client
+            .estimateContractGas({ ...request, account: address } as never)
+            .then((g) => (g * 6n) / 5n)
+            .catch(() => undefined);
         } catch (err) {
           const why = classifyFillFailure(err instanceof Error ? err.message : String(err), side);
           if (why !== undefined) {
@@ -480,7 +495,7 @@ export function useSeaportFill() {
        * or built up. The shape is checked by `FillRequest` on the way in, and
        * by Seaport on the way out.
        */
-      writeContract(request as never);
+      writeContract((gas === undefined ? request : { ...request, gas }) as never);
     },
     [address, client, refreshBook, reset, writeContract],
   );

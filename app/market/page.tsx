@@ -15,6 +15,7 @@ import { useFloors } from "@/hooks/useFloors";
 import { Select } from "@/components/Select";
 import { BulkBuyBar } from "@/components/BulkBuyBar";
 import { MAX_BULK_BUY } from "@/lib/seaport";
+import { countsForNextDraw } from "@/config/treasureDraw";
 import type { SeaportOrder } from "@/hooks/useSeaportOrders";
 
 type Sort = "traded" | "price-asc" | "price-desc" | "recent";
@@ -240,6 +241,12 @@ export default function Market() {
        * manufacture. A sale had a buyer.
        */
       if (sort === "traded") {
+        /* Boxes that count for SoDEX's next draw lead the house order while
+           the draws run (config/treasureDraw.ts). */
+        const da = countsForNextDraw(a.collection, a.id) ? 0 : 1;
+        const db = countsForNextDraw(b.collection, b.id) ? 0 : 1;
+        if (da !== db) return da - db;
+
         const pa = pinRank(a.collection);
         const pb = pinRank(b.collection);
         if (pa !== pb) return pa - pb;

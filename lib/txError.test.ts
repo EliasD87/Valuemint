@@ -130,3 +130,11 @@ Contract Call:...`;
     expect(said.length).toBeGreaterThan(0);
   });
 });
+
+describe("a node over its limit (-32005)", () => {
+  it("says nothing was sent and to try again, rather than the raw node text", () => {
+    const said = explainTxError("Request exceeds defined limit.");
+    expect(said).toMatch(/Nothing was sent/);
+    expect(said).not.toMatch(/defined limit/);
+  });
+});

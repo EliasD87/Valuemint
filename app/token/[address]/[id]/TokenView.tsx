@@ -18,6 +18,8 @@ import { splitFee } from "@/lib/seaport";
 import { priceMoved } from "@/lib/fillCheck";
 import { Offers } from "@/components/Offers";
 import { offersAllowed } from "@/config/kols";
+import { countsForNextDraw } from "@/config/treasureDraw";
+import { DrawBadge } from "@/components/DrawBadge";
 import { TxResult } from "@/components/TxResult";
 import { FillBlocked } from "@/components/FillBlocked";
 import { ShareLink } from "@/components/ShareLink";
@@ -479,6 +481,7 @@ export function TokenView({
                 <span className="chip">{trait(metadata, "Edition")}</span>
               ) : null}
               {isOwner ? <span className="chip chip-up">You own this</span> : null}
+              {countsForNextDraw(collection, tokenId) ? <DrawBadge variant="chip" /> : null}
               <ShareLink title={metadata?.name} />
             </div>
           </div>

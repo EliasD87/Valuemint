@@ -17,6 +17,8 @@ import { Wordmark } from "@/components/Wordmark";
 import { wordmarkSaying } from "@/config/wordmarks";
 import { bundledArtworkFor, soleArtworkFor } from "@/config/covers";
 import { offersAllowed } from "@/config/kols";
+import { countsForNextDraw } from "@/config/treasureDraw";
+import { DrawBadge } from "@/components/DrawBadge";
 import "./TokenCard.css";
 import { Soso } from "@/components/Soso";
 
@@ -271,6 +273,11 @@ export function TokenCard({
         <div className="tcard-badges">
           {isYours && markOwned ? <span className="chip chip-up">Yours</span> : null}
         </div>
+
+        {/* SoDEX's next Treasure Box draw counts only boxes minted after the
+            last snapshot (config/treasureDraw.ts). Bottom-left, clear of the
+            tier ribbon across the top. */}
+        {countsForNextDraw(collection, token.id) ? <DrawBadge variant="card" /> : null}
       </div>
 
       <div className="tcard-body">
