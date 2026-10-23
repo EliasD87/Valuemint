@@ -9,7 +9,7 @@ export const valuechain = defineChain({
   name: "ValueChain",
   nativeCurrency: { name: "SOSO", symbol: "SOSO", decimals: 18 },
   rpcUrls: {
-    default: { http: ["https://mainnet.valuechain.xyz"], webSocket: ["wss://mainnet-ws.valuechain.xyz"] },
+    default: { http: ["https://mainnet.valuechain.xyz"] },
   },
   blockExplorers: {
     default: { name: "ValueChain Scan", url: "https://main-scan.valuechain.xyz" },
@@ -127,5 +127,13 @@ export const RPC_WS: string[] = (() => {
     .map((u) => u.trim())
     .filter((u) => u !== "");
   if (configured.length > 0) return configured;
-  return ["wss://mainnet-ws.valuechain.xyz"];
+  /**
+   * None by default. `wss://mainnet-ws.valuechain.xyz` stopped resolving
+   * (NXDOMAIN on 8.8.8.8, checked 2026-10-23), and no socket answers on
+   * mainnet, rpc or ws.valuechain.xyz either. It sat first in the wagmi
+   * fallback, so every read waited out a failed connect and its retries before
+   * reaching HTTP: /market drew its first card at 18s, with 418 socket errors
+   * in the console. Set `NEXT_PUBLIC_RPC_WS_URLS` once a working one exists.
+   */
+  return [];
 })();
