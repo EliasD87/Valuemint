@@ -326,68 +326,12 @@
 
 /* ------------------------------------------------------------------- phone */
 
-/* One column: the root on the left, a rail down from it, every post hanging
-   off the rail in list order. The fork and the tilt are desktop things. */
+/* Desktop only (owner, 2026-10-24). In one column on a phone the posts became
+   a long list of cards between the roster and the thank-you; the tree is the
+   point of it, and the tree needs the width. */
 @media (max-width: 760px) {
-  .kw-root {
-    margin: 0;
-  }
-
-  .kw-root::after {
-    left: 1.1rem;
-  }
-
-  .kw-fork {
+  .kw {
     display: none;
-  }
-
-  .kw-cols {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    gap: 1.75rem;
-    margin-top: 1.75rem;
-    padding-left: 2.1rem;
-  }
-
-  .kw-cols::before {
-    content: "";
-    position: absolute;
-    left: calc(1.1rem - 1px);
-    top: -1.75rem;
-    bottom: 1.5rem;
-    width: 2px;
-    background: var(--accent-line);
-  }
-
-  .kw-col {
-    display: contents;
-  }
-
-  .kw-col::before,
-  .kw-card + .kw-card::before {
-    content: none;
-  }
-
-  .kw-card,
-  .kw-col.is-left .kw-card:nth-child(odd),
-  .kw-col.is-left .kw-card:nth-child(even) {
-    --tilt: 0deg;
-    width: 100%;
-  }
-
-  /* Hung from the rail at its side here, so it swings from that point. */
-  .kw-card-body {
-    transform-origin: -1rem 1.35rem;
-  }
-
-  /* The node where the card meets the rail. */
-  /* Written out as -1rem (the rail at 1.1rem, the card inset 2.1rem): the
-     build dropped `calc(-2.1rem + 1.1rem)` outright, and the node fell back to
-     the desktop 50%, right across the poster's name. */
-  .kw-card::after {
-    top: 1.35rem;
-    left: -1rem;
   }
 }
 
