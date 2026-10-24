@@ -46,11 +46,17 @@ export function Offers({
   tokenId,
   isOwner,
   onChange,
+  showForm = true,
 }: {
   collection: `0x${string}`;
   tokenId: bigint;
   isOwner: boolean;
   onChange: () => void;
+  /**
+   * The inline "Make an offer" form. Off on the token page, whose trade card
+   * opens the same form in a dialog: two ways in on one page was one too many.
+   */
+  showForm?: boolean;
 }) {
   const { address, isConnected } = useAccount();
   const { offers: direct, logsUnavailable, isLoading: loadingDirect } = useOffersForToken(collection, tokenId);
@@ -262,7 +268,7 @@ export function Offers({
         successLabel="Done"
       />
 
-      {isOwner || !isConnected ? null : (
+      {isOwner || !isConnected || !showForm ? null : (
         <div className="offers-make-wrap">
           <p className="offers-make-title">
             {mine === undefined ? "Make an offer" : "Make another offer"}

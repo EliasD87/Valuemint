@@ -1,123 +1,13 @@
-/*
- * The artwork is CAPPED and the detail column takes the rest.
- *
- * It was the other way round — `1fr` for the picture and a 27rem cap on the
- * detail — and measured at 1280 that gave the artwork 672x672 and 58% of the
- * row, while the column holding the price, the figures, the trade panel, the
- * history, the offers and the traits got 432px and had 1,059px of content to
- * fit into it. The half of the page nobody reads was the bigger half.
- *
- * Capping the first column inverts it without a media query: the picture stops
- * growing at 30rem and everything past that goes to the column that needs it.
- * A square piece is then 480px, which is a comfortable size to look at and
- * still fits a laptop screen whole.
- */
-.token-grid {
-  display: grid;
-  /*
-   * The picture scales with the page up to a cap; the text column takes the
-   * rest. A flat `30rem` cap looked right at 1280 and wrong at 1024, where the
-   * artwork sat at its maximum while the reading column sat at its minimum —
-   * the tighter the screen, the more the half nobody reads was winning.
-   *
-   * `38vw` makes the picture give ground first, which is the correct priority:
-   * a smaller piece of art is still a piece of art, a squeezed price panel is
-   * a worse page.
-   */
-  /*
-   * BOTH tracks are capped, and the row centres in whatever is left.
-   *
-   * The detail column was `1fr`, so on a wide monitor it simply kept growing:
-   * at 1900px it reached past 800px and every component inside it stretched to
-   * match. "Price" and "9 SOSO" ended up at opposite ends of a card with a
-   * canyon between them, the buy button ran the full width, and each activity
-   * row had its price, its address and its timestamp spread so far apart they
-   * stopped reading as one row.
-   *
-   * 34rem is the cap because the components inside are rows of two or three
-   * things — a label and a figure, a badge and a price and a time. Past that
-   * width they stop being rows and become things at opposite ends of a card.
-   * A wide screen gets the row centred rather than stretched.
-   */
-  grid-template-columns: minmax(0, clamp(17rem, 38vw, 30rem)) minmax(min(22rem, 100%), 34rem);
-  justify-content: center;
-  /*
-   * A smaller gap than the 4rem this used at width. Two columns that are now
-   * closer in size do not need a canyon between them to read as separate, and
-   * 64px of nothing was 6% of the row.
-   */
-  gap: clamp(1.5rem, 3.5vw, 3rem);
-  align-items: start;
-}
-
-.token-figure {
-  margin: 0;
-  position: relative;
-  border-radius: var(--r-lg);
-  overflow: hidden;
-  border: 1px solid var(--line);
-  background: var(--paper-3);
-  position: sticky;
-  top: calc(var(--header-h) + 1.25rem);
-}
-
-/* Dark artwork against a dark page has no edge of its own. */
-.token-figure::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  border-radius: inherit;
-  box-shadow: inset 0 0 0 1px var(--ring);
-}
-
-.token-figure img {
-  width: 100%;
-  aspect-ratio: 1;
-  object-fit: cover;
-}
-
 .token-placeholder {
   width: 100%;
   aspect-ratio: 1;
   border-radius: 0;
 }
 
-.token-detail {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
-.token-head {
-  display: flex;
-  flex-direction: column;
-  gap: 0.7rem;
-}
-
-.token-crumb {
-  display: inline-flex;
-  align-items: center;
-  min-height: 24px;
-  font-size: var(--step--1);
-  font-weight: 600;
-  color: var(--ink-3);
-}
-
-.token-crumb:hover {
-  color: var(--ink);
-}
-
 .token-title {
   font-size: var(--step-3);
   font-weight: 800;
   letter-spacing: -0.035em;
-}
-
-.token-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
 }
 
 .token-facts {
@@ -166,63 +56,6 @@
   font-weight: 700;
   font-size: var(--step-1);
   letter-spacing: -0.02em;
-}
-
-/*
- * Label above the figure, both hard left.
- *
- * This was `justify-content: space-between`, which pins the word "Price" to
- * one edge of the card and the figure to the other. Measured on a wide screen
- * that put 477px of nothing between them — two things that describe each other
- * sitting so far apart they stop reading as a pair, and the gap grows with
- * every pixel of screen.
- *
- * Stacked, the distance between the label and what it labels is fixed at a
- * line's height whatever the card does.
- */
-.token-price-row {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0.15rem;
-  padding-bottom: 0.9rem;
-  border-bottom: 1px solid var(--line);
-}
-
-/*
- * The price, two steps down from where it was.
- *
- * It was `--step-3` — `clamp(1.6rem, 2.6vw, 2.25rem)`, which against this
- * page's fluid root computes to about 40px. That is the size a page TITLE is
- * set at, and it made the one card on the page shout at a reader who had
- * already decided to look at it. `--step-2` is still unmistakably the largest
- * figure in the panel without being a headline.
- */
-/*
- * The label above the price takes the same treatment as every other figure
- * label on this page.
- *
- * It was inheriting `.dim` at 15px against a 21px price — close enough that
- * the two read as one line of similar text rather than as a caption over a
- * figure. The stats strip directly above uses 11px uppercase for exactly this
- * job, and a page with two kinds of figure label has neither.
- */
-.token-price-row .dim {
-  font-size: var(--step--3);
-  font-weight: 600;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-  color: var(--ink-3);
-}
-
-.token-price {
-  font-family: var(--display);
-  font-optical-sizing: auto;
-  font-size: var(--step-2);
-  font-weight: 700;
-  letter-spacing: -0.035em;
-  line-height: 1.1;
-  font-variant-numeric: tabular-nums;
 }
 
 .token-split {
@@ -311,29 +144,6 @@
   margin: 0;
   font-size: var(--step--1);
   font-weight: 700;
-}
-
-.token-explorer {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  min-height: 24px;
-  font-size: var(--step--1);
-  font-weight: 600;
-  color: var(--ink-2);
-}
-
-.token-explorer:hover {
-  color: var(--ink);
-}
-
-@media (max-width: 900px) {
-  .token-grid {
-    grid-template-columns: 1fr;
-  }
-  .token-figure {
-    position: static;
-  }
 }
 
 /**
@@ -493,50 +303,6 @@
   line-height: 1.55;
 }
 
-/* ------------------------------------------------- who holds it, and its state
- *
- * Replaces three cells of a definition list that put "Token id" and "Owner" at
- * the same weight as the price. The id is in the badges now; these are the two
- * facts that actually change.
- */
-.token-who {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 0.5rem 0.9rem;
-  margin-bottom: 0.9rem;
-  font-size: var(--step--1);
-  color: var(--ink-3);
-}
-
-.token-who-owner b {
-  color: var(--ink);
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-}
-
-/*
- * The state, drawn as a badge only when it is live.
- *
- * "For sale" is the one value a reader acts on, so it is the one that gets
- * colour. Giving every state a coloured pill — including "Not listed", which is
- * most pieces most of the time — would put a badge on every token page saying
- * nothing, and the one that matters would stop standing out.
- */
-.token-state {
-  font-size: var(--step--2);
-  color: var(--ink-3);
-}
-
-.token-state.is-live {
-  padding: 0.1rem 0.45rem;
-  border-radius: var(--r-pill);
-  background: color-mix(in srgb, var(--up) 15%, transparent);
-  color: var(--up);
-  font-weight: 600;
-}
-
-
 /*
  * The buy and list buttons stop growing with the panel.
  *
@@ -549,4 +315,475 @@
  */
 .token-panel .btn-block {
   max-width: 20rem;
+}
+
+/* ============================================================ the token page ==
+ *
+ * One piece, laid out the way a buyer reads it: what it is, what it costs,
+ * what to do, then the evidence. The art column carries the traits and the
+ * plain facts under the picture, so the left half of the page is never a
+ * picture above a field of nothing. The right column is the decision: name,
+ * owner, the trade card, then offers and history behind two tabs rather than
+ * two stacked boxes of equal weight.
+ *
+ * On a phone both columns dissolve (`display: contents`) and the blocks are
+ * re-ordered so the name comes before the picture and the price right after.
+ * ========================================================================== */
+
+.tk-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 32rem) minmax(0, 31rem);
+  justify-content: center;
+  gap: clamp(1.75rem, 3.5vw, 3.25rem);
+  align-items: start;
+}
+
+.tk-col {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  min-width: 0;
+}
+
+/* --------------------------------------------------------------- the art */
+
+.tk-art {
+  position: relative;
+  margin: 0;
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: var(--paper-3);
+}
+
+.tk-art img {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+}
+
+.tk-art-gone {
+  position: absolute;
+  top: 0.75rem;
+  left: 0.75rem;
+  padding: 0.3rem 0.65rem;
+  border-radius: var(--r-pill);
+  background: var(--danger-wash);
+  color: var(--danger);
+  font-size: var(--step--2);
+  font-weight: 700;
+}
+
+.tk-side {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.tk-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.tk-details dl {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.tk-details dl > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  padding: 0.5rem 0;
+  border-top: 1px solid var(--line);
+  font-size: var(--step--1);
+}
+
+.tk-details dl > div:first-child {
+  border-top: 0;
+}
+
+.tk-details dt {
+  color: var(--ink-3);
+}
+
+.tk-details dd {
+  margin: 0;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.tk-details dd a:hover {
+  text-decoration: underline;
+}
+
+.tk-explorer {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  font-size: var(--step--1);
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+.tk-explorer:hover {
+  color: var(--ink);
+}
+
+/* ------------------------------------------------------------- the name */
+
+.tk-head {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.tk-coll-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.tk-coll {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  min-height: 32px;
+  font-size: var(--step--1);
+  font-weight: 650;
+  color: var(--ink-2);
+}
+
+.tk-coll:hover {
+  color: var(--ink);
+}
+
+.tk-coll-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tk-coll-avatar {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--surface-2);
+  box-shadow: inset 0 0 0 1px var(--line);
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--ink-3);
+}
+
+.tk-coll-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.tk-tools {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.tk-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.15rem 0.45rem;
+  margin: 0;
+  font-size: var(--step-2);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+}
+
+.tk-num {
+  color: var(--ink-3);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.tk-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.5rem;
+}
+
+.tk-owner {
+  margin-right: 0.25rem;
+  font-size: var(--step--1);
+  color: var(--ink-3);
+}
+
+.tk-owner b {
+  color: var(--ink);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ------------------------------------------------------- the trade card */
+
+.tk-trade {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  padding: 0.9rem 1rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.tk-trade-top {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.tk-trade-label {
+  order: -1;
+  font-size: var(--step--3);
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.tk-status {
+  margin-left: auto;
+  padding: 0.2rem 0.6rem;
+  border-radius: var(--r-pill);
+  font-size: var(--step--2);
+  font-weight: 650;
+  background: var(--surface-2);
+  color: var(--ink-3);
+}
+
+/* Not for sale has no price label beside it, so it leads the row. */
+.tk-status:only-child {
+  margin-left: 0;
+}
+
+.tk-status.is-live {
+  background: var(--up-wash);
+  color: var(--up);
+}
+
+.tk-status.is-warn {
+  background: var(--warn-wash);
+  color: var(--warn);
+}
+
+.tk-status.is-gone {
+  background: var(--danger-wash);
+  color: var(--danger);
+}
+
+.tk-status.is-busy {
+  background: var(--accent-wash);
+  color: var(--accent);
+}
+
+.tk-price {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.2rem 0.6rem;
+  margin-top: -0.3rem;
+  font-size: var(--step-2);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+}
+
+.tk-usd {
+  font-size: var(--step--2);
+  font-weight: 600;
+  letter-spacing: 0;
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Buy and Make offer share the row; either alone takes all of it. */
+.tk-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: 0.5rem;
+}
+
+.tk-actions .btn {
+  width: 100%;
+}
+
+.tk-unlisted,
+.tk-gone {
+  margin: 0;
+  font-size: var(--step--1);
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+
+.tk-sell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.tk-sell-title {
+  margin: 0;
+  font-size: var(--step-0);
+  font-weight: 700;
+  letter-spacing: -0.015em;
+}
+
+/* The figures strip becomes the card's footer: full bleed, its own well. */
+.tk-trade .ts-row {
+  margin: 0.15rem -1rem -1rem;
+  border: 0;
+  border-top: 1px solid var(--line);
+  border-radius: 0;
+  background: var(--surface-2);
+  padding: 0.65rem 1rem;
+}
+
+.tk-trade .ts-value {
+  font-size: var(--step--1);
+}
+
+/* --------------------------------------------------- offers and history */
+
+.tk-tablist {
+  display: flex;
+  gap: 1.4rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.tk-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 36px;
+  margin-bottom: -1px;
+  padding: 0;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: none;
+  font: inherit;
+  font-size: var(--step--1);
+  font-weight: 650;
+  color: var(--ink-3);
+  cursor: pointer;
+}
+
+.tk-tab:hover {
+  color: var(--ink);
+}
+
+.tk-tab[aria-selected="true"] {
+  color: var(--ink);
+  border-bottom-color: var(--ink);
+}
+
+.tk-tab:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.tk-tab-n {
+  min-width: 1.4rem;
+  padding: 0.05rem 0.4rem;
+  border-radius: var(--r-pill);
+  background: var(--surface-2);
+  font-size: var(--step--3);
+  font-weight: 700;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.tk-panel {
+  padding-top: 0.35rem;
+}
+
+/* The two panels were standalone cards; under a tab they are just lists. */
+.tk-panel .offers,
+.tk-panel .act-panel {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+
+.tk-panel .offers-head .eyebrow,
+.tk-panel .act-title {
+  display: none;
+}
+
+/* ------------------------------------------------------------- phones */
+
+@media (max-width: 900px) {
+  /* `stretch`, or the grid's `align-items: start` shrink-wraps every block. */
+  .tk-layout {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+
+  .tk-col {
+    display: contents;
+  }
+
+  .tk-head {
+    order: 1;
+  }
+
+  .tk-art {
+    order: 2;
+  }
+
+  .tk-trade {
+    order: 3;
+  }
+
+  .tk-tabs {
+    order: 4;
+    margin-top: 0.5rem;
+  }
+
+  .tk-side {
+    order: 5;
+    margin-top: 0.5rem;
+  }
+}
+
+@media (max-width: 560px) {
+  .tk-title,
+  .tk-price {
+    font-size: var(--step-1);
+  }
+
+  .tk-trade {
+    padding: 0.8rem 0.85rem 0.85rem;
+  }
+
+  .tk-trade .ts-row {
+    margin: 0.1rem -0.85rem -0.85rem;
+    padding: 0.6rem 0.85rem;
+  }
 }

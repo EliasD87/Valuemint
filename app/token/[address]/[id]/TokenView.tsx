@@ -23,7 +23,7 @@ import { DrawBadge } from "@/components/DrawBadge";
 import { TxResult } from "@/components/TxResult";
 import { FillBlocked } from "@/components/FillBlocked";
 import { ShareLink } from "@/components/ShareLink";
-import { formatSoso, resolveMediaUrl } from "@/lib/format";
+import { formatSoso, resolveMediaUrl, shortAddress } from "@/lib/format";
 import { AddressLink } from "@/components/AddressLink";
 import { MovingArt } from "@/components/MovingArt";
 import { bundledArtworkFor, soleArtworkFor } from "@/config/covers";
@@ -37,6 +37,15 @@ import { wordmarkSaying } from "@/config/wordmarks";
 import "@/styles/token.css";
 import { Activity } from "@/components/Activity";
 import { Steps } from "@/components/Steps";
+import { ConnectButton } from "@/components/ConnectButton";
+import { OfferDialog } from "@/components/OfferDialog";
+import { VerifiedMark } from "@/components/VerifiedMark";
+import { Soso } from "@/components/Soso";
+import { avatarFor } from "@/config/covers";
+import { useSosoPrice } from "@/hooks/useSosoPrice";
+import { useTokenOffers } from "@/hooks/useTokenOffers";
+import { useActivity } from "@/hooks/useActivity";
+import { formatUsd, sosoToUsd } from "@/lib/usd";
 
 
 /**
@@ -126,7 +135,7 @@ export function TokenView({
     "approve" | "list" | "cancel" | "buy" | undefined
   >(undefined);
 
-  const { data: owner, refetch: refetchOwner } = useReadContract({
+  const { data: owner, error: ownerError, refetch: refetchOwner } = useReadContract({
     address: collection,
     abi: ValueChainCollectionAbi,
     functionName: "ownerOf",
@@ -237,6 +246,18 @@ export function TokenView({
    * this component goes ABOVE this line, always.
    */
   const queryClient = useQueryClient();
+
+  /** Which of the two lists under the trade card is showing. */
+  const [tab, setTab] = useState<"offers" | "activity">("offers");
+  /** The offer dialog, the same one a card opens. */
+  const [offering, setOffering] = useState(false);
+  const sosoUsd = useSosoPrice();
+  /**
+   * Counts for the two tab labels. Both are the queries the panels themselves
+   * mount, so React Query hands back the same data rather than reading twice.
+   */
+  const { offers: tokenOffers } = useTokenOffers(collection, tokenId);
+  const { rows: historyRows } = useActivity(collection, tokenId);
 
   /**
    * The price that was on screen when Buy was pressed.
@@ -408,48 +429,163 @@ export function TokenView({
     void trade.refetchCounter();
   };
 
+  /**
+   * The piece no longer exists.
+   *
+   * `ownerOf` reverts for a burned token — an opened Treasure Box, most often.
+   * The page used to carry on as if it were merely unlisted: "Owned by —",
+   * "Not listed", and an invitation to make an offer on something nobody can
+   * ever sell. Only a revert counts; a node that failed to answer is not a
+   * burn, and says nothing about the piece.
+   */
+  const gone = ownerError != null && /revert/i.test(ownerError.message);
+
+  const collectionLabel =
+    typeof collectionName === "string" && collectionName !== "" ? collectionName : "Collection";
+  const avatar = avatarFor(collection);
+  /**
+   * The number beside the name, unless the name already carries it.
+   * "Cybereator" is every Cybereator; "SoDEXTreasureBox #1227" is one already.
+   */
+  const showNumber = metadata?.name === undefined || !metadata.name.includes(`#${id}`);
+  const usd =
+    listed && sosoUsd !== undefined && listPrice > 0n ? sosoToUsd(listPrice, sosoUsd) : undefined;
+  const canOffer = offersAllowed(collection) && !isOwner && !gone;
+  /** A burned piece takes no offers, so its page opens on the history. */
+  const offersTab = offersAllowed(collection) && !gone;
+  const offerCount = tokenOffers.length;
+  const historyCount = historyRows.length;
+  const pieceName = metadata?.name ?? `${collectionLabel} #${id}`;
+
+  /** What the badge over the trade card says. Colour only for the live state. */
+  const status = gone
+    ? { text: "Burned", tone: "gone" }
+    : settling
+      ? { text: justListed ? "Listing…" : justBought ? "Settling…" : "Cancelling…", tone: "busy" }
+      : listed
+        ? active
+          ? { text: "For sale", tone: "live" }
+          : { text: "Listing stale", tone: "warn" }
+        : logsUnavailable
+          ? { text: "Listing unknown", tone: "quiet" }
+          : { text: "Not for sale", tone: "quiet" };
+
+  const explorerHref = `${deployment.explorer}/token/${collectionParam}/instance/${id}`;
+
   return (
-    <section className="page section page-compact">
-      <div className="token-grid">
-        <figure className="token-figure">
-          {image !== undefined ? (
-            /*
-              Animated, and far lighter than the original.
+    <section className="page section page-compact tk">
+      <div className="tk-layout">
+        {/* ------------------------------------------------ left: the piece */}
+        <div className="tk-col tk-col-art">
+          <figure className="tk-art">
+            {image !== undefined ? (
+              /*
+                Animated, and far lighter than the original.
 
-              This rendered the source directly, which for Cybereator is a
-              6.58 MB GIF served with `max-age=60`. Through the route it is a
-              2.3 MB animated WebP, immutable for a year — the animation kept,
-              because this is the one place a visitor is looking at a single
-              piece on purpose. The cards take the 22 KB still instead.
+                This rendered the source directly, which for Cybereator is a
+                6.58 MB GIF served with `max-age=60`. Through the route it is a
+                2.3 MB animated WebP, immutable for a year — the animation kept,
+                because this is the one place a visitor is looking at a single
+                piece on purpose. The cards take the 22 KB still instead.
 
-              `MovingArt` rather than an `<img>` at that URL, because the first
-              request for it takes ten seconds and the figure was empty for all
-              of them. See the component.
-            */
-            <MovingArt src={image} alt={metadata?.name ?? `Token ${id}`} />
-          ) : noMetadata ? (
-            /* Nothing is loading here and nothing ever will. See `noMetadata`. */
-            <div className="token-placeholder token-bare">
-              <span>No artwork published</span>
-              <small>
-                {typeof collectionName === "string" && collectionName !== ""
-                  ? `${collectionName} does not publish per-token metadata, `
-                  : "This collection does not publish per-token metadata, "}
-                so there is no picture or traits to show &mdash; only its creator can add
-                them. The piece itself is real and trades normally.
-              </small>
+                `MovingArt` rather than an `<img>` at that URL, because the first
+                request for it takes ten seconds and the figure was empty for all
+                of them. See the component.
+              */
+              <MovingArt src={image} alt={metadata?.name ?? `Token ${id}`} />
+            ) : noMetadata ? (
+              /* Nothing is loading here and nothing ever will. See `noMetadata`. */
+              <div className="token-placeholder token-bare">
+                <span>No artwork published</span>
+                <small>
+                  {collectionLabel !== "Collection"
+                    ? `${collectionLabel} does not publish per-token metadata, `
+                    : "This collection does not publish per-token metadata, "}
+                  so there is no picture or traits to show &mdash; only its creator can add
+                  them. The piece itself is real and trades normally.
+                </small>
+              </div>
+            ) : (
+              <div className="token-placeholder skeleton" />
+            )}
+            {gone ? <figcaption className="tk-art-gone">Burned</figcaption> : null}
+          </figure>
+
+          <div className="tk-side">
+            {/*
+              A held-back piece gets the explanation instead of the trait grid.
+
+              Both conditions are needed and neither is enough. `isUnrevealed`
+              only says the document names no design — which is also true of
+              any third-party contract that publishes other traits — and
+              `heldBackFor` only says this collection has a tail, which says
+              nothing about the piece being looked at. Together they mean "this
+              collection holds pieces back, and this is one of them".
+            */}
+            {isUnrevealed(metadata) && heldBackFor(collection) !== undefined ? (
+              <Unrevealed collection={collection} />
+            ) : (
+              <TokenTraits collection={collection} metadata={metadata} />
+            )}
+
+            {/* The plain facts of the piece, which used to be a lone link. */}
+            <section className="tk-details" aria-label="Details">
+              <p className="eyebrow">Details</p>
+              <dl>
+                <div>
+                  <dt>Contract</dt>
+                  <dd>
+                    <a
+                      href={`${deployment.explorer}/address/${collectionParam}`}
+                      target="_blank"
+                      rel="noreferrer noopener"
+                    >
+                      {shortAddress(collection)}
+                    </a>
+                  </dd>
+                </div>
+                <div>
+                  <dt>Token ID</dt>
+                  <dd>{id}</dd>
+                </div>
+                <div>
+                  <dt>Standard</dt>
+                  <dd>ERC-721</dd>
+                </div>
+                <div>
+                  <dt>Chain</dt>
+                  <dd>ValueChain</dd>
+                </div>
+              </dl>
+              <a className="tk-explorer" href={explorerHref} target="_blank" rel="noreferrer noopener">
+                View on the block explorer &rarr;
+              </a>
+            </section>
+          </div>
+        </div>
+
+        {/* ------------------------------------------- right: what to do with it */}
+        <div className="tk-col tk-col-main">
+          <header className="tk-head">
+            <div className="tk-coll-row">
+              <Link href={`/collection/${collectionParam}`} className="tk-coll">
+                <span className="tk-coll-avatar" aria-hidden="true">
+                  {avatar === undefined ? (
+                    <span>{collectionLabel.slice(0, 1)}</span>
+                  ) : (
+                    /* eslint-disable-next-line @next/next/no-img-element -- a 24px thumbnail */
+                    <img src={avatar} alt="" width={48} height={48} decoding="async" />
+                  )}
+                </span>
+                <span className="tk-coll-name">{collectionLabel}</span>
+                <VerifiedMark collection={collection} size={15} />
+              </Link>
+              <div className="tk-tools">
+                <ShareLink title={metadata?.name} />
+              </div>
             </div>
-          ) : (
-            <div className="token-placeholder skeleton" />
-          )}
-        </figure>
 
-        <div className="token-detail">
-          <div className="token-head">
-            <Link href={`/collection/${collectionParam}`} className="token-crumb">
-              &larr; Back to the collection
-            </Link>
-            <h1 className="token-title">
+            <h1 className="tk-title">
               {/*
                 `wordmarkSaying`, because this is the PIECE's name rather than
                 the collection's — Cybereator ships one design, so all thousand
@@ -465,77 +601,50 @@ export function TokenView({
               {titleMark !== undefined && metadata?.name !== undefined ? (
                 <Wordmark mark={titleMark} name={metadata.name} />
               ) : (
-                (metadata?.name ??
-                (isLoading
-                  ? "Loading…"
-                  : `${typeof collectionName === "string" && collectionName !== "" ? collectionName : "Token"} #${id}`))
-              )}
-            </h1>
-            <div className="token-chips">
-              {tierOf(metadata) !== undefined ? (
-                <span className={`chip chip-${tierClass(tierOf(metadata))}`}>
-                  {tierOf(metadata)}
+                <span className="tk-title-text">
+                  {metadata?.name ?? (isLoading ? "Loading…" : collectionLabel)}
                 </span>
+              )}
+              {showNumber ? <span className="tk-num">#{id}</span> : null}
+            </h1>
+
+            <div className="tk-meta">
+              <span className="tk-owner">
+                {gone ? (
+                  "No owner"
+                ) : (
+                  <>
+                    Owned by{" "}
+                    <b>
+                      {owner === undefined ? (
+                        "…"
+                      ) : isOwner ? (
+                        "you"
+                      ) : (
+                        <AddressLink address={owner as string} chars={4} />
+                      )}
+                    </b>
+                  </>
+                )}
+              </span>
+              {tierOf(metadata) !== undefined ? (
+                <span className={`chip chip-${tierClass(tierOf(metadata))}`}>{tierOf(metadata)}</span>
               ) : null}
               {trait(metadata, "Edition") !== undefined ? (
                 <span className="chip">{trait(metadata, "Edition")}</span>
               ) : null}
               {isOwner ? <span className="chip chip-up">You own this</span> : null}
-              {countsForNextDraw(collection, tokenId) ? <DrawBadge variant="chip" /> : null}
-              <ShareLink title={metadata?.name} />
+              {!gone && countsForNextDraw(collection, tokenId) ? <DrawBadge variant="chip" /> : null}
             </div>
-          </div>
+          </header>
 
-          {/*
-            Who holds it and what state it is in — one line, above the figures.
+          {/* --- the trading card --------------------------------------- */}
+          <div className="tk-trade">
+            <div className="tk-trade-top">
+              <span className={`tk-status is-${status.tone}`}>{status.text}</span>
+              {listed && !gone ? <span className="tk-trade-label">Price</span> : null}
+            </div>
 
-            This was three cells of a definition list sharing a row with the
-            market data, which put "Token id #5381" (already the heading) and
-            "Owner" at the same weight as the price somebody is deciding on.
-            The id moved into the badges, and the two facts that change sit
-            here where they can be read in a glance.
-          */}
-          <div className="token-who">
-            <span className="token-who-owner">
-              Owned by{" "}
-              <b>
-                {owner === undefined ? (
-                  "—"
-                ) : isOwner ? (
-                  "you"
-                ) : (
-                  <AddressLink address={owner as string} chars={6} />
-                )}
-              </b>
-            </span>
-            <span className={`token-state${listed && active ? " is-live" : ""}`}>
-              {settling
-                ? justListed
-                  ? "Listing…"
-                  : "Cancelling…"
-                : listed
-                  ? active
-                    ? "For sale"
-                    : "Listed (stale)"
-                  : logsUnavailable
-                    ? "Listing unknown"
-                    : "Not listed"}
-            </span>
-          </div>
-
-          {/*
-            Best offer, last sale, collection floor and rarity.
-
-            Every one of them is composed from a hook this page already mounts,
-            so the strip is arithmetic rather than a second read — and rarity
-            comes out of the token's own `Editions Minted` attribute, which
-            means it costs nothing and is simply absent on a collection that
-            does not publish one. See `TokenStats`.
-          */}
-          <TokenStats collection={collection} tokenId={tokenId} metadata={metadata} />
-
-          {/* --- the trading panel ------------------------------------- */}
-          <div className="token-panel card">
             {/*
               Outside the `listed` branch on purpose.
 
@@ -557,11 +666,16 @@ export function TokenView({
               ) : null}
             </FillBlocked>
 
-            {listed ? (
+            {gone ? (
+              <p className="tk-gone">
+                This piece was burned, so it no longer exists. It can&rsquo;t be bought, sold or
+                offered on. Its history is below.
+              </p>
+            ) : listed ? (
               <>
-                <div className="token-price-row">
-                  <span className="dim">Price</span>
-                  <span className="token-price mono">{formatSoso(listPrice)} SOSO</span>
+                <div className="tk-price">
+                  <Soso size={20} unit="">{formatSoso(listPrice)}</Soso>
+                  {usd === undefined ? null : <span className="tk-usd">&asymp; {formatUsd(usd)}</span>}
                 </div>
 
                 {justBought ? (
@@ -578,42 +692,51 @@ export function TokenView({
                   </p>
                 ) : null}
 
-                {isMaker ? (
-                  <button
-                    className="btn btn-block"
-                    disabled={busy}
-                    onClick={() => {
-                      setLastAction("cancel");
-                      if (listing !== undefined) trade.cancelOrder(listing);
-                    }}
-                  >
-                    {trade.busy ? "Cancelling…" : "Cancel listing"}
-                  </button>
-                ) : isOwner ? null : (
-                  <button
-                    className="btn btn-primary btn-block"
-                    disabled={busy || !active || address === undefined || blockedNow}
-                    onClick={() => {
-                      setLastAction("buy");
-                      if (listing !== undefined) {
-                        setTried({ hash: listing.hash, priceWei: listing.priceWei });
-                        fill.buy(listing);
-                      }
-                    }}
-                  >
-                    {blockedNow
-                      ? "No longer available"
-                      : address === undefined
-                      ? "Connect wallet to buy"
-                      : fill.checking
-                        ? "Checking it is still for sale…"
-                        : fill.signing
-                        ? "Confirm in wallet…"
-                        : fill.confirming
-                          ? "Buying…"
-                          : `Buy for ${formatSoso(listPrice)} SOSO`}
-                  </button>
-                )}
+                <div className="tk-actions">
+                  {isMaker ? (
+                    <button
+                      className="btn"
+                      disabled={busy}
+                      onClick={() => {
+                        setLastAction("cancel");
+                        if (listing !== undefined) trade.cancelOrder(listing);
+                      }}
+                    >
+                      {trade.busy ? "Cancelling…" : "Cancel listing"}
+                    </button>
+                  ) : isOwner ? null : address === undefined ? (
+                    <ConnectButton className="btn btn-primary">Connect wallet to buy</ConnectButton>
+                  ) : (
+                    <button
+                      className="btn btn-primary"
+                      disabled={busy || !active || blockedNow}
+                      onClick={() => {
+                        setLastAction("buy");
+                        if (listing !== undefined) {
+                          setTried({ hash: listing.hash, priceWei: listing.priceWei });
+                          fill.buy(listing);
+                        }
+                      }}
+                    >
+                      {blockedNow
+                        ? "No longer available"
+                        : fill.checking
+                          ? "Checking it is still for sale…"
+                          : fill.signing
+                            ? "Confirm in wallet…"
+                            : fill.confirming
+                              ? "Buying…"
+                              : "Buy now"}
+                    </button>
+                  )}
+                  {canOffer ? (
+                    address === undefined ? null : (
+                      <button type="button" className="btn" onClick={() => setOffering(true)}>
+                        Make offer
+                      </button>
+                    )
+                  ) : null}
+                </div>
               </>
             ) : settling ? (
               <p className="token-note">
@@ -622,8 +745,8 @@ export function TokenView({
                   : "Your cancellation is on chain and the listing will stop showing shortly."}
               </p>
             ) : isOwner ? (
-              <>
-                <p className="token-panel-title">Sell this piece</p>
+              <div className="tk-sell">
+                <p className="tk-sell-title">Sell this piece</p>
 
                 <div className="field">
                   <label htmlFor="price">Price in SOSO</label>
@@ -674,7 +797,7 @@ export function TokenView({
                       stays in your wallet either way — this is one transaction, once per collection.
                     </p>
                     <button
-                      className="btn btn-primary btn-block"
+                      className="btn btn-primary"
                       disabled={busy}
                       onClick={() => {
                         setLastAction("approve");
@@ -686,7 +809,7 @@ export function TokenView({
                   </>
                 ) : (
                   <button
-                    className="btn btn-primary btn-block"
+                    className="btn btn-primary"
                     disabled={busy || preview.price <= 0n}
                     onClick={() => {
                       setLastAction("list");
@@ -696,7 +819,7 @@ export function TokenView({
                     {trade.signing ? "Confirm in wallet…" : trade.confirming ? "Listing…" : "List for sale"}
                   </button>
                 )}
-              </>
+              </div>
             ) : logsUnavailable ? (
               /* A seller told "not listed" over a live listing relists at a
                  different price. Both orders are valid, both fillable, and a
@@ -708,16 +831,24 @@ export function TokenView({
                 two live listings at different prices.
               </p>
             ) : (
-              <p className="token-note">
-                {offersAllowed(collection) ? (
-                  <>
-                    Not listed for sale. Only its owner can set a price &mdash; but anyone can
-                    make an offer below.
-                  </>
-                ) : (
-                  <>Not listed for sale. Only its owner can set a price.</>
-                )}
-              </p>
+              <>
+                <p className="tk-unlisted">
+                  {canOffer
+                    ? "The owner hasn’t set a price. Make an offer and they can accept it."
+                    : "The owner hasn’t set a price."}
+                </p>
+                {canOffer ? (
+                  <div className="tk-actions">
+                    {address === undefined ? (
+                      <ConnectButton className="btn btn-primary">Connect wallet to offer</ConnectButton>
+                    ) : (
+                      <button type="button" className="btn btn-primary" onClick={() => setOffering(true)}>
+                        Make offer
+                      </button>
+                    )}
+                  </div>
+                ) : null}
+              </>
             )}
 
             <TxResult
@@ -739,60 +870,87 @@ export function TokenView({
                         : "Done"
               }
             />
+
+            {/*
+              Best offer, last sale, floor and rarity, as the card's footer.
+
+              Every one of them is composed from a hook this page already
+              mounts, so the strip is arithmetic rather than a second read. See
+              `TokenStats`.
+            */}
+            {gone ? null : <TokenStats collection={collection} tokenId={tokenId} metadata={metadata} />}
           </div>
 
-          {collection === undefined ? null : (
-            <>
-              {/* What this token has actually done — the only thing on the page
-                  that is not somebody's asking price. */}
-              <Activity collection={collection} tokenId={tokenId} markBurned />
+          {/* --- offers and history, one at a time ----------------------- */}
+          <div className="tk-tabs">
+            <div className="tk-tablist" role="tablist" aria-label="Offers and activity">
+              {offersTab ? (
+                <button
+                  type="button"
+                  role="tab"
+                  id="tk-tab-offers"
+                  aria-selected={tab === "offers"}
+                  aria-controls="tk-panel-offers"
+                  className="tk-tab"
+                  onClick={() => setTab("offers")}
+                >
+                  Offers{offerCount > 0 ? <span className="tk-tab-n">{offerCount}</span> : null}
+                </button>
+              ) : null}
+              <button
+                type="button"
+                role="tab"
+                id="tk-tab-activity"
+                aria-selected={tab === "activity" || !offersTab}
+                aria-controls="tk-panel-activity"
+                className="tk-tab"
+                onClick={() => setTab("activity")}
+              >
+                Activity{historyCount > 0 ? <span className="tk-tab-n">{historyCount}</span> : null}
+              </button>
+            </div>
 
-              {offersAllowed(collection) ? (
+            {offersTab ? (
+              <div
+                role="tabpanel"
+                id="tk-panel-offers"
+                aria-labelledby="tk-tab-offers"
+                className="tk-panel"
+                hidden={tab !== "offers"}
+              >
                 <Offers
                   collection={collection}
                   tokenId={tokenId}
                   isOwner={isOwner}
                   onChange={afterAction}
+                  showForm={false}
                 />
-              ) : null}
-            </>
-          )}
+              </div>
+            ) : null}
 
-          {/*
-            Its own component now, and not only for tidiness.
-
-            This was `dt`/`dd` pairs inside a plain `div` with no `dl` anywhere
-            — invalid markup, and a screen reader gets no pairing from it. It
-            also printed `Editions Minted` as a trait, which is the figure the
-            Rarity cell above is computed from, so the same number appeared
-            twice on one page. See `TokenTraits`.
-          */}
-          {/*
-            A held-back piece gets the explanation instead of the trait grid.
-
-            Both conditions are needed and neither is enough. `isUnrevealed`
-            only says the document names no design — which is also true of any
-            third-party contract that publishes other traits — and `heldBackFor`
-            only says this collection has a tail, which says nothing about the
-            piece being looked at. Together they mean "this collection holds
-            pieces back, and this is one of them".
-          */}
-          {isUnrevealed(metadata) && heldBackFor(collection) !== undefined ? (
-            <Unrevealed collection={collection} />
-          ) : (
-            <TokenTraits collection={collection} metadata={metadata} />
-          )}
-
-          <a
-            className="token-explorer"
-            href={`${deployment.explorer}/token/${collectionParam}/instance/${id}`}
-            target="_blank"
-            rel="noreferrer noopener"
-          >
-            View on the block explorer &rarr;
-          </a>
+            <div
+              role="tabpanel"
+              id="tk-panel-activity"
+              aria-labelledby="tk-tab-activity"
+              className="tk-panel"
+              hidden={tab !== "activity" && offersTab}
+            >
+              {/* What this token has actually done — the only thing on the
+                  page that is not somebody's asking price. */}
+              <Activity collection={collection} tokenId={tokenId} markBurned />
+            </div>
+          </div>
         </div>
       </div>
+
+      {offering ? (
+        <OfferDialog
+          collection={collection}
+          tokenId={tokenId}
+          name={pieceName}
+          onClose={() => setOffering(false)}
+        />
+      ) : null}
     </section>
   );
 }

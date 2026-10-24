@@ -997,13 +997,13 @@ textarea {
  * is fixed at `--header-h`, which five other stylesheets measure against.
  */
 @media (pointer: coarse), (max-width: 760px) {
-  /* Doubled: `.token-crumb` and `.token-explorer` set `min-height: 24px` in
+  /* Doubled: `.tk-coll` and `.tk-explorer` set their own `min-height` in
      token.css, which loads after this file — equal specificity, later wins,
      and the floor silently lost. Measured at 24px on the token page while
      every other page passed. */
   .head-link.head-link,
-  .token-crumb.token-crumb,
-  .token-explorer.token-explorer,
+  .tk-coll.tk-coll,
+  .tk-explorer.tk-explorer,
   .footer-col ul a,
   .footer-col ul .mono {
     display: inline-flex;
