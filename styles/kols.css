@@ -1,11 +1,13 @@
 /* =========================================================== KOL showcase ===
  *
- * A committed dark band, like the Trenches hero, rather than a theme-aware one.
- * The whole effect is cutout characters lit against a deep ground, and the same
- * composition on a white page reads as three floating stickers. Every colour
- * here is therefore stated outright — see the note in tokens.css about literals
- * being right in one theme and wrong in the other; this section is the
- * exception that has to declare itself.
+ * Graph paper (2026-10-24). The hero was a committed dark-violet band; the
+ * owner disliked it. The ground is now warm graph paper, and the colourful
+ * letters and cutouts read as a poster against it. (A candlestick chart
+ * behind the word was tried the same day and removed at the owner's ask.)
+ *
+ * It follows the site theme like everything else: every colour is a token
+ * (--kol-* in tokens.css, plus the usual ink ramp), warm paper in light and
+ * near-black paper in dark.
  * ========================================================================== */
 
 .kol-hero {
@@ -13,19 +15,30 @@
   isolation: isolate;
   overflow: hidden;
   padding: clamp(1.25rem, 2.5vw, 2rem) 0 0;
-  color: #f4f4f6;
+  color: var(--ink);
+  border-bottom: 1px solid var(--line);
 }
 
-/* Deep violet, pushed magenta at the horizon so the plinths sit in front of a
-   warm glow rather than on flat black. */
+/* The paper: a warm ground, darkening a touch toward the floor the letters
+   stand on, under a grid that fades out toward the edges. */
 .kol-deep {
   position: absolute;
   inset: 0;
   z-index: -1;
-  background:
-    radial-gradient(70% 55% at 50% 88%, rgba(214, 51, 168, 0.32), transparent 70%),
-    radial-gradient(90% 70% at 50% 120%, rgba(126, 34, 206, 0.45), transparent 72%),
-    linear-gradient(180deg, #17081f 0%, #1b0a26 55%, #240d31 100%);
+  background: linear-gradient(180deg, var(--kol-ground) 0%, var(--kol-ground-2) 100%);
+}
+
+.kol-deep::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(var(--kol-grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--kol-grid) 1px, transparent 1px);
+  background-size: 44px 44px;
+  background-position: center top;
+  -webkit-mask-image: radial-gradient(120% 90% at 50% 40%, #000 45%, transparent 100%);
+  mask-image: radial-gradient(120% 90% at 50% 40%, #000 45%, transparent 100%);
 }
 
 .kol-hero-inner {
@@ -47,7 +60,7 @@
   font-weight: 700;
   letter-spacing: 0.2em;
   text-transform: uppercase;
-  color: #c4a3d8;
+  color: var(--ink-3);
 }
 
 
@@ -61,7 +74,7 @@
   line-height: 1.05;
   max-width: 18ch;
   text-wrap: balance;
-  color: #fdfdfe;
+  color: var(--ink);
 }
 
 .kol-lede {
@@ -73,7 +86,7 @@
   text-wrap: balance;
   font-size: var(--step--1);
   line-height: 1.6;
-  color: #cbb8d8;
+  color: var(--ink-2);
 }
 
 /* ============================================================== the word ====
@@ -101,15 +114,18 @@
    * The one number everything here derives from: the cap height of KOL.
    * The glyph widths, the figure heights and the gap all follow from it, so
    * the composition holds at every width instead of only where it was tuned.
+   *
+   * Was clamp(190px, 26vw, 560px): the band ran 630px tall at 1440 and the
+   * owner found it too long (2026-10-24).
    */
-  --letter: clamp(190px, 26vw, 560px);
+  --letter: clamp(180px, 19vw, 400px);
   /**
    * Tracking, effectively - the figures overhang their glyphs, so the letters
    * need a little air between them or the busts collide into one mass. Small
    * enough that KOL still reads as a word rather than three separate glyphs.
    */
   gap: calc(var(--letter) * 0.06);
-  margin-top: clamp(0.5rem, 1vw, 1rem);
+  margin-top: 0;
   /**
    * No bottom padding: the slabs sit *on* the edge where the hero ends and the
    * roster begins, so the figures look planted on that line rather than
@@ -124,7 +140,7 @@
    * screen, most of it empty violet. The glyphs also carry their own leading
    * above the ink, so the visible gap always reads larger than this number.
    */
-  padding-top: clamp(16px, 2vw, 34px);
+  padding-top: clamp(8px, 1vw, 16px);
 }
 
 /**
@@ -170,9 +186,9 @@
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-  /* Lifts the word off the violet without competing with the art in front of
+  /* Lifts the word off the paper without competing with the art in front of
      it - the portraits are the subject, the word is the ground. */
-  filter: drop-shadow(0 26px 46px rgba(0, 0, 0, 0.55));
+  filter: drop-shadow(0 20px 34px var(--kol-letter-shadow));
   user-select: none;
   /*
    * Stand the letterforms on the line, not merely their boxes.
@@ -218,7 +234,7 @@
      that particular letterform still reads. See the note in page.tsx. */
   transform: translateX(calc(-50% + var(--shift, 0%)));
   /* Separates the cutout from the letterform it overlaps. */
-  filter: drop-shadow(0 18px 26px rgba(23, 8, 31, 0.68));
+  filter: drop-shadow(0 16px 24px var(--kol-figure-shadow));
   pointer-events: none;
   animation: kol-rise 700ms cubic-bezier(0.22, 0.75, 0.3, 1);
 }
@@ -385,7 +401,7 @@
   display: inline-flex;
   align-items: center;
   gap: 0.55rem;
-  color: rgba(255, 255, 255, 0.86);
+  color: var(--ink);
 }
 
 /* A hairline rather than a middot: a character would join the accessible name
@@ -404,7 +420,7 @@
   flex: none;
   border-radius: 50%;
   background: var(--accent);
-  box-shadow: 0 0 0 3px rgba(255, 92, 0, 0.16);
+  box-shadow: 0 0 0 3px var(--accent-wash);
   animation: kol-soon-pulse 2.4s ease-in-out infinite;
 }
 
@@ -545,16 +561,14 @@
  * ========================================================================== */
 
 /* The eyebrow's status dot follows the stage. Orange pulse means "soon"; green
-   means something can be done right now; closed goes still and grey. The
-   hero is a committed dark band (see the top of this file), so these are
-   stated for dark ground, like everything else in it. */
+   means something can be done right now; closed goes still and grey. */
 .kol-soon.is-open .kol-soon-dot {
-  background: #3ecf8e;
-  box-shadow: 0 0 0 3px rgba(62, 207, 142, 0.18);
+  background: var(--up);
+  box-shadow: 0 0 0 3px var(--up-wash);
 }
 
 .kol-soon.is-ended .kol-soon-dot {
-  background: rgba(255, 255, 255, 0.45);
+  background: var(--ink-3);
   box-shadow: none;
   animation: none;
 }
@@ -759,8 +773,7 @@
  * "1/1 portrait NFT + SOSO reward | Sponsored by ValueChain", as one
  * line under the lede. The gift and the giver are one object on purpose: a
  * logo strip under a hero reads as small print, and this is the headline fact
- * about the set after what it is. Stated for the dark band like everything
- * else in the hero.
+ * about the set after what it is.
  * ========================================================================== */
 
 /* Open type on the band, no container. It sat in a glass pill at first, and a
@@ -780,7 +793,7 @@
   font-size: calc(var(--step--1) * 1.12);
   font-weight: 700;
   letter-spacing: -0.005em;
-  color: #fdfdfe;
+  color: var(--ink);
   white-space: nowrap;
 }
 
@@ -800,8 +813,8 @@
   height: 30px;
   border-radius: 50%;
   object-fit: cover;
-  border: 2px solid #1f0b2b;
-  background: #2a1238;
+  border: 2px solid var(--kol-ground);
+  background: var(--surface-2);
 }
 
 .kol-gift-thumbs img + img {
@@ -848,8 +861,9 @@
   width: 17px;
   height: 17px;
   border-radius: 50%;
-  box-shadow: 0 0 0 2px #1f0b2b;
-  background: #1f0b2b;
+  /* A dark tag in both themes: the mark on it is the white one. */
+  box-shadow: 0 0 0 2px var(--kol-ground);
+  background: #17171b;
 }
 
 @keyframes kol-gift-wiggle {
@@ -896,14 +910,14 @@
 
 .kol-gift-plus {
   font-weight: 500;
-  color: #9d85b0;
+  color: var(--ink-3);
 }
 
 .kol-sponsor-rule {
   width: 1px;
   height: 1.9rem;
   flex: none;
-  background: rgba(255, 255, 255, 0.16);
+  background: var(--line-strong);
 }
 
 .kol-sponsor-by {
@@ -921,7 +935,7 @@
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: #b89bcc;
+  color: var(--ink-3);
 }
 
 /* The sponsor's name, set large enough to be the thing you remember. Until an
@@ -941,13 +955,11 @@
    */
   background: linear-gradient(
     100deg,
-    #e6dcff 0%,
-    #b9a6ff 22%,
-    #e6dcff 38%,
-    #ffffff 50%,
-    #e6dcff 62%,
-    #b9a6ff 78%,
-    #e6dcff 100%
+    var(--ink) 0%,
+    var(--ink) 38%,
+    var(--accent) 50%,
+    var(--ink) 62%,
+    var(--ink) 100%
   );
   background-size: 250% 100%;
   background-position: 100% 0;

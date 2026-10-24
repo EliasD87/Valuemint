@@ -278,6 +278,16 @@
   --env-card-b: #ff8a1e;
   --env-spark: #ffb347;
 
+  /*
+   * The /kols hero: graph paper. A warm ground with a faint grid, and soft
+   * shadows for the cutouts (the old violet band needed heavy ones).
+   */
+  --kol-ground: #fbf7ef;
+  --kol-ground-2: #f6efe2;
+  --kol-grid: rgba(60, 40, 10, 0.07);
+  --kol-letter-shadow: rgba(60, 40, 10, 0.18);
+  --kol-figure-shadow: rgba(30, 20, 10, 0.3);
+
 }
 
 /* ==========================================================================
@@ -394,6 +404,12 @@
   --env-card-a: #c93a0a;
   --env-card-b: #ffb020;
   --env-spark: #ffae3d;
+
+  --kol-ground: #121215;
+  --kol-ground-2: #16161a;
+  --kol-grid: rgba(255, 255, 255, 0.055);
+  --kol-letter-shadow: rgba(0, 0, 0, 0.5);
+  --kol-figure-shadow: rgba(0, 0, 0, 0.6);
 
 }
 
