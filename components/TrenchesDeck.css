@@ -1,0 +1,183 @@
+/* The /trenches hero deck (components/TrenchesDeck.tsx). Colours from tokens; each card's from its depth. */
+
+.tdeck {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.9rem;
+  user-select: none;
+}
+
+/* Room for the front card and the two peeking out to its right. */
+.tdeck-stage {
+  position: relative;
+  width: min(100%, 30rem);
+  aspect-ratio: 1.05;
+  perspective: 1100px;
+  cursor: pointer;
+  touch-action: pan-y;
+}
+
+.tdeck-card {
+  position: absolute;
+  top: 50%;
+  left: 38%;
+  width: 62%;
+  transition:
+    transform 520ms var(--ease),
+    opacity 420ms var(--ease),
+    filter 420ms var(--ease);
+  will-change: transform;
+}
+
+/* The front card: upright, tilting toward the pointer. */
+.tdeck-card.is-pos-0 {
+  z-index: 3;
+  transform: translate(-50%, -50%) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+  transition:
+    transform 160ms ease-out,
+    opacity 420ms var(--ease);
+}
+
+.tdeck-card.is-pos-1 {
+  z-index: 2;
+  transform: translate(-28%, -50%) rotate(6deg) scale(0.9);
+  filter: brightness(0.75);
+}
+
+.tdeck-card.is-pos-2 {
+  z-index: 1;
+  transform: translate(-8%, -50%) rotate(12deg) scale(0.8);
+  filter: brightness(0.55);
+}
+
+/* Waiting their turn, stacked out of sight behind the third. */
+.tdeck-card.is-pos-hidden {
+  z-index: 0;
+  opacity: 0;
+  transform: translate(-8%, -50%) rotate(12deg) scale(0.75);
+}
+
+/* The card just dealt away slides off to the left and fades. */
+.tdeck-card.is-pos-gone {
+  z-index: 4;
+  opacity: 0;
+  transform: translate(-125%, -50%) rotate(-14deg) scale(0.95);
+  pointer-events: none;
+}
+
+/* A sheen over the front card that follows the pointer. */
+.tdeck-sheen {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--r-lg);
+  background: radial-gradient(60% 45% at var(--gx, 30%) var(--gy, 20%), rgb(255 255 255 / 0.16), transparent 70%);
+  mix-blend-mode: screen;
+  pointer-events: none;
+}
+
+.tdeck-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.tdeck-arrow {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.tdeck-arrow:hover {
+  background: var(--surface-2);
+}
+
+.tdeck-arrow svg {
+  width: 0.95rem;
+  height: 0.95rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.tdeck-dots {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+/* One dot per depth in its colour; the current one stretches into a bar. */
+.tdeck-dot {
+  width: 0.55rem;
+  height: 0.55rem;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: var(--c);
+  opacity: 0.45;
+  cursor: pointer;
+  transition:
+    width var(--fast),
+    opacity var(--fast);
+}
+
+.tdeck-dot:hover {
+  opacity: 0.8;
+}
+
+.tdeck-dot.is-on {
+  width: 1.4rem;
+  opacity: 1;
+}
+
+.tdeck-dot:focus-visible,
+.tdeck-arrow:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--ring);
+}
+
+.tdeck-caption {
+  margin: 0;
+  font-size: var(--step--2);
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.tdeck-caption b {
+  color: var(--ink);
+  font-weight: 650;
+}
+
+/* On a phone, smaller, so the headline under it is still on the first screen. */
+@media (max-width: 700px) {
+  .tdeck {
+    gap: 0.6rem;
+    margin-top: 0.5rem;
+  }
+
+  .tdeck-stage {
+    width: min(100%, 17rem);
+  }
+}
+
+/* Reduced motion: no tilt, no sliding; cards simply change. */
+.tdeck.is-still .tdeck-card,
+.tdeck.is-still .tdeck-dot {
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tdeck-card,
+  .tdeck-dot {
+    transition: none;
+  }
+}

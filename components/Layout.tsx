@@ -504,7 +504,7 @@ function DrawerLink({ item, active }: { item: NavItem; active: boolean }) {
 
 /**
  * The picture beside a menu row. Local files, so opening the menu costs no
- * request to a gateway: the ten spirits cropped to Halo for Trenches, and three
+ * request to a gateway: Halo's card art for Trenches, and three
  * KOL portraits fanned for the KOLs.
  */
 function MenuThumb({ kind }: { kind: "trenches" | "kols" }) {
@@ -512,7 +512,7 @@ function MenuThumb({ kind }: { kind: "trenches" | "kols" }) {
     return (
       <span className="nav-thumb" aria-hidden="true">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/heroes/trenches-cutout-900.webp" alt="" />
+        <img src="/heroes/trenches-thumb.webp" alt="" />
       </span>
     );
   }

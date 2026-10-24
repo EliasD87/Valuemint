@@ -671,7 +671,7 @@ function Closing() {
     <section className="ex page ex-closing">
       <Link className="ex-close" href="/trenches">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/heroes/trenches-cover.webp" alt="" loading="lazy" decoding="async" />
+        <img src="/heroes/trenches-cover-v3.webp" alt="" loading="lazy" decoding="async" />
         <div className="ex-close-body">
           <h3>The Trenches</h3>
           <p>A free NFT for SoDEX traders. How much you have traded sets your tier.</p>

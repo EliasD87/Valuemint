@@ -3,14 +3,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useAccount, useReadContracts } from "wagmi";
-import { Art } from "@/components/Art";
 import { ConnectButton } from "@/components/ConnectButton";
-import { DepthScene } from "@/components/DepthScene";
 import { SodexLogo } from "@/components/SodexLogo";
 import { TxResult } from "@/components/TxResult";
 import { useTrenchesClaim } from "@/hooks/useTrenchesClaim";
+import { TrenchesFrame } from "@/components/TrenchesFrame";
+import { TrenchesDeck } from "@/components/TrenchesDeck";
+import { TiltCard } from "@/components/TiltCard";
 import { GiveawaysPanel, RunningGiveaway } from "@/components/HolderGiveaways";
-import { TIERS, formatVolume, tierImage, type Tier } from "@/config/tiers";
+import { TIERS, formatVolume, type Tier } from "@/config/tiers";
 import { TIER_STRIDE, TRENCHES_ABI, TRENCHES_ADDRESS } from "@/config/trenches";
 import "@/styles/home.css";
 import "@/components/TokenCard.css";
@@ -156,7 +157,17 @@ export default function Trenches() {
   const standing = state.kind === "done" ? state.data : undefined;
   const reached = standing?.tier?.n ?? 0;
 
+  /* Dev only: /trenches?depthPreview=7 shows the cards as a wallet at depth 7
+     that has claimed below it, so the statuses can be seen without one. */
+  const [depthPreview, setDepthPreview] = useState<number | undefined>(undefined);
+  useEffect(() => {
+    if (process.env.NODE_ENV !== "development") return;
+    const v = Number(new URLSearchParams(window.location.search).get("depthPreview"));
+    if (v >= 1 && v <= TIERS.length) setDepthPreview(v);
+  }, []);
+
   const statusOf = (t: Tier, i: number): Status | undefined => {
+    if (depthPreview !== undefined) return t.n < depthPreview ? "claimed" : t.n === depthPreview ? "here" : "locked";
     if (claimed[i]) return "claimed";
     if (standing === undefined) return undefined;
     if (reached === t.n) return "here";
@@ -165,51 +176,45 @@ export default function Trenches() {
 
   return (
     <>
-      {/* The hero (owner, 2026-10-24): the headline, the ten spirits large, and
-          the wallet's depth and claim right under. */}
+      {/* The hero (owner, 2026-10-24): on the left the headline, then the
+          wallet's depth and claim, then holder giveaways, each only as tall as
+          its content; on the right the deck of the ten cards. */}
       <section className="trx-hero" aria-labelledby="trx-title">
         <div className="page trx-hero-inner">
-          <div className="trx-hero-copy">
-            <p className="trx-lockup">
-              <SodexLogo variant="full" className="trx-lockup-logo" title="SoDEX" />
-              <span aria-hidden="true">×</span>
-              <span>ValueMint</span>
-            </p>
-            <h1 className="trx-title" id="trx-title">
-              How deep have you traded?
-            </h1>
-            <p className="trx-lede">One free NFT for every depth of all-time SoDEX volume you pass.</p>
-            {/* Small print, taking almost no room (owner, 2026-10-24). */}
-            <p className="trx-meta">
-              {TIERS.length} depths
-              {supply === undefined ? null : <> · {supply.toLocaleString()} claimed</>} · free, gas only
-            </p>
+          <div className="trx-hero-left">
+            <div className="trx-hero-copy">
+              <p className="trx-lockup">
+                <SodexLogo variant="full" className="trx-lockup-logo" title="SoDEX" />
+                <span aria-hidden="true">×</span>
+                <span>ValueMint</span>
+              </p>
+              <h1 className="trx-title" id="trx-title">
+                How deep have you traded?
+              </h1>
+              <p className="trx-lede">One free NFT for every depth of SoDEX volume you pass.</p>
+              {/* Small print, taking almost no room (owner, 2026-10-24). */}
+              <p className="trx-meta">
+                {TIERS.length} depths
+                {supply === undefined ? null : <> · {supply.toLocaleString()} claimed</>} · free, gas only
+              </p>
+            </div>
+
+            {/* The wallet's standing and the claim: what the page is for. */}
+            <YourDepth
+              state={state}
+              connected={mounted && address !== undefined}
+              onRetry={() => address && void check(address)}
+              onClaimed={() => void refetchReads()}
+            />
+
+            {/* Past holder giveaways, and that more are coming. */}
+            <GiveawaysPanel />
           </div>
 
           <figure className="trx-art">
-            <DepthScene
-              className="trx-scene"
-              src="/heroes/trenches-cutout.webp"
-              srcSet="/heroes/trenches-cutout-900.webp 900w, /heroes/trenches-cutout.webp 1600w"
-              sizes="(max-width: 860px) 100vw, 46rem"
-              small="/heroes/trenches-cutout-900.webp"
-              depth="/heroes/trenches-depth.png"
-              width={1600}
-              height={663}
-              alt="The ten spirits of The Trenches side by side, Halo at the centre"
-            />
+            {/* The ten depths as an interactive deck (components/TrenchesDeck), opening on the wallet's depth. */}
+            <TrenchesDeck start={state.kind === "done" ? (state.data.tier?.n ?? undefined) : undefined} />
           </figure>
-
-          {/* The wallet's standing and the claim: what the page is for. */}
-          <YourDepth
-            state={state}
-            connected={mounted && address !== undefined}
-            onRetry={() => address && void check(address)}
-            onClaimed={() => void refetchReads()}
-          />
-
-          {/* Beside it, half and half: past holder giveaways and that more are coming. */}
-          <GiveawaysPanel />
         </div>
       </section>
 
@@ -286,7 +291,7 @@ function YourDepth({
 
   let reading: React.ReactNode;
   if (!connected) {
-    reading = <span className="muted">Connect a wallet to see how deep it has traded.</span>;
+    reading = <span className="muted">Connect a wallet to see your depth.</span>;
   } else if (state.kind === "checking" || state.kind === "idle") {
     reading = <span className="muted">Reading SoDEX…</span>;
   } else if (state.kind === "error") {
@@ -327,15 +332,15 @@ function YourDepth({
     <div className="card trx-you" aria-live="polite">
       {/* Left: who they are and the ladder. Right: the next goal and the claim. */}
       <div className="trx-you-main">
+        {/* Fewer words (owner, 2026-10-24): the depth itself heads the card, no label above it. */}
         <div className="trx-you-top">
-          <span className="eyebrow">Your depth</span>
+          <p className="trx-you-reading">{reading}</p>
           {claim.open === true ? (
             <span className="chip chip-up">Claiming open</span>
           ) : claim.open === false ? (
             <span className="chip">Claiming paused</span>
           ) : null}
         </div>
-        <p className="trx-you-reading">{reading}</p>
         {/*
           The ladder, one circle per depth — how far they have come at a
           glance: a check on every depth reached; a ring
@@ -385,9 +390,7 @@ function YourDepth({
         {/* The goal: all the volume so far against the next depth's mark. */}
         {showBar ? (
           <div className="trx-goal">
-            <span className="trx-goal-label">
-              {loading ? "Volume" : next !== undefined ? `To ${next.name}` : "Every depth reached"}
-            </span>
+            {!loading && next === undefined ? <span className="trx-goal-label">Every depth reached</span> : null}
             <div className="trx-goal-figures">
               <span className="trx-goal-num">
                 {loading ? (
@@ -397,7 +400,11 @@ function YourDepth({
                 ) : (
                   <b>{formatVolume(tier?.min ?? 0)}+</b>
                 )}
-                {!loading && next !== undefined ? <span className="trx-goal-of">/{formatVolume(next.min)}</span> : null}
+                {!loading && next !== undefined ? (
+                  <span className="trx-goal-of">
+                    /{formatVolume(next.min)} to {next.name}
+                  </span>
+                ) : null}
               </span>
               {loading ? null : <span className="trx-goal-pct">{towardPct}%</span>}
             </div>
@@ -411,11 +418,6 @@ function YourDepth({
             >
               <span className="trx-goal-fill" style={{ width: `${loading ? 0 : toward * 100}%` }} />
             </div>
-            {!loading && data?.next != null && next !== undefined ? (
-              <p className="trx-goal-note">
-                {formatVolume(data.next.needed)} more to reach {next.name}
-              </p>
-            ) : null}
           </div>
         ) : null}
         {!connected ? (
@@ -467,7 +469,7 @@ function ClaimAction({ claim }: { claim: ReturnType<typeof useTrenchesClaim> }) 
     );
   }
   if (owedCount === 0) {
-    return <p className="trx-claim-note">Every depth you have reached is claimed.</p>;
+    return <p className="trx-claim-note">All claimed</p>;
   }
 
   const busy = phase.kind === "authorising" || phase.kind === "signing";
@@ -492,7 +494,11 @@ function ClaimAction({ claim }: { claim: ReturnType<typeof useTrenchesClaim> }) 
   );
 }
 
-/** A depth, as the token card draws a piece everywhere else on the site. */
+/**
+ * A depth, as the Trenches card (components/TrenchesFrame): the frame is the
+ * whole card (owner, 2026-10-24), with the wallet's status on the art and the
+ * volume mark and claimed count in its foot.
+ */
 function DepthCard({ tier, minted, status }: { tier: Tier; minted: number | undefined; status: Status | undefined }) {
   /** The first of this depth ever claimed, to show the piece as it trades. */
   const href =
@@ -500,33 +506,22 @@ function DepthCard({ tier, minted, status }: { tier: Tier; minted: number | unde
       ? `/token/${TRENCHES_ADDRESS}/${tier.n * TIER_STRIDE + 1}`
       : undefined;
 
+  const locked = status === "locked";
   return (
-    <article className={`tcard trx-card${status === "locked" ? " is-locked" : ""}`}>
-      {href !== undefined ? <Link href={href} className="tcard-hit" aria-label={`${tier.name}, depth ${tier.n}`} /> : null}
-      <div className="tcard-media">
-        <Art src={tierImage(tier)} alt={tier.name} sizes="(max-width: 999px) 50vw, 240px" />
-        {status !== undefined ? (
-          <div className="tcard-badges">
-            <Chip status={status} />
-          </div>
-        ) : null}
-      </div>
-      <div className="tcard-body">
-        <div className="tcard-head">
-          <span className="tcard-title">{tier.name}</span>
-          <span className="tcard-num">Depth {two(tier.n)}</span>
-        </div>
-        <div className="tcard-money">
-          <span className="tcard-amount">
-            {tier.min === 0 ? "Any trade" : formatVolume(tier.min)}
-            {tier.min === 0 ? null : <span className="soso-unit">&nbsp;volume</span>}
-          </span>
-        </div>
-        <div className="tcard-meta">
-          <span>{minted === undefined ? "—" : minted === 0 ? "None claimed yet" : `${minted.toLocaleString()} claimed`}</span>
-        </div>
-      </div>
-    </article>
+    <TiltCard className="trx-card">
+      {href !== undefined ? <Link href={href} className="trx-card-hit" aria-label={`${tier.name}, depth ${tier.n}`} /> : null}
+      <TrenchesFrame
+        tier={tier}
+        status={status !== undefined && !locked ? <Chip status={status} /> : undefined}
+        lock={locked ? (tier.min === 0 ? "Make a trade" : `Reach ${formatVolume(tier.min)}`) : undefined}
+        meta={
+          <>
+            <b>{tier.min === 0 ? "Any trade" : formatVolume(tier.min)}</b>
+            {minted === undefined ? null : minted === 0 ? " · none yet" : ` · ${minted.toLocaleString()} claimed`}
+          </>
+        }
+      />
+    </TiltCard>
   );
 }
 

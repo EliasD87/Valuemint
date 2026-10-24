@@ -1371,12 +1371,6 @@
   object-fit: cover;
 }
 
-/* Trenches: the ten spirits are a wide strip; zoom to Halo in the middle. */
-.nav-thumb:not(.nav-thumb-stack) img {
-  transform: scale(1.7);
-  transform-origin: 50% 38%;
-}
-
 /* KOLs: three portraits fanned in the same square. */
 .nav-thumb-stack {
   background: none;

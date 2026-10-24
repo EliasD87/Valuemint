@@ -1,0 +1,184 @@
+/**
+ * The Trenches card (components/TrenchesFrame.tsx): the proportions of
+ * metadata/trenches-cards/card.html (a 660 x 900 card there, 660 x 850 here:
+ * its foot has no second line), with every size in
+ * container units of the card's own width. It follows the theme (owner,
+ * 2026-10-24: white where the site is white): surface tokens for the card,
+ * the depth's colour (--c, from config/tiers.ts) only on its accents, mixed
+ * with the ink where it is text so pale depths still read on white.
+ */
+
+.tframe {
+  position: relative;
+  container-type: inline-size;
+  aspect-ratio: 660 / 850;
+  /* Not in cqw: an element's own container units measure its ancestor's
+     container (here none, so the viewport), which rounded the card into a pill. */
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  box-shadow:
+    inset 0 0 0 1px var(--line),
+    var(--shadow-lg);
+  --c-ink: color-mix(in srgb, var(--c) 78%, var(--ink));
+}
+
+/* The window, lit from inside in the depth's colour. */
+.tframe-window {
+  position: absolute;
+  left: 5.15cqw;
+  right: 5.15cqw;
+  top: 5.15cqw;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: 2.7cqw;
+  /* The backdrop the character stands on: the depth's colour rising from the
+     card's own ground, with fine diagonal rules like the ones in the artwork. */
+  background:
+    repeating-linear-gradient(-55deg, transparent 0 2.2cqw, color-mix(in srgb, var(--c) 10%, transparent) 2.2cqw 2.6cqw),
+    radial-gradient(90% 75% at 50% 30%, color-mix(in srgb, var(--c) 34%, var(--surface-2)) 0%, var(--surface-2) 80%);
+  box-shadow:
+    0 0 0 0.45cqw var(--c),
+    0 0 2.5cqw 0.2cqw color-mix(in srgb, var(--c) 45%, transparent);
+}
+
+.tframe-art {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: 50% 100%;
+}
+
+/* Not reached yet: the art dimmed, and the goal over it. */
+.tframe.is-locked .tframe-art {
+  filter: saturate(0.25);
+  opacity: 0.4;
+}
+
+.tframe-lock {
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.6cqw;
+  padding: 3cqw 4.5cqw;
+  border-radius: 3cqw;
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  box-shadow: inset 0 0 0 0.3cqw color-mix(in srgb, var(--c) 55%, transparent);
+  color: var(--ink);
+  font-size: 4.6cqw;
+  font-weight: 700;
+  white-space: nowrap;
+  transform: translate(-50%, -50%);
+}
+
+.tframe-lock svg {
+  width: 8cqw;
+  height: 8cqw;
+  fill: none;
+  stroke: var(--c-ink);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.tframe-name {
+  position: absolute;
+  right: 3.4cqw;
+  bottom: 2.6cqw;
+  z-index: 1;
+  font-size: 7cqw;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  line-height: 1;
+  text-transform: uppercase;
+  color: var(--ink);
+  text-shadow:
+    0 0 1.2cqw var(--surface),
+    0 0 2.4cqw var(--surface);
+}
+
+.tframe-foot {
+  position: absolute;
+  left: 6.5cqw;
+  right: 6.5cqw;
+  top: 99cqw;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 3cqw;
+}
+
+.tframe-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1.6cqw;
+  min-width: 0;
+}
+
+.tframe-word {
+  font-size: 6.2cqw;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+
+.tframe-word span {
+  color: var(--c-ink);
+}
+
+.tframe-meta {
+  overflow: hidden;
+  font-size: 4.4cqw;
+  font-weight: 600;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.tframe-meta b {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+/* "Claimed", "You're here": small, bottom left, off the art. Black and white
+   (owner, 2026-10-24), not the site's coloured chips. */
+.tframe-status {
+  position: absolute;
+  left: 6.5cqw;
+  bottom: 3.4cqw;
+  display: inline-flex;
+}
+
+.tframe-status .chip {
+  padding: 0.7cqw 2.4cqw;
+  border: 0;
+  background: var(--surface-2);
+  box-shadow: inset 0 0 0 1px var(--line);
+  color: var(--ink);
+  font-size: 3.6cqw;
+  font-weight: 600;
+}
+
+.tframe-mono {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 15cqw;
+  height: 15cqw;
+  border-radius: 3.6cqw;
+  box-shadow: inset 0 0 0 0.35cqw color-mix(in srgb, var(--c) 70%, transparent);
+  color: var(--c-ink);
+  font-size: 6.2cqw;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+

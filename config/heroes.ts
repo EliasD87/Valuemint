@@ -219,9 +219,13 @@ export const COLLECTION_HEROES: Record<string, HeroArt> = {
     below Halo's crown and cuts it off; at 8% the crown sits whole with a
     little room above, every face is in, and only the robes' hems go.
   */
+  /* Re-cut 2026-10-24: the ten characters in a row, depth 1 to 10, each on a
+     pale band of its colour (metadata/trenches-cards/cover.html). 2400x800.
+     At 30% the band shows every face and the chests; the names at the foot
+     are below it on purpose. */
   "0xaab0dc8f2835ed903b35d2f52ff17c4bc92bec19": {
-    background: "/heroes/trenches-cover.webp",
-    position: "center 8%",
+    background: "/heroes/trenches-cover-v3.webp",
+    position: "center 30%",
   },
 
   /*

@@ -39,22 +39,24 @@ export interface Tier {
 }
 
 /**
- * Re-cut 2026-09-25: ten hooded spirits, one per element, supplied as
- * 1.png..10.png with the file number as the tier - the owner's call, and #10
- * (the stone and crystal piece) is the best of them. Names follow the art.
- * CIDs from `metadata/scripts/pin-trenches-tiers.mjs`.
+ * Re-cut 2026-10-24: ten characters, one per depth, each already on its own
+ * card in its depth's colour (the owner's artwork, pinned as it is under
+ * `trenches-art-v2/`). The website shows them inside a dark metal frame
+ * (components/TrenchesFrame), which is presentation only, not part of the NFT.
+ * The hooded spirits before them (2026-09-25) are still pinned under `trenches/`.
+ * CIDs from `KEY_PREFIX=trenches-art-v2 node metadata/scripts/pin-trenches-tiers.mjs`.
  */
 export const TIERS: Tier[] = [
-  { n: 1,  name: "Halo",     min: 0,           colour: "#e3bd6d", image: "Qmbig99tsfT5WMHzuxDBQFyNtWAJLxHRNmTLQdwAiKiC5B", blurb: "Your first trade. Everyone starts in the light." },
-  { n: 2,  name: "Hellion",  min: 1_000,       colour: "#e5484d", image: "QmSBBnkA8BevukNwsMgZDUutm2veo2SpWz2QUZbbXrrfRN", blurb: "A thousand through the book, and a taste for it." },
-  { n: 3,  name: "Lunaris",  min: 10_000,      colour: "#6f9cf0", image: "QmbEttxMchgavsjEg8HEtBgRyifrtCQseVkMcbkEHyKQh2", blurb: "Five figures, most of them after dark." },
-  { n: 4,  name: "Verdant",  min: 50_000,      colour: "#9fc24c", image: "QmQ56C28wBWRiZvUeN3MJPn8bFZXSHNWvnex3pkWiGGWCa", blurb: "Positions that put down roots." },
-  { n: 5,  name: "Inferno",  min: 250_000,     colour: "#f0823a", image: "QmecFkpcLVtEVTSAJjjG5GD9Bc5Xch3RvCMmnzBQsQ7kCt", blurb: "A quarter of a million, through the fire." },
-  { n: 6,  name: "Eclipse",  min: 1_000_000,   colour: "#ad7cf0", image: "QmdCnduEn74Cnwog6rL4g4xqJmLha4cQxaieacRc2JaqhJ", blurb: "Seven figures through your hands." },
-  { n: 7,  name: "Warlord",  min: 5_000_000,   colour: "#dca13c", image: "QmSvdrqnyTYyjcLwrYBFoWGinVdRZKYqkUUWpeCRwDkeV8", blurb: "Size that moves other people's prices." },
-  { n: 8,  name: "Sakura",   min: 15_000_000,  colour: "#ef8aa6", image: "QmdeN1L4RZsK2jHrtDwe8Yhd9HPSoU39GQAiGkRhaeXAMs", blurb: "It blooms for very few wallets." },
-  { n: 9,  name: "Riptide",  min: 50_000_000,  colour: "#3fc6bd", image: "QmNgfzXc3aovhsqfALmYFh4r7xLT6aGUWDLwnnQDBQSquY", blurb: "You do not follow the flow. It follows you." },
-  { n: 10, name: "Monolith", min: 150_000_000, colour: "#c89b63", image: "QmfLpznH4q97fq2KQifVQhTTAV4AZ1mCJifG1Booj7yoaW", blurb: "The rock the trenches are cut from." },
+  { n: 1,  name: "Halo",     min: 0,           colour: "#e3bd6d", image: "QmfJ8k9Bp17MDDYQLxhhKsipmX2jkSwvBV2oqJm9qdY5fv", blurb: "Your first trade. Everyone starts in the light." },
+  { n: 2,  name: "Hellion",  min: 1_000,       colour: "#e5484d", image: "QmTiQUd78YS5zRN2yKhSwKtsteAFu5mG4Ui5N4wxeQA6YM", blurb: "A thousand through the book, and a taste for it." },
+  { n: 3,  name: "Lunaris",  min: 10_000,      colour: "#6f9cf0", image: "QmYnfC5ndL9BVRMTSqLMoKojKFZCqnECgrMgiba8k2AraD", blurb: "Five figures, most of them after dark." },
+  { n: 4,  name: "Verdant",  min: 50_000,      colour: "#9fc24c", image: "QmaVUa4DMGdoTxiysBKkVgSHvMXqRouCU3DV2x5MEqr8x6", blurb: "Positions that put down roots." },
+  { n: 5,  name: "Inferno",  min: 250_000,     colour: "#f0823a", image: "QmQRgoDBvM769BG3U9qe6PPz5w8Tw9H3bn42rUghF4U9Uv", blurb: "A quarter of a million, through the fire." },
+  { n: 6,  name: "Eclipse",  min: 1_000_000,   colour: "#ad7cf0", image: "QmNfQmgfiurP41NXXpPvBtjMrEeog12F8TKpcUzHZn3uXM", blurb: "Seven figures through your hands." },
+  { n: 7,  name: "Warlord",  min: 5_000_000,   colour: "#dca13c", image: "Qmdz2gfGy8eS2MkXMHigEoK8mgTXB6E7g76nsi3Xp533Ls", blurb: "Size that moves other people's prices." },
+  { n: 8,  name: "Sakura",   min: 15_000_000,  colour: "#ef8aa6", image: "QmZhtQukhPBpLm4zqXFBLGRadXxpZLa6fJFHWez43hT8DQ", blurb: "It blooms for very few wallets." },
+  { n: 9,  name: "Riptide",  min: 50_000_000,  colour: "#3fc6bd", image: "QmbbLEu2oYFesVixrToo8MbwQ7uTq9bwNBxfJRufQdo3ee", blurb: "You do not follow the flow. It follows you." },
+  { n: 10, name: "Monolith", min: 150_000_000, colour: "#c89b63", image: "QmXSgow9eC9YnZc8KvEoghjvEQQux1VoCCYrtKvEuF7N4S", blurb: "The rock the trenches are cut from." },
 ];
 
 /** Where this tier's artwork lives. */

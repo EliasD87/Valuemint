@@ -90,11 +90,17 @@
   min-width: 0;
 }
 
-/* Under the words and the picture, half and half: the wallet's depth, and the
-   giveaways card. The depth card's ladder and goal stack inside its half. */
-.trx-hero .trx-you,
-.trx-hero .hg-panel {
-  align-self: stretch;
+/* The left column: the words, then the wallet's depth, then giveaways, each
+   only as tall as its content. The depth card's ladder and goal stack. */
+.trx-hero-left {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.trx-hero-left .trx-hero-copy {
+  margin-bottom: 0.4rem;
 }
 
 .trx-hero .trx-you {
@@ -211,16 +217,6 @@
  * is a token like every other colour here. The resting picture (no WebGL,
  * reduced motion) gets the same shadow from a filter.
  */
-.trx-scene {
-  width: 100%;
-  aspect-ratio: 1600 / 663;
-  max-width: 100%;
-  color: var(--scrim);
-}
-.trx-scene img {
-  filter: drop-shadow(0 10px 14px var(--scrim));
-}
-
 /* ---------------------------------------------------------------- depths */
 
 /* Its own chapter after the giveaways: air above it. */
@@ -256,17 +252,21 @@
   grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 
-.trx-card.is-locked .tcard-media img {
-  filter: grayscale(0.8);
-  opacity: 0.6;
+/* Each depth is a Trenches card (components/TrenchesFrame) in a TiltCard; the whole card is the link. */
+.trx-card {
+  position: relative;
 }
 
-/* Claimed / Locked sits bottom-left on a depth, not the token card's top-right:
-   the top of each piece is where its halo, horns and crest are (owner's call,
-   2026-09-26). Only here — every other card keeps the shared position. */
-.trx-card .tcard-badges {
-  inset: auto auto 0.55rem 0.55rem;
-  justify-content: flex-start;
+.trx-card-hit {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border-radius: var(--r-lg);
+}
+
+.trx-card-hit:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--ring);
 }
 
 /* ---------------------------------------------------------------- narrow */
@@ -306,15 +306,10 @@
     font-size: 0.875rem;
   }
 
-
   .trx-depths-head {
     flex-direction: column;
     align-items: center;
     text-align: center;
-  }
-
-  .trx-card .tcard-meta {
-    font-size: 0.6875rem;
   }
 
   .trx-grid {
@@ -521,12 +516,6 @@
   background-repeat: no-repeat;
   animation: trx-sheen 2.4s ease-in-out infinite;
 }
-.trx-goal-note {
-  margin: 0;
-  font-size: var(--step--2);
-  color: var(--ink-3);
-}
-
 @media (prefers-reduced-motion: reduce) {
   .trx-ladder.is-loading,
   .trx-goal-track.is-loading,

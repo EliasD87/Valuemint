@@ -117,10 +117,11 @@ export const COLLECTION_COVERS: Record<string, string[]> = {
     (2026-09-25).
   */
   "0xaab0dc8f2835ed903b35d2f52ff17c4bc92bec19": [
-    "/covers/aab0dc8f-halo.webp",
-    "/covers/aab0dc8f-hellion.webp",
-    "/covers/aab0dc8f-lunaris.webp",
-    "/covers/aab0dc8f-verdant.webp",
+    // Re-cut 2026-10-24: the cards, under new names (see above).
+    "/covers/aab0dc8f-v2-halo.webp",
+    "/covers/aab0dc8f-v2-hellion.webp",
+    "/covers/aab0dc8f-v2-lunaris.webp",
+    "/covers/aab0dc8f-v2-verdant.webp",
   ],
 
   // Hypno Plush

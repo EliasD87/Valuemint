@@ -1,0 +1,40 @@
+/* components/TiltCard.tsx: a card that leans toward the pointer. */
+
+.tilt {
+  perspective: 900px;
+}
+
+.tilt-inner {
+  position: relative;
+  transform: rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+  transition: transform 380ms var(--ease);
+  will-change: transform;
+}
+
+/* Following the pointer closely while it moves; easing back when it leaves. */
+.tilt-inner.is-tilting {
+  transition: transform 120ms ease-out;
+}
+
+.tilt-sheen {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  border-radius: var(--r-lg);
+  background: radial-gradient(60% 45% at var(--gx, 50%) var(--gy, 0%), rgb(255 255 255 / 0.16), transparent 70%);
+  mix-blend-mode: screen;
+  opacity: 0;
+  transition: opacity 240ms var(--ease);
+  pointer-events: none;
+}
+
+.tilt-inner.is-tilting .tilt-sheen {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tilt-inner,
+  .tilt-sheen {
+    transition: none;
+  }
+}

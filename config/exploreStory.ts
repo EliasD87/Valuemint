@@ -44,7 +44,7 @@ export const SPOTLIGHT: SpotlightSlide[] = [
   {
     address: "0xaab0dc8f2835ed903b35d2f52ff17c4bc92bec19",
     name: "The Trenches",
-    image: "/heroes/trenches-cover.webp",
+    image: "/heroes/trenches-cover-v3.webp",
     focus: "50% 30%",
   },
 ];

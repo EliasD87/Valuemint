@@ -37,7 +37,6 @@ export function GiveawaysPanel() {
       {past.map((d) => (
         <GiveawayRow key={d.id} draw={d} />
       ))}
-      <p className="hg-panel-note">More giveaways for Trenches holders are on the way.</p>
     </div>
   );
 }
