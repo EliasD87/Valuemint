@@ -42,7 +42,7 @@ export function heroCopy(createEnabled: boolean): HeroCopy {
       lead: "Create, collect and trade",
       em,
       lede:
-        "Deploy your own collection, mint it, and trade it — with no custodian holding " +
+        "Deploy your own collection, mint it, and trade it, with no custodian holding " +
         "anything. You own the contract outright, and every trade settles in seconds for a " +
         "fraction of a cent.",
     };
@@ -52,7 +52,7 @@ export function heroCopy(createEnabled: boolean): HeroCopy {
     lead: "Collect and trade",
     em,
     lede:
-      "Every collection in one place — yours to browse, bid on and trade, with no " +
+      "Every collection in one place to browse, bid on and trade, with no " +
       "custodian holding anything. Trades settle in seconds for a fraction of a cent.",
   };
 }

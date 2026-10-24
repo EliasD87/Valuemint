@@ -1,0 +1,184 @@
+/* Top collections on Explore. One card, a row per collection, figures in
+   tabular columns. Colour only on the floor's move, in the up/down tokens. */
+.tc {
+  padding: 0.5rem 0.25rem 0.35rem;
+}
+
+.tc-link:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.tc-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* One grid for the header and every row, so the columns line up. */
+.tc-row {
+  display: grid;
+  grid-template-columns: 2rem minmax(0, 2.2fr) repeat(3, minmax(0, 1fr));
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.tc-headrow {
+  padding-block: 0.35rem;
+  border-bottom: 1px solid var(--line);
+  font-size: var(--step--3);
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.tc-list li + li .tc-link {
+  border-top: 1px solid var(--line);
+}
+
+.tc-link {
+  border-radius: var(--r-md);
+  color: inherit;
+  text-decoration: none;
+  transition: background var(--fast);
+}
+
+.tc-link:hover {
+  background: var(--surface-2);
+}
+
+.tc-rank {
+  font-size: var(--step--1);
+  font-weight: 650;
+  color: var(--ink-3);
+  text-align: center;
+}
+
+.tc-who {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-width: 0;
+}
+
+.tc-art {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--r-md);
+  object-fit: cover;
+  background: var(--surface-2);
+}
+
+.tc-art-empty {
+  display: grid;
+  place-items: center;
+  font-size: var(--step--2);
+  font-weight: 700;
+  color: var(--ink-3);
+  text-transform: uppercase;
+}
+
+.tc-names {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.tc-names b {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 650;
+  color: var(--ink);
+}
+
+.tc-names small {
+  font-size: var(--step--3);
+  color: var(--ink-3);
+}
+
+.tc-num {
+  justify-self: end;
+  text-align: right;
+  font-size: var(--step--1);
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.tc-num .soso-amount {
+  font-weight: 650;
+}
+
+.tc-dim {
+  color: var(--ink-4);
+}
+
+.tc-floor {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.tc-change-inline {
+  display: none;
+  font-size: var(--step--3);
+}
+
+.tc-up {
+  color: var(--up);
+  font-weight: 650;
+}
+
+.tc-down {
+  color: var(--down);
+  font-weight: 650;
+}
+
+.tc-wait {
+  height: 61px;
+  grid-template-columns: 1fr;
+}
+
+.tc-wait .skeleton {
+  display: block;
+  height: 40px;
+  border-radius: var(--r-md);
+}
+
+.tc-empty {
+  margin: 0;
+  padding: 1.25rem 0.75rem;
+  color: var(--ink-3);
+}
+
+/* A phone keeps the collection, its floor and move, and how many are listed. */
+@media (max-width: 640px) {
+  .tc-row {
+    grid-template-columns: 1.25rem minmax(0, 1fr) 4.75rem 3rem;
+    gap: 0.75rem;
+    padding-inline: 0.5rem;
+  }
+
+  .tc-change {
+    display: none;
+  }
+
+  .tc-change-inline {
+    display: block;
+  }
+
+  /* The mark says SOSO; the word would cost the name its room. */
+  .tc .soso-unit {
+    display: none;
+  }
+
+  .tc-art {
+    width: 34px;
+    height: 34px;
+  }
+
+}

@@ -1,15 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { Art } from "@/components/Art";
 import { Soso } from "@/components/Soso";
 import { Wordmark } from "@/components/Wordmark";
+import { TopCollections } from "@/components/TopCollections";
 import { wordmarkFor } from "@/config/wordmarks";
 import { FEATURED } from "@/config/featured";
 import { BAND_ART, CASCADE, SPOTLIGHT, WALLET_ART } from "@/config/exploreStory";
 import { coverFor } from "@/config/covers";
-import { CREATE_ENABLED } from "@/config/features";
 import { formatCount, formatSoso } from "@/lib/format";
 import { stillUrl } from "@/lib/media";
 import type { ExploreSummary } from "@/lib/exploreTypes";
@@ -17,21 +17,19 @@ import type { CollectionSummary } from "@/hooks/useAllCollections";
 import "@/styles/explore.css";
 
 /**
- * Everything on Explore below the hero, told as one scroll (2026-10-09).
+ * Everything on Explore below the hero (2026-10-24 redesign).
  *
- * Laid out after a gallery-marketplace reference the owner chose: a split
- * opener, a wide spotlight, a run of collection names, a statement that inks
- * in as it is read, a featured panel, a crowd of pieces, a bento of what the
- * site does, the mints, a moving band and two closing cards.
+ * The 10-09 version told the site as a long gallery scroll: a second opener
+ * that repeated the hero, a run of name chips, a statement set in display
+ * type, a bento. It read well and said little, and it was most of the page.
+ * This one is shorter and plainer: the top four collections, a collection
+ * banner, what is minting, a run of pieces, and what the site can do.
+ * Compact, like the token page.
  *
  * The page's rule still holds: nothing here reads the chain. Pictures are our
  * own files (config/exploreStory.ts, config/featured.ts) and figures come from
  * the index summary baked into the page. The one exception is the mint rail,
  * which shows the same collection registry the page already loaded before.
- *
- * Motion is decoration only. Every word and picture is visible at rest, the
- * scroll-linked inking is a progressive enhancement, and all of it stops for
- * anyone who asks for reduced motion.
  */
 
 type Market = ReadonlyMap<string, { floorWei?: string; listed: number }>;
@@ -45,6 +43,26 @@ export function ExploreStory({
   summary: ExploreSummary | undefined;
   collections: readonly CollectionSummary[];
 }) {
+  /**
+   * Only collections the registry vouches for, once it has loaded.
+   *
+   * The index records every contract that ever traded through Seaport, and
+   * the order book is permissionless: anyone can deploy a contract, name it
+   * after a real one and wash-trade it up a ranking. The registry is what the
+   * market and the collections page already trust, so the ranking does too.
+   * Before it loads, the summary stands alone rather than the table waiting.
+   */
+  const trusted = useMemo((): ExploreSummary | undefined => {
+    if (summary === undefined || collections.length === 0) return summary;
+    const known = new Set(collections.map((c) => c.address.toLowerCase()));
+    return { ...summary, collections: summary.collections.filter((c) => known.has(c.address.toLowerCase())) };
+  }, [summary, collections]);
+
+  const names = useMemo(
+    () => new Map(collections.map((c) => [c.address.toLowerCase(), { name: c.name, symbol: c.symbol }])),
+    [collections],
+  );
+
   const market: Market = useMemo(
     () => new Map((summary?.collections ?? []).map((c) => [c.address, { floorWei: c.floorWei, listed: c.listed }])),
     [summary],
@@ -52,70 +70,47 @@ export function ExploreStory({
 
   return (
     <>
-      <Intro forSale={summary?.totals.forSale} />
+      <section className="ex page">
+        <SectionHead title="Top collections" href="/collections" link="All collections" />
+        <TopCollections summary={trusted} names={names} />
+      </section>
+
       <Spotlight market={market} />
-      <Chips summary={summary} collections={collections} />
-      <Statement />
-      <Featured market={market} />
-      <Bento />
       <Mints collections={collections} />
-      <Closing />
+      <Featured market={market} />
+      <Features />
     </>
   );
 }
 
-/* ---------------------------------------------------------------- opener */
+/* ----------------------------------------------------------- section head */
 
-function Intro({ forSale }: { forSale: number | undefined }) {
+function SectionHead({
+  title,
+  href,
+  link,
+  children,
+}: {
+  title: ReactNode;
+  href?: string;
+  link?: string;
+  /** Extra controls on the right, before the link. */
+  children?: ReactNode;
+}) {
   return (
-    <section className="ex page ex-intro">
-      <div className="ex-intro-copy">
-        <h2 className="ex-h">
-          Buy, sell and bid on <span className="ex-mute">everything minted on</span> ValueChain.
-        </h2>
-        <p className="ex-lede">
-          No custodian and no waiting. Your pieces and your SOSO stay in your wallet until the moment a trade settles.
-        </p>
-        <div className="ex-actions">
-          <Link className="btn btn-primary" href="/market">
-            Trade NFTs
-          </Link>
-          <Link className="btn" href="/collections">
-            Browse collections
-          </Link>
+    <div className="ex-head">
+      <h2 className="ex-h">{title}</h2>
+      {href === undefined && children === undefined ? null : (
+        <div className="ex-head-tools">
+          {children}
+          {href === undefined ? null : (
+            <Link className="ex-more" href={href}>
+              {link}
+            </Link>
+          )}
         </div>
-      </div>
-
-      {/*
-        Each card is its collection's door. Hovered or focused, it lifts,
-        straightens and comes to the front while the cards either side step
-        aside (explore.css); on a touch screen a tap simply opens it.
-      */}
-      <div className="ex-cascade">
-        {CASCADE.map((card, i) => (
-          <Link
-            key={card.image}
-            className="ex-cascade-card"
-            style={vars({ "--i": i })}
-            href={`/collection/${card.collection}`}
-            aria-label={card.name}
-            prefetch={false}
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={card.image} alt="" width={320} height={320} loading="lazy" decoding="async" />
-            <span className="ex-cascade-name" aria-hidden="true">
-              {card.name}
-            </span>
-          </Link>
-        ))}
-        <span className="ex-tag ex-tag-blue ex-cascade-tag-a" aria-hidden="true">
-          @treasurebox
-        </span>
-        <span className="ex-tag ex-tag-dark ex-cascade-tag-b" aria-hidden="true">
-          {forSale === undefined ? "@cybereator" : `${formatCount(BigInt(forSale))} for sale now`}
-        </span>
-      </div>
-    </section>
+      )}
+    </div>
   );
 }
 
@@ -223,14 +218,6 @@ function Spotlight({ market }: { market: Market }) {
 
   return (
     <section className="ex page">
-      <div className="ex-head">
-        <div>
-          <h2 className="ex-h">
-            Gateway to <span className="ex-mute">the collections</span> people are trading.
-          </h2>
-        </div>
-      </div>
-
       <div
         className="ex-banner"
         role="region"
@@ -357,217 +344,6 @@ function Chevron({ left = false }: { left?: boolean }) {
   );
 }
 
-/* ----------------------------------------------------------------- chips */
-
-/*
- * One row of chips, drawn once. It was a marquee, which has to draw every chip
- * twice to loop without a seam: ten extra images for a strip nobody reads in
- * motion anyway.
- */
-function Chips({
-  summary,
-  collections,
-}: {
-  summary: ExploreSummary | undefined;
-  collections: readonly CollectionSummary[];
-}) {
-  /* Names from the summary first, which is there on first paint; the registry fills in. */
-  const items = useMemo(() => {
-    const out = new Map<string, { address: string; name: string; art: string }>();
-    const add = (address: string, name: string | undefined) => {
-      const key = address.toLowerCase();
-      const art = coverFor(key)?.[0];
-      if (name === undefined || art === undefined || out.has(key)) return;
-      out.set(key, { address: key, name, art: stillUrl(art, 96) });
-    };
-    for (const c of summary?.collections ?? []) add(c.address, c.name);
-    for (const c of collections) add(c.address, c.name);
-    return [...out.values()];
-  }, [summary, collections]);
-
-  if (items.length < 3) return null;
-
-  return (
-    <section className="ex page ex-trust">
-      <p className="ex-trust-title">
-        Home to <span className="ex-mute">every collection on ValueChain.</span>
-      </p>
-      <div className="ex-chips">
-        {items.map((c) => (
-          <Link key={c.address} className="ex-chip" href={`/collection/${c.address}`} prefetch={false}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={c.art} alt="" width={28} height={28} loading="lazy" decoding="async" />
-            {c.name}
-          </Link>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-/* ------------------------------------------------------------- statement */
-
-type Part = string | { img: string };
-
-const STATEMENT: Part[] = [
-  ..."Whether you're a collector chasing a floor".split(" "),
-  { img: "/boxes/sobox/rare.webp" },
-  ..."or a holder ready to sell,".split(" "),
-  { img: "/boxes/cybereator.webp" },
-  ..."every trade settles on ValueChain in seconds".split(" "),
-  { img: "/featured/valuechain-genesis-obsidian.webp" },
-  ..."for a fraction of a cent.".split(" "),
-];
-
-function Statement() {
-  return (
-    <section className="ex page ex-statement">
-      <span className="ex-tag ex-tag-blue ex-statement-tag-a" aria-hidden="true">
-        @collector
-      </span>
-      <span className="ex-tag ex-tag-accent ex-statement-tag-b" aria-hidden="true">
-        @holder
-      </span>
-      <p className="ex-statement-text">
-        {STATEMENT.map((part, i) =>
-          typeof part === "string" ? (
-            <span key={i} className="ex-w">
-              {part}{" "}
-            </span>
-          ) : (
-            <span key={i}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img className="ex-inline" src={part.img} alt="" loading="lazy" decoding="async" />{" "}
-            </span>
-          ),
-        )}
-      </p>
-    </section>
-  );
-}
-
-/* -------------------------------------------------------------- featured */
-
-function Featured({ market }: { market: Market }) {
-  return (
-    <section className="ex page ex-feature">
-      <div className="ex-feature-copy">
-        <h2 className="ex-h">
-          Fresh from <span className="ex-mute">every collection.</span>
-        </h2>
-        <p className="ex-lede">
-          Twelve pieces we keep coming back to, from the boxes to the plushies. Each one opens its collection, floor and
-          all.
-        </p>
-        <Link className="btn ex-link" href="/market">
-          Browse the market
-        </Link>
-      </div>
-
-      <div className="ex-panel">
-        <div className="ex-panel-bar">
-          <b>Featured</b>
-          <span>{FEATURED.length} picks</span>
-        </div>
-        <div className="ex-tiles">
-          {FEATURED.map((piece, i) => {
-            const m = market.get(piece.collection.toLowerCase());
-            return (
-              <Link
-                key={`${piece.collection}-${piece.name}-${i}`}
-                className="ex-tile"
-                href={`/collection/${piece.collection}`}
-                prefetch={false}
-              >
-                <span className="ex-tile-media">
-                  <Art src={piece.image} alt={piece.name} sizes="(max-width: 520px) 30vw, 140px" />
-                </span>
-                <span className="ex-tile-name">{piece.name}</span>
-                <span className="ex-tile-sub">
-                  {m?.floorWei === undefined ? (
-                    piece.collectionName
-                  ) : (
-                    <>
-                      Floor <Soso size={10}>{formatSoso(BigInt(m.floorWei), 2)}</Soso>
-                    </>
-                  )}
-                </span>
-              </Link>
-            );
-          })}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* ---------------------------------------------------------------- bento */
-
-function Bento() {
-  return (
-    <section className="ex page">
-      <div className="ex-head ex-head-center">
-        <div>
-          <h2 className="ex-h">
-            Every trade <span className="ex-mute">tells a story.</span>
-          </h2>
-        </div>
-      </div>
-
-      <div className="ex-bento">
-        <Link className="ex-cell ex-cell-a" href="/market">
-          <span className="ex-stack" aria-hidden="true">
-            {BAND_ART.slice(0, 3).map((src, i) => (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img key={src} src={src} alt="" style={vars({ "--i": i })} loading="lazy" decoding="async" />
-            ))}
-          </span>
-          <h3>Bulk buy</h3>
-          <p>Pick up to ten pieces on the market and buy them all with one signature.</p>
-          <span className="ex-cell-link">Go to the market</span>
-        </Link>
-
-        <Link className="ex-cell ex-cell-b" href="/collections">
-          <div className="ex-cell-copy">
-            <h3>Offers that wait for you</h3>
-            <p>
-              Bid on one piece, a trait, or a whole collection. Your WSOSO stays in your wallet until somebody
-              accepts.
-            </p>
-            <span className="ex-cell-link">Find something to bid on</span>
-          </div>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/featured/valuechain-genesis-luminate.webp" alt="" loading="lazy" decoding="async" />
-        </Link>
-
-        <Link className="ex-cell ex-cell-c" href="/portfolio">
-          <span className="ex-strip" aria-hidden="true">
-            {BAND_ART.map((src) => (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img key={src} src={src} alt="" loading="lazy" decoding="async" />
-            ))}
-          </span>
-          <h3>List a whole level at once</h3>
-          <p>Price every Common together in one go, or choose exactly which pieces go up.</p>
-          <span className="ex-cell-link">Open your portfolio</span>
-        </Link>
-
-        <Link className="ex-cell ex-cell-dark" href="/portfolio">
-          <span className="ex-wallet" aria-hidden="true">
-            {WALLET_ART.map((src) => (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img key={src} src={src} alt="" loading="lazy" decoding="async" />
-            ))}
-          </span>
-          <h3>Your portfolio</h3>
-          <p>Every piece you hold, what it fetches at the floor, and the offers already waiting on it.</p>
-          <span className="ex-cell-link">See what you hold</span>
-        </Link>
-      </div>
-    </section>
-  );
-}
-
 /* ---------------------------------------------------------------- mints */
 
 /** Minted as a share of the cap, 0 to 1; 0 when the cap is unknown. */
@@ -599,24 +375,14 @@ function Mints({ collections }: { collections: readonly CollectionSummary[] }) {
 
   return (
     <section className="ex page">
-      <div className="ex-head">
-        <div>
-          <h2 className="ex-h">
-            Mint <span className="ex-mute">before it&rsquo;s gone.</span>
-          </h2>
-        </div>
-        <div className="ex-head-tools">
-          <Link className="btn btn-sm ex-pill" href="/mint">
-            All mints
-          </Link>
-          <button type="button" className="ex-round ex-round-line" aria-label="Scroll back" onClick={() => scroll(-1)}>
-            <Chevron left />
-          </button>
-          <button type="button" className="ex-round ex-round-line" aria-label="Scroll on" onClick={() => scroll(1)}>
-            <Chevron />
-          </button>
-        </div>
-      </div>
+      <SectionHead title="Minting now" href="/mint" link="All mints">
+        <button type="button" className="ex-round ex-round-line" aria-label="Scroll back" onClick={() => scroll(-1)}>
+          <Chevron left />
+        </button>
+        <button type="button" className="ex-round ex-round-line" aria-label="Scroll on" onClick={() => scroll(1)}>
+          <Chevron />
+        </button>
+      </SectionHead>
 
       {known && mintable.length === 0 ? (
         <p className="ex-empty">
@@ -664,42 +430,97 @@ function Mints({ collections }: { collections: readonly CollectionSummary[] }) {
   );
 }
 
-/* --------------------------------------------------------------- closing */
+/* -------------------------------------------------------------- featured */
 
-function Closing() {
+function Featured({ market }: { market: Market }) {
   return (
-    <section className="ex page ex-closing">
-      <Link className="ex-close" href="/trenches">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/heroes/trenches-cover-v3.webp" alt="" loading="lazy" decoding="async" />
-        <div className="ex-close-body">
-          <h3>The Trenches</h3>
-          <p>A free NFT for SoDEX traders. How much you have traded sets your tier.</p>
-          <span className="btn btn-sm ex-close-btn">Check yours</span>
-        </div>
-      </Link>
+    <section className="ex page">
+      <SectionHead title="Featured pieces" href="/market" link="Browse the market" />
 
-      {CREATE_ENABLED ? (
-        <Link className="ex-close" href="/create">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/heroes/larpers.webp" alt="" loading="lazy" decoding="async" style={{ objectPosition: "100% 50%" }} />
-          <div className="ex-close-body">
-            <h3>Publish your own collection</h3>
-            <p>Deploy a real ERC-721 to ValueChain in one transaction. You set the supply and the price.</p>
-            <span className="btn btn-sm ex-close-btn">Start creating</span>
-          </div>
-        </Link>
-      ) : (
-        <Link className="ex-close" href="/collections">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/heroes/larpers.webp" alt="" loading="lazy" decoding="async" style={{ objectPosition: "100% 50%" }} />
-          <div className="ex-close-body">
-            <h3>Every collection, one place</h3>
-            <p>From SoDEX&rsquo;s boxes to community art, everything minted on ValueChain is here to browse.</p>
-            <span className="btn btn-sm ex-close-btn">Browse collections</span>
-          </div>
-        </Link>
-      )}
+      <div className="ex-tiles">
+        {FEATURED.map((piece, i) => {
+          const m = market.get(piece.collection.toLowerCase());
+          return (
+            <Link
+              key={`${piece.collection}-${piece.name}-${i}`}
+              className="ex-tile"
+              href={`/collection/${piece.collection}`}
+              prefetch={false}
+            >
+              <span className="ex-tile-media">
+                <Art src={piece.image} alt={piece.name} sizes="(max-width: 520px) 30vw, 180px" />
+              </span>
+              <span className="ex-tile-name">{piece.name}</span>
+              <span className="ex-tile-sub">
+                {m?.floorWei === undefined ? (
+                  piece.collectionName
+                ) : (
+                  <>
+                    Floor <Soso size={10}>{formatSoso(BigInt(m.floorWei), 2)}</Soso>
+                  </>
+                )}
+              </span>
+            </Link>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+/* -------------------------------------------------------------- features */
+
+/**
+ * What the site does that a buyer would not guess, in four small cards.
+ *
+ * This was a bento of four very different boxes under a display headline,
+ * the tallest section on the page. The point of it is the four sentences.
+ */
+function Features() {
+  const cards: Array<{ href: string; title: string; text: string; art: string[] }> = [
+    {
+      href: "/market",
+      title: "Bulk buy",
+      text: "Pick up to ten pieces on the market and buy them with one signature.",
+      art: CASCADE.slice(1, 4).map((c) => c.image),
+    },
+    {
+      href: "/collections",
+      title: "Offers that wait",
+      text: "Bid on a piece, a trait or a whole collection. Your WSOSO stays in your wallet until someone accepts.",
+      art: ["/featured/valuechain-genesis-luminate.webp"],
+    },
+    {
+      href: "/portfolio",
+      title: "List a whole level",
+      text: "Price every Common at once, or pick exactly which pieces go up.",
+      art: BAND_ART.slice(0, 3),
+    },
+    {
+      href: "/portfolio",
+      title: "Your portfolio",
+      text: "Everything you hold, what it is worth at the floor, and the offers waiting on it.",
+      art: WALLET_ART.slice(0, 3),
+    },
+  ];
+
+  return (
+    <section className="ex page">
+      <SectionHead title="Built for trading" />
+      <div className="ex-feats">
+        {cards.map((c) => (
+          <Link key={c.title} className="ex-feat" href={c.href}>
+            <span className="ex-feat-art" aria-hidden="true">
+              {c.art.map((src) => (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img key={src} src={src} alt="" loading="lazy" decoding="async" />
+              ))}
+            </span>
+            <b className="ex-feat-title">{c.title}</b>
+            <span className="ex-feat-text">{c.text}</span>
+          </Link>
+        ))}
+      </div>
     </section>
   );
 }

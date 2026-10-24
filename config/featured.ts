@@ -176,7 +176,7 @@ export const FEATURED: FeaturedPiece[] = [
        changed when the collection was re-cut; leaving either behind would have
        put a retired picture on the front page under a name that no longer
        exists. */
-    image: "/featured/the-trenches-halo.webp",
+    image: "/covers/aab0dc8f-v2-halo.webp",
   },
 
   // ── row two ────────────────────────────────────────────────────────────
@@ -237,7 +237,7 @@ export const FEATURED: FeaturedPiece[] = [
     name: "Verdant",
     tokenId: "4000001",
     note: "Depth 4",
-    image: "/featured/the-trenches-verdant.webp",
+    image: "/covers/aab0dc8f-v2-verdant.webp",
   },
 ];
 

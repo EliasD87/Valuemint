@@ -59,7 +59,7 @@ export interface CascadeCard {
 
 /** The fanned stack beside the opening headline, back to front. Each card opens its collection. */
 export const CASCADE: CascadeCard[] = [
-  { image: "/featured/the-trenches-halo.webp", collection: "0xaab0dc8f2835ed903b35d2f52ff17c4bc92bec19", name: "The Trenches" },
+  { image: "/covers/aab0dc8f-v2-halo.webp", collection: "0xaab0dc8f2835ed903b35d2f52ff17c4bc92bec19", name: "The Trenches" },
   { image: "/featured/hypno-plush-violet-pulse.webp", collection: "0x01c28095bfffc9973da4c4e8a34e9d5b6649c988", name: "Hypno Plush" },
   { image: "/boxes/rare.webp", collection: "0x371c4f7f68be3e558b89cc1f0fb113851c76e750", name: "SoDEX Treasure Box" },
   { image: "/featured/valuechain-genesis-obsidian.webp", collection: "0x5fadc59297e86acea20bff519aea0f9651cdc90b", name: "ValueChain Genesis" },
