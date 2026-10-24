@@ -315,8 +315,12 @@
   color: var(--ink-3);
 }
 
-/* Ten cards: five across or two, never a row with a card left over. */
-.trx-grid {
+/* Ten cards: five across or two, never a row with a card left over.
+   Two classes, not one: `.grid-tokens` (styles/home.css) sets auto-fill
+   columns with the same weight, and which stylesheet loads last changes with
+   how the page was reached, so a client-side visit sometimes showed four
+   across until a refresh (2026-10-24). */
+.grid-tokens.trx-grid {
   grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 
@@ -340,7 +344,7 @@
 /* ---------------------------------------------------------------- narrow */
 
 @media (max-width: 999px) {
-  .trx-grid {
+  .grid-tokens.trx-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
