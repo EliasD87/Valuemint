@@ -9,7 +9,7 @@ import { DepthScene } from "@/components/DepthScene";
 import { SodexLogo } from "@/components/SodexLogo";
 import { TxResult } from "@/components/TxResult";
 import { useTrenchesClaim } from "@/hooks/useTrenchesClaim";
-import { TrenchesPerk } from "@/components/TrenchesPerk";
+import { GiveawaysPanel, RunningGiveaway } from "@/components/HolderGiveaways";
 import { TIERS, formatVolume, tierImage, type Tier } from "@/config/tiers";
 import { TIER_STRIDE, TRENCHES_ABI, TRENCHES_ADDRESS } from "@/config/trenches";
 import "@/styles/home.css";
@@ -165,54 +165,64 @@ export default function Trenches() {
 
   return (
     <>
-      <section className="page section trx-intro">
-        {/* One line of words (owner, 2026-10-15): the progress and the picture do the talking. */}
-        <div className="trx-intro-copy">
-          <h1 className="trx-title">How deep have you traded?</h1>
-          <p className="trx-lede">
-            One free NFT for every depth of all-time SoDEX volume you pass. Gas only.
-            {supply === undefined ? null : (
-              <>
-                {" "}
-                <b>{supply.toLocaleString()}</b> claimed so far.
-              </>
-            )}
-          </p>
-        </div>
+      {/* The hero (owner, 2026-10-24): the headline, the ten spirits large, and
+          the wallet's depth and claim right under. */}
+      <section className="trx-hero" aria-labelledby="trx-title">
+        <div className="page trx-hero-inner">
+          <div className="trx-hero-copy">
+            <p className="trx-lockup">
+              <SodexLogo variant="full" className="trx-lockup-logo" title="SoDEX" />
+              <span aria-hidden="true">×</span>
+              <span>ValueMint</span>
+            </p>
+            <h1 className="trx-title" id="trx-title">
+              How deep have you traded?
+            </h1>
+            <p className="trx-lede">One free NFT for every depth of all-time SoDEX volume you pass.</p>
+            {/* Small print, taking almost no room (owner, 2026-10-24). */}
+            <p className="trx-meta">
+              {TIERS.length} depths
+              {supply === undefined ? null : <> · {supply.toLocaleString()} claimed</>} · free, gas only
+            </p>
+          </div>
 
-        {/* The wallet's standing, beside the picture. */}
-        <YourDepth
-          state={state}
-          connected={mounted && address !== undefined}
-          onRetry={() => address && void check(address)}
-          onClaimed={() => void refetchReads()}
-        />
+          <figure className="trx-art">
+            <DepthScene
+              className="trx-scene"
+              src="/heroes/trenches-cutout.webp"
+              srcSet="/heroes/trenches-cutout-900.webp 900w, /heroes/trenches-cutout.webp 1600w"
+              sizes="(max-width: 860px) 100vw, 46rem"
+              small="/heroes/trenches-cutout-900.webp"
+              depth="/heroes/trenches-depth.png"
+              width={1600}
+              height={663}
+              alt="The ten spirits of The Trenches side by side, Halo at the centre"
+            />
+          </figure>
 
-        <figure className="trx-art">
-          <DepthScene
-            className="trx-scene"
-            src="/heroes/trenches-cutout.webp"
-            srcSet="/heroes/trenches-cutout-900.webp 900w, /heroes/trenches-cutout.webp 1600w"
-            sizes="(max-width: 860px) 100vw, 34rem"
-            small="/heroes/trenches-cutout-900.webp"
-            depth="/heroes/trenches-depth.png"
-            width={1600}
-            height={663}
-            alt="The ten spirits of The Trenches side by side, Halo at the centre"
+          {/* The wallet's standing and the claim: what the page is for. */}
+          <YourDepth
+            state={state}
+            connected={mounted && address !== undefined}
+            onRetry={() => address && void check(address)}
+            onClaimed={() => void refetchReads()}
           />
-          <figcaption className="trx-lockup">
-            <SodexLogo variant="full" className="trx-lockup-logo" title="SoDEX" />
-            <span aria-hidden="true">×</span>
-            <span>ValueMint</span>
-          </figcaption>
-        </figure>
+
+          {/* Beside it, half and half: past holder giveaways and that more are coming. */}
+          <GiveawaysPanel />
+        </div>
       </section>
 
-      {/* A perk for holders: Cybereator NFTs drawn among depth 5+ (config/draws.ts). */}
-      <TrenchesPerk />
+      {/* A holder giveaway that is not drawn yet, in full (config/draws.ts DRAWS); nothing between giveaways. */}
+      <RunningGiveaway />
 
-      {/* No title row (owner, 2026-10-15): ten cards need no heading, and the count is in the lede. */}
-      <section className="page section trx-depths" id="depths" aria-label="Ten depths">
+      <section className="page section trx-depths" id="depths" aria-labelledby="trx-depths-title">
+        <div className="trx-depths-head">
+          <h2 className="trx-depths-title" id="trx-depths-title">
+            The ten depths
+          </h2>
+          <p className="trx-depths-note">Trade more on SoDEX to go deeper. Each depth is one free piece, claimed once.</p>
+        </div>
         <div className="grid-tokens trx-grid">
           {TIERS.map((t, i) => (
             <DepthCard key={t.n} tier={t} minted={minted[i]} status={statusOf(t, i)} />
@@ -313,12 +323,8 @@ function YourDepth({
   }, [claimDone]);
 
   return (
-    <div
-      className="card trx-you"
-      aria-live="polite"
-      /* One colour for the checks, the ring and the bar: the current depth's. */
-      style={{ ["--from" as string]: tier?.colour ?? "var(--line-strong)" }}
-    >
+    /* Black and white, not the depth's colour (owner, 2026-10-24); --from is set in trenches.css. */
+    <div className="card trx-you" aria-live="polite">
       {/* Left: who they are and the ladder. Right: the next goal and the claim. */}
       <div className="trx-you-main">
         <div className="trx-you-top">

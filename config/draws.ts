@@ -28,6 +28,10 @@ export interface PerkDraw {
   id: string;
   /** What is given. */
   prize: string;
+  /** The giveaway's name on its card and its page, e.g. "Cybereator draw". */
+  title: string;
+  /** The prize's picture on the giveaway's card: one file under public/. */
+  prizeImage: string;
   /** The collection the prize comes from, for links. */
   prizeCollection: `0x${string}`;
   winners: number;
@@ -70,6 +74,8 @@ export interface PerkDraw {
 export const CYBEREATOR_SEATS: PerkDraw = {
   id: "cybereator-seats-1",
   prize: "Cybereator",
+  title: "Cybereator draw",
+  prizeImage: "/boxes/cybereator.webp",
   prizeCollection: "0xCD30D4bCaa99E556B70A2C4bDFC4050D26E48D30",
   // Not public until the draw is announced (owner, 2026-10-15: do not say how
   // many). This file ships in the bundle and the repo is public, so the number
@@ -116,6 +122,26 @@ export const CYBEREATOR_SEATS: PerkDraw = {
     "0x6e59426c652c87060fc0378e1181a5013b0251fb": "0xcff58f2d00330855079b23f69cdf2ceffff39f713504206ba68974d7ee1e8001",
   },
 };
+
+/**
+ * Every holder giveaway, newest first (owner, 2026-10-24: more will follow for
+ * Trenches holders). /trenches shows the newest that is not drawn yet in full,
+ * and each one has its own page at /trenches/giveaways/<id> with its list,
+ * winners and proof. A new giveaway is a new entry here.
+ */
+export const DRAWS: readonly PerkDraw[] = [CYBEREATOR_SEATS];
+
+export function drawById(id: string): PerkDraw | undefined {
+  return DRAWS.find((d) => d.id === id);
+}
+
+/**
+ * The rules the live ticket count on /trenches uses between giveaways: the
+ * last giveaway's (depth 5+, a piece's depth in tickets, ValueMint's own
+ * wallets left out). The page says they are the last draw's rules, not a
+ * promise about the next one.
+ */
+export const LIVE_TICKET_RULES = { minDepth: CYBEREATOR_SEATS.minDepth, excluded: CYBEREATOR_SEATS.excluded } as const;
 
 /** Measured, not the nominal 2s: used only to estimate how long until a block. */
 export const MEASURED_BLOCK_MS = 2_037;

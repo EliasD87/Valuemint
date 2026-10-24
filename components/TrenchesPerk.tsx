@@ -6,7 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { getAddress, isAddress, keccak256, toHex, zeroHash, type Hex } from "viem";
 import { useAccount, useBlockNumber, usePublicClient } from "wagmi";
 import { shortAddress } from "@/lib/format";
-import { CYBEREATOR_SEATS as DRAW, MEASURED_BLOCK_MS, ticketsFor } from "@/config/draws";
+import { MEASURED_BLOCK_MS, ticketsFor, type PerkDraw } from "@/config/draws";
 import { Art } from "@/components/Art";
 import { TIERS, tierImage } from "@/config/tiers";
 import { TRENCHES_ADDRESS } from "@/config/trenches";
@@ -104,8 +104,8 @@ function Countdown({ to }: { to: number }) {
 }
 
 /** The configured time when it is for this block, else an estimate from the head. */
-function drawAtOf(block: bigint, head: bigint | undefined): string {
-  if (block === DRAW.drawBlock || head === undefined) return DRAW.drawAt;
+function drawAtOf(draw: PerkDraw, block: bigint, head: bigint | undefined): string {
+  if (block === draw.drawBlock || head === undefined) return draw.drawAt;
   return new Date(Date.now() + Number(block - head) * MEASURED_BLOCK_MS).toISOString();
 }
 
@@ -116,7 +116,8 @@ function whenText(iso: string): string {
   return `${day}, ${time} UTC`;
 }
 
-export function TrenchesPerk() {
+/** One giveaway, from its entry in config/draws.ts (`DRAWS`). */
+export function TrenchesPerk({ draw: DRAW }: { draw: PerkDraw }) {
   const { address } = useAccount();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
@@ -345,7 +346,7 @@ export function TrenchesPerk() {
     {
       key: "draw",
       name: "Draw",
-      when: announced ? whenText(drawAtOf(drawBlock, head)) : "Coming soon",
+      when: announced ? whenText(drawAtOf(DRAW, drawBlock, head)) : "Coming soon",
       block: announced ? drawBlock : undefined,
       state: phase === "listed" ? "now" : phase === "drawn" ? "done" : "next",
       note:

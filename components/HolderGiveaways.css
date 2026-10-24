@@ -1,0 +1,102 @@
+/* Holder giveaways: a small card in the /trenches hero. Colours from tokens only. */
+
+.hg-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 0.85rem clamp(0.9rem, 2vw, 1.25rem);
+}
+
+.hg-panel-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.hg-soon {
+  padding: 0.15rem 0.55rem;
+  border-radius: var(--r-pill);
+  background: var(--surface-2);
+  box-shadow: inset 0 0 0 1px var(--line);
+  color: var(--ink-2);
+  font-size: var(--step--2);
+  font-weight: 600;
+}
+
+/* One past giveaway: picture, name and result, arrow. */
+.hg-row {
+  display: grid;
+  grid-template-columns: 2.75rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem;
+  margin: 0 -0.5rem;
+  border-radius: var(--r-md);
+  color: inherit;
+  text-decoration: none;
+}
+
+.hg-row:hover {
+  background: var(--surface-2);
+}
+
+.hg-row:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--ring);
+}
+
+.hg-row-art {
+  display: block;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: var(--r-sm);
+  object-fit: cover;
+  background: var(--surface-2);
+}
+
+.hg-row-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.hg-row-title {
+  font-size: var(--step-0);
+  font-weight: 650;
+  color: var(--ink);
+}
+
+.hg-row-meta {
+  font-size: var(--step--2);
+  color: var(--ink-3);
+}
+
+.hg-row-go {
+  width: 1rem;
+  height: 1rem;
+  fill: none;
+  stroke: var(--ink-3);
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: transform var(--fast);
+}
+
+.hg-row:hover .hg-row-go {
+  stroke: var(--ink);
+  transform: translateX(2px);
+}
+
+.hg-panel-note {
+  margin: 0;
+  font-size: var(--step--2);
+  color: var(--ink-3);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hg-row-go {
+    transition: none;
+  }
+}

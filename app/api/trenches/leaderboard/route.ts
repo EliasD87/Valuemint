@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { parseAbi } from "viem";
-import { CYBEREATOR_SEATS as DRAW, ticketsFor } from "@/config/draws";
+import { LIVE_TICKET_RULES as DRAW, ticketsFor } from "@/config/draws";
 import { TIER_STRIDE, TRENCHES_ADDRESS } from "@/config/trenches";
 import { indexClient } from "@/lib/indexSync";
 
