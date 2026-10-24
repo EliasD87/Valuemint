@@ -326,21 +326,16 @@ export function Layout({ children }: { children: ReactNode }) {
             />
           </div>
 
+          {/*
+            Three links, and only three (2026-10-24). The columns repeated the
+            header's own navigation — Explore, Collections, Listings — and
+            listed chain plumbing (the chain id, the factory, the explorer's
+            front page) that a visitor never comes to the footer for. Two rows
+            of links now, not five.
+          */}
           <div className="footer-col">
             <h3>Marketplace</h3>
             <ul>
-              <li>
-                <Link href="/">Explore</Link>
-              </li>
-              <li>
-                <Link href="/collections">Collections</Link>
-              </li>
-              <li>
-                <Link href="/market">Listings</Link>
-              </li>
-              {/* Last in the column on purpose: the three above are places to
-                  go and buy something, and this is a way of looking at what
-                  they have been doing. */}
               <li>
                 <Link href="/stats">Stats</Link>
               </li>
@@ -357,9 +352,6 @@ export function Layout({ children }: { children: ReactNode }) {
             <h3>On chain</h3>
             <ul>
               <li>
-                <span className="mono">ValueChain · 286623</span>
-              </li>
-              <li>
                 <a
                   className="mono"
                   href={`${deployment.explorer}/address/${SEAPORT}`}
@@ -367,26 +359,6 @@ export function Layout({ children }: { children: ReactNode }) {
                   rel="noreferrer noopener"
                 >
                   Marketplace contract
-                </a>
-              </li>
-              <li>
-                <a
-                  className="mono"
-                  href={`${deployment.explorer}/address/${deployment.factory}`}
-                  target="_blank"
-                  rel="noreferrer noopener"
-                >
-                  Collection factory
-                </a>
-              </li>
-              <li>
-                <a
-                  className="mono"
-                  href="https://main-scan.valuechain.xyz"
-                  target="_blank"
-                  rel="noreferrer noopener"
-                >
-                  Block explorer
                 </a>
               </li>
             </ul>
