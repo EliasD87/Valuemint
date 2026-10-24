@@ -1209,3 +1209,205 @@
 .drawer-link.is-active .nav-mark {
   opacity: 1;
 }
+
+/* ============================================================ nav groups */
+
+/* The button is a `.nav-link` in every way that shows; this only undoes what a
+   browser gives a button and a link does not have. */
+.nav-group {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.nav-group-button {
+  border: 0;
+  background: none;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.nav-chevron {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: transform var(--fast);
+}
+
+[aria-expanded="true"] > .nav-chevron {
+  transform: rotate(180deg);
+}
+
+/**
+ * Absolute, under its button, and deliberately not `position: fixed`: the
+ * header's `backdrop-filter` makes it the containing block for anything fixed
+ * inside it, which is how a dialog once centred itself in the 72px bar.
+ */
+.nav-menu {
+  position: absolute;
+  top: calc(100% + 0.65rem);
+  left: 50%;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 17.5rem;
+  padding: 0.35rem;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-lg);
+  transform: translateX(-50%);
+  animation: nav-menu-in 140ms var(--ease);
+}
+
+/* Covers the gap between the button and the panel, so the pointer crossing it
+   is still over the group. */
+.nav-menu::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 100%;
+  height: 0.75rem;
+}
+
+/* No fill-mode: if this never runs, the panel is simply there. */
+@keyframes nav-menu-in {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-4px);
+  }
+}
+
+.nav-menu-link {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.45rem 0.55rem;
+  border-radius: var(--r-sm);
+  color: var(--ink);
+  transition: background var(--fast);
+}
+
+.nav-menu-link:hover,
+.nav-menu-link.is-active {
+  background: var(--surface-2);
+}
+
+.nav-menu-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.nav-menu-label {
+  display: inline-flex;
+  align-items: center;
+  font-size: var(--step--1);
+  font-weight: 650;
+}
+
+/* "Free", after the label. */
+.nav-menu-tag {
+  margin-left: 0.45rem;
+  padding: 0.05rem 0.4rem;
+  border-radius: var(--r-pill);
+  background: var(--good-wash);
+  color: var(--good);
+  font-size: var(--step--3);
+  font-weight: 650;
+}
+
+/* The picture beside a row: a square, the art cropped to its middle. */
+.nav-thumb {
+  position: relative;
+  flex: none;
+  width: 2.25rem;
+  height: 2.25rem;
+  overflow: hidden;
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.nav-thumb img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Trenches: the ten spirits are a wide strip; zoom to Halo in the middle. */
+.nav-thumb:not(.nav-thumb-stack) img {
+  transform: scale(1.7);
+  transform-origin: 50% 38%;
+}
+
+/* KOLs: three portraits fanned in the same square. */
+.nav-thumb-stack {
+  background: none;
+  box-shadow: none;
+  overflow: visible;
+}
+
+/* Each portrait in its own circle, zoomed onto the face: the roster cards keep
+   their art right of centre with a column of text down the left. */
+.nav-av {
+  position: absolute;
+  top: 50%;
+  width: 1.3rem;
+  height: 1.3rem;
+  overflow: hidden;
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow: 0 0 0 2px var(--surface);
+  transform: translateY(-50%);
+}
+
+.nav-av img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scale(1.9);
+  transform-origin: 63% 40%;
+}
+
+/* Fanned left to right inside the 2.25rem square, the last on top. */
+.nav-av:nth-child(1) {
+  left: 0;
+  z-index: 1;
+}
+
+.nav-av:nth-child(2) {
+  left: 0.48rem;
+  z-index: 2;
+}
+
+.nav-av:nth-child(3) {
+  left: 0.96rem;
+  z-index: 3;
+}
+
+.nav-menu-link:hover .nav-av,
+.nav-menu-link.is-active .nav-av {
+  box-shadow: 0 0 0 2px var(--surface-2);
+}
+
+.nav-menu-note {
+  font-size: var(--step--2);
+  color: var(--ink-3);
+}
+
+.nav-menu-link:hover .nav-mark,
+.nav-menu-link.is-active .nav-mark {
+  opacity: 1;
+}
+

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useVerifiedContracts } from "@/hooks/useVerifiedContracts";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { Wallet } from "./Wallet";
 import { ThemeToggle } from "./ThemeToggle";
 import { FocusLine } from "./FocusLine";
@@ -34,9 +34,31 @@ interface NavItem {
   end?: boolean;
   /** Show the SoDEX symbol beside the label. */
   mark?: boolean;
+  /** One line under the label, in a group's menu only. */
+  note?: string;
+  /** In a group's menu: a picture beside the label (local files only). */
+  thumb?: "trenches" | "kols";
+  /** In a group's menu: a small tag after the label, e.g. "Free". */
+  tag?: string;
 }
 
-const NAV: NavItem[] = [
+/**
+ * Pages that share one slot in the bar and open from it.
+ *
+ * Added 2026-10-21 to keep the bar short. Trenches and KOLs are the two pages
+ * about people rather than the market, so they fold under Community;
+ * everything you trade with stays one click away.
+ */
+interface NavGroup {
+  label: string;
+  items: NavItem[];
+}
+
+type NavEntry = NavItem | NavGroup;
+
+const isGroup = (entry: NavEntry): entry is NavGroup => "items" in entry;
+
+const NAV: NavEntry[] = [
   { to: "/", label: "Explore", end: true },
   /**
    * Second, ahead of Mint and Collections.
@@ -49,8 +71,13 @@ const NAV: NavItem[] = [
   { to: "/market", label: "Market" },
   { to: "/mint", label: "Mint" },
   { to: "/collections", label: "Collections" },
-  { to: "/trenches", label: "Trenches", mark: true },
-  { to: "/kols", label: "KOLs" },
+  {
+    label: "Community",
+    items: [
+      { to: "/trenches", label: "Trenches", mark: true, note: "Free NFTs for SoDEX traders", thumb: "trenches", tag: "Free" },
+      { to: "/kols", label: "SoDEX KOLs", note: "Portraits of the SoDEX KOLs", thumb: "kols" },
+    ],
+  },
   { to: "/portfolio", label: "Portfolio" },
   { to: "/manage", label: "Manage" },
 ];
@@ -146,17 +173,21 @@ export function Layout({ children }: { children: ReactNode }) {
           </Link>
 
           <nav className="nav" aria-label="Primary">
-            {NAV.map((item) => (
-              <Link
-                key={item.to}
-                href={item.to}
-                className={`nav-link${isActive(item) ? " is-active" : ""}`}
-                aria-current={isActive(item) ? "page" : undefined}
-              >
-                {item.mark === true ? <SodexLogo variant="mark" className="nav-mark" /> : null}
-                {item.label}
-              </Link>
-            ))}
+            {NAV.map((entry) =>
+              isGroup(entry) ? (
+                <NavMenu key={entry.label} group={entry} isActive={isActive} />
+              ) : (
+                <Link
+                  key={entry.to}
+                  href={entry.to}
+                  className={`nav-link${isActive(entry) ? " is-active" : ""}`}
+                  aria-current={isActive(entry) ? "page" : undefined}
+                >
+                  {entry.mark === true ? <SodexLogo variant="mark" className="nav-mark" /> : null}
+                  {entry.label}
+                </Link>
+              ),
+            )}
           </nav>
 
           <div className="header-actions">
@@ -227,21 +258,9 @@ export function Layout({ children }: { children: ReactNode }) {
         </div>
 
         <nav className="drawer-nav" aria-label="Primary">
-          {NAV.map((item) => (
-            <Link
-              key={item.to}
-              href={item.to}
-              className={`drawer-link${isActive(item) ? " is-active" : ""}`}
-              aria-current={isActive(item) ? "page" : undefined}
-            >
-              {/* After the label, not before it. Leading, the one marked row
-                  started 62px in while the other eight sat flush, and a single
-                  icon in nine rows does not justify reserving the slot on all
-                  of them. Trailing, every label aligns and the mark reads as a
-                  tag on Trenches. */}
-              <span>{item.label}</span>
-              {item.mark === true ? <SodexLogo variant="mark" className="nav-mark" /> : null}
-            </Link>
+          {/* Flat on a phone (owner, 2026-10-24): a group's pages are rows like the rest, not folded. */}
+          {NAV.flatMap((entry) => (isGroup(entry) ? entry.items : [entry])).map((item) => (
+            <DrawerLink key={item.to} item={item} active={isActive(item)} />
           ))}
         </nav>
 
@@ -393,6 +412,162 @@ export function Layout({ children }: { children: ReactNode }) {
         </div>
       </footer>
     </>
+  );
+}
+
+/**
+ * A group in the desktop bar: a button that opens its pages under it.
+ *
+ * A disclosure — a button with `aria-expanded` over a list of plain links —
+ * not an ARIA menu. These are page links, and a menu role would take the arrow
+ * keys and promise a keyboard model that links do not have.
+ *
+ * A mouse opens it by hovering and it closes a beat after the pointer leaves,
+ * so crossing the gap to the panel does not shut it. A click still toggles,
+ * which is the whole interface for keyboard and touch — except that a click
+ * while hovering only ever opens, or the hover would open it and the click
+ * that followed would close it again.
+ */
+function NavMenu({ group, isActive }: { group: NavGroup; isActive: (item: NavItem) => boolean }) {
+  const pathname = usePathname();
+  const [open, setOpen] = useState(false);
+  const root = useRef<HTMLDivElement>(null);
+  const button = useRef<HTMLButtonElement>(null);
+  const hovering = useRef(false);
+  const closing = useRef<number | undefined>(undefined);
+  const id = useId();
+
+  const current = group.items.some(isActive);
+
+  useEffect(() => setOpen(false), [pathname]);
+
+  useEffect(() => {
+    if (!open) return;
+    const outside = (t: EventTarget | null) => root.current !== null && !root.current.contains(t as Node);
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      setOpen(false);
+      button.current?.focus();
+    };
+    const onPointer = (e: PointerEvent) => outside(e.target) && setOpen(false);
+    // Tabbing past the last link leaves the group, and the panel should go with it.
+    const onFocus = (e: FocusEvent) => outside(e.target) && setOpen(false);
+
+    document.addEventListener("keydown", onKey);
+    document.addEventListener("pointerdown", onPointer);
+    document.addEventListener("focusin", onFocus);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("pointerdown", onPointer);
+      document.removeEventListener("focusin", onFocus);
+    };
+  }, [open]);
+
+  useEffect(() => () => window.clearTimeout(closing.current), []);
+
+  return (
+    <div
+      className="nav-group"
+      ref={root}
+      onPointerEnter={(e) => {
+        if (e.pointerType !== "mouse") return;
+        hovering.current = true;
+        window.clearTimeout(closing.current);
+        setOpen(true);
+      }}
+      onPointerLeave={(e) => {
+        if (e.pointerType !== "mouse") return;
+        hovering.current = false;
+        closing.current = window.setTimeout(() => setOpen(false), 180);
+      }}
+    >
+      <button
+        ref={button}
+        type="button"
+        className={`nav-link nav-group-button${current ? " is-active" : ""}`}
+        aria-expanded={open}
+        aria-controls={open ? id : undefined}
+        onClick={() => setOpen((v) => (hovering.current ? true : !v))}
+      >
+        {group.label}
+        <Chevron />
+      </button>
+
+      {open ? (
+        <div className="nav-menu" id={id}>
+          {group.items.map((item) => (
+            <Link
+              key={item.to}
+              href={item.to}
+              className={`nav-menu-link${item.thumb !== undefined ? " has-thumb" : ""}${isActive(item) ? " is-active" : ""}`}
+              aria-current={isActive(item) ? "page" : undefined}
+            >
+              {item.thumb !== undefined ? <MenuThumb kind={item.thumb} /> : null}
+              <span className="nav-menu-text">
+                <span className="nav-menu-label">
+                  {item.mark === true ? <SodexLogo variant="mark" className="nav-mark" /> : null}
+                  {item.label}
+                  {item.tag === undefined ? null : <span className="nav-menu-tag">{item.tag}</span>}
+                </span>
+                {item.note === undefined ? null : <span className="nav-menu-note">{item.note}</span>}
+              </span>
+            </Link>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function DrawerLink({ item, active }: { item: NavItem; active: boolean }) {
+  return (
+    <Link
+      href={item.to}
+      className={`drawer-link${active ? " is-active" : ""}`}
+      aria-current={active ? "page" : undefined}
+    >
+      {/* After the label, not before it. Leading, the one marked row started
+          62px in while the others sat flush, and a single icon does not justify
+          reserving the slot on every row. Trailing, every label aligns and the
+          mark reads as a tag on Trenches. */}
+      <span>{item.label}</span>
+      {item.mark === true ? <SodexLogo variant="mark" className="nav-mark" /> : null}
+    </Link>
+  );
+}
+
+/**
+ * The picture beside a menu row. Local files, so opening the menu costs no
+ * request to a gateway: the ten spirits cropped to Halo for Trenches, and three
+ * KOL portraits fanned for the KOLs.
+ */
+function MenuThumb({ kind }: { kind: "trenches" | "kols" }) {
+  if (kind === "trenches") {
+    return (
+      <span className="nav-thumb" aria-hidden="true">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/heroes/trenches-cutout-900.webp" alt="" />
+      </span>
+    );
+  }
+  return (
+    <span className="nav-thumb nav-thumb-stack" aria-hidden="true">
+      {/* Three with colour and a face in the middle: the rest are mostly white ground at this size. */}
+      {["07", "09", "20"].map((n) => (
+        <span key={n} className="nav-av">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={`/kols/roster/${n}.webp`} alt="" />
+        </span>
+      ))}
+    </span>
+  );
+}
+
+function Chevron() {
+  return (
+    <svg className="nav-chevron" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="m7 10 5 5 5-5" />
+    </svg>
   );
 }
 
