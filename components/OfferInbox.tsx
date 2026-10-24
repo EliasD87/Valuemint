@@ -80,11 +80,21 @@ interface Gone {
   say: string;
 }
 
+/** What the inbox has found, for a page that shows the count somewhere else too. */
+export interface InboxSummary {
+  /** Still checking: no count can be said yet. */
+  checking: boolean;
+  count: number;
+  /** The best offer standing, per piece. */
+  best?: { price: bigint; currency: `0x${string}` };
+}
+
 export function OfferInbox({
   holdings,
   onChange,
   holdingsLoading = false,
   artLoading = false,
+  onSummary,
 }: {
   holdings: Held[];
   onChange: () => void;
@@ -92,6 +102,12 @@ export function OfferInbox({
   holdingsLoading?: boolean;
   /** The pieces' documents — names and artwork — are still arriving. */
   artLoading?: boolean;
+  /**
+   * Told whenever the answer changes. The portfolio keeps this panel behind a
+   * tab and puts the count in its header, so the money waiting is still the
+   * first thing on the page — this is how the header knows it.
+   */
+  onSummary?: (summary: InboxSummary) => void;
 }) {
   const { orders, traitOffers, isLoading: bookLoading } = useSeaportOrders();
 
@@ -251,6 +267,21 @@ export function OfferInbox({
   const checking = loading && !answered;
   const shown = checking ? [] : rows;
   const quiet = shown.length === 0 && sold.length === 0 && gone.length === 0;
+
+  /* Rows are sorted best first, so the top one is the best offer. Keyed on
+     the figures rather than the array, which is rebuilt on every book read. */
+  const top = shown[0]?.offer;
+  const topPrice = top?.priceWei;
+  const topCurrency = top?.currency;
+  useEffect(() => {
+    onSummary?.({
+      checking,
+      count: shown.length,
+      ...(topPrice === undefined || topCurrency === undefined
+        ? {}
+        : { best: { price: topPrice, currency: topCurrency } }),
+    });
+  }, [onSummary, checking, shown.length, topPrice, topCurrency]);
 
   return (
     <div className="inbox card">

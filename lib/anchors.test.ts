@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { holdingsAnchor } from "@/lib/anchors";
+import { anchoredCollection, holdingsAnchor } from "@/lib/anchors";
 
 describe("holdingsAnchor", () => {
   /**
@@ -20,5 +20,20 @@ describe("holdingsAnchor", () => {
 
   it("distinguishes two collections", () => {
     expect(holdingsAnchor("0xaaa")).not.toBe(holdingsAnchor("0xbbb"));
+  });
+});
+
+describe("anchoredCollection", () => {
+  const genesis = "0x5Fadc59297e86aceA20Bff519aea0f9651Cdc90B";
+
+  it("reads back the collection a holdingsAnchor names, with or without the #", () => {
+    expect(anchoredCollection(`#${holdingsAnchor(genesis)}`)).toBe(genesis.toLowerCase());
+    expect(anchoredCollection(holdingsAnchor(genesis))).toBe(genesis.toLowerCase());
+  });
+
+  it("ignores any other hash", () => {
+    expect(anchoredCollection("")).toBeUndefined();
+    expect(anchoredCollection("#top")).toBeUndefined();
+    expect(anchoredCollection("#holdings-0xabc")).toBeUndefined();
   });
 });

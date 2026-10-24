@@ -1,87 +1,35 @@
 /*
- * The portfolio's own layout.
+ * A wallet, read in full: /portfolio and /address/…, both `PortfolioView`.
  *
- * Deliberately the same shape as the collection page's `.coll-layout`: a wide
- * main column of pieces, and a 21rem column beside it holding the history. The
- * two pages answer the same pair of questions — what is here, and what has
- * happened to it — and reading differently on each was a reason people found
- * the history on one and not the other.
+ * Top to bottom: whose wallet and four figures (the header), three tabs, and
+ * under "Collected" the collections down the side with every piece in one
+ * grid beside them. See the components for why each part is shaped as it is;
+ * this file is how they look.
+ *
+ * Everything that is a thing ON the page is `--surface`; the page itself is
+ * `--paper`. The stats band and the panels are the only cards. The side list
+ * is not one — rows on the page, with the picked one lifted onto a surface —
+ * because a card holding cards is what the tables here were rebuilt to avoid.
  */
 
-.pf-layout {
-  display: grid;
-  /* 24rem since 2026-10-03: at 21 the Offers table cut every trait name to
-     "Level: Com…" beside its price. */
-  grid-template-columns: minmax(0, 1fr) minmax(min(21rem, 100%), 24rem);
-  gap: clamp(1.5rem, 4vw, 3rem);
-  align-items: start;
+.pf {
+  /* Room under the last row of cards before the footer. */
+  padding-bottom: clamp(2.5rem, 5vw, 4rem);
 }
 
-.pf-main {
-  min-width: 0;
-}
-
-/*
- * Not sticky, and not a scroll container.
- *
- * Both were tried on the collection page and each caused the other: sticky
- * pins an element at its `top`, so anything taller than the viewport has a
- * bottom that can never be reached, and capping it to the viewport gives it a
- * scrollbar of its own — which makes the wheel do something different over
- * this column than everywhere else on the page. A plain column has neither
- * problem, and it is affordable for the same reason: ten rows and a link to
- * the rest, so this has no business being taller than a screen.
- */
-.pf-side {
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
-  min-width: 0;
-}
-
-/* `.act-panel-standalone` brings a 48px top margin for the collection page,
-   where the panel follows a grid of cards. First in this column it would sit
-   that far below the portfolio header it is meant to line up with; the
-   layout's own gap separates it when the columns stack on a phone. */
-.pf-side > .act-panel:first-child {
-  margin-top: 0;
-}
-
-/* The history's own stylesheet handles this column now — `.act-panel` measures
-   itself, so the narrow layout follows the panel rather than the viewport. See
-   the container query in styles/activity.css. */
-
-/* ============================================================== show more */
-
-.pf-more-row {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  margin-top: 0.85rem;
-}
-
-@media (max-width: 900px) {
-  .pf-layout {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (pointer: coarse) {
-  /* The wizard-step floor applies here too: a control tapped as often as this
-     one should not draw under 44px. */
-  .pf-more.pf-more {
-    min-height: 44px;
-  }
+/* The `hidden` attribute is `display: none` only until a class sets a display
+   of its own, and the offers panel sets `grid`. Said once, for every panel. */
+.pf-panel[hidden] {
+  display: none !important;
 }
 
 /*
  * A collection's holdings, as a link target.
  *
- * The listing prompt sends people straight to one collection's group, and the
- * header is sticky — without this the browser puts the heading at y=0, which is
- * behind the bar, and the reader lands on a collection whose name they cannot
- * see. The extra rem is breathing room, so the group starts below the header
- * rather than flush against it.
+ * The listing prompt sends people straight to one collection, and the header
+ * is sticky — without this the browser puts the target at y=0, behind the
+ * bar. The page then picks that collection and scrolls the tabs into view
+ * itself; this covers the moment before it does.
  */
 .holdings-anchor {
   scroll-margin-top: calc(var(--header-h, 72px) + 1rem);
@@ -89,35 +37,14 @@
 
 /* ========================================================= portfolio header
  *
- * Whose portfolio, what it is worth, and what that is made of. See
- * `components/PortfolioHeader.tsx`.
- *
- * These styles live here rather than beside the component because this page
- * already imports this file at module level, so they load even in the
- * disconnected state.
- *
- * One card on `--surface`. Inside it nothing is a card: the four cells are
- * divided by hairlines, not boxed, because boxes inside a box was the thing
- * the tables on this site were rebuilt to get away from.
+ * See `components/PortfolioHeader.tsx`. Who, on the page itself; then one band
+ * of four figures, the balance widest.
  * ========================================================================= */
 
-/*
- * The main column's width, with the trades panel beside it. Stretched across
- * the whole page the card was mostly empty surface around a handful of
- * figures; sharing the top row with the panel keeps it a header rather than a
- * banner, and the two tops line up.
- */
 .ph {
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 1.15rem;
-  margin-bottom: 2rem;
-  padding: 1.3rem 1.5rem 0;
-  border: 1px solid var(--line);
-  border-radius: var(--r-lg);
-  background: var(--surface);
-  /* The cells run edge to edge; the card's corners clip their rules. */
-  overflow: hidden;
+  gap: 1.35rem;
+  margin-bottom: 1.5rem;
 }
 
 /* ------------------------------------------------------------ identity */
@@ -125,14 +52,16 @@
 .ph-id {
   display: flex;
   align-items: center;
-  gap: 0.85rem;
+  flex-wrap: wrap;
+  gap: 0.85rem 1rem;
   min-width: 0;
 }
 
 .ph-who {
   display: grid;
-  gap: 0.15rem;
+  gap: 0.1rem;
   min-width: 0;
+  flex: 1 1 14rem;
 }
 
 /* The page's heading, for screen readers and the outline only. On screen the
@@ -153,8 +82,775 @@
 .ph-addr {
   display: flex;
   align-items: center;
-  gap: 0.2rem;
+  gap: 0.15rem;
   min-width: 0;
+}
+
+.ph-addr-text {
+  margin-right: 0.35rem;
+  font-size: var(--step-2);
+  font-weight: 650;
+  letter-spacing: -0.015em;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.ph-sub {
+  margin: 0;
+  font-size: var(--step--1);
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Two small square buttons, the same size whether a link or a button. */
+.ph-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--ink-3);
+  cursor: pointer;
+  transition:
+    background var(--fast),
+    color var(--fast);
+}
+
+.ph-icon svg {
+  width: 15px;
+  height: 15px;
+}
+
+.ph-icon:hover {
+  background: var(--paper-hover);
+  color: var(--ink);
+}
+
+.ph-icon:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.ph-icon.is-done {
+  color: var(--up);
+}
+
+/* On a searched-for wallet: "this is you", share, the explorer. To the right
+   of the address on a wide screen, under it when there is no room. */
+.ph-extra {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.6rem;
+  margin-left: auto;
+  font-size: var(--step--2);
+}
+
+.ph-you {
+  text-decoration: none;
+}
+
+/* ---------------------------------------------------------- the band */
+
+/*
+ * Four cells, hairlines between, the balance widest. The rules are the grid's
+ * own gap showing the line colour behind it, so they meet without a border
+ * being drawn twice.
+ */
+.ph-stats {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  margin: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--line);
+  /* The cells run edge to edge; the corners clip them. */
+  overflow: hidden;
+}
+
+.ph-stat {
+  display: grid;
+  align-content: start;
+  gap: 0.35rem;
+  min-width: 0;
+  padding: 1.05rem 1.3rem 1.15rem;
+  background: var(--surface);
+}
+
+.ph-stat dt {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: var(--step--2);
+  font-weight: 600;
+  color: var(--ink-3);
+}
+
+.ph-stat dd {
+  margin: 0;
+  min-width: 0;
+}
+
+/* Offers waiting on the holder: one dot of the accent, which is reserved for
+   live state — and somebody's money on the table is exactly that. */
+.ph-stat.is-live dt::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.ph-fig {
+  font-size: var(--step-2);
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ph-fig-of {
+  font-size: var(--step--1);
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--ink-3);
+}
+
+.ph-fig-wait {
+  display: block;
+  width: 6rem;
+  height: 1.25em;
+}
+
+.ph-note {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.2rem 0.6rem;
+  font-size: var(--step--2);
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+/* A word that does something, inside small print. Underlined rather than
+   boxed: a button in a figure cell outweighed the figure. */
+.ph-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-weight: 600;
+  color: var(--ink);
+  text-decoration: underline;
+  text-decoration-color: var(--line-strong);
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.ph-link:hover {
+  text-decoration-color: currentColor;
+}
+
+.ph-link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* ------------------------------------------------------------ balance */
+
+.ph-total {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.3rem 0.6rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The one large figure on the page, and the sans like everything else. */
+.ph-total-amount {
+  font-size: clamp(1.75rem, 2.5vw, 2.25rem);
+  font-weight: 650;
+  line-height: 1.05;
+  letter-spacing: -0.025em;
+  color: var(--ink);
+}
+
+/* The currency as a chip beside the figure, logo leading the word. */
+.ph-total-unit {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  align-self: center;
+  padding: 0.2rem 0.55rem 0.2rem 0.25rem;
+  border-radius: var(--r-pill);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  font-size: var(--step--2);
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  color: var(--ink);
+}
+
+.ph-total-usd {
+  font-size: var(--step-0);
+  font-weight: 550;
+  color: var(--ink-3);
+}
+
+/* Held at the figure's height, so nothing moves when the count lands. */
+.ph-total-wait {
+  display: block;
+  width: min(12rem, 70%);
+  height: clamp(1.75rem, 2.5vw, 2.25rem);
+}
+
+/* WSOSO under the balance: the figure, the way back to SOSO, and one line
+   saying what it is. */
+.ph-wrapped-block {
+  display: grid;
+  gap: 0.15rem;
+  margin-top: 0.45rem;
+}
+
+.ph-wrapped {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.45rem;
+  font-size: var(--step--1);
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.ph-wrapped-amount {
+  font-weight: 650;
+  color: var(--ink);
+}
+
+.ph-wrapped-unit {
+  margin-right: 0.35rem;
+  font-size: var(--step--2);
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  color: var(--ink-2);
+}
+
+.ph-wrapped-note {
+  margin: 0;
+  max-width: 40ch;
+  font-size: var(--step--2);
+  line-height: 1.45;
+  color: var(--ink-3);
+}
+
+/* ================================================================= tabs */
+
+.pf-tabs {
+  display: flex;
+  gap: 1.75rem;
+  margin: 0 0 1.5rem;
+  border-bottom: 1px solid var(--line);
+  overflow-x: auto;
+  scrollbar-width: none;
+  scroll-margin-top: calc(var(--header-h, 72px) + 0.75rem);
+}
+
+.pf-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.pf-tabs [role="tab"] {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex: none;
+  padding: 0.85rem 0 0.9rem;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: var(--step-0);
+  font-weight: 600;
+  color: var(--ink-3);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color var(--fast);
+}
+
+.pf-tabs [role="tab"]:hover,
+.pf-tabs [role="tab"][aria-selected="true"] {
+  color: var(--ink);
+}
+
+/* The rule under the open tab sits ON the tablist's own line, replacing it. */
+.pf-tabs [role="tab"][aria-selected="true"]::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  border-radius: 2px 2px 0 0;
+  background: var(--ink);
+}
+
+.pf-tabs [role="tab"]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+  border-radius: var(--r-sm);
+}
+
+.pf-tabs em {
+  min-width: 1.4rem;
+  padding: 0.05rem 0.4rem;
+  border-radius: var(--r-pill);
+  background: var(--surface-2);
+  font-style: normal;
+  font-size: var(--step--2);
+  font-weight: 600;
+  text-align: center;
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Offers waiting: the accent, with the ink that reads on it. */
+.pf-tabs em.is-live {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+/* ============================================================ collected */
+
+.pf-collected {
+  display: grid;
+  grid-template-columns: 17rem minmax(0, 1fr);
+  gap: clamp(1.25rem, 2.4vw, 2rem);
+  align-items: start;
+}
+
+.pf-pieces {
+  min-width: 0;
+}
+
+/* Four across beside the side list at a desktop width, rather than three
+   large ones: a portfolio is scanned, not browsed. Measured at 218px a card,
+   nothing in it truncates or wraps. Phones keep the site's own grid. */
+@media (min-width: 901px) {
+  .pf-pieces .grid-tokens {
+    grid-template-columns: repeat(auto-fill, minmax(min(12.5rem, 100%), 1fr));
+  }
+}
+
+/* ------------------------------------------------------ the side list */
+
+/*
+ * Sticky, so a collection is one press away from anywhere in a long grid.
+ * Capped to the viewport and allowed to scroll only for the wallet with more
+ * collections than fit — at the few most wallets hold, it never does.
+ */
+.pf-colls {
+  position: sticky;
+  top: calc(var(--header-h, 72px) + 1rem);
+  max-height: calc(100dvh - var(--header-h, 72px) - 2rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+
+.pf-colls-title {
+  display: flex;
+  justify-content: space-between;
+  margin: 0 0 0.45rem;
+  padding: 0 0.6rem;
+  font-size: var(--step--2);
+  font-weight: 600;
+  color: var(--ink-3);
+}
+
+.pf-colls-title span {
+  font-variant-numeric: tabular-nums;
+}
+
+.pf-colls-list {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pf-c {
+  display: grid;
+  grid-template-columns: 2.5rem minmax(0, 1fr) auto;
+  grid-template-areas:
+    "thumb name  name"
+    "thumb meta  value"
+    "thumb bar   bar";
+  align-items: center;
+  gap: 0.05rem 0.7rem;
+  width: 100%;
+  padding: 0.55rem 0.6rem;
+  border: 1px solid transparent;
+  border-radius: var(--r-md);
+  background: none;
+  font: inherit;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background var(--fast),
+    border-color var(--fast);
+}
+
+.pf-c:hover {
+  background: var(--paper-2);
+}
+
+.pf-c[aria-pressed="true"] {
+  background: var(--surface);
+  border-color: var(--line);
+  box-shadow: var(--shadow-sm);
+}
+
+.pf-c:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* `position: relative` is load-bearing: `Art` fills its nearest positioned
+   ancestor, and without one it stretches to the page. */
+.pf-c-thumb {
+  grid-area: thumb;
+  position: relative;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: var(--r-sm);
+  overflow: hidden;
+  background: var(--paper-3);
+}
+
+.pf-c-all {
+  display: grid;
+  place-items: center;
+  color: var(--ink-2);
+}
+
+.pf-c-all svg {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+}
+
+.pf-c-name {
+  grid-area: name;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  min-width: 0;
+  font-size: var(--step--1);
+  font-weight: 600;
+}
+
+.pf-c-name-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pf-c-meta {
+  grid-area: meta;
+  font-size: var(--step--2);
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pf-c-value {
+  grid-area: value;
+  justify-self: end;
+  font-size: var(--step--2);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.pf-c-none {
+  font-weight: 500;
+  color: var(--ink-3);
+}
+
+/* Share of the wallet's value, as a bar. Quiet until the row is picked. */
+.pf-c-bar {
+  grid-area: bar;
+  display: block;
+  height: 3px;
+  margin-top: 0.4rem;
+  border-radius: var(--r-pill);
+  background: var(--line);
+  overflow: hidden;
+}
+
+.pf-c-bar i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--ink-3);
+}
+
+.pf-c[aria-pressed="true"] .pf-c-bar i {
+  background: var(--ink);
+}
+
+/* ------------------------------------------------ the picked collection */
+
+.pf-cbar {
+  display: grid;
+  gap: 0.9rem;
+  margin-bottom: 1.1rem;
+  padding-bottom: 1.1rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.pf-cbar-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.75rem 1.25rem;
+}
+
+.pf-cbar-id {
+  min-width: 0;
+}
+
+.pf-cbar-name {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+  font-size: var(--step-2);
+  font-weight: 650;
+  letter-spacing: -0.015em;
+}
+
+.pf-cbar-meta {
+  margin: 0.2rem 0 0;
+  font-size: var(--step--1);
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.pf-cbar-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+}
+
+.pf-cbar .hg-traits {
+  margin: 0;
+}
+
+/* ----------------------------------------------------------- the tools */
+
+/* 44px throughout, the height `Select` already holds for a thumb. */
+.pf-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 1.1rem;
+}
+
+.pf-search {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1 1 14rem;
+  min-width: 0;
+  height: 44px;
+  padding: 0 0.8rem;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  color: var(--ink-3);
+  transition: border-color var(--fast);
+}
+
+.pf-search:hover {
+  border-color: var(--line-strong);
+}
+
+.pf-search:focus-within {
+  border-color: var(--accent-line);
+  box-shadow: 0 0 0 3px var(--ring);
+}
+
+.pf-search svg {
+  flex: none;
+  width: 15px;
+  height: 15px;
+}
+
+.pf-search input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: var(--step--1);
+  color: var(--ink);
+  outline: none;
+}
+
+.pf-search input::placeholder {
+  color: var(--ink-3);
+}
+
+/* Three states of one question, as one control rather than three pills. */
+.pf-seg {
+  display: inline-flex;
+  gap: 2px;
+  height: 44px;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+}
+
+.pf-seg button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0 0.75rem;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  font: inherit;
+  font-size: var(--step--1);
+  font-weight: 600;
+  color: var(--ink-3);
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background var(--fast),
+    color var(--fast);
+}
+
+.pf-seg button:hover {
+  color: var(--ink);
+}
+
+.pf-seg button[aria-pressed="true"] {
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow:
+    0 0 0 1px var(--line),
+    var(--shadow-sm);
+}
+
+.pf-seg button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.pf-seg em {
+  font-style: normal;
+  font-size: var(--step--2);
+  font-weight: 500;
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.pf-sort {
+  min-width: 13rem;
+}
+
+/* ------------------------------------------------------- the grid's ends */
+
+.pf-none {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  padding: 1.4rem 1.5rem;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--r-lg);
+  color: var(--ink-2);
+}
+
+.pf-none p {
+  margin: 0;
+}
+
+.pf-more-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.9rem;
+  margin-top: 1.5rem;
+}
+
+.pf-more-count {
+  font-size: var(--step--2);
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (pointer: coarse) {
+  /* A control tapped as often as this one should not draw under 44px. */
+  .pf-more.pf-more {
+    min-height: 44px;
+  }
+}
+
+/* ======================================================= offers, activity */
+
+.pf-offers {
+  display: grid;
+  gap: 1.25rem;
+  align-items: start;
+}
+
+.pf-offers .inbox {
+  margin-bottom: 0;
+}
+
+/* Side by side once there is room: what you can take, wider, then what you
+   have bid. Stacked otherwise, the inbox first. */
+@media (min-width: 1100px) {
+  .pf-offers:has(> .inbox) {
+    grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+  }
+}
+
+/* A table of three columns at the page's full width put 1,060px of empty row
+   between a piece and its price. Held to a reading width instead, as is the
+   bids panel when it is alone on the tab (somebody else's wallet). */
+.pf-activity .act-panel,
+.pf-offers > .act-panel:only-child {
+  max-width: 52rem;
+}
+
+.pf-activity .act-panel-standalone {
+  margin-top: 0;
 }
 
 /* ------------------------------------------------------ the wallet scan */
@@ -348,263 +1044,149 @@
   text-underline-offset: 3px;
 }
 
-/* Under the address on a searched-for wallet: the "this is you" badge and the
-   share control. Small, and wraps rather than widening the identity column. */
-.ph-extra {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.35rem 0.6rem;
-  margin-top: 0.15rem;
-  font-size: var(--step--2);
-}
 
-.ph-you {
-  text-decoration: none;
-}
+/* ============================================================== narrower */
 
-.ph-addr-text {
-  margin-right: 0.3rem;
-  font-size: var(--step-0);
-  font-weight: 650;
-  color: var(--ink);
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-
-/* Two small square buttons, the same size whether a link or a button. */
-.ph-icon {
-  display: inline-grid;
-  place-items: center;
-  width: 28px;
-  height: 28px;
-  padding: 0;
-  border: 0;
-  border-radius: var(--r-sm);
-  background: transparent;
-  color: var(--ink-3);
-  cursor: pointer;
-  transition:
-    background var(--fast),
-    color var(--fast);
-}
-
-.ph-icon svg {
-  width: 15px;
-  height: 15px;
-}
-
-.ph-icon:hover {
-  background: var(--paper-hover);
-  color: var(--ink);
-}
-
-.ph-icon:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 1px;
-}
-
-.ph-icon.is-done {
-  color: var(--up);
-}
-
-/* --------------------------------------------------------------- worth */
-
-.ph-worth {
-  display: grid;
-  gap: 0.45rem;
-}
-
-.ph-label {
-  margin: 0;
-  font-size: var(--step--2);
-  font-weight: 600;
-  color: var(--ink-3);
-}
-
-.ph-total {
-  margin: 0;
-  display: flex;
-  align-items: baseline;
-  flex-wrap: wrap;
-  gap: 0.3rem 0.7rem;
-  font-variant-numeric: tabular-nums;
-}
-
-.ph-total-amount {
-  font-family: var(--display);
-  /* Sized to the half-width card, not the page: `--step-4` was 56px here. */
-  font-size: clamp(2rem, 3.2vw, 2.75rem);
-  font-weight: 700;
-  line-height: 1;
-  letter-spacing: -0.02em;
-  color: var(--ink);
-}
-
-/* The currency as a chip beside the figure, logo leading the word. */
-.ph-total-unit {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  align-self: center;
-  padding: 0.25rem 0.6rem 0.25rem 0.3rem;
-  border-radius: var(--r-pill);
-  background: var(--surface-2);
-  border: 1px solid var(--line);
-  font-size: var(--step--1);
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  color: var(--ink);
-}
-
-.ph-total-usd {
-  font-size: var(--step-1);
-  font-weight: 600;
-  color: var(--ink-2);
-}
-
-/* Held at the figure's height, so nothing moves when the count lands. */
-.ph-total-wait {
-  display: block;
-  width: min(14rem, 70%);
-  height: clamp(2rem, 3.2vw, 2.75rem);
-}
-
-/* WSOSO, when there is any: one quiet line under the balance. */
-.ph-wrapped {
-  margin: 0;
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 0.3rem;
-  font-size: var(--step--1);
-  color: var(--ink-3);
-  font-variant-numeric: tabular-nums;
-}
-
-.ph-wrapped-amount {
-  font-family: var(--display);
-  font-size: var(--step-1);
-  font-weight: 700;
-  line-height: 1;
-  color: var(--ink);
-}
-
-/* The balance's chip, a size down. */
-.ph-total-unit.ph-wrapped-unit {
-  gap: 0.3rem;
-  padding: 0.15rem 0.5rem 0.15rem 0.25rem;
-  font-size: var(--step--2);
-}
-
-/* --------------------------------------------------------------- cells */
-
-/*
- * Three across, hairlines between, running to the card's edges. The rules are
- * the grid's own gap showing the line colour behind it, so they meet without
- * a single border being drawn twice.
- */
-.ph-cells {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 1px;
-  margin: 0 -1.5rem;
-  border-top: 1px solid var(--line);
-  background: var(--line);
-}
-
-.ph-cell {
-  display: grid;
-  align-content: start;
-  gap: 0.2rem;
-  min-width: 0;
-  padding: 0.8rem 1.1rem 0.9rem;
-  background: var(--surface);
-}
-
-/* The outer cells line up with the card's own padding above them. */
-.ph-cell:first-child {
-  padding-left: 1.5rem;
-}
-
-.ph-cell:last-child {
-  padding-right: 1.5rem;
-}
-
-.ph-cell dt {
-  font-size: var(--step--2);
-  font-weight: 600;
-  color: var(--ink-3);
-}
-
-.ph-cell dd {
-  margin: 0;
-  min-width: 0;
-}
-
-.ph-fig {
-  font-size: var(--step-1);
-  font-weight: 700;
-  line-height: 1.2;
-  color: var(--ink);
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.ph-fig-wait {
-  display: block;
-  width: 6rem;
-  height: 1.2em;
-}
-
-/* -------------------------------------------------------------- phones */
-
-@media (max-width: 720px) {
-  .ph {
-    padding: 1.2rem 1.1rem 0;
-    gap: 1.1rem;
+@media (max-width: 1100px) {
+  /* Balance across the top; the three figures under it. */
+  .ph-stats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
-  /* Two across, and the floor cell takes the full second row: an odd third
-     cell in a two-column grid leaves an empty slot showing the rule colour
-     behind it as a grey block. */
-  .ph-cells {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    margin: 0 -1.1rem;
-  }
-
-  .ph-cell,
-  .ph-cell:first-child,
-  .ph-cell:last-child {
-    padding: 0.8rem 1.1rem 0.9rem;
-  }
-
-  .ph-cell:last-child {
+  .ph-stat-lead {
     grid-column: 1 / -1;
   }
 }
 
-/* WSOSO under the balance: the figure, the way back to SOSO, and one line
-   saying what it is. */
-.ph-wrapped-block {
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
+@media (max-width: 900px) {
+  .pf-collected {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1rem;
+  }
+
+  /*
+   * The side list becomes a row of chips that scrolls sideways, edge to edge
+   * of the screen. Not sticky: on a phone the screen is the grid's.
+   */
+  .pf-colls {
+    position: static;
+    max-height: none;
+    overflow: visible;
+    margin: 0 calc(-1 * var(--gutter));
+  }
+
+  .pf-colls-title {
+    display: none;
+  }
+
+  .pf-colls-list {
+    display: flex;
+    gap: 0.5rem;
+    padding: 0.1rem var(--gutter) 0.3rem;
+    overflow-x: auto;
+    scrollbar-width: none;
+    scroll-padding-inline: var(--gutter);
+  }
+
+  .pf-colls-list::-webkit-scrollbar {
+    display: none;
+  }
+
+  .pf-colls-list > li {
+    flex: none;
+  }
+
+  .pf-c {
+    grid-template-columns: 2rem auto;
+    grid-template-areas:
+      "thumb name"
+      "thumb meta";
+    width: auto;
+    max-width: 15rem;
+    padding: 0.4rem 0.75rem 0.4rem 0.4rem;
+    border-color: var(--line);
+    background: var(--surface);
+  }
+
+  .pf-c[aria-pressed="true"] {
+    border-color: var(--ink);
+    box-shadow: inset 0 0 0 1px var(--ink);
+  }
+
+  .pf-c-thumb {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 6px;
+  }
+
+  .pf-c-value,
+  .pf-c-bar {
+    display: none;
+  }
 }
 
-.ph-unwrap {
-  margin-left: 0.35rem;
-  padding: 0.15rem 0.55rem;
-  font-size: var(--step--2);
-  line-height: 1.4;
-}
+@media (max-width: 720px) {
+  .ph {
+    gap: 1.1rem;
+  }
 
-.ph-wrapped-note {
-  margin: 0;
-  max-width: 34ch;
-  font-size: var(--step--2);
-  line-height: 1.45;
-  color: var(--ink-3);
+  .ph-addr-text {
+    font-size: var(--step-1);
+  }
+
+  .ph-extra {
+    margin-left: 0;
+    flex-basis: 100%;
+  }
+
+  /* Two across under the balance; an odd last cell takes the row rather than
+     leaving a slot showing the rule colour as a grey block. */
+  .ph-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .ph-stat {
+    padding: 0.9rem 1rem 1rem;
+  }
+
+  .ph-stat:last-child:nth-child(even) {
+    grid-column: 1 / -1;
+  }
+
+  .ph-fig {
+    font-size: var(--step-1);
+  }
+
+  .pf-tabs {
+    gap: 1.4rem;
+    margin-bottom: 1.1rem;
+  }
+
+  /* Two rows, not three: search and sort side by side, the listed filter
+     across the full width under them. Three stacked 44px controls put the
+     first card under the fold on a phone. */
+  .pf-search {
+    flex: 1 1 0;
+  }
+
+  .pf-sort {
+    order: 1;
+    flex: 0 0 9.5rem;
+    min-width: 0;
+  }
+
+  .pf-seg {
+    order: 2;
+    flex: 1 1 100%;
+  }
+
+  .pf-seg button {
+    flex: 1 1 auto;
+    justify-content: center;
+    padding: 0 0.5rem;
+  }
+
+  .pf-cbar-head {
+    align-items: flex-start;
+  }
 }

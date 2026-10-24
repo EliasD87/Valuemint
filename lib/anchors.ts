@@ -13,3 +13,20 @@
 export function holdingsAnchor(collection: string): string {
   return `holdings-${collection.toLowerCase()}`;
 }
+
+/** The collection a `holdingsAnchor` hash names, or undefined for any other hash. */
+export function anchoredCollection(hash: string): string | undefined {
+  const m = /^#?holdings-(0x[0-9a-f]{40})$/i.exec(hash);
+  return m?.[1]?.toLowerCase();
+}
+
+/**
+ * Fired when something asks the portfolio to open one collection's holdings.
+ *
+ * The anchor alone is enough when the link lands on a fresh /portfolio, which
+ * reads the hash as it mounts. It is not enough when the reader is already
+ * there: the App Router changes a hash with `history.pushState`, which fires
+ * no `hashchange`, so the page would never hear about it. The link sends this
+ * as well, with the collection's address as the detail.
+ */
+export const HOLDINGS_FOCUS_EVENT = "valuemint:holdings-focus";

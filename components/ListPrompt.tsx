@@ -7,7 +7,7 @@ import { useDeferred } from "@/hooks/useDeferred";
 import { useHoldings } from "@/hooks/useHoldings";
 import Link from "next/link";
 import type { BulkListItem } from "@/components/BulkList";
-import { holdingsAnchor } from "@/lib/anchors";
+import { HOLDINGS_FOCUS_EVENT, holdingsAnchor } from "@/lib/anchors";
 import { formatCount } from "@/lib/format";
 import { Art } from "@/components/Art";
 import { soleArtworkFor } from "@/config/covers";
@@ -244,7 +244,12 @@ export function ListPrompt() {
             <Link
               className="lp-go"
               href={`/portfolio#${holdingsAnchor(g.address)}`}
-              onClick={close}
+              onClick={() => {
+                close();
+                /* Already on /portfolio, the hash change alone is never heard
+                   — see HOLDINGS_FOCUS_EVENT. */
+                window.dispatchEvent(new CustomEvent(HOLDINGS_FOCUS_EVENT, { detail: g.address }));
+              }}
             >
               List {formatCount(BigInt(g.items.length))}
             </Link>
