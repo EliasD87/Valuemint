@@ -79,7 +79,9 @@ const NAV: NavEntry[] = [
     ],
   },
   { to: "/portfolio", label: "Portfolio" },
-  { to: "/manage", label: "Manage" },
+  /* /manage is not here, deliberately (2026-10-24): the page still works for
+     anybody who types the address, and creating a collection still links to
+     it, but it is not one of the places the site sends a visitor. */
 ];
 
 export function Layout({ children }: { children: ReactNode }) {
