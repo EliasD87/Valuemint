@@ -166,6 +166,21 @@ export default function Trenches() {
     if (v >= 1 && v <= TIERS.length) setDepthPreview(v);
   }, []);
 
+  /* With depthPreview, the depth card shows that depth too, 57% of the way to the next. */
+  const previewState: State | undefined = (() => {
+    if (depthPreview === undefined) return undefined;
+    const t = TIERS[depthPreview - 1]!;
+    const nx = TIERS[depthPreview];
+    return {
+      kind: "done",
+      data: {
+        found: true,
+        tier: { n: t.n, name: t.name, min: t.min },
+        next: nx === undefined ? null : { n: nx.n, name: nx.name, min: nx.min, needed: Math.round(nx.min * 0.43) },
+      },
+    };
+  })();
+
   const statusOf = (t: Tier, i: number): Status | undefined => {
     if (depthPreview !== undefined) return t.n < depthPreview ? "claimed" : t.n === depthPreview ? "here" : "locked";
     if (claimed[i]) return "claimed";
@@ -201,8 +216,8 @@ export default function Trenches() {
 
             {/* The wallet's standing and the claim: what the page is for. */}
             <YourDepth
-              state={state}
-              connected={mounted && address !== undefined}
+              state={previewState ?? state}
+              connected={previewState !== undefined || (mounted && address !== undefined)}
               onRetry={() => address && void check(address)}
               onClaimed={() => void refetchReads()}
             />
@@ -329,8 +344,15 @@ function YourDepth({
 
   return (
     /* Black and white, not the depth's colour (owner, 2026-10-24); --from is set in trenches.css. */
-    <div className="card trx-you" aria-live="polite">
-      {/* Left: who they are and the ladder. Right: the next goal and the claim. */}
+    <div className={`card trx-you${tier !== undefined ? " has-art" : ""}`} aria-live="polite">
+      {/* The wallet's own depth: its character, on a glow of that depth's colour (owner, 2026-10-24). */}
+      {tier !== undefined ? (
+        <div className="trx-you-art" style={{ ["--c" as string]: tier.colour }} aria-hidden="true">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={`/trenches/art/${two(tier.n)}.webp`} alt="" />
+        </div>
+      ) : null}
+      {/* Who they are and the ladder, then the next goal and the claim. */}
       <div className="trx-you-main">
         {/* Fewer words (owner, 2026-10-24): the depth itself heads the card, no label above it. */}
         <div className="trx-you-top">

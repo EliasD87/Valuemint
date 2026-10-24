@@ -121,6 +121,74 @@
   width: 100%;
   padding: 0.85rem clamp(0.9rem, 2vw, 1.25rem);
 }
+/* With the wallet's depth known: its character as a sticker slapped on the
+   card's top-right corner (owner, 2026-10-24), hanging over the edge. */
+.trx-you.has-art {
+  position: relative;
+  overflow: visible;
+}
+
+.trx-you.has-art .trx-you-top {
+  padding-right: 4.75rem;
+}
+
+.trx-you-art {
+  position: absolute;
+  top: -3.2rem;
+  right: -0.9rem;
+  z-index: 2;
+  width: 5.5rem;
+  aspect-ratio: 1;
+  transform: rotate(8deg);
+  transition: transform var(--med);
+  isolation: isolate;
+  pointer-events: none;
+}
+
+.trx-you.has-art:hover .trx-you-art {
+  transform: rotate(3deg) scale(1.06);
+}
+
+/* A soft glow of the depth's colour under the sticker. */
+.trx-you-art::before {
+  content: "";
+  position: absolute;
+  inset: 8%;
+  z-index: -1;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--c) 75%, transparent), transparent);
+  filter: blur(14px);
+}
+
+/* The sticker: a white die-cut edge traced around the character, then its shadow. */
+.trx-you-art img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter:
+    drop-shadow(2.5px 0 0 #fff) drop-shadow(-2.5px 0 0 #fff) drop-shadow(0 2.5px 0 #fff) drop-shadow(0 -2.5px 0 #fff)
+    drop-shadow(0 6px 8px rgb(0 0 0 / 0.28));
+}
+
+@media (max-width: 520px) {
+  .trx-you-art {
+    top: -2.7rem;
+    right: -0.5rem;
+    width: 4.5rem;
+  }
+
+  .trx-you.has-art .trx-you-top {
+    padding-right: 2.75rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .trx-you-art {
+    transition: none;
+  }
+}
+
 .trx-you-main,
 .trx-you-side {
   display: flex;
