@@ -966,6 +966,21 @@
   word-break: break-all;
 }
 
+/* The links as one row across both of the old columns' tracks, ending at the
+   right edge, level with the brand line (48px mark, 24px links). */
+.footer-links {
+  grid-column: span 2;
+  align-self: start;
+  padding-top: 12px;
+}
+
+.footer-links ul {
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.4rem 1.75rem;
+}
+
 .footer-base {
   max-width: var(--page-max);
   margin: 0 auto;
@@ -1079,6 +1094,17 @@
   }
   .footer-col:last-child ul {
     align-items: flex-end;
+  }
+  /* The one row of links, centred under the centred brand. */
+  .footer-links.footer-links {
+    grid-column: 1 / -1;
+    padding-top: 0;
+    text-align: center;
+  }
+  .footer-links.footer-links ul {
+    justify-content: center;
+    align-items: center;
+    gap: 0.2rem 1.25rem;
   }
   /* The base line as one line of small print: the three notes in a row,
      centred, with a dot between each. */

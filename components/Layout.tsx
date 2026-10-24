@@ -327,14 +327,13 @@ export function Layout({ children }: { children: ReactNode }) {
           </div>
 
           {/*
-            Three links, and only three (2026-10-24). The columns repeated the
-            header's own navigation — Explore, Collections, Listings — and
-            listed chain plumbing (the chain id, the factory, the explorer's
-            front page) that a visitor never comes to the footer for. Two rows
-            of links now, not five.
+            Three links in one row, no headings (2026-10-24). The columns
+            repeated the header's own navigation — Explore, Collections,
+            Listings — and listed chain plumbing (the chain id, the factory,
+            the explorer's front page) that a visitor never comes to the
+            footer for. A nav landmark rather than a heading names the row.
           */}
-          <div className="footer-col">
-            <h3>Marketplace</h3>
+          <nav className="footer-col footer-links" aria-label="More">
             <ul>
               <li>
                 <Link href="/stats">Stats</Link>
@@ -345,15 +344,8 @@ export function Layout({ children }: { children: ReactNode }) {
               <li>
                 <Link href="/guide">Getting started</Link>
               </li>
-            </ul>
-          </div>
-
-          <div className="footer-col">
-            <h3>On chain</h3>
-            <ul>
               <li>
                 <a
-                  className="mono"
                   href={`${deployment.explorer}/address/${SEAPORT}`}
                   target="_blank"
                   rel="noreferrer noopener"
@@ -362,7 +354,7 @@ export function Layout({ children }: { children: ReactNode }) {
                 </a>
               </li>
             </ul>
-          </div>
+          </nav>
         </div>
 
         <div className="footer-base">
