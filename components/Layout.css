@@ -967,11 +967,12 @@
 }
 
 /* The links as one row across both of the old columns' tracks, ending at the
-   right edge, level with the brand line (48px mark, 24px links). */
+   right edge. Centred on the whole left block — the logo AND the sentence
+   under it — rather than level with the logo alone: at the top, the row left
+   the right half of the footer empty below it, and the band read lopsided. */
 .footer-links {
   grid-column: span 2;
-  align-self: start;
-  padding-top: 12px;
+  align-self: center;
 }
 
 .footer-links ul {
