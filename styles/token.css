@@ -629,6 +629,40 @@
   width: 100%;
 }
 
+/* app/token/[address]/[id]/loading.tsx: the name block's lines while the page loads. */
+.tk-load-line {
+  display: block;
+  height: 0.9rem;
+  border-radius: var(--r-sm);
+}
+
+.tk-load-title {
+  display: block;
+  width: 70%;
+  height: 1.8rem;
+  border-radius: var(--r-sm);
+}
+
+/* The order book has not answered yet: the price and the button's shapes, held. */
+.tk-checking {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.tk-checking-price {
+  display: block;
+  width: 7rem;
+  height: 1.9rem;
+  border-radius: var(--r-sm);
+}
+
+.tk-checking-btn {
+  display: block;
+  height: 40px;
+  border-radius: var(--r-pill);
+}
+
 .tk-unlisted,
 .tk-gone {
   margin: 0;

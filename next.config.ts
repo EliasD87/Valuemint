@@ -189,6 +189,18 @@ const nextConfig: NextConfig = {
         source: "/:file(soso-dark.png|soso-light.png|og.jpg)",
         headers: [{ key: "Cache-Control", value: "public, max-age=86400, stale-while-revalidate=604800" }],
       },
+      /**
+       * The site icons, for a week (2026-10-25).
+       *
+       * Next serves them with `max-age=0, must-revalidate`, so every page view
+       * re-asked for all three: 31,000 billed requests a week, more than any
+       * page. The links in the page carry a content hash (`/icon.png?icon.0u7…`),
+       * so a new icon is a new URL and a long cache cannot show an old one.
+       */
+      {
+        source: "/:file(icon.png|icon.svg|apple-icon.png)",
+        headers: [{ key: "Cache-Control", value: "public, max-age=604800, stale-while-revalidate=2592000" }],
+      },
     ];
   },
   /* The stats page was called Pulse and lived at /pulse. Permanent, so shared

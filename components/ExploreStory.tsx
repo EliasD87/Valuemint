@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { Art } from "@/components/Art";
+import { WarmLink } from "@/components/WarmLink";
 import { Soso } from "@/components/Soso";
 import { Wordmark } from "@/components/Wordmark";
 import { TopCollections } from "@/components/TopCollections";
@@ -396,7 +397,7 @@ function Mints({ collections }: { collections: readonly CollectionSummary[] }) {
                 const art = coverFor(c.address)?.[0];
                 const share = mintedShare(c.totalSupply, c.maxSupply);
                 return (
-                  <Link key={c.address} className="ex-mint" href={`/collection/${c.address}`} prefetch={false}>
+                  <WarmLink key={c.address} className="ex-mint" href={`/collection/${c.address}`}>
                     <span className="ex-mint-media">
                       {art === undefined ? null : (
                         // eslint-disable-next-line @next/next/no-img-element
@@ -421,7 +422,7 @@ function Mints({ collections }: { collections: readonly CollectionSummary[] }) {
                         <span className="ex-mint-count">{formatCount(c.publicMintRemaining)} left</span>
                       )}
                     </span>
-                  </Link>
+                  </WarmLink>
                 );
               })}
         </div>
@@ -441,11 +442,10 @@ function Featured({ market }: { market: Market }) {
         {FEATURED.map((piece, i) => {
           const m = market.get(piece.collection.toLowerCase());
           return (
-            <Link
+            <WarmLink
               key={`${piece.collection}-${piece.name}-${i}`}
               className="ex-tile"
               href={`/collection/${piece.collection}`}
-              prefetch={false}
             >
               <span className="ex-tile-media">
                 <Art src={piece.image} alt={piece.name} sizes="(max-width: 520px) 30vw, 180px" />
@@ -460,7 +460,7 @@ function Featured({ market }: { market: Market }) {
                   </>
                 )}
               </span>
-            </Link>
+            </WarmLink>
           );
         })}
       </div>

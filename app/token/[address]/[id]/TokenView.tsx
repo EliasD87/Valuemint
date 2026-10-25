@@ -156,7 +156,7 @@ export function TokenView({
     },
   });
 
-  const { listing, logsUnavailable } = useListingFor(collection, tokenId);
+  const { listing, isLoading: loadingListing, logsUnavailable } = useListingFor(collection, tokenId);
 
   /**
    * Whether the listing can actually be filled.
@@ -457,8 +457,19 @@ export function TokenView({
   const historyCount = historyRows.length;
   const pieceName = metadata?.name ?? `${collectionLabel} #${id}`;
 
+  /**
+   * The order book has not answered yet, so whether this is for sale is not
+   * known. The card used to say "Not for sale" and offer "Make offer" for the
+   * first seconds of every visit to a listed piece, then flip to its price
+   * (2026-10-24). An owner shown the sell form in that window could list a
+   * piece that is already listed, and end up with two prices.
+   */
+  const checkingListing = loadingListing && listing === undefined && !settling && !gone;
+
   /** What the badge over the trade card says. Colour only for the live state. */
-  const status = gone
+  const status = checkingListing
+    ? { text: "Checking…", tone: "quiet" }
+    : gone
     ? { text: "Burned", tone: "gone" }
     : settling
       ? { text: justListed ? "Listing…" : justBought ? "Settling…" : "Cancelling…", tone: "busy" }
@@ -738,6 +749,11 @@ export function TokenView({
                   ) : null}
                 </div>
               </>
+            ) : checkingListing ? (
+              <div className="tk-checking" role="status" aria-label="Checking whether this is for sale">
+                <span className="skeleton tk-checking-price" />
+                <span className="skeleton tk-checking-btn" />
+              </div>
             ) : settling ? (
               <p className="token-note">
                 {justListed

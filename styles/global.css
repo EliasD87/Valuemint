@@ -1663,3 +1663,23 @@ textarea {
   gap: 0.2rem;
   font-variant-numeric: tabular-nums;
 }
+
+/* app/collection/[address]/loading.tsx: the banner and name while a collection loads. */
+.coll-load-band {
+  width: 100%;
+  aspect-ratio: 4 / 1;
+  border-radius: var(--r-xl);
+}
+
+.coll-load-name {
+  width: min(16rem, 60%);
+  height: 1.8rem;
+  margin: 1.25rem 0 1.5rem;
+}
+
+@media (max-width: 700px) {
+  .coll-load-band {
+    aspect-ratio: 5 / 2;
+    border-radius: var(--r-lg);
+  }
+}

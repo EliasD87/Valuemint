@@ -5,6 +5,7 @@ import type { Hex } from "viem";
 import { decodeParams, type JsonOrderParameters } from "@/lib/indexRows";
 import { indexLagMs } from "@/lib/indexLag";
 import { readOrder, type OrderParameters, type ReadOrder } from "@/lib/seaport";
+import { decodeChecks, type ServerChecks, type WireChecks } from "@/lib/orderChecks";
 
 /**
  * The order book from the index, when there is one.
@@ -46,6 +47,12 @@ export interface IndexedCandidate {
 export interface IndexedBook {
   candidates: IndexedCandidate[];
   voidedAfter: Map<string, bigint>;
+  /**
+   * The server's status and fillability answers for these orders, when it
+   * had them. A head start for drawing the page; the browser's own reads
+   * replace them as they land (lib/orderChecks.ts).
+   */
+  checks?: ServerChecks;
 }
 
 interface Payload {
@@ -54,6 +61,7 @@ interface Payload {
   indexedBlock: number;
   indexedAt: string | null;
   servedAt?: string;
+  checks?: WireChecks;
 }
 
 /**
@@ -116,7 +124,8 @@ async function fetchBook(): Promise<IndexedBook | null> {
   if (process.env.NODE_ENV === "development") {
     console.info(`[order book] index: ${candidates.length} candidates`);
   }
-  return { candidates, voidedAfter };
+  const checks = decodeChecks(payload.checks);
+  return checks === undefined ? { candidates, voidedAfter } : { candidates, voidedAfter, checks };
 }
 
 export function useIndexedOrders(enabled = true) {

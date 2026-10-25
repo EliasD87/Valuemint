@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { WarmLink } from "@/components/WarmLink";
 import { useState } from "react";
 import { useAccount } from "wagmi";
 import { useTokenOffers } from "@/hooks/useTokenOffers";
@@ -203,9 +203,8 @@ export function TokenCard({
    */
   return (
     <article className={`tcard${pick?.on === true ? " is-picked" : ""}`}>
-      <Link
+      <WarmLink
         href={`/token/${collection}/${token.id}`}
-        prefetch={false}
         className="tcard-hit"
         aria-label={`${token.design ?? collectionName ?? "Token"} #${token.id.toString()}`}
       />
@@ -400,9 +399,9 @@ export function TokenCard({
           */}
           <span className="tcard-acts">
             {listing !== undefined && !isYours ? (
-              <Link className="tcard-buy-btn" href={`/token/${collection}/${token.id}`} prefetch={false}>
+              <WarmLink className="tcard-buy-btn" href={`/token/${collection}/${token.id}`}>
                 Buy
-              </Link>
+              </WarmLink>
             ) : null}
             {isConnected && !isYours && offersAllowed(collection) ? (
               <button type="button" className="tcard-offer-btn" onClick={() => setOffering(true)}>

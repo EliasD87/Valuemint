@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { WarmLink } from "@/components/WarmLink";
 import { useMemo } from "react";
 import { Soso } from "@/components/Soso";
 import { coverFor } from "@/config/covers";
@@ -87,7 +87,7 @@ export function TopCollections({
             const symbol = symbolOf(c);
             return (
               <li key={c.address}>
-                <Link href={`/collection/${c.address}`} className="tc-row tc-link" prefetch={false}>
+                <WarmLink href={`/collection/${c.address}`} className="tc-row tc-link">
                   <span className="tc-rank">{i + 1}</span>
                   <span className="tc-who">
                     {art === undefined ? (
@@ -120,7 +120,7 @@ export function TopCollections({
                   <span className="tc-num">
                     {c.listed === 0 ? <span className="tc-dim">—</span> : c.listed.toLocaleString("en-US")}
                   </span>
-                </Link>
+                </WarmLink>
               </li>
             );
           })}

@@ -1,8 +1,11 @@
 import { NextResponse, after } from "next/server";
 import { indexConfigured, select, selectAll } from "@/lib/supabase";
-import { CURSOR } from "@/lib/indexSync";
+import { CURSOR, indexClient } from "@/lib/indexSync";
 import { healIfCold } from "@/lib/indexHeal";
-import type { JsonOrderParameters } from "@/lib/indexRows";
+import { decodeParams, type JsonOrderParameters } from "@/lib/indexRows";
+import { checkOrders, type CheckTarget, type WireChecks } from "@/lib/orderChecks";
+import { readOrder } from "@/lib/seaport";
+import type { Hex } from "viem";
 
 /**
  * The order book, without making the visitor scan for it.
@@ -39,6 +42,45 @@ export const dynamic = "force-dynamic";
  * means a flood costs bandwidth rather than being paid for twice.
  */
 const MAX_ORDERS = 2_000;
+
+/**
+ * How long the chain gets to answer before the book goes out without its
+ * checks. A miss here only costs the head start: the browser asks the same
+ * questions itself, exactly as it did before the server did.
+ */
+const CHECK_BUDGET_MS = 8_000;
+
+/**
+ * The book's status and fillability answers, read once here instead of by
+ * every visitor (lib/orderChecks.ts). Undefined when the chain was slow or
+ * refused, which the client reads as "ask for yourself".
+ */
+async function checksFor(rows: OrderRowOut[]): Promise<WireChecks | undefined> {
+  const targets: CheckTarget[] = [];
+  for (const row of rows) {
+    try {
+      const params = decodeParams(row.params);
+      const read = readOrder(params);
+      if (read !== undefined) targets.push({ hash: row.order_hash as Hex, params, read });
+    } catch {
+      /* A row this build cannot decode is a row it does not price, here as in the browser. */
+    }
+  }
+  if (targets.length === 0) return undefined;
+
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<undefined>((resolve) => {
+    timer = setTimeout(() => resolve(undefined), CHECK_BUDGET_MS);
+  });
+  try {
+    return await Promise.race([checkOrders(indexClient(), targets), timeout]);
+  } catch (err) {
+    console.warn("[index] order checks failed; sending the book without them", err);
+    return undefined;
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 interface OrderRowOut {
   order_hash: string;
@@ -84,6 +126,7 @@ export async function GET(): Promise<NextResponse> {
     ]);
 
     const head = cursor[0];
+    const checks = await checksFor(orders);
 
     /**
      * If the cursor has gone cold, this read repairs it.
@@ -125,6 +168,12 @@ export async function GET(): Promise<NextResponse> {
         indexedAt: head?.updated_at ?? null,
         /** When this copy was built, so the client measures lag by server clocks (lib/indexLag.ts). */
         servedAt: new Date().toISOString(),
+        /**
+         * Each order's status and fillability as the chain answered just now,
+         * so a page can draw before its own reads land. A head start only:
+         * the browser re-asks and its answers win (lib/orderChecks.ts).
+         */
+        ...(checks === undefined ? {} : { checks }),
       },
       {
         headers: {

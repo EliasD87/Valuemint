@@ -14,22 +14,13 @@ import {
 } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useReadContracts } from "wagmi";
-import {
-  createPublicClient,
-  erc20Abi,
-  erc721Abi,
-  fallback,
-  http,
-  parseAbiItem,
-  type Address,
-  type ContractFunctionParameters,
-  type Hex,
-} from "viem";
+import { createPublicClient, fallback, http, parseAbiItem, type Address, type Hex } from "viem";
 import { RPC_HTTP, valuechain } from "@/config/chain";
 import { SEAPORT, SEAPORT_FROM_BLOCK, SeaportAbi } from "@/config/seaport";
 import { scanLogs } from "@/lib/logScan";
 import { capCandidates } from "@/lib/orderBook";
 import { useIndexedOrders } from "@/hooks/useIndexedOrders";
+import { fillabilityQuestions, type ServerChecks } from "@/lib/orderChecks";
 import {
   forgetSeenOrders,
   pendingOrdersServerSnapshot,
@@ -40,7 +31,6 @@ import {
   withdrawnSnapshot,
 } from "@/lib/pendingOrders";
 import {
-  ItemType,
   isExpired,
   orderBookFloor,
   readOrder,
@@ -105,20 +95,6 @@ const COUNTER_INCREMENTED = parseAbiItem(
   "event CounterIncremented(uint256 newCounter, address indexed offerer)",
 );
 
-
-/** ERC-1155 has no `ownerOf`; a holding is a balance. */
-const erc1155BalanceAbi = [
-  {
-    type: "function",
-    name: "balanceOf",
-    stateMutability: "view",
-    inputs: [
-      { name: "account", type: "address" },
-      { name: "id", type: "uint256" },
-    ],
-    outputs: [{ name: "", type: "uint256" }],
-  },
-] as const;
 
 /**
  * Its own client, because this runs outside a component's chain context - but
@@ -289,6 +265,16 @@ function useOrderBookSource(enabled: boolean) {
   const scan = useValidatedOrders(enabled && indexed.unavailable);
 
   const data = indexed.book ?? scan.data;
+  /**
+   * The server's answers about these same orders, when the index sent them.
+   *
+   * Used only where the browser has no answer of its own yet: they let the
+   * page draw at once instead of after its own reads, which on a slow node
+   * took 6-22 seconds (measured 2026-10-21). The browser still asks every
+   * question itself and its answers replace these as they land, and nothing
+   * is bought on them — the fill path checks the chain again first.
+   */
+  const server: ServerChecks | undefined = indexed.book?.checks;
   const scanning = indexed.isLoading || (indexed.unavailable && scan.isLoading);
   const error = indexed.unavailable ? scan.error : null;
 
@@ -384,7 +370,7 @@ function useOrderBookSource(enabled: boolean) {
         const entry = statuses?.[i];
         const result =
           statuses === undefined
-            ? memory.get(c.hash.toLowerCase())
+            ? (memory.get(c.hash.toLowerCase()) ?? server?.status.get(c.hash.toLowerCase()))
             : entry?.status === "success"
               ? (entry.result as [boolean, boolean, bigint, bigint])
               : undefined;
@@ -406,7 +392,7 @@ function useOrderBookSource(enabled: boolean) {
         return { ...c.read, hash: c.hash, params: c.params, blockNumber: c.blockNumber, filled, size };
       })
       .filter((o): o is Omit<SeaportOrder, "fillable"> => o !== undefined);
-  }, [candidates, statuses, data, withdrawn]);
+  }, [candidates, statuses, data, withdrawn, server]);
 
   /**
    * Can the maker still deliver what they promised?
@@ -433,80 +419,13 @@ function useOrderBookSource(enabled: boolean) {
    * then reports filled or cancelled — the index already dropped most of
    * those — and every order still needs both answers before it is shown.
    *
-   * Typed explicitly because the two branches use different ABIs, and inference
-   * over a mixed `flatMap` collapses to `unknown[]`.
+   * The questions themselves are built in `lib/orderChecks.ts`, because the
+   * orders route asks the same ones on the server and the answers are matched
+   * by key.
    */
-  const { fillabilityReads, fillSlots } = useMemo(() => {
-    const reads: ContractFunctionParameters[] = [];
-    /** One read per distinct question: key -> its place in `reads`. */
-    const asked = new Map<string, number>();
-    const ask = (key: string, read: ContractFunctionParameters) => {
-      const known = asked.get(key);
-      if (known !== undefined) return known;
-      reads.push(read);
-      asked.set(key, reads.length - 1);
-      return reads.length - 1;
-    };
-    /** Each order's two answers: where its first and second read sit in `reads`. */
-    const slots = new Map<string, [number, number]>();
-
-    for (const { read: o, params, hash } of candidates) {
-      const maker = o.maker.toLowerCase();
-      let first: number;
-      let second: number;
-      if (o.kind === "listing") {
-        const isMulti = params.offer[0]?.itemType === ItemType.ERC1155;
-        const token = o.tokenId ?? 0n;
-        const collection = o.collection.toLowerCase();
-        first = isMulti
-          ? ask(`balance1155:${collection}:${maker}:${token}`, {
-              address: o.collection,
-              abi: erc1155BalanceAbi,
-              functionName: "balanceOf" as const,
-              args: [o.maker, token],
-            })
-          : ask(`owner:${collection}:${token}`, {
-              address: o.collection,
-              abi: erc721Abi,
-              functionName: "ownerOf" as const,
-              args: [token],
-            });
-        /**
-         * Approval is per seller and collection, not per listing, so it is
-         * asked once however many pieces that seller has listed. It used to be
-         * asked per listing — 504 listings, 195 distinct sellers-by-collection
-         * on 2026-09-30 — and every one of those reads is bytes up and down a
-         * connection that, for the owner, is the slow part.
-         */
-        second = ask(`approval:${collection}:${maker}`, {
-          address: o.collection,
-          abi: erc721Abi,
-          functionName: "isApprovedForAll" as const,
-          args: [o.maker, SEAPORT],
-        });
-      } else {
-        /**
-         * A bid is only real while the money is. A bidder who spent or unwrapped
-         * their WSOSO leaves an offer a holder can accept, pay gas for, and watch
-         * revert — which is worse than the offer never showing at all.
-         */
-        const currency = o.currency.toLowerCase();
-        first = ask(`balance20:${currency}:${maker}`, {
-          address: o.currency,
-          abi: erc20Abi,
-          functionName: "balanceOf" as const,
-          args: [o.maker],
-        });
-        second = ask(`allowance:${currency}:${maker}`, {
-          address: o.currency,
-          abi: erc20Abi,
-          functionName: "allowance" as const,
-          args: [o.maker, SEAPORT],
-        });
-      }
-      slots.set(hash.toLowerCase(), [first, second]);
-    }
-    return { fillabilityReads: reads, fillSlots: slots };
+  const { fillabilityReads, fillSlots, fillKeys } = useMemo(() => {
+    const q = fillabilityQuestions(candidates);
+    return { fillabilityReads: q.reads, fillSlots: q.slots, fillKeys: q.keys };
   }, [candidates]);
 
   const { data: fillChecks, isError: fillChecksFailed } = useReadContracts({
@@ -524,7 +443,11 @@ function useOrderBookSource(enabled: boolean) {
   /** Each order's last fillability answer, by hash — see `statusMemory`. */
   const fillMemory = useRef(new Map<string, Pick<SeaportOrder, "fillable" | "unfillable">>());
   const checking =
-    standing.length > 0 && fillChecks === undefined && !fillChecksFailed && fillMemory.current.size === 0;
+    standing.length > 0 &&
+    fillChecks === undefined &&
+    !fillChecksFailed &&
+    fillMemory.current.size === 0 &&
+    server === undefined;
 
   const all = useMemo<SeaportOrder[]>(
     () =>
@@ -535,6 +458,15 @@ function useOrderBookSource(enabled: boolean) {
           if (known !== undefined) return { ...o, ...known };
         }
         const slot = fillSlots.get(o.hash.toLowerCase());
+        /* Nothing of our own yet: the server's answers to the same two questions, if it sent them. */
+        if (fillChecks === undefined && slot !== undefined && server !== undefined) {
+          const first = server.reads.get(fillKeys[slot[0]]!);
+          const second = server.reads.get(fillKeys[slot[1]]!);
+          if (first !== undefined && second !== undefined) {
+            const checks = { first, second };
+            return { ...o, fillable: resolveFillable(o, checks), unfillable: unfillableReason(o, checks) };
+          }
+        }
         /**
          * Three states, not two: not checked yet, checked and refused, checked
          * and answered. `resolveFillable` in `lib/seaport.ts` is the rule and
@@ -558,7 +490,7 @@ function useOrderBookSource(enabled: boolean) {
         if (checks !== undefined) fillMemory.current.set(o.hash.toLowerCase(), verdict);
         return { ...o, ...verdict };
       }),
-    [standing, fillChecks, fillSlots],
+    [standing, fillChecks, fillSlots, fillKeys, server],
   );
 
   /**
@@ -585,7 +517,7 @@ function useOrderBookSource(enabled: boolean) {
    * state for a second or two on every load and then fill in — which reads
    * as "nothing for sale" at exactly the moment somebody arrived to buy.
    */
-  const isLoading = scanning || (loadingStatus && statusMemory.current.size === 0) || checking;
+  const isLoading = scanning || (loadingStatus && statusMemory.current.size === 0 && server === undefined) || checking;
   /**
    * The feed is built from logs; if the endpoint refuses them, say so rather
    * than showing an empty market.

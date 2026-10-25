@@ -7,6 +7,7 @@ import {
   type TokenMetadata,
 } from "@/lib/tokenMetadata";
 import { gated } from "@/lib/fetchGate";
+import { proxiedDocUrl } from "@/lib/docProxy";
 
 /**
  * Sixty callers asking for sixty documents, one request on the wire.
@@ -199,7 +200,14 @@ export function loadTokenDocument(
     /** This host just refused everything; do not ask it once per card. */
     if (refusing(url)) return Promise.resolve(undefined);
 
-    return gated(url, () => fetchTokenMetadata(url, timeoutMs)).catch((error: unknown) => {
+    /**
+     * Through our edge when the host is one we proxy (lib/docProxy.ts), so the
+     * first visitor pays SoDEX's or the gateway's trip and the rest read a
+     * cached copy. Failures are still counted against the ORIGINAL host: a
+     * slow SoDEX must not make this site's own routes look like they failed.
+     */
+    const via = proxiedDocUrl(url) ?? url;
+    return gated(url, () => fetchTokenMetadata(via, timeoutMs)).catch((error: unknown) => {
       noteFailure(url, error);
       throw error;
     });
