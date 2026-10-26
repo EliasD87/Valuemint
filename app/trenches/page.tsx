@@ -228,7 +228,7 @@ export default function Trenches() {
 
           <figure className="trx-art">
             {/* The ten depths as an interactive deck (components/TrenchesDeck), opening on the wallet's depth. */}
-            <TrenchesDeck start={state.kind === "done" ? (state.data.tier?.n ?? undefined) : undefined} />
+            <TrenchesDeck start={state.kind === "done" ? (state.data.tier?.n ?? undefined) : undefined} claimed={minted} />
           </figure>
         </div>
       </section>

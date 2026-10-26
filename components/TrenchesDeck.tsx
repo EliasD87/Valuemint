@@ -25,7 +25,14 @@ import "./TrenchesDeck.css";
 const AUTOPLAY_MS = 3600;
 const n = TIERS.length;
 
-export function TrenchesDeck({ start }: { start?: number }) {
+export function TrenchesDeck({
+  start,
+  claimed,
+}: {
+  start?: number;
+  /** How many of each depth have been claimed, in depth order, once read. */
+  claimed?: readonly (number | undefined)[];
+}) {
   const [index, setIndex] = useState(0);
   const [touched, setTouched] = useState(false);
   const [hover, setHover] = useState(false);
@@ -119,7 +126,15 @@ export function TrenchesDeck({ start }: { start?: number }) {
               className={`tdeck-card is-pos-${pos > 2 ? (back ? "gone" : "hidden") : pos}`}
               aria-hidden={pos !== 0}
             >
-              <TrenchesFrame tier={t} meta={<b>{t.min === 0 ? "Any trade" : `${formatVolume(t.min)} volume`}</b>} />
+              <TrenchesFrame
+                tier={t}
+                meta={
+                  <>
+                    <b>{t.min === 0 ? "Any trade" : formatVolume(t.min)}</b>
+                    {claimed?.[i] === undefined ? null : claimed[i] === 0 ? " · none yet" : ` · ${claimed[i]!.toLocaleString()} claimed`}
+                  </>
+                }
+              />
               {pos === 0 ? <span className="tdeck-sheen" aria-hidden="true" /> : null}
             </div>
           );
