@@ -571,7 +571,7 @@ function BrandName() {
  * One path, drawn with `evenodd`, so the V is a hole rather than a second
  * colour - the disc takes `currentColor` and whatever sits behind shows
  * through the letter. That is what lets the same mark work on the page in
- * either theme and on the permanently dark footer, with no per-context fills.
+ * either theme, with no per-context fills.
  */
 function Mark() {
   return (

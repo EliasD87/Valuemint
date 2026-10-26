@@ -118,6 +118,36 @@ export const HIDDEN_COLLECTIONS: HiddenCollection[] = [
     reason: "Trading Beasts (BEAST) — one of three identically named ERC-1155s from 0x36a2D7e0…35C6.",
   },
   /**
+   * Layer 1, five times over.
+   *
+   * Five ERC-721s all named "Layer 1" (L1), all deployed by 0x501C304e…32Ad,
+   * none through our factory. They reached /mint and /collections through the
+   * explorer's token index as five identical rows, most without artwork — the
+   * same problem as Trading Beasts above. Hidden at the marketplace owner's
+   * request (2026-10-26); all five stay live on chain and reachable at
+   * /collection/<address>.
+   */
+  {
+    address: "0xF8006630ee239676e548f8bD41141E1e6b77CCaC",
+    reason: "Layer 1 (L1) — one of five identically named ERC-721s from 0x501C304e…32Ad.",
+  },
+  {
+    address: "0x107B4FE49e9eec1e118cc6A9FA4EAcb23EE411AB",
+    reason: "Layer 1 (L1) — one of five identically named ERC-721s from 0x501C304e…32Ad.",
+  },
+  {
+    address: "0x25E10394C3A7830658e5FB3cC7718D108DC2363C",
+    reason: "Layer 1 (L1) — one of five identically named ERC-721s from 0x501C304e…32Ad.",
+  },
+  {
+    address: "0x45feC58D55D8D4B4B64B4230042470A4CB6662A8",
+    reason: "Layer 1 (L1) — one of five identically named ERC-721s from 0x501C304e…32Ad.",
+  },
+  {
+    address: "0x719d3E1E34df9e8bBc59c54f9255f8e13aF3AbE1",
+    reason: "Layer 1 (L1) — one of five identically named ERC-721s from 0x501C304e…32Ad.",
+  },
+  /**
    * SoDEX's two test deployments, retired 2026-09-21.
    *
    * Both carry the real collections' own artwork on throwaway contracts, and
