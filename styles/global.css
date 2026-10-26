@@ -29,10 +29,27 @@
  * 1rem below 1280px, so phones and laptops are untouched, rising to 1.1875rem
  * (19px at a default root) by 1920 and holding there.
  */
+/*
+ * 15px on anything wider than a phone, whatever the screen (2026-10-26).
+ *
+ * This was `clamp(1rem, 0.469vw + 0.625rem, 1.1875rem)`: 16px at 1280,
+ * 17 at 1440 and 19 at 1920, and since nearly every size on the site is in
+ * rem, the whole site grew with the monitor. At 1536 the market fit four
+ * cards to a row and one row to a screen, where other marketplaces show six
+ * or seven. A fixed base keeps a big screen showing more, not bigger.
+ *
+ * Phones keep 16px: their layouts were tuned at that size (2026-10-18).
+ */
 html {
-  font-size: clamp(1rem, 0.469vw + 0.625rem, 1.1875rem);
+  font-size: 0.9375rem;
   -webkit-text-size-adjust: 100%;
   scroll-behavior: smooth;
+}
+
+@media (max-width: 700px) {
+  html {
+    font-size: 1rem;
+  }
 }
 
 body {
@@ -186,7 +203,7 @@ textarea {
  * there is no slack, so the whole site touched both edges.
  */
 .section {
-  padding-block: clamp(2.75rem, 5.5vw, 4.5rem);
+  padding-block: clamp(1.75rem, 3.5vw, 3rem);
 }
 
 /* A phone screen is short, and 44px of air per section boundary made pages feel
