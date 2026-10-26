@@ -1,0 +1,954 @@
+/* =============================================================== front ===
+ *
+ * The front page as an app, not a poster (2026-10-25): a main column of
+ * things to buy and a rail of what the market is doing. See
+ * components/Front.tsx.
+ *
+ * Quiet type, on purpose. The owner dislikes big bold fonts, so nothing here
+ * is heavier than 600 or larger than --step-1 except the banner's name, and
+ * headings use the body face rather than the display one. Hierarchy comes
+ * from size steps, colour and space instead of weight.
+ *
+ * Every colour is a token. The two exceptions are the spotlight's type and
+ * scrim, which sit on artwork rather than on the page — every banner picture
+ * has a dark ground, so white reads the same in either theme there, the
+ * reasoning hero.css gave for its deck labels.
+ * ========================================================================== */
+
+.fp {
+  /* How far the banner stands below the page's top edge: room for a cut-out
+     to break out over it. The rail starts at the same line. */
+  --fp-lift: clamp(0.85rem, 1.6vw, 1.3rem);
+  --fp-gap: clamp(1.5rem, 2.4vw, 2rem);
+
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) clamp(288px, 24vw, 340px);
+  gap: clamp(1.25rem, 2vw, 1.75rem);
+  align-items: start;
+  /* Nothing at the foot: the footer brings its own clearance, up to 6rem. */
+  padding-block: clamp(0.5rem, 1.2vw, 1rem) 0;
+}
+
+.fp-top {
+  grid-column: 1 / -1;
+  margin-top: calc(var(--fp-gap) - clamp(1.25rem, 2vw, 1.75rem));
+}
+
+.fp-main,
+.fp-rail {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.fp-main {
+  gap: var(--fp-gap);
+}
+
+.fp-rail {
+  gap: 0.85rem;
+  margin-top: var(--fp-lift);
+}
+
+.fp-block {
+  min-width: 0;
+}
+
+.fp-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* --- section heads ------------------------------------------------------- */
+
+.fp-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem 1rem;
+  margin-bottom: 0.85rem;
+}
+
+.fp-head-tools {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.fp-h {
+  margin: 0;
+  font-family: var(--sans);
+  font-size: var(--step-1);
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.015em;
+  color: var(--ink);
+}
+
+.fp-h-sm {
+  font-size: var(--step-0);
+  letter-spacing: -0.01em;
+}
+
+.fp-more {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-height: 30px;
+  font-size: var(--step--1);
+  font-weight: 500;
+  color: var(--ink-3);
+  white-space: nowrap;
+  transition: color var(--fast);
+}
+
+.fp-more svg {
+  transition: transform var(--fast);
+}
+
+.fp-more:hover {
+  color: var(--ink);
+}
+
+.fp-more:hover svg {
+  transform: translateX(2px);
+}
+
+/* Newest / Cheapest. Pressed is ink on paper, which reads as "on" in both
+   themes — a raised surface does not, because dark's surfaces are lighter
+   than its wells and light's are not. */
+.fp-seg {
+  display: inline-flex;
+  padding: 2px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  background: var(--surface-2);
+}
+
+.fp-seg button {
+  min-height: 28px;
+  padding: 0 0.75rem;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: transparent;
+  color: var(--ink-3);
+  font: inherit;
+  font-size: var(--step--2);
+  font-weight: 500;
+  cursor: pointer;
+  transition: background var(--fast), color var(--fast);
+}
+
+.fp-seg button:hover {
+  color: var(--ink);
+}
+
+.fp-seg button[aria-pressed="true"] {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+/* --- spotlight ----------------------------------------------------------- */
+
+.fp-spot {
+  position: relative;
+  isolation: isolate;
+  /* Short on purpose: the pieces for sale are the page, and the first row of
+     them has to clear the fold on a laptop. */
+  height: clamp(212px, 16.5vw, 248px);
+  margin-top: var(--fp-lift);
+  border-radius: var(--r-xl);
+  background: var(--dark-2);
+  color: #fff;
+  /* A hairline over the artwork, so a dark picture on a dark page still has
+     an edge. Inset, so it costs no layout. */
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+/*
+ * Every slide in the same place; only the one on show is opaque.
+ *
+ * The visible state is the declared one and needs no animation to reach — the
+ * transition only smooths a change. `visibility` follows the fade out, so a
+ * hidden slide takes no clicks, on top of `inert` keeping it out of the tab
+ * order.
+ */
+.fp-slide {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 600ms var(--ease), visibility 0s linear 600ms;
+}
+
+.fp-slide.is-on {
+  z-index: 1;
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 600ms var(--ease), visibility 0s;
+}
+
+/* The picture is clipped to the banner; the cut-out beside it is not, which
+   is why the rounding lives here and not on `.fp-spot`. */
+.fp-slide-art {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+}
+
+.fp-slide-art img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scale(1.04);
+  transition: transform 7s linear;
+}
+
+.fp-slide.is-on .fp-slide-art img {
+  transform: scale(1);
+}
+
+/* Dark on the left where the words are, clear on the right where the art is. */
+.fp-slide-art::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(6, 6, 8, 0.84) 0%, rgba(6, 6, 8, 0.6) 32%, rgba(6, 6, 8, 0.1) 66%, rgba(6, 6, 8, 0) 100%),
+    linear-gradient(0deg, rgba(6, 6, 8, 0.42) 0%, rgba(6, 6, 8, 0) 36%);
+}
+
+.fp-slide-fg {
+  position: absolute;
+  right: 5%;
+  bottom: 0;
+  z-index: 2;
+  /* Taller than the banner by its own lift, so the figure stands out over the
+     top edge — the one thing that says this is not a flat picture. */
+  height: calc(100% + var(--fp-lift));
+  width: auto;
+  max-width: 44%;
+  object-fit: contain;
+  object-position: bottom right;
+  pointer-events: none;
+  filter: drop-shadow(0 12px 22px rgba(0, 0, 0, 0.4));
+  /* The figure stands on the banner's floor, so its shadow stops there too:
+     without this the blur spilled a grey smudge onto the page below. Clipping
+     applies after the filter, and only the bottom edge is cut. */
+  clip-path: inset(-50% -50% 0 -50%);
+}
+
+.fp-slide-body {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  height: 100%;
+  max-width: min(34rem, 62%);
+  padding: clamp(1.15rem, 2.6vw, 2.1rem);
+}
+
+.fp-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: var(--step--3);
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.66);
+}
+
+.fp-eyebrow::before {
+  content: "";
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+/* The one larger line on the page, and still only semibold. */
+.fp-slide-name {
+  margin: 0.45rem 0 0;
+  font-family: var(--sans);
+  font-size: clamp(1.35rem, 2.1vw, 1.8rem);
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: #fff;
+  text-wrap: balance;
+}
+
+.fp-slide-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0;
+  margin: 0.85rem 0 0;
+}
+
+.fp-slide-stats > div {
+  padding: 0 1rem;
+  border-left: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+.fp-slide-stats > div:first-child {
+  padding-left: 0;
+  border-left: 0;
+}
+
+.fp-slide-stats dt {
+  font-size: var(--step--3);
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.fp-slide-stats dd {
+  margin: 0.15rem 0 0;
+  font-size: var(--step-0);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: #fff;
+}
+
+.fp-slide-actions {
+  margin-top: 1rem;
+}
+
+.fp-btn-light {
+  padding: 0.5rem 1rem;
+  border-color: transparent;
+  background: #fff;
+  color: #0c0c0e;
+  font-size: var(--step--2);
+  font-weight: 600;
+}
+
+.fp-btn-light:hover {
+  background: #ececef;
+  color: #0c0c0e;
+}
+
+/* Which slide. Avatar-only until chosen, so four of them fit beside the copy. */
+.fp-tabs {
+  position: absolute;
+  right: clamp(0.75rem, 1.4vw, 1.1rem);
+  bottom: clamp(0.75rem, 1.4vw, 1.1rem);
+  z-index: 4;
+  display: flex;
+  gap: 0.3rem;
+}
+
+.fp-tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  height: 32px;
+  padding: 3px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: var(--r-pill);
+  background: rgba(10, 10, 12, 0.45);
+  backdrop-filter: blur(10px);
+  color: rgba(255, 255, 255, 0.86);
+  font: inherit;
+  font-size: var(--step--3);
+  font-weight: 500;
+  cursor: pointer;
+  transition: background var(--fast), color var(--fast), border-color var(--fast);
+}
+
+.fp-tab:hover {
+  border-color: rgba(255, 255, 255, 0.36);
+}
+
+.fp-tab img {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex: none;
+}
+
+.fp-tab-name {
+  display: none;
+  padding-right: 0.5rem;
+  white-space: nowrap;
+}
+
+.fp-tab.is-on {
+  border-color: transparent;
+  background: rgba(255, 255, 255, 0.94);
+  color: #0c0c0e;
+}
+
+.fp-tab.is-on .fp-tab-name {
+  display: inline;
+}
+
+/* How long until the next slide. Decoration only: nothing waits on it. */
+.fp-tab-bar {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 2px;
+  background: currentColor;
+  opacity: 0;
+  transform: scaleX(0);
+  transform-origin: left;
+}
+
+.fp-spot[data-playing] .fp-tab.is-on .fp-tab-bar {
+  opacity: 0.35;
+  animation: fp-fill var(--dur) linear forwards;
+}
+
+@keyframes fp-fill {
+  to {
+    transform: scaleX(1);
+  }
+}
+
+/* --- for sale ------------------------------------------------------------ */
+
+.fp-chips {
+  display: flex;
+  gap: 0.4rem;
+  margin: 0 0 0.95rem;
+  padding-bottom: 2px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  /* The last chip fades rather than being cut, so the row reads as one that
+     scrolls. */
+  mask-image: linear-gradient(90deg, #000 calc(100% - 2rem), transparent);
+}
+
+.fp-chips::-webkit-scrollbar {
+  display: none;
+}
+
+.fp-chip {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 0.45rem;
+  height: 34px;
+  padding: 0 0.55rem 0 4px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  color: var(--ink-2);
+  font: inherit;
+  font-size: var(--step--2);
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background var(--fast), border-color var(--fast), color var(--fast);
+}
+
+.fp-chip:last-child {
+  margin-right: 2rem;
+}
+
+.fp-chip:hover {
+  border-color: var(--line-strong);
+  color: var(--ink);
+}
+
+.fp-chip img,
+.fp-chip-blank,
+.fp-chip-all {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  flex: none;
+}
+
+.fp-chip img {
+  object-fit: cover;
+}
+
+.fp-chip-blank {
+  background: var(--surface-2);
+}
+
+/* "All", drawn as four tiles. */
+.fp-chip-all {
+  display: grid;
+  grid-template-columns: repeat(2, 6px);
+  place-content: center;
+  gap: 2px;
+  background: var(--surface-2);
+}
+
+.fp-chip-all i {
+  width: 6px;
+  height: 6px;
+  border-radius: 1.5px;
+  background: currentColor;
+  opacity: 0.7;
+}
+
+.fp-chip-n {
+  min-width: 1.4rem;
+  padding: 0.08rem 0.38rem;
+  border-radius: var(--r-pill);
+  background: var(--surface-2);
+  color: var(--ink-3);
+  font-size: var(--step--3);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.fp-chip[aria-pressed="true"] {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.fp-chip[aria-pressed="true"] .fp-chip-n,
+.fp-chip[aria-pressed="true"] .fp-chip-all {
+  background: color-mix(in srgb, var(--paper) 16%, transparent);
+  color: var(--paper);
+}
+
+/*
+ * Two full rows, whatever the width.
+ *
+ * Eight cards are read. Four columns show all of them; three would leave a
+ * row of two, so at three the seventh and eighth go and the grid is two rows
+ * of three. Sized off the column's own width, not the window's, because the
+ * column is narrower than the window by a rail.
+ */
+.fp-sale {
+  container-type: inline-size;
+}
+
+.fp-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: clamp(0.7rem, 1.2vw, 1rem);
+}
+
+@container (max-width: 760px) {
+  .fp-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .fp-grid > :nth-child(n + 7) {
+    display: none;
+  }
+}
+
+@container (max-width: 520px) {
+  .fp-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/*
+ * The shared card, a step quieter here.
+ *
+ * TokenCard sets its title at 700 and its price at 750 for /market, where it
+ * is the only thing on the page. Here it sits beside a rail and a banner, and
+ * the owner wants nothing loud, so the front page lowers the weights and the
+ * price a size — without touching the card everywhere else.
+ */
+.fp-grid .tcard-title {
+  font-size: var(--step--1);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.fp-grid .tcard-amount {
+  font-size: var(--step-0);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.fp-grid .tcard-amount .soso-unit {
+  font-weight: 500;
+}
+
+.fp-grid .tcard-ribbon {
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+
+.fp-grid .tcard-buy-btn,
+.fp-grid .tcard-offer-btn {
+  font-weight: 600;
+}
+
+.fp-grid .tcard-offer-best b {
+  font-weight: 600;
+}
+
+.fp-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 1.5rem;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--r-lg);
+  font-size: var(--step--1);
+  color: var(--ink-3);
+}
+
+.fp-empty b {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+/* The ranking, at the same quiet weights as everything around it. */
+.fp-top .tc-names b,
+.fp-top .tc-num .soso-amount,
+.fp-top .tc-up,
+.fp-top .tc-down {
+  font-weight: 500;
+}
+
+.fp-top .tc-headrow,
+.fp-top .tc-rank {
+  font-weight: 500;
+}
+
+/* --- rail cards ---------------------------------------------------------- */
+
+.fp-card {
+  padding: 0.95rem 1rem 0.8rem;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+}
+
+.fp-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.fp-quiet {
+  margin: 0 0 0.25rem;
+  font-size: var(--step--1);
+  color: var(--ink-3);
+}
+
+/*
+ * The market, on the same surface as every other card.
+ *
+ * It was on the inverted band (`--dark`) with an accent wash in one corner,
+ * which made it the one thing on the page in neither theme: a black slab on
+ * white, and a brown-lit one on dark. The owner called it out of theme. The
+ * figures now sit in wells instead, which gives the card its structure
+ * without a colour of its own.
+ */
+.fp-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: var(--step--3);
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--up);
+}
+
+.fp-live i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 0 0 currentColor;
+  animation: fp-ping 2.4s ease-out infinite;
+}
+
+@keyframes fp-ping {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, currentColor 60%, transparent);
+  }
+  70%,
+  100% {
+    box-shadow: 0 0 0 6px transparent;
+  }
+}
+
+.fp-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.45rem;
+  margin: 0.4rem 0 0;
+}
+
+/* A well nested inside a card is `--surface-2` — `--paper-2` equals
+   `--surface` in dark, and would vanish. */
+.fp-stat {
+  padding: 0.6rem 0.7rem 0.65rem;
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+}
+
+.fp-stat dt {
+  font-size: var(--step--3);
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  color: var(--ink-3);
+}
+
+.fp-stat dd {
+  margin: 0.25rem 0 0;
+  font-size: var(--step-0);
+  font-weight: 500;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
+.fp-stat-wait {
+  display: inline-block;
+  width: 4rem;
+  height: 1.1rem;
+}
+
+.fp-pulse-foot {
+  margin: 0.7rem 0 0.05rem;
+  font-size: var(--step--2);
+  color: var(--ink-3);
+}
+
+/* --- rail lists ---------------------------------------------------------- */
+
+.fp-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin: 0 -0.5rem;
+  padding: 0;
+  list-style: none;
+}
+
+.fp-row-link {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.42rem 0.5rem;
+  border-radius: var(--r-md);
+  color: inherit;
+  transition: background var(--fast);
+}
+
+.fp-row-link:hover {
+  background: var(--surface-2);
+}
+
+.fp-row-wait {
+  display: block;
+  height: 40px;
+  margin: 0.42rem 0.5rem;
+  border-radius: var(--r-md);
+}
+
+.fp-thumb {
+  display: block;
+  width: 40px;
+  height: 40px;
+  overflow: hidden;
+  border-radius: 11px;
+  background: var(--surface-2);
+  /* A hairline, so a white-ground avatar does not dissolve into a white card. */
+  box-shadow: inset 0 0 0 1px var(--ring);
+}
+
+.fp-thumb-sm {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+}
+
+.fp-thumb img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.fp-row-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.fp-row-text b {
+  overflow: hidden;
+  font-size: var(--step--1);
+  font-weight: 500;
+  color: var(--ink);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.fp-row-sub {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: var(--step--3);
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.fp-bar {
+  display: block;
+  height: 3px;
+  margin-top: 0.15rem;
+  overflow: hidden;
+  border-radius: var(--r-pill);
+  background: var(--line);
+}
+
+.fp-bar i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--accent);
+}
+
+.fp-row-cta {
+  padding: 0.3rem 0.75rem;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-pill);
+  font-size: var(--step--3);
+  font-weight: 500;
+  color: var(--ink);
+  transition: background var(--fast), color var(--fast), border-color var(--fast);
+}
+
+.fp-row-link:hover .fp-row-cta {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.fp-row-price {
+  font-size: var(--step--1);
+  font-weight: 500;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* --- narrower ------------------------------------------------------------ */
+
+/*
+ * One column below a laptop, in reading order: banner and listings, then the
+ * rail's cards side by side where they fit, then the ranking.
+ */
+@media (max-width: 1080px) {
+  .fp {
+    display: flex;
+    flex-direction: column;
+    /* Stretch, not the grid's `start`: in a column that would shrink every
+       section to its content, and the banner has none — it measured 0px. */
+    align-items: stretch;
+    gap: var(--fp-gap);
+  }
+
+  .fp-rail {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(19rem, 100%), 1fr));
+    align-items: start;
+    margin-top: 0;
+  }
+
+  .fp-top {
+    margin-top: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .fp-spot {
+    height: 240px;
+  }
+
+  /* The copy moves to the bottom and takes the full width; the scrim follows it. */
+  .fp-slide-body {
+    justify-content: flex-end;
+    max-width: 100%;
+    padding: 1rem 1rem 1.05rem;
+  }
+
+  .fp-slide-art::after {
+    background: linear-gradient(0deg, rgba(6, 6, 8, 0.9) 0%, rgba(6, 6, 8, 0.55) 50%, rgba(6, 6, 8, 0.05) 82%);
+  }
+
+  /* No room to stand beside the words, and over them it costs the words. */
+  .fp-slide-fg {
+    display: none;
+  }
+
+  .fp-slide-stats {
+    margin-top: 0.6rem;
+  }
+
+  .fp-slide-stats > div {
+    padding: 0 0.75rem;
+  }
+
+  .fp-slide-stats dd {
+    font-size: var(--step--1);
+  }
+
+  .fp-slide-actions {
+    margin-top: 0.75rem;
+  }
+
+  .fp-tabs {
+    top: 0.75rem;
+    bottom: auto;
+  }
+
+  .fp-tab.is-on .fp-tab-name {
+    display: none;
+  }
+
+  .fp-head {
+    margin-bottom: 0.7rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fp-slide,
+  .fp-slide.is-on,
+  .fp-slide-art img {
+    transition: none;
+  }
+
+  .fp-slide-art img {
+    transform: none;
+  }
+
+  .fp-live i {
+    animation: none;
+  }
+}
