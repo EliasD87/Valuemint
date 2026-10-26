@@ -36,12 +36,7 @@ interface Props {
    * every caller has it to hand; the card falls back further when it is absent.
    */
   collectionName?: string;
-  /**
-   * The price is all a card reads. Narrowed to it (2026-10-25) so the front
-   * page can draw a listing it has from the index, before the browser's own
-   * order book has rebuilt the full Seaport order around it.
-   */
-  listing?: Pick<Listing, "price">;
+  listing?: Listing;
   owner?: `0x${string}`;
   viewerAddress?: `0x${string}`;
   /**
