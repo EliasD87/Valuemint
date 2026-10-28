@@ -17,7 +17,7 @@ import { Wordmark } from "@/components/Wordmark";
 import { wordmarkSaying } from "@/config/wordmarks";
 import { bundledArtworkFor, soleArtworkFor } from "@/config/covers";
 import { offersAllowed } from "@/config/kols";
-import { countsForNextDraw } from "@/config/treasureDraw";
+import { useNextDraw } from "@/hooks/useNextDraw";
 import { DrawBadge } from "@/components/DrawBadge";
 import "./TokenCard.css";
 import { Soso } from "@/components/Soso";
@@ -191,6 +191,8 @@ export function TokenCard({
   const offer =
     offers.length === 0 ? undefined : { count: offers.length, best: offers[0]!.priceWei };
   const [offering, setOffering] = useState(false);
+  /* This week's cut-off for SoDEX's draw (config/treasureDraw.ts); one request for the whole grid. */
+  const nextDraw = useNextDraw();
 
   /**
    * The card used to be a single `<Link>` wrapping everything, which left
@@ -276,7 +278,7 @@ export function TokenCard({
         {/* SoDEX's next Treasure Box draw counts only boxes minted after the
             last snapshot (config/treasureDraw.ts). Bottom-left, clear of the
             tier ribbon across the top. */}
-        {countsForNextDraw(collection, token.id) ? <DrawBadge variant="card" /> : null}
+        {nextDraw.counts(collection, token.id) ? <DrawBadge variant="card" /> : null}
       </div>
 
       <div className="tcard-body">

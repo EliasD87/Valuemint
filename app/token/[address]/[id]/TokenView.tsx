@@ -18,7 +18,7 @@ import { splitFee } from "@/lib/seaport";
 import { priceMoved } from "@/lib/fillCheck";
 import { Offers } from "@/components/Offers";
 import { offersAllowed } from "@/config/kols";
-import { countsForNextDraw } from "@/config/treasureDraw";
+import { useNextDraw } from "@/hooks/useNextDraw";
 import { DrawBadge } from "@/components/DrawBadge";
 import { TxResult } from "@/components/TxResult";
 import { FillBlocked } from "@/components/FillBlocked";
@@ -252,6 +252,8 @@ export function TokenView({
   /** The offer dialog, the same one a card opens. */
   const [offering, setOffering] = useState(false);
   const sosoUsd = useSosoPrice();
+  /** This week's Treasure Box cut-off (config/treasureDraw.ts). */
+  const nextDraw = useNextDraw();
   /**
    * Counts for the two tab labels. Both are the queries the panels themselves
    * mount, so React Query hands back the same data rather than reading twice.
@@ -645,7 +647,7 @@ export function TokenView({
                 <span className="chip">{trait(metadata, "Edition")}</span>
               ) : null}
               {isOwner ? <span className="chip chip-up">You own this</span> : null}
-              {!gone && countsForNextDraw(collection, tokenId) ? <DrawBadge variant="chip" /> : null}
+              {!gone && nextDraw.counts(collection, tokenId) ? <DrawBadge variant="chip" /> : null}
             </div>
           </header>
 
