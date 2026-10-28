@@ -150,13 +150,22 @@ export const COLLECTION_HEROES: Record<string, HeroArt> = {
     The scene sits at 80% so the desktop band (~4.3:1) never crops it.
     1280x554, CRF 20, faststart, 52 KB; the loop WebP is 17 KB. The old files
     stay in public/heroes for a rollback.
+
+    Then a still instead, the same day (owner: "make an image for the cover,
+    the video thing is not really a good idea"). `genesis-wall-*.webp`: the
+    four helmets in a row on a dark graffiti wall, each over a thin light bar
+    in its tier's colour — Seedream 4.5 Edit through Magnific with the helmet
+    row as reference (metadata/genesis-redesign/banner). Dark on purpose: the
+    band's scrim darkens the bottom edge, which is what made the white video
+    look grey. 21:9 source, so the desktop band (~4.9:1) keeps its middle 48%,
+    where the row sits whole; phones keep 86%. 1600 wide, 99 KB, the name
+    carries a content hash so no browser shows an old take.
   */
   "0x5fadc59297e86acea20bff519aea0f9651cdc90b": {
-    video: {
-      src: "/heroes/genesis-blink-df78b21c.mp4",
-      still: "/heroes/genesis-blink-df78b21c-still.webp",
-      fallback: "/heroes/genesis-blink-df78b21c-loop.webp",
-    },
+    background: "/heroes/genesis-wall-5bab47ae.webp",
+    /* The row spans 27-66% of the height and the desktop band keeps ~43%, so
+       the window is centred on the row (46.5%), not on the picture. */
+    position: "center 44%",
   },
 
   /*
