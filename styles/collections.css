@@ -32,6 +32,8 @@
  * empty space.
  */
 .coll-cover {
+  /* Positioned for the OG sash (components/OgRibbon.css). */
+  position: relative;
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: 1fr;

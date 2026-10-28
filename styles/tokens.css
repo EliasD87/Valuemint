@@ -115,6 +115,15 @@
    */
   --verified: #1d7fd4;
 
+  /* The OG sash (components/OgRibbon.css). It lies on artwork, not on the
+     page, so it is the same dark band in both themes. The gold is Genesis's
+     own yellow, kept apart from --legendary so it does not read as a rarity. */
+  --og-band: #0e0e10;
+  --og-band-ink: #f7ecd2;
+  --og-band-shadow: rgba(0, 0, 0, 0.35);
+  --og-ring: rgba(240, 180, 40, 0.85);
+  --og-shine: rgba(255, 205, 90, 0.55);
+
   /* --- rarity ------------------------------------------------------------ */
   --legendary: #8a5200; /* 3.9:1 on its wash before; now 5.6:1 */
   --legendary-wash: #fff5e0;
@@ -350,6 +359,12 @@
   --epic-wash: #1e1730;
   /* Lifted for a dark ground. The tick is drawn in --paper on top of it. */
   --verified: #4aa3f0;
+  /* The OG sash sits on artwork, so it keeps the light block's values. */
+  --og-band: #0e0e10;
+  --og-band-ink: #f7ecd2;
+  --og-band-shadow: rgba(0, 0, 0, 0.35);
+  --og-ring: rgba(240, 180, 40, 0.85);
+  --og-shine: rgba(255, 205, 90, 0.55);
 
   --rare: #58b6f5;
   --rare-wash: #0e1f2e;

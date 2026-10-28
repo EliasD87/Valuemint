@@ -6,6 +6,7 @@ import { Art } from "@/components/Art";
 import { Wordmark } from "@/components/Wordmark";
 import { VerifiedMark } from "@/components/VerifiedMark";
 import { TradingMark } from "@/components/TradingMark";
+import { OgRibbon } from "@/components/OgRibbon";
 import { wordmarkFor } from "@/config/wordmarks";
 import { shortAddress } from "@/lib/format";
 
@@ -98,6 +99,7 @@ export function CollectionCard({ href, name, symbol, address, images, badge, sta
             {initials}
           </span>
         )}
+        <OgRibbon collection={address} />
       </div>
 
       <div className="coll-card-body">
