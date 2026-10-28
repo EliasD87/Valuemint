@@ -1,0 +1,125 @@
+/**
+ * The Genesis frame (components/GenesisFrame.tsx). Every size is in container
+ * units of the media slot. The tier colour (--c) is the site's own rarity
+ * palette for Legendary, Epic and Rare, which already shifts with the theme;
+ * Common and sealed take a neutral silver instead of --common's brown, because
+ * the Common artwork is grey and a brown light round it reads as a mistake.
+ */
+
+/* The slot is taller than square when framed: window, then the nameplate. */
+.tcard-media.is-framed {
+  aspect-ratio: 100 / 116;
+  background: linear-gradient(180deg, var(--surface) 0%, var(--surface-2) 100%);
+}
+
+.gframe {
+  position: absolute;
+  inset: 0;
+  container-type: inline-size;
+  --c: var(--ink-3);
+  --c-ink: color-mix(in srgb, var(--c) 78%, var(--ink));
+}
+.gframe[data-tone="legendary"] {
+  --c: var(--legendary);
+}
+.gframe[data-tone="epic"] {
+  --c: var(--epic);
+}
+.gframe[data-tone="rare"] {
+  --c: var(--rare);
+}
+
+/* The window, lit round its edge in the tier's colour. */
+.gframe-window {
+  position: absolute;
+  left: 5cqw;
+  right: 5cqw;
+  top: 5cqw;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: 2.6cqw;
+  background: var(--paper);
+  box-shadow:
+    0 0 0 0.5cqw var(--c),
+    0 0 3.2cqw 0.3cqw color-mix(in srgb, var(--c) 42%, transparent);
+}
+
+.gframe-window img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* The nameplate. */
+.gframe-foot {
+  position: absolute;
+  left: 6.5cqw;
+  right: 6.5cqw;
+  top: 99cqw;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 3cqw;
+}
+
+.gframe-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1.3cqw;
+  min-width: 0;
+}
+
+.gframe-word {
+  font-size: 4.6cqw;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.gframe-word span {
+  color: var(--c-ink);
+}
+
+.gframe-tier {
+  font-size: 3.4cqw;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+
+.gframe-mono {
+  flex: none;
+  width: 9.5cqw;
+  height: 9.5cqw;
+}
+
+.gframe-hex {
+  fill: none;
+  stroke: var(--c);
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+}
+
+.gframe-v {
+  fill: var(--c-ink);
+}
+
+/* The small light at the foot, as on the reference card. */
+.gframe-bar {
+  position: absolute;
+  left: 50%;
+  bottom: 2.2cqw;
+  width: 9cqw;
+  height: 0.9cqw;
+  border-radius: 1cqw;
+  background: var(--c);
+  box-shadow: 0 0 2.2cqw 0.2cqw color-mix(in srgb, var(--c) 60%, transparent);
+  translate: -50% 0;
+}

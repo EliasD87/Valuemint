@@ -137,12 +137,25 @@ export const COLLECTION_HEROES: Record<string, HeroArt> = {
     browser that refused the video.
 
     It replaced `genesis.webp`, the six-panel still, which is no longer drawn.
+
+    2026-10-28, with the graffiti art: `genesis-blink-df78b21c.mp4` — the four rarity
+    helmets in a row on white, perfectly still, and only the eye lights close
+    and open, Rare then Epic then Legendary (Common is unlit by design). Owner:
+    "just a loop of them closing and opening the eye thing, nothing big", after
+    a Kling take that floated and turned them. So it is built, not generated:
+    metadata/genesis-redesign/cover-video/blink.cjs draws a lit band round each
+    eye's centre line that narrows to a slit and reopens, over a lights-off
+    copy of the eye. 96 frames, 4s, every frame outside the eyes identical;
+    first and last frames are the same picture, so the crossfade is invisible.
+    The scene sits at 80% so the desktop band (~4.3:1) never crops it.
+    1280x554, CRF 20, faststart, 52 KB; the loop WebP is 17 KB. The old files
+    stay in public/heroes for a rollback.
   */
   "0x5fadc59297e86acea20bff519aea0f9651cdc90b": {
     video: {
-      src: "/heroes/genesis.mp4",
-      still: "/heroes/genesis-still.webp",
-      fallback: "/heroes/genesis-loop.webp",
+      src: "/heroes/genesis-blink-df78b21c.mp4",
+      still: "/heroes/genesis-blink-df78b21c-still.webp",
+      fallback: "/heroes/genesis-blink-df78b21c-loop.webp",
     },
   },
 

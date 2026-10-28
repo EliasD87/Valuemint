@@ -26,6 +26,7 @@ import { SealedNotice } from "@/components/Unrevealed";
 import { CollectionStats } from "@/components/CollectionStats";
 import { PageTabs, type TabDef } from "@/components/PageTabs";
 import { KOLS_COLLECTION, offersAllowed } from "@/config/kols";
+import { hasGenesisFrame } from "@/components/GenesisFrame";
 
 /**
  * Any ERC-721 on ValueChain, not only ours.
@@ -531,6 +532,7 @@ export function CollectionView({ params }: { params: Promise<{ address: string }
                         page never did.
                       */
                       priority={i < 4}
+                      framed={hasGenesisFrame(collection)}
                     />
                   ))}
                 </div>
