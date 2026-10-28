@@ -74,26 +74,31 @@ export const HELD_BACK: Record<string, HeldBack> = {
     (tx 0x5485cc0b…df2e84). #86-#100 stay sealed — revealing them while unminted
     would show which design each id carries, and mints go in id order.
 
+    2026-10-28: #86, the one piece minted since, was revealed the same way
+    (QmZkFWdC…). #87-#100 stay sealed.
+
     The tiers below are what is left of the pot, derived from the live manifest
-    (declared design counts minus the 85 published): 7 Common, 6 Rare, 1 Epic,
-    1 Legendary, totalling 15. Before the partial reveal it was 10/10/2/1 of 23.
+    (declared design counts minus the 86 published): 6 Common, 6 Rare, 1 Epic,
+    1 Legendary, totalling 14. It was 7/6/1/1 of 15 before #86, and 10/10/2/1
+    of 23 before the first partial reveal.
   */
   "0x5fadc59297e86acea20bff519aea0f9651cdc90b": {
-    count: 15,
+    count: 14,
     tiers: [
-      { name: "Common", count: 7 },
+      { name: "Common", count: 6 },
       { name: "Rare", count: 6 },
       { name: "Epic", count: 1 },
       { name: "Legendary", count: 1 },
     ],
     commitmentTx: "0x3763dc71d4c82ce6830634ac4e0220bc1e2a72d387b243000fae813d4fd0a27f",
-    /* The manifest Genesis points at since the partial reveal: #1-#85 published. */
-    hiddenCid: "QmaiYADuP5ZzM5v9n4nNeoDtoHopvu6V8KmUhZyCryT3ea",
+    /* The manifest Genesis points at since the second partial reveal: #1-#86 published. */
+    hiddenCid: "QmZkFWdCNJFPNsjvjus9AZ6quJxU3AVgrCVWSCT8BCHKt5",
     /* Set by the owner, 2026-09-23, as 2 October; moved by the owner to
        15 October on 2026-10-02 for the pieces still unminted after the first
-       reveal, and to 30 October on 2026-10-19. Revealing is one setBaseURI,
-       so the date can always be beaten, never missed. */
-    revealBy: "2026-10-30",
+       reveal, to 30 October on 2026-10-19, and to 10 November on 2026-10-28.
+       Revealing is one setBaseURI, so the date can always be beaten, never
+       missed. */
+    revealBy: "2026-11-10",
   },
 };
 
