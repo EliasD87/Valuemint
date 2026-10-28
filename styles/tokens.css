@@ -123,20 +123,6 @@
   --og-band-shadow: rgba(0, 0, 0, 0.35);
   --og-ring: rgba(240, 180, 40, 0.85);
   --og-shine: rgba(255, 205, 90, 0.55);
-  /* The Genesis card (components/GenesisFrame.css): brushed aluminium here,
-     gunmetal in the dark block. The neon is a light source, so it is the
-     same in both themes. */
-  --genesis-metal-hi: #fbfbfc;
-  --genesis-metal-lo: #e2e4e9;
-  --genesis-metal-edge: #c9ccd3;
-  --genesis-metal-glint: rgba(255, 255, 255, 0.9);
-  --genesis-well: #101114;
-  --genesis-shadow: rgba(0, 0, 0, 0.5);
-  --genesis-glint: rgba(255, 255, 255, 0.55);
-  --genesis-neon-common: #dfe8f5;
-  --genesis-neon-rare: #3aa8ff;
-  --genesis-neon-epic: #b46bff;
-  --genesis-neon-legendary: #ffb53a;
 
   /* --- rarity ------------------------------------------------------------ */
   --legendary: #8a5200; /* 3.9:1 on its wash before; now 5.6:1 */
@@ -379,17 +365,6 @@
   --og-band-shadow: rgba(0, 0, 0, 0.35);
   --og-ring: rgba(240, 180, 40, 0.85);
   --og-shine: rgba(255, 205, 90, 0.55);
-  --genesis-metal-hi: #2b2c32;
-  --genesis-metal-lo: #121316;
-  --genesis-metal-edge: #3b3d45;
-  --genesis-metal-glint: rgba(255, 255, 255, 0.07);
-  --genesis-well: #08090b;
-  --genesis-shadow: rgba(0, 0, 0, 0.6);
-  --genesis-glint: rgba(255, 255, 255, 0.45);
-  --genesis-neon-common: #dfe8f5;
-  --genesis-neon-rare: #3aa8ff;
-  --genesis-neon-epic: #b46bff;
-  --genesis-neon-legendary: #ffb53a;
 
   --rare: #58b6f5;
   --rare-wash: #0e1f2e;

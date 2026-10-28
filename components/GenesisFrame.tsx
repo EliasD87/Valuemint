@@ -8,28 +8,22 @@ export function hasGenesisFrame(collection: string | undefined): boolean {
   return collection?.toLowerCase() === GENESIS;
 }
 
-const TONES = ["common", "rare", "epic", "legendary"] as const;
-type Tone = (typeof TONES)[number];
-
 /**
- * A Genesis piece as the collection page presents it — the owner's Hypebeast
- * card reference, second pass (2026-10-28: "the cards do not look like what I
- * sent you … make it interactive and a lot better").
+ * A Genesis piece as the collection page presents it: the artwork in a window
+ * and a nameplate under it — "ValueChain Genesis" and the tier. (A V monogram
+ * sat at its right until the owner had it removed, 2026-10-28.)
  *
- * The token card itself becomes the metal card (`.tcard.is-framed`, and it
- * tilts through TiltCard); this draws what sits on it: a recessed window lit
- * round its inside edge in the tier's neon, the helmet cut out and floating
- * over a spray-painted backdrop in the tier's colour, and a nameplate —
- * "ValueChain Genesis", the tier, a lit V monogram — with a light at the foot.
+ * Deliberately plain (owner, 2026-10-28). A metal card with a neon window
+ * that tilted toward the pointer was built and pushed the same day, and the
+ * owner asked for this simpler one back "without any glowing border or bottom
+ * line" — so no lit ring round the window and no light bar at the foot.
  *
- * Every design in a tier is the same picture since the art went on chain, so
- * the window draws the tier's own cutout and backdrop (public/art/genesis/
- * frame-1, made by metadata/genesis-redesign/frame) rather than the token's
- * image, the way TrenchesFrame draws its depth. Anything without a tier — a
- * sealed piece, a document still loading — falls back to the card's own art.
+ * It sits INSIDE the token card's media slot rather than replacing the card,
+ * so price, offers and the link keep working. It follows the theme, and the
+ * tier colour is only on the word "Genesis". Sizes are in
+ * container units of the slot, so it is the same picture at any width.
  *
- * Presentation only: the NFT's image is untouched. Motion reads TiltCard's
- * --gx/--gy; with a touch screen or reduced motion the card is simply still.
+ * Presentation only: the NFT's own image is untouched.
  */
 export function GenesisFrame({
   tier,
@@ -40,40 +34,22 @@ export function GenesisFrame({
   tier: string | undefined;
   /** For a sealed piece: what goes where the tier would, e.g. "Reveals Nov 10". */
   sealedLabel?: string;
-  /** The card's own art, drawn when there is no tier picture to use. */
+  /** The artwork, already drawn by the card. */
   children: ReactNode;
 }) {
   const key = tier?.toLowerCase();
-  const tone: Tone | undefined = TONES.find((t) => t === key);
+  const tone = key === "legendary" || key === "epic" || key === "rare" ? key : sealedLabel !== undefined ? "sealed" : "common";
   return (
-    <div className="gframe" data-tone={tone ?? (sealedLabel !== undefined ? "sealed" : "common")}>
-      <div className="gframe-window">
-        {tone !== undefined ? (
-          <>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img className="gframe-bg" src={`/art/genesis/frame-1/bg-${tone}.webp`} alt="" aria-hidden="true" decoding="async" />
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img className="gframe-art" src={`/art/genesis/frame-1/cut-${tone}.webp`} alt={`${tier} helmet`} decoding="async" />
-          </>
-        ) : (
-          children
-        )}
-        <span className="gframe-neon" aria-hidden="true" />
-        <span className="gframe-glint" aria-hidden="true" />
-      </div>
-      <div className="gframe-plate">
+    <div className="gframe" data-tone={tone}>
+      <div className="gframe-window">{children}</div>
+      <div className="gframe-foot">
         <span className="gframe-text">
           <span className="gframe-word">
             ValueChain <span>Genesis</span>
           </span>
           <span className="gframe-tier">{tier ?? sealedLabel ?? " "}</span>
         </span>
-        <svg className="gframe-mono" viewBox="0 0 40 40" aria-hidden="true">
-          <path className="gframe-hex" d="M20 2.5 35.2 11.25v17.5L20 37.5 4.8 28.75v-17.5z" />
-          <path className="gframe-v" d="M12.5 13h4.6L20 22.6 22.9 13h4.6L22 28h-4z" />
-        </svg>
       </div>
-      <span className="gframe-bar" aria-hidden="true" />
     </div>
   );
 }

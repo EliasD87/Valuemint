@@ -20,7 +20,6 @@ import { offersAllowed } from "@/config/kols";
 import { useNextDraw } from "@/hooks/useNextDraw";
 import { DrawBadge } from "@/components/DrawBadge";
 import { GenesisFrame } from "@/components/GenesisFrame";
-import { TiltCard } from "@/components/TiltCard";
 import "./TokenCard.css";
 import { Soso } from "@/components/Soso";
 
@@ -225,8 +224,8 @@ export function TokenCard({
    * and the offer button sitting above that overlay. The whole card is still
    * one target; the button is a smaller one on top of it.
    */
-  const card = (
-    <article className={`tcard${framed ? " is-framed" : ""}${pick?.on === true ? " is-picked" : ""}`}>
+  return (
+    <article className={`tcard${pick?.on === true ? " is-picked" : ""}`}>
       <WarmLink
         href={`/token/${collection}/${token.id}`}
         className="tcard-hit"
@@ -464,13 +463,6 @@ export function TokenCard({
       ) : null}
     </article>
   );
-
-  /*
-   * A framed card is a physical card, and leans toward the pointer. Safe with
-   * the offer dialog inside: it is portalled to <body>, so the tilt's
-   * transform cannot become its containing block.
-   */
-  return framed ? <TiltCard className="tcard-tilt">{card}</TiltCard> : card;
 }
 
 export function TokenCardSkeleton() {
