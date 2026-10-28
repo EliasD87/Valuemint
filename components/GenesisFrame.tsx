@@ -8,19 +8,28 @@ export function hasGenesisFrame(collection: string | undefined): boolean {
   return collection?.toLowerCase() === GENESIS;
 }
 
+const TONES = ["common", "rare", "epic", "legendary"] as const;
+type Tone = (typeof TONES)[number];
+
 /**
- * A Genesis piece as the collection page presents it (owner, 2026-10-28, from
- * the same Hypebeast card reference as `TrenchesFrame`): the artwork in a
- * window lit in its tier's colour, and a nameplate under it — "ValueChain
- * Genesis", the tier, and a V monogram — with a small light bar at the foot.
+ * A Genesis piece as the collection page presents it — the owner's Hypebeast
+ * card reference, second pass (2026-10-28: "the cards do not look like what I
+ * sent you … make it interactive and a lot better").
  *
- * It sits INSIDE the token card's media slot rather than replacing the card,
- * so price, offers and the link keep working; the card is the metal around it.
- * Like TrenchesFrame it follows the theme (white where the site is white) and
- * the tier colour is only on the accents. Sizes are in container units of the
- * slot, so it is the same picture at any width.
+ * The token card itself becomes the metal card (`.tcard.is-framed`, and it
+ * tilts through TiltCard); this draws what sits on it: a recessed window lit
+ * round its inside edge in the tier's neon, the helmet cut out and floating
+ * over a spray-painted backdrop in the tier's colour, and a nameplate —
+ * "ValueChain Genesis", the tier, a lit V monogram — with a light at the foot.
  *
- * Presentation only: the NFT's own image is untouched.
+ * Every design in a tier is the same picture since the art went on chain, so
+ * the window draws the tier's own cutout and backdrop (public/art/genesis/
+ * frame-1, made by metadata/genesis-redesign/frame) rather than the token's
+ * image, the way TrenchesFrame draws its depth. Anything without a tier — a
+ * sealed piece, a document still loading — falls back to the card's own art.
+ *
+ * Presentation only: the NFT's image is untouched. Motion reads TiltCard's
+ * --gx/--gy; with a touch screen or reduced motion the card is simply still.
  */
 export function GenesisFrame({
   tier,
@@ -31,15 +40,28 @@ export function GenesisFrame({
   tier: string | undefined;
   /** For a sealed piece: what goes where the tier would, e.g. "Reveals Nov 10". */
   sealedLabel?: string;
-  /** The artwork, already drawn by the card. */
+  /** The card's own art, drawn when there is no tier picture to use. */
   children: ReactNode;
 }) {
   const key = tier?.toLowerCase();
-  const tone = key === "legendary" || key === "epic" || key === "rare" ? key : sealedLabel !== undefined ? "sealed" : "common";
+  const tone: Tone | undefined = TONES.find((t) => t === key);
   return (
-    <div className="gframe" data-tone={tone}>
-      <div className="gframe-window">{children}</div>
-      <div className="gframe-foot">
+    <div className="gframe" data-tone={tone ?? (sealedLabel !== undefined ? "sealed" : "common")}>
+      <div className="gframe-window">
+        {tone !== undefined ? (
+          <>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img className="gframe-bg" src={`/art/genesis/frame-1/bg-${tone}.webp`} alt="" aria-hidden="true" decoding="async" />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img className="gframe-art" src={`/art/genesis/frame-1/cut-${tone}.webp`} alt={`${tier} helmet`} decoding="async" />
+          </>
+        ) : (
+          children
+        )}
+        <span className="gframe-neon" aria-hidden="true" />
+        <span className="gframe-glint" aria-hidden="true" />
+      </div>
+      <div className="gframe-plate">
         <span className="gframe-text">
           <span className="gframe-word">
             ValueChain <span>Genesis</span>

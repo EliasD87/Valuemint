@@ -1,35 +1,67 @@
 /**
- * The Genesis frame (components/GenesisFrame.tsx). Every size is in container
- * units of the media slot. The tier colour (--c) is the site's own rarity
- * palette for Legendary, Epic and Rare, which already shifts with the theme;
- * Common and sealed take a neutral silver instead of --common's brown, because
- * the Common artwork is grey and a brown light round it reads as a mistake.
+ * The Genesis card (components/GenesisFrame.tsx, TokenCard's `framed`).
+ *
+ * Sizes inside the art slot are container units of the slot. Colour:
+ *   --genesis-metal-*   the card body, from tokens.css; light aluminium in the
+ *                       light theme, gunmetal in the dark (it follows the
+ *                       theme, as the owner asked of the Trenches card)
+ *   --genesis-neon-*    the tier's light, the same in both themes: it is a
+ *                       light source, not a surface
  */
 
-/* The slot is taller than square when framed: window, then the nameplate. */
+/* ------------------------------------------------------- the metal card */
+
+.tcard.is-framed {
+  background: linear-gradient(165deg, var(--genesis-metal-hi) 0%, var(--genesis-metal-lo) 100%);
+  border-color: var(--genesis-metal-edge);
+  box-shadow:
+    inset 0 1px 0 var(--genesis-metal-glint),
+    inset 0 -1px 0 var(--genesis-metal-edge),
+    var(--shadow-md);
+}
+
+/* The card's hover zoom on its art would fight the parallax. */
+.tcard.is-framed:hover .tcard-media img {
+  transform: none;
+}
+
+/* The tilt replaces the lift; both at once fight. */
+.tcard.is-framed:hover {
+  transform: none;
+  box-shadow:
+    inset 0 1px 0 var(--genesis-metal-glint),
+    inset 0 -1px 0 var(--genesis-metal-edge),
+    var(--shadow-lg);
+}
+
 .tcard-media.is-framed {
-  aspect-ratio: 100 / 116;
-  background: linear-gradient(180deg, var(--surface) 0%, var(--surface-2) 100%);
+  aspect-ratio: 100 / 117;
+  background: transparent;
+  border-bottom: 1px solid var(--genesis-metal-edge);
+}
+.tcard-media.is-framed::after {
+  display: none;
 }
 
 .gframe {
   position: absolute;
   inset: 0;
   container-type: inline-size;
-  --c: var(--ink-3);
-  --c-ink: color-mix(in srgb, var(--c) 78%, var(--ink));
-}
-.gframe[data-tone="legendary"] {
-  --c: var(--legendary);
-}
-.gframe[data-tone="epic"] {
-  --c: var(--epic);
+  --c: var(--genesis-neon-common);
+  --c-ink: color-mix(in srgb, var(--c) 62%, var(--ink));
 }
 .gframe[data-tone="rare"] {
-  --c: var(--rare);
+  --c: var(--genesis-neon-rare);
+}
+.gframe[data-tone="epic"] {
+  --c: var(--genesis-neon-epic);
+}
+.gframe[data-tone="legendary"] {
+  --c: var(--genesis-neon-legendary);
 }
 
-/* The window, lit round its edge in the tier's colour. */
+/* ----------------------------------------------------------- the window */
+
 .gframe-window {
   position: absolute;
   left: 5cqw;
@@ -37,26 +69,107 @@
   top: 5cqw;
   aspect-ratio: 1;
   overflow: hidden;
-  border-radius: 2.6cqw;
-  background: var(--paper);
+  isolation: isolate;
+  border-radius: 3cqw;
+  background: var(--genesis-well);
+  /* The lip of the metal round the recess, then the light it throws out. */
   box-shadow:
-    0 0 0 0.5cqw var(--c),
-    0 0 3.2cqw 0.3cqw color-mix(in srgb, var(--c) 42%, transparent);
+    0 0 0 0.55cqw var(--genesis-metal-edge),
+    0 0 4.5cqw 0.4cqw color-mix(in srgb, var(--c) 34%, transparent);
+  transition: box-shadow 260ms var(--ease);
 }
 
-.gframe-window img {
+/*
+ * `.gframe` in front of each image rule: TokenCard.css sets every
+ * `.tcard-media img` to 100% x 100% cover, which is more specific than a
+ * single class and stretched both layers.
+ */
+
+/* Oversized so the parallax never shows an edge. */
+.gframe .gframe-bg {
+  position: absolute;
+  inset: -5%;
+  width: 110%;
+  height: 110%;
+  /* The global img rule caps width at 100%, which left a dark strip down the
+     right and along the bottom of the window. */
+  max-width: none;
+  max-height: none;
+  object-fit: cover;
+  translate: calc((50% - var(--gx, 50%)) * 0.06) calc((50% - var(--gy, 50%)) * 0.06);
+  transition: translate 380ms var(--ease);
+}
+
+/* About two thirds of the window, so the backdrop and the neon have room. */
+.gframe .gframe-art {
+  position: absolute;
+  inset: 13%;
+  width: 74%;
+  height: 74%;
+  object-fit: contain;
+  filter: drop-shadow(0 2.4cqw 2.6cqw var(--genesis-shadow));
+  translate: calc((var(--gx, 50%) - 50%) * 0.07) calc((var(--gy, 50%) - 50%) * 0.07);
+  scale: 1;
+  transition:
+    translate 380ms var(--ease),
+    scale 380ms var(--ease);
+}
+
+/* The fallback art (sealed or loading) fills the window as it always did. */
+.gframe-window > img:not(.gframe-bg):not(.gframe-art),
+.gframe-window > .tcard-placeholder {
   display: block;
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
-/* The nameplate. */
-.gframe-foot {
+/*
+ * The neon: a bright line just inside the edge, and its light spilling inward
+ * over the art. It breathes slowly; the resting state is the lit one, so it
+ * reads the same if the animation never runs.
+ */
+.gframe-neon {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow:
+    inset 0 0 0 0.45cqw var(--c),
+    inset 0 0 0 0.9cqw color-mix(in srgb, var(--c) 30%, transparent),
+    inset 0 0 5cqw 0.6cqw color-mix(in srgb, var(--c) 42%, transparent);
+  animation: gframe-breathe 3.2s ease-in-out infinite alternate;
+}
+
+@keyframes gframe-breathe {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0.72;
+  }
+}
+
+/* A glint that follows the pointer across the glass. */
+.gframe-glint {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  background: radial-gradient(55% 45% at var(--gx, 50%) var(--gy, 0%), var(--genesis-glint), transparent 70%);
+  mix-blend-mode: screen;
+  opacity: 0;
+  transition: opacity 240ms var(--ease);
+}
+
+/* --------------------------------------------------------- the nameplate */
+
+.gframe-plate {
   position: absolute;
   left: 6.5cqw;
   right: 6.5cqw;
-  top: 99cqw;
+  top: 98.5cqw;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -66,15 +179,15 @@
 .gframe-text {
   display: flex;
   flex-direction: column;
-  gap: 1.3cqw;
+  gap: 1.4cqw;
   min-width: 0;
 }
 
 .gframe-word {
-  font-size: 4.6cqw;
+  font-size: 4.7cqw;
   font-weight: 600;
   line-height: 1;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--ink);
   white-space: nowrap;
@@ -85,10 +198,10 @@
 }
 
 .gframe-tier {
-  font-size: 3.4cqw;
+  font-size: 3.3cqw;
   font-weight: 500;
   line-height: 1;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--ink-3);
   white-space: nowrap;
@@ -96,14 +209,15 @@
 
 .gframe-mono {
   flex: none;
-  width: 9.5cqw;
-  height: 9.5cqw;
+  width: 10cqw;
+  height: 10cqw;
+  filter: drop-shadow(0 0 1.2cqw color-mix(in srgb, var(--c) 55%, transparent));
 }
 
 .gframe-hex {
-  fill: none;
+  fill: color-mix(in srgb, var(--c) 10%, transparent);
   stroke: var(--c);
-  stroke-width: 1.6;
+  stroke-width: 1.7;
   stroke-linejoin: round;
 }
 
@@ -115,11 +229,54 @@
 .gframe-bar {
   position: absolute;
   left: 50%;
-  bottom: 2.2cqw;
-  width: 9cqw;
+  bottom: 2.4cqw;
+  width: 10cqw;
   height: 0.9cqw;
   border-radius: 1cqw;
   background: var(--c);
-  box-shadow: 0 0 2.2cqw 0.2cqw color-mix(in srgb, var(--c) 60%, transparent);
+  box-shadow: 0 0 2.4cqw 0.3cqw color-mix(in srgb, var(--c) 65%, transparent);
   translate: -50% 0;
+  transition: width 260ms var(--ease);
+}
+
+/* --------------------------------------------------- under the pointer */
+
+.tilt-inner.is-tilting .gframe-window {
+  box-shadow:
+    0 0 0 0.55cqw var(--genesis-metal-edge),
+    0 0 7cqw 1cqw color-mix(in srgb, var(--c) 55%, transparent);
+}
+.tilt-inner.is-tilting .gframe-neon {
+  animation: none;
+  opacity: 1;
+  box-shadow:
+    inset 0 0 0 0.5cqw var(--c),
+    inset 0 0 0 1.1cqw color-mix(in srgb, var(--c) 40%, transparent),
+    inset 0 0 7cqw 1cqw color-mix(in srgb, var(--c) 55%, transparent);
+}
+.tilt-inner.is-tilting .gframe-glint {
+  opacity: 0.55;
+}
+.tilt-inner.is-tilting .gframe .gframe-art {
+  scale: 1.05;
+  transition:
+    translate 120ms ease-out,
+    scale 380ms var(--ease);
+}
+.tilt-inner.is-tilting .gframe .gframe-bg {
+  transition: translate 120ms ease-out;
+}
+.tilt-inner.is-tilting .gframe-bar {
+  width: 16cqw;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gframe-neon {
+    animation: none;
+  }
+  .gframe .gframe-art,
+  .gframe .gframe-bg {
+    translate: none;
+    transition: none;
+  }
 }
