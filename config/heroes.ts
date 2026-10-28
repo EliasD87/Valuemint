@@ -161,11 +161,17 @@ export const COLLECTION_HEROES: Record<string, HeroArt> = {
     where the row sits whole; phones keep 86%. 1600 wide, 99 KB, the name
     carries a content hash so no browser shows an old take.
   */
+  /*
+    And simpler still (owner: "keep it simple … use text"):
+    `genesis-text-*.webp` — "VALUECHAIN GENESIS" in the site's Geist at 600,
+    spaced, with "Four tiers · one hundred helmets" under it on the left, and
+    the four helmets (the background-removed NFT pictures) small on the right,
+    on one flat dark ground. No wall, no light bars, no glow. Rendered from
+    metadata/genesis-redesign/banner/text.html at 2800x1200; everything sits in
+    the middle strip the desktop band keeps, and phones see the full width.
+  */
   "0x5fadc59297e86acea20bff519aea0f9651cdc90b": {
-    background: "/heroes/genesis-wall-5bab47ae.webp",
-    /* The row spans 27-66% of the height and the desktop band keeps ~43%, so
-       the window is centred on the row (46.5%), not on the picture. */
-    position: "center 44%",
+    background: "/heroes/genesis-text-f7cae990.webp",
   },
 
   /*
