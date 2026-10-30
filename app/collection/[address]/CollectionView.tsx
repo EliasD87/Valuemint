@@ -1,5 +1,6 @@
 "use client";
 
+import type { CollectionFiguresSeed } from "@/lib/collectionFigures";
 import { use, useMemo, useState } from "react";
 import Link from "next/link";
 import { useAccount } from "wagmi";
@@ -93,6 +94,8 @@ export interface CollectionSeed {
   symbol?: string;
   /** Pieces minted, as a decimal string (a bigint does not cross to the client). */
   minted?: string;
+  /** Floor, listed and volumes, worked out on the server (lib/collectionFigures.ts). */
+  figures?: CollectionFiguresSeed;
 }
 
 export function CollectionView({ params, seed }: { params: Promise<{ address: string }>; seed?: CollectionSeed }) {
@@ -360,7 +363,11 @@ export function CollectionView({ params, seed }: { params: Promise<{ address: st
         supply={shownSupply}
       />
 
-      <CollectionStats collection={collection} supply={shownSupply} />
+      <CollectionStats
+        collection={collection}
+        supply={shownSupply}
+        {...(seed?.figures === undefined ? {} : { seed: seed.figures })}
+      />
 
       {/* On a phone the mint card leads, above the offers and the tabs, where it
           is the page's one primary action; on a desktop it stays in the sidebar. */}

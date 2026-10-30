@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
-import { indexConfigured, select, selectAll } from "@/lib/supabase";
-import { CURSOR } from "@/lib/indexSync";
-import type { JsonEventArgs } from "@/lib/indexRows";
+import { indexConfigured } from "@/lib/supabase";
+import { asAddress, asDigits, readActivityWire, readIndexedEvents } from "@/lib/indexActivity";
 
 /**
  * Trade history, without making the visitor scan for it.
@@ -28,8 +27,8 @@ import type { JsonEventArgs } from "@/lib/indexRows";
  *
  * Three things bound that. The rows are written only by this project's own sync
  * route, from chain logs, with the service key that never leaves the server.
- * The events are stored raw, so `readFulfilment` still runs on the client and
- * still refuses settlement currencies it does not recognise — which is the
+ * `readFulfilment` still runs on every row, in the browser for raw events and
+ * here for decoded ones, and still refuses settlement currencies it does not recognise — which is the
  * control that stops a wash trade in a worthless token reading as "last sale
  * 1,000,000". And `npm run index:check` can put any row back to the chain.
  *
@@ -41,98 +40,46 @@ import type { JsonEventArgs } from "@/lib/indexRows";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-/**
- * The most events one response may carry.
- *
- * `useActivity` already caps its own feed at 2,000 rows for exactly the reason
- * that matters here: `OrderValidated` is free for anyone to emit and
- * `validate(Order[])` takes an array, so thousands can land in one transaction.
- * The same number, so the page cannot be handed more than it will keep.
- */
-const MAX_EVENTS = 2_000;
-
-/** Lower-cased, and refused outright if it is not an address. */
-function address(raw: string | null): string | undefined {
-  if (raw === null) return undefined;
-  const value = raw.trim().toLowerCase();
-  /**
-   * Validated rather than escaped. These go into a PostgREST filter, and the
-   * one thing that must not happen is a caller writing their own query — so the
-   * shape is checked against what an address can be, and anything else is
-   * simply not a filter.
-   */
-  return /^0x[0-9a-f]{40}$/.test(value) ? value : undefined;
-}
-
-/** A uint256 as decimal digits, or nothing. */
-function digits(raw: string | null): string | undefined {
-  if (raw === null) return undefined;
-  const value = raw.trim();
-  return /^[0-9]{1,78}$/.test(value) ? value : undefined;
-}
-
-interface EventOut {
-  tx_hash: string;
-  log_index: number;
-  kind: "fulfilled" | "validated" | "cancelled";
-  order_hash: string | null;
-  block_number: number;
-  args: JsonEventArgs;
-  /** Filter keys, passed through so a cancellation can name its own piece. */
-  collection: string | null;
-  token_id: string | null;
-}
-
 export async function GET(request: Request): Promise<NextResponse> {
   if (!indexConfigured()) {
     return NextResponse.json({ error: "index not configured" }, { status: 503 });
   }
 
   const params = new URL(request.url).searchParams;
-  const collection = address(params.get("collection"));
-  const wallet = address(params.get("wallet"));
-  const token = digits(params.get("token"));
-  const salesOnly = params.get("sales") === "1";
-
-  const filters: string[] = [];
-  if (collection !== undefined) filters.push(`collection=eq.${collection}`);
-  if (token !== undefined) filters.push(`token_id=eq.${token}`);
-  if (salesOnly) filters.push("kind=eq.fulfilled");
-  /** Either side: a listing you made and a purchase you made are both yours. */
-  if (wallet !== undefined) filters.push(`or=(maker.eq.${wallet},taker.eq.${wallet})`);
+  const query = {
+    ...optional("collection", asAddress(params.get("collection"))),
+    ...optional("wallet", asAddress(params.get("wallet"))),
+    ...optional("token", asDigits(params.get("token"))),
+    salesOnly: params.get("sales") === "1",
+  };
 
   try {
-    const [events, cursor] = await Promise.all([
-      /** Paged: the server's own 1,000-row cap would otherwise truncate history. */
-      selectAll<EventOut>(
-        `events?select=tx_hash,log_index,kind,order_hash,block_number,args,collection,token_id` +
-          `${filters.map((f) => `&${f}`).join("")}` +
-          `&order=block_number.desc,log_index.desc`,
-      ).then((rows) => rows.slice(0, MAX_EVENTS)),
-      select<{ updated_at: string }>(
-        `index_cursor?name=eq.${CURSOR}&select=updated_at&limit=1`,
-      ),
-    ]);
+    /**
+     * `format=rows` is the current shape: decoded here, a tenth of the bytes,
+     * nothing left for the tab to do (lib/activityWire.ts). The raw events stay
+     * the default for a tab still running the build before it.
+     */
+    const body =
+      params.get("format") === "rows"
+        ? await readActivityWire(query)
+        : { ...(await readIndexedEvents(query)), servedAt: new Date().toISOString() };
 
-    return NextResponse.json(
-      /** `servedAt`: when this copy was built, which the edge may hold for minutes (lib/indexLag.ts). */
-      { events, indexedAt: cursor[0]?.updated_at ?? null, servedAt: new Date().toISOString() },
-      {
-        headers: {
-          /**
-           * Longer than the order book's fifteen seconds. History is the one
-           * thing on the page nobody is refreshing to watch — a sale that
-           * appears a minute late has cost no one anything, and the panel was
-           * already held back 900ms behind first paint for the same reason.
-           */
-          /* Five minutes (was one): history is read, never acted on, and every miss
-             is a Supabase read counted against the free plan's egress. */
-          "cache-control": "public, s-maxage=300, stale-while-revalidate=1800",
-        },
+    return NextResponse.json(body, {
+      headers: {
+        /**
+         * Longer than the order book's fifteen seconds. History is the one
+         * thing on the page nobody is refreshing to watch — a sale that
+         * appears a minute late has cost no one anything.
+         */
+        "cache-control": "public, s-maxage=60, stale-while-revalidate=1800",
       },
-    );
+    });
   } catch (err) {
     console.error("[index] activity failed", err);
     return NextResponse.json({ error: "index unavailable" }, { status: 502 });
   }
+}
+
+function optional<K extends string, V>(key: K, value: V | undefined): { [P in K]?: V } {
+  return (value === undefined ? {} : { [key]: value }) as { [P in K]?: V };
 }

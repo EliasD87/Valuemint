@@ -5,8 +5,9 @@ import { useQuery } from "@tanstack/react-query";
 import { useBlockNumber } from "wagmi";
 import { useActivity } from "@/hooks/useActivity";
 import { useBestListings } from "@/hooks/useSeaportOrders";
-import { deployment } from "@/config/contracts";
+import { fetchOwnerCount } from "@/lib/topHolders";
 import { BLOCKS_PER_DAY } from "@/config/chain";
+import type { CollectionFiguresSeed } from "@/lib/collectionFigures";
 
 /**
  * The figures across the top of a collection page.
@@ -63,11 +64,6 @@ export interface CollectionStats {
   unavailable: boolean;
 }
 
-interface TokenRecord {
-  holders_count?: string | number | null;
-  holders?: string | number | null;
-}
-
 /**
  * Unique holders, from the explorer's own index.
  *
@@ -87,32 +83,28 @@ function useOwnerCount(collection: `0x${string}` | undefined) {
     /** Holders move when pieces trade, which is neither often nor urgent. */
     staleTime: 5 * 60_000,
     retry: 1,
-    queryFn: async (): Promise<number | null> => {
-      const res = await fetch(`${deployment.explorer}/api/v2/tokens/${collection}`, {
-        signal: AbortSignal.timeout(15_000),
-      });
-      if (!res.ok) return null;
-
-      const body = (await res.json()) as TokenRecord;
-      const raw = body.holders_count ?? body.holders;
-      if (raw === null || raw === undefined) return null;
-
-      const n = Number(raw);
-      /**
-       * `null` rather than 0 on anything unparseable. A collection genuinely
-       * can have zero holders — every piece burned — and printing that when the
-       * field was missing would be a claim nobody made.
-       */
-      return Number.isFinite(n) && n >= 0 ? n : null;
-    },
+    queryFn: () => fetchOwnerCount(collection!),
   });
 
   return data ?? undefined;
 }
 
-export function useCollectionStats(collection: `0x${string}` | undefined): CollectionStats {
+export function useCollectionStats(
+  collection: `0x${string}` | undefined,
+  seed?: CollectionFiguresSeed,
+): CollectionStats {
   const { best, isLoading: booking } = useBestListings(collection);
-  const { sales, volume, isLoading: reading, logsUnavailable } = useActivity(collection);
+  /**
+   * Sales only, not the whole feed (2026-10-30).
+   *
+   * The feed is the newest 2,000 events of every kind, and on a collection
+   * with a busy order book the listings push the oldest sales off its end:
+   * Treasure Box read 7,109 SOSO all-time against 7,565 actually settled, and
+   * the gap grew with every listing. Sales alone are a few hundred rows.
+   */
+  const { sales, volume, isLoading: reading, logsUnavailable } = useActivity(collection, undefined, {
+    salesOnly: true,
+  });
   const { data: head } = useBlockNumber({ watch: false });
   const owners = useOwnerCount(collection);
 
@@ -158,18 +150,29 @@ export function useCollectionStats(collection: `0x${string}` | undefined): Colle
     return { volumeDayWei: sum, salesDay: count, ready: true };
   }, [sales, head]);
 
+  /**
+   * The server's figures stand in for each group until the browser's own
+   * answer for that group lands (app/collection/[address]/page.tsx). The same
+   * rules produced both, so the swap is normally invisible; when it is not,
+   * it is because something sold or listed in between, and the newer wins.
+   */
+  const historyLoading = reading || !day.ready;
+  const seededBook = booking && seed?.listed !== undefined;
+  const seededHistory = historyLoading && seed?.volumeTotalWei !== undefined && seed.volumeDayWei !== undefined;
+  const shownFloor = seededBook ? (seed.floorWei === undefined ? undefined : BigInt(seed.floorWei)) : floorWei;
+
   return {
-    ...(floorWei === undefined ? {} : { floorWei }),
-    listed,
-    volumeDayWei: day.volumeDayWei,
-    volumeTotalWei: volume,
+    ...(shownFloor === undefined ? {} : { floorWei: shownFloor }),
+    listed: seededBook ? seed.listed! : listed,
+    volumeDayWei: seededHistory ? BigInt(seed.volumeDayWei!) : day.volumeDayWei,
+    volumeTotalWei: seededHistory ? BigInt(seed.volumeTotalWei!) : volume,
     salesDay: day.salesDay,
     salesTotal: sales.length,
     ...(sales[0]?.price === undefined ? {} : { lastSaleWei: sales[0].price }),
     ...(owners === undefined ? {} : { owners }),
-    isLoading: booking || reading || !day.ready,
-    bookLoading: booking,
-    historyLoading: reading || !day.ready,
+    isLoading: (booking && !seededBook) || (historyLoading && !seededHistory),
+    bookLoading: booking && !seededBook,
+    historyLoading: historyLoading && !seededHistory,
     unavailable: logsUnavailable,
   };
 }

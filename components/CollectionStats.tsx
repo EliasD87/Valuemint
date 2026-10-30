@@ -5,6 +5,7 @@ import { useCollectionStats } from "@/hooks/useCollectionStats";
 import { Soso } from "@/components/Soso";
 import { FloorChange } from "@/components/FloorChange";
 import { formatSoso, formatSosoWhole, formatCount } from "@/lib/format";
+import type { CollectionFiguresSeed } from "@/lib/collectionFigures";
 import "./CollectionStats.css";
 
 /**
@@ -58,11 +59,14 @@ function Dash() {
 export function CollectionStats({
   collection,
   supply,
+  seed,
 }: {
   collection: `0x${string}` | undefined;
   supply?: bigint;
+  /** Figures the server already worked out, shown until the browser's own land. */
+  seed?: CollectionFiguresSeed;
 }) {
-  const s = useCollectionStats(collection);
+  const s = useCollectionStats(collection, seed);
 
   /**
    * What share of the collection is for sale.
