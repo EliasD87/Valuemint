@@ -91,12 +91,13 @@ export const COLLECTION_COVERS: Record<string, string[]> = {
     "/covers/761c3dd0-4.webp",
   ],
 
-  // ValueChain Genesis
+  // ValueChain Genesis — the graffiti helmets (2026-10-28), Legendary first so
+  // the avatar, which is the first of these, is the gold one.
   "0x5fadc59297e86acea20bff519aea0f9651cdc90b": [
-    "/covers/5fadc592-1.webp",
-    "/covers/5fadc592-2.webp",
-    "/covers/5fadc592-3.webp",
-    "/covers/5fadc592-4.webp",
+    "/covers/5fadc592-v2-1.webp",
+    "/covers/5fadc592-v2-2.webp",
+    "/covers/5fadc592-v2-3.webp",
+    "/covers/5fadc592-v2-4.webp",
   ],
 
   // The Trenches — one picture per depth.
@@ -270,6 +271,17 @@ const BUNDLED_ARTWORK: Record<string, string> = {
   QmQ4NbyjgsjPCU8fZeYiYLxws3rcj1tW9Hs55Qb44gXQZK: "/art/wickborn/jade-ledger.gif",
   QmRDuLqGZUobVkNV2GBW1G7wWdYdVSAmsfvrqK74ikoMJE: "/art/wickborn/golden-cross.gif",
   QmUFdDAYnxA9fE9G7B4hyPzEyY7VRHJrbhrREqnZaceCiM: "/art/wickborn/ghost-liquidity.gif",
+
+  /*
+    ValueChain Genesis (2026-10-28) — the four tier pictures every design now
+    points at (metadata/out/genesis-graffiti-art.json), 1024px WebP from the
+    same 2048px masters. Keyed by the new CIDs, so they take effect only once
+    the collection's baseURI moves to the graffiti manifest.
+  */
+  QmVUT5x5seeiqaPQkK3Lry5x6ZcaAGne6yvD1eCEy85NLH: "/art/genesis/legendary.webp",
+  QmbWK5oMLerWU6NXHe8gY2xr1GnogsXzBXAMYaYx9Ldpwa: "/art/genesis/epic.webp",
+  QmdTQJHftjq9mfUsEnGETQCVDogzn5j2sEo2C9VQVc7Gz2: "/art/genesis/rare.webp",
+  QmWcFGdTP1aNLTjrM2BwN92FH4ujcyMFpx13sxcT5nwvAm: "/art/genesis/common.webp",
 };
 
 /**

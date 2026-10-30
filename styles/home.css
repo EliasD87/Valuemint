@@ -184,8 +184,10 @@
 
 .grid-tokens {
   display: grid;
+  /* 15rem: five across at 1536 and above, four at 1024 (2026-10-26). Six
+     was too many to read, and cut the longer names. */
   grid-template-columns: repeat(auto-fill, minmax(min(15rem, 100%), 1fr));
-  gap: clamp(0.85rem, 1.6vw, 1.35rem);
+  gap: clamp(0.75rem, 1.2vw, 1.1rem);
 }
 
 .filters {

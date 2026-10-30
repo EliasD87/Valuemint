@@ -1,7 +1,7 @@
 "use client";
 
 import { WarmLink } from "@/components/WarmLink";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { useAccount } from "wagmi";
 import { useTokenOffers } from "@/hooks/useTokenOffers";
 import { OfferDialog } from "@/components/OfferDialog";
@@ -17,8 +17,9 @@ import { Wordmark } from "@/components/Wordmark";
 import { wordmarkSaying } from "@/config/wordmarks";
 import { bundledArtworkFor, soleArtworkFor } from "@/config/covers";
 import { offersAllowed } from "@/config/kols";
-import { countsForNextDraw } from "@/config/treasureDraw";
+import { useNextDraw } from "@/hooks/useNextDraw";
 import { DrawBadge } from "@/components/DrawBadge";
+import { GenesisFrame } from "@/components/GenesisFrame";
 import "./TokenCard.css";
 import { Soso } from "@/components/Soso";
 
@@ -94,6 +95,12 @@ interface Props {
    * because a card has no business running a scan.
    */
   floor?: bigint;
+  /**
+   * Draw the art in its collection's frame (components/GenesisFrame). Only the
+   * collection page sets it: the framed slot is taller than square, and in a
+   * mixed grid (/market, portfolio) one tall card would unbalance its row.
+   */
+  framed?: boolean;
 }
 
 export function TokenCard({
@@ -110,6 +117,7 @@ export function TokenCard({
      badge earns its place. */
   markOwned = true,
   pick,
+  framed = false,
 }: Props) {
   const { isConnected } = useAccount();
   const isYours =
@@ -175,6 +183,19 @@ export function TokenCard({
    */
   const image = soleArtworkFor(collection) ?? bundledArtworkFor(token.image, token.uri) ?? token.image;
 
+  /** The art as drawn, inside the collection's frame where the caller asked for one. */
+  const frame = (art: ReactNode) =>
+    framed ? (
+      <GenesisFrame
+        tier={token.tier}
+        sealedLabel={awaitingReveal !== undefined ? `Reveals ${revealShort(awaitingReveal)}` : undefined}
+      >
+        {art}
+      </GenesisFrame>
+    ) : (
+      art
+    );
+
   /** The collection's drawn name, if this piece's name is the word it draws. */
   const titleMark = wordmarkSaying(collection, token.design);
 
@@ -191,6 +212,8 @@ export function TokenCard({
   const offer =
     offers.length === 0 ? undefined : { count: offers.length, best: offers[0]!.priceWei };
   const [offering, setOffering] = useState(false);
+  /* This week's cut-off for SoDEX's draw (config/treasureDraw.ts); one request for the whole grid. */
+  const nextDraw = useNextDraw();
 
   /**
    * The card used to be a single `<Link>` wrapping everything, which left
@@ -208,8 +231,8 @@ export function TokenCard({
         className="tcard-hit"
         aria-label={`${token.design ?? collectionName ?? "Token"} #${token.id.toString()}`}
       />
-      <div className="tcard-media">
-        {image !== undefined ? (
+      <div className={`tcard-media${framed ? " is-framed" : ""}`}>
+        {frame(image !== undefined ? (
           /**
            * Through `Art`, not a bare <img>.
            *
@@ -241,7 +264,7 @@ export function TokenCard({
           </div>
         ) : (
           <div className="tcard-placeholder tcard-loading" aria-hidden="true" />
-        )}
+        ))}
         {/*
           The tier, as a band across the top of the art rather than a chip in
           the corner.
@@ -254,7 +277,8 @@ export function TokenCard({
           the inverse of the page's — which is what `--paper` is. Worst pair is
           5.27:1, best 9.29:1.
         */}
-        {token.tier !== undefined ? (
+        {/* A framed card names its tier on the nameplate instead. */}
+        {framed ? null : token.tier !== undefined ? (
           <span className={`tcard-ribbon chip-${tier}`}>{token.tier}</span>
         ) : awaitingReveal !== undefined ? (
           /*
@@ -276,7 +300,7 @@ export function TokenCard({
         {/* SoDEX's next Treasure Box draw counts only boxes minted after the
             last snapshot (config/treasureDraw.ts). Bottom-left, clear of the
             tier ribbon across the top. */}
-        {countsForNextDraw(collection, token.id) ? <DrawBadge variant="card" /> : null}
+        {nextDraw.counts(collection, token.id) ? <DrawBadge variant="card" /> : null}
       </div>
 
       <div className="tcard-body">

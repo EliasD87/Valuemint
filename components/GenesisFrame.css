@@ -1,0 +1,96 @@
+/**
+ * The Genesis frame (components/GenesisFrame.tsx). Every size is in container
+ * units of the media slot. The tier colour (--c) is the site's own rarity
+ * palette for Legendary, Epic and Rare, which already shifts with the theme;
+ * Common and sealed take a neutral ink instead of --common's brown, because
+ * the Common artwork is grey.
+ *
+ * No glow and no light bar, on the owner's word: the window has a plain
+ * hairline edge, and the colour is only in the nameplate.
+ */
+
+/* The slot is taller than square when framed: window, then the nameplate. */
+.tcard-media.is-framed {
+  aspect-ratio: 100 / 113;
+  background: linear-gradient(180deg, var(--surface) 0%, var(--surface-2) 100%);
+}
+
+.gframe {
+  position: absolute;
+  inset: 0;
+  container-type: inline-size;
+  --c: var(--ink-3);
+  --c-ink: color-mix(in srgb, var(--c) 78%, var(--ink));
+}
+.gframe[data-tone="legendary"] {
+  --c: var(--legendary);
+}
+.gframe[data-tone="epic"] {
+  --c: var(--epic);
+}
+.gframe[data-tone="rare"] {
+  --c: var(--rare);
+}
+
+/* The window: the art, with a plain hairline so white art keeps its edge. */
+.gframe-window {
+  position: absolute;
+  left: 5cqw;
+  right: 5cqw;
+  top: 5cqw;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: 2.6cqw;
+  background: var(--paper);
+  box-shadow: 0 0 0 1px var(--line);
+}
+
+.gframe-window img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* The nameplate. */
+.gframe-foot {
+  position: absolute;
+  left: 6.5cqw;
+  right: 6.5cqw;
+  top: 99cqw;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 3cqw;
+}
+
+.gframe-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1.3cqw;
+  min-width: 0;
+}
+
+.gframe-word {
+  font-size: 4.6cqw;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.gframe-word span {
+  color: var(--c-ink);
+}
+
+.gframe-tier {
+  font-size: 3.4cqw;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  white-space: nowrap;
+}

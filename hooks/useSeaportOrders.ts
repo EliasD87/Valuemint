@@ -572,7 +572,7 @@ export type OrderBook = ReturnType<typeof useOrderBookSource>;
  * `enabled` registers, and the book runs while anyone is registered — so a
  * page that never asks for prices never pays for them, as before.
  */
-const OrderBookContext = createContext<{ book: OrderBook; want: () => () => void } | null>(null);
+const OrderBookContext = createContext<{ book: OrderBook; want: () => () => void; active: boolean } | null>(null);
 
 export function SeaportOrdersProvider({ children }: { children: ReactNode }) {
   const [wanted, setWanted] = useState(0);
@@ -580,17 +580,27 @@ export function SeaportOrdersProvider({ children }: { children: ReactNode }) {
     setWanted((n) => n + 1);
     return () => setWanted((n) => n - 1);
   }, []);
-  const book = useOrderBookSource(wanted > 0);
-  const value = useMemo(() => ({ book, want }), [book, want]);
+  const active = wanted > 0;
+  const book = useOrderBookSource(active);
+  const value = useMemo(() => ({ book, want, active }), [book, want, active]);
   return createElement(OrderBookContext.Provider, { value }, children);
 }
 
 export function useSeaportOrders(enabled = true): OrderBook {
   const context = useContext(OrderBookContext);
   if (context === null) throw new Error("useSeaportOrders needs <SeaportOrdersProvider> above it");
-  const { want } = context;
+  const { want, active, book } = context;
   useEffect(() => (enabled ? want() : undefined), [enabled, want]);
-  return context.book;
+  /**
+   * Loading, not empty, until the book has actually started (2026-10-30).
+   *
+   * A caller registers in an effect, so on its first render nobody has asked
+   * yet: the book is switched off, and a switched-off query reports neither
+   * data nor loading. Read as-is that is "nothing listed", and the collection
+   * page showed "Listed 0" for a moment on every visit.
+   */
+  const starting = enabled && !active;
+  return useMemo(() => (starting ? { ...book, isLoading: true } : book), [starting, book]);
 }
 
 const sameAddress = (a: Address | undefined, b: Address | undefined) =>

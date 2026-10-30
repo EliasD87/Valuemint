@@ -1,9 +1,10 @@
 "use client";
 
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { indexLagMs } from "@/lib/indexLag";
-import type { ActivityStreams } from "@/lib/activityRows";
-import { decodeIndexedEvents, type IndexedEvent } from "@/lib/indexEvents";
+import type { ActivityRow } from "@/lib/activityRows";
+import { activityQueryKey, decodeRows, type ActivityWire } from "@/lib/activityWire";
 
 /**
  * Trade history from the index, when there is one.
@@ -14,61 +15,37 @@ import { decodeIndexedEvents, type IndexedEvent } from "@/lib/indexEvents";
  * look free: the order book stopped scanning and the page kept doing it anyway,
  * for the panel below the fold.
  *
- * The events come back raw, decoded here into exactly the shape the scanned
- * logs have, and handed to the same `buildActivityRows`. So `readFulfilment`
- * still decides what a sale is and still refuses a settlement currency it does
- * not recognise, on this path as on the other.
+ * The rows arrive decoded (lib/activityWire.ts): the server runs the same
+ * `buildActivityRows`, so `readFulfilment` still decides what a sale is and
+ * still refuses a settlement currency it does not recognise. Until 2026-10-30
+ * the raw events came here instead, 2.2 MB for the market-wide feed, and every
+ * tab decoded them itself.
  */
 
 /** Matches the order book's tolerance, and for the same reasons. */
-const STALE_MS = 180_000;
+export const ACTIVITY_STALE_MS = 180_000;
 
-
-interface Payload {
-  events: IndexedEvent[];
-  indexedAt: string | null;
-  servedAt?: string;
-}
-
-/**
- * What to narrow by, and what deliberately is not here.
- *
- * `tokenId` is missing on purpose. A token page and its collection page would
- * otherwise be different queries, and so would every card on a collection page
- * wanting a last-sale figure — sixty requests where one would do. Narrowing to
- * a collection is what shrinks the payload; narrowing to a token inside it
- * saves nothing worth a second round trip, so that stays in the browser.
- */
-export interface ActivityFilter {
-  collection?: `0x${string}`;
-  wallet?: `0x${string}`;
-  salesOnly?: boolean;
-}
+export type { ActivityFilter } from "@/lib/activityWire";
+import type { ActivityFilter } from "@/lib/activityWire";
 
 function queryFor(filter: ActivityFilter): string {
-  const params = new URLSearchParams();
+  const params = new URLSearchParams({ format: "rows" });
   if (filter.collection !== undefined) params.set("collection", filter.collection.toLowerCase());
   if (filter.wallet !== undefined) params.set("wallet", filter.wallet.toLowerCase());
   if (filter.salesOnly === true) params.set("sales", "1");
-  const query = params.toString();
-  return query === "" ? "/api/index/activity" : `/api/index/activity?${query}`;
+  return `/api/index/activity?${params.toString()}`;
 }
 
 /** `null` means there is no usable index and the chain should be read instead. */
-async function fetchActivity(filter: ActivityFilter): Promise<ActivityStreams | null> {
+async function fetchActivity(filter: ActivityFilter): Promise<ActivityWire | null> {
   const response = await fetch(queryFor(filter), { cache: "no-store" });
   if (!response.ok) return null;
-
-  const payload = (await response.json()) as Payload;
-  if (payload.indexedAt === null) return null;
-
+  const payload = (await response.json()) as ActivityWire;
+  if (payload.indexedAt === null || !Array.isArray(payload.rows)) return null;
   const lag = indexLagMs(payload);
-  if (!Number.isFinite(lag) || lag > STALE_MS) return null;
-
-  /** The same decoder the server's Explore summary uses (lib/indexEvents.ts). */
-  return decodeIndexedEvents(payload.events);
+  if (!Number.isFinite(lag) || lag > ACTIVITY_STALE_MS) return null;
+  return payload;
 }
-
 
 export function useIndexedActivity(filter: ActivityFilter, enabled = true) {
   const { data, isLoading, isError } = useQuery({
@@ -77,12 +54,7 @@ export function useIndexedActivity(filter: ActivityFilter, enabled = true) {
      * question share one answer — the collection page's feed and every card on
      * it, for instance.
      */
-    queryKey: [
-      "indexed-activity",
-      filter.collection?.toLowerCase() ?? null,
-      filter.wallet?.toLowerCase() ?? null,
-      filter.salesOnly === true,
-    ],
+    queryKey: activityQueryKey(filter),
     enabled,
     /**
      * The same one-minute staleness the scanned query uses, so swapping source
@@ -93,9 +65,15 @@ export function useIndexedActivity(filter: ActivityFilter, enabled = true) {
     queryFn: () => fetchActivity(filter),
   });
 
+  const rows = useMemo<ActivityRow[] | undefined>(
+    () => (data === undefined || data === null ? undefined : decodeRows(data.rows)),
+    [data],
+  );
+
   return {
-    streams: data ?? undefined,
-    isLoading,
+    rows,
+    /** Not loading once there is an answer, whether fetched or handed over by the server. */
+    isLoading: rows === undefined && isLoading,
     unavailable: isError || data === null,
   };
 }

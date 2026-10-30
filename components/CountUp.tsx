@@ -3,12 +3,16 @@
 import { useEffect, useRef, useState } from "react";
 
 /**
- * A figure that counts up to its value, and on to a new one when it changes.
+ * A figure that shows its value, and counts on to a new one when it changes.
  *
- * `pending` keeps it counting after it reaches the value — slowly, onward —
- * for a figure still being added to: "wallets involved" knows the traders at
- * once and the minters seconds later, and a number that sat still and then
- * jumped read as a mistake. When the real figure lands it counts on to that.
+ * It used to count up from zero on arrival, and keep creeping onward while
+ * `pending` for a figure still being added to. Both made a page whose numbers
+ * were already known look like it was still working them out — and since the
+ * stats page renders on the server (2026-10-30), the numbers are known at
+ * first paint. So a figure now starts at its value, and only a change seen
+ * while the page is open animates, from the old number to the new.
+ *
+ * `pending` dims the figure instead: still true, visibly not final.
  *
  * Never the only way the number is shown: with reduced motion, in a tab that
  * is not visible, or if frames never come, it is simply the final figure.
@@ -18,7 +22,7 @@ export function CountUp({
   decimals = 0,
   final,
   pending = false,
-  duration = 1100,
+  duration = 700,
 }: {
   value: number;
   decimals?: number;
@@ -27,11 +31,13 @@ export function CountUp({
   pending?: boolean;
   duration?: number;
 }) {
-  const [shown, setShown] = useState<number>(() => (canAnimate() ? 0 : value));
-  const [settled, setSettled] = useState(() => !canAnimate() && !pending);
-  const current = useRef(shown);
+  const [shown, setShown] = useState(value);
+  const [settled, setSettled] = useState(true);
+  const current = useRef(value);
 
   useEffect(() => {
+    if (value === current.current) return;
+
     const show = (v: number) => {
       current.current = v;
       setShown(v);
@@ -39,36 +45,29 @@ export function CountUp({
 
     if (!canAnimate()) {
       show(value);
-      setSettled(!pending);
+      setSettled(true);
       return;
     }
 
     setSettled(false);
     const from = current.current;
     const start = performance.now();
-    let last = start;
     let frame = 0;
 
     const tick = (now: number) => {
       const p = Math.min(1, (now - start) / duration);
       if (p < 1) {
         show(from + (value - from) * (1 - Math.pow(1 - p, 3)));
-      } else if (pending) {
-        /* Still being added to: keep going, about 6% of the figure a second. */
-        show(Math.max(current.current, value) + Math.max(2, value * 0.06) * ((now - last) / 1000));
-      } else {
-        show(value);
-        setSettled(true);
+        frame = requestAnimationFrame(tick);
         return;
       }
-      last = now;
-      frame = requestAnimationFrame(tick);
+      show(value);
+      setSettled(true);
     };
     frame = requestAnimationFrame(tick);
 
     /* If frames stop coming — a tab sent to the background — land on it anyway. */
     const land = window.setTimeout(() => {
-      if (pending) return;
       cancelAnimationFrame(frame);
       show(value);
       setSettled(true);
@@ -78,10 +77,10 @@ export function CountUp({
       cancelAnimationFrame(frame);
       window.clearTimeout(land);
     };
-  }, [value, pending, duration]);
+  }, [value, duration]);
 
-  if (settled && final !== undefined) return <>{final}</>;
-  return <>{decimals === 0 ? Math.floor(shown) : shown.toFixed(decimals)}</>;
+  const text = settled && final !== undefined ? final : decimals === 0 ? String(Math.floor(shown)) : shown.toFixed(decimals);
+  return pending ? <span className="countup-pending">{text}</span> : <>{text}</>;
 }
 
 function canAnimate(): boolean {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useId } from "react";
-import { TREASURE_DRAW } from "@/config/treasureDraw";
+import { useNextDraw } from "@/hooks/useNextDraw";
 import "./DrawBadge.css";
 
 /**
@@ -17,7 +17,10 @@ import "./DrawBadge.css";
  */
 export function DrawBadge({ variant }: { variant: "card" | "chip" }) {
   const id = useId();
-  const when = new Date(TREASURE_DRAW.snapshot).toLocaleString(undefined, {
+  /* Only drawn where `useNextDraw` already said this box counts, so the week is known. */
+  const { snapshot, drawDay } = useNextDraw();
+  const when = snapshot?.toLocaleString(undefined, {
+    weekday: "short",
     month: "short",
     day: "numeric",
     hour: "2-digit",
@@ -25,6 +28,7 @@ export function DrawBadge({ variant }: { variant: "card" | "chip" }) {
     timeZone: "UTC",
     hour12: false,
   });
+  const draw = drawDay?.toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric", timeZone: "UTC" });
 
   return (
     <span className={`draw draw-${variant}`}>
@@ -44,8 +48,9 @@ export function DrawBadge({ variant }: { variant: "card" | "chip" }) {
       <span className="draw-tip" role="tooltip" id={id}>
         <b>Eligible for SoDEX&rsquo;s next Treasure Box draw</b>
         <span>
-          Minted after the {when} UTC snapshot, so it enters the next live draw while it stays
-          unopened.
+          Minted after the {when ?? "latest"} UTC snapshot, so it enters the live draw on{" "}
+          {draw ?? "the next Wednesday"} while it stays unopened. A new snapshot is taken every
+          Tuesday at 12:00 UTC.
         </span>
         <span className="draw-tip-fine">Opening the box burns it, and the entry goes with it.</span>
       </span>

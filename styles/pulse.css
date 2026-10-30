@@ -860,3 +860,8 @@
   font-size: var(--step--1);
   color: var(--ink-3);
 }
+
+/* A figure still being added to (components/CountUp.tsx): true so far, visibly not final. */
+.countup-pending {
+  color: var(--ink-3);
+}

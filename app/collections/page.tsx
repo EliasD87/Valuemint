@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useReadContracts } from "wagmi";
 import { ValueChainCollectionAbi, deployment } from "@/config/contracts";
-import { MAIN_COLLECTIONS, PINNED_COLLECTIONS } from "@/config/featured";
+import { COLLECTIONS_PAGE_PINNED, MAIN_COLLECTIONS } from "@/config/featured";
 import { KNOWN_COLLECTIONS } from "@/config/known";
 import { isHidden } from "@/config/hidden";
 import { CREATE_ENABLED } from "@/config/features";
@@ -86,13 +86,14 @@ export default function Collections() {
      * `byAddress` is insertion-ordered, so without this the page opens with
      * whatever the explorer happened to return first — which was the two test
      * contracts. See `PINNED_COLLECTIONS` for why this is a named list rather
-     * than a ranking.
+     * than a ranking, and `COLLECTIONS_PAGE_PINNED` for why this page leads
+     * with Genesis when the others do not.
      */
     const rank = (address: string) => {
-      const i = PINNED_COLLECTIONS.findIndex(
+      const i = COLLECTIONS_PAGE_PINNED.findIndex(
         (pinned) => pinned.toLowerCase() === address.toLowerCase(),
       );
-      return i === -1 ? PINNED_COLLECTIONS.length : i;
+      return i === -1 ? COLLECTIONS_PAGE_PINNED.length : i;
     };
 
     return [...byAddress.values()].sort((a, b) => rank(a.address) - rank(b.address));

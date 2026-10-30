@@ -137,13 +137,41 @@ export const COLLECTION_HEROES: Record<string, HeroArt> = {
     browser that refused the video.
 
     It replaced `genesis.webp`, the six-panel still, which is no longer drawn.
+
+    2026-10-28, with the graffiti art: `genesis-blink-df78b21c.mp4` — the four rarity
+    helmets in a row on white, perfectly still, and only the eye lights close
+    and open, Rare then Epic then Legendary (Common is unlit by design). Owner:
+    "just a loop of them closing and opening the eye thing, nothing big", after
+    a Kling take that floated and turned them. So it is built, not generated:
+    metadata/genesis-redesign/cover-video/blink.cjs draws a lit band round each
+    eye's centre line that narrows to a slit and reopens, over a lights-off
+    copy of the eye. 96 frames, 4s, every frame outside the eyes identical;
+    first and last frames are the same picture, so the crossfade is invisible.
+    The scene sits at 80% so the desktop band (~4.3:1) never crops it.
+    1280x554, CRF 20, faststart, 52 KB; the loop WebP is 17 KB. The old files
+    stay in public/heroes for a rollback.
+
+    Then a still instead, the same day (owner: "make an image for the cover,
+    the video thing is not really a good idea"). `genesis-wall-*.webp`: the
+    four helmets in a row on a dark graffiti wall, each over a thin light bar
+    in its tier's colour — Seedream 4.5 Edit through Magnific with the helmet
+    row as reference (metadata/genesis-redesign/banner). Dark on purpose: the
+    band's scrim darkens the bottom edge, which is what made the white video
+    look grey. 21:9 source, so the desktop band (~4.9:1) keeps its middle 48%,
+    where the row sits whole; phones keep 86%. 1600 wide, 99 KB, the name
+    carries a content hash so no browser shows an old take.
+  */
+  /*
+    And simpler still (owner: "keep it simple … use text"):
+    `genesis-text-*.webp` — "VALUECHAIN GENESIS" in the site's Geist at 600,
+    spaced, with "Four tiers · one hundred helmets" under it on the left, and
+    the four helmets (the background-removed NFT pictures) small on the right,
+    on one flat dark ground. No wall, no light bars, no glow. Rendered from
+    metadata/genesis-redesign/banner/text.html at 2800x1200; everything sits in
+    the middle strip the desktop band keeps, and phones see the full width.
   */
   "0x5fadc59297e86acea20bff519aea0f9651cdc90b": {
-    video: {
-      src: "/heroes/genesis.mp4",
-      still: "/heroes/genesis-still.webp",
-      fallback: "/heroes/genesis-loop.webp",
-    },
+    background: "/heroes/genesis-text-f7cae990.webp",
   },
 
   /*

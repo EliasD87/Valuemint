@@ -1,5 +1,6 @@
 "use client";
 
+import type { CollectionFiguresSeed } from "@/lib/collectionFigures";
 import { use, useMemo, useState } from "react";
 import Link from "next/link";
 import { useAccount } from "wagmi";
@@ -26,6 +27,7 @@ import { SealedNotice } from "@/components/Unrevealed";
 import { CollectionStats } from "@/components/CollectionStats";
 import { PageTabs, type TabDef } from "@/components/PageTabs";
 import { KOLS_COLLECTION, offersAllowed } from "@/config/kols";
+import { hasGenesisFrame } from "@/components/GenesisFrame";
 
 /**
  * Any ERC-721 on ValueChain, not only ours.
@@ -86,7 +88,17 @@ const ROSTER_ORDERED = new Set([KOLS_COLLECTION]);
  */
 type Tab = "items" | "activity" | "holders";
 
-export function CollectionView({ params }: { params: Promise<{ address: string }> }) {
+/** The server's copy of the header's basics; see page.tsx. Display only. */
+export interface CollectionSeed {
+  name?: string;
+  symbol?: string;
+  /** Pieces minted, as a decimal string (a bigint does not cross to the client). */
+  minted?: string;
+  /** Floor, listed and volumes, worked out on the server (lib/collectionFigures.ts). */
+  figures?: CollectionFiguresSeed;
+}
+
+export function CollectionView({ params, seed }: { params: Promise<{ address: string }>; seed?: CollectionSeed }) {
   const { address: raw } = use(params);
   const { address: viewer } = useAccount();
 
@@ -105,6 +117,9 @@ export function CollectionView({ params }: { params: Promise<{ address: string }
    */
   const { isErc721, name, symbol, supply, supplyKnown, probing } =
     useCollectionBasics(collection);
+  /** For display only: the grid still waits for the live supply. */
+  const seededSupply = seed?.minted !== undefined && /^\d+$/.test(seed.minted) ? BigInt(seed.minted) : undefined;
+  const shownSupply = (supply as bigint | undefined) ?? seededSupply;
 
   /**
    * How much of the collection is on screen, and what "more" means.
@@ -337,14 +352,22 @@ export function CollectionView({ params }: { params: Promise<{ address: string }
 
   return (
     <section className="page section page-compact">
+      {/*
+        The live read where it has landed, the server's copy until then
+        (page.tsx), so the header and the listed share draw with the page.
+      */}
       <CollectionHero
         address={raw as `0x${string}`}
-        {...(name === undefined ? {} : { name })}
-        {...(symbol === undefined ? {} : { symbol })}
-        supply={supply as bigint | undefined}
+        {...((name ?? seed?.name) === undefined ? {} : { name: (name ?? seed?.name) as string })}
+        {...((symbol ?? seed?.symbol) === undefined ? {} : { symbol: (symbol ?? seed?.symbol) as string })}
+        supply={shownSupply}
       />
 
-      <CollectionStats collection={collection} supply={supply as bigint | undefined} />
+      <CollectionStats
+        collection={collection}
+        supply={shownSupply}
+        {...(seed?.figures === undefined ? {} : { seed: seed.figures })}
+      />
 
       {/* On a phone the mint card leads, above the offers and the tabs, where it
           is the page's one primary action; on a desktop it stays in the sidebar. */}
@@ -531,6 +554,7 @@ export function CollectionView({ params }: { params: Promise<{ address: string }
                         page never did.
                       */
                       priority={i < 4}
+                      framed={hasGenesisFrame(collection)}
                     />
                   ))}
                 </div>

@@ -264,10 +264,10 @@
 }
 
 .tcard-body {
-  padding: 0.8rem 0.9rem 0.85rem;
+  padding: 0.7rem 0.8rem 0.75rem;
   display: flex;
   flex-direction: column;
-  gap: 0.55rem;
+  gap: 0.45rem;
 }
 
 .tcard-head {
@@ -280,7 +280,7 @@
 .tcard-title {
   min-width: 0;
   flex: 1;
-  font-size: var(--step-0);
+  font-size: 0.875rem;
   font-weight: 700;
   letter-spacing: -0.025em;
   line-height: 1.25;
@@ -313,8 +313,8 @@
 .tcard-amount {
   display: flex;
   align-items: center;
-  height: 1.5rem;
-  font-size: var(--step-1);
+  height: 1.4rem;
+  font-size: var(--step-0);
   font-weight: 750;
   letter-spacing: -0.02em;
   line-height: 1.2;
@@ -405,8 +405,9 @@
   align-items: center;
   justify-content: space-between;
   gap: 0.6rem;
-  margin-top: 0.7rem;
-  padding-top: 0.65rem;
+  /* The body gap already separates it from the price; this only adds the rule. */
+  margin-top: 0.15rem;
+  padding-top: 0.55rem;
   border-top: 1px solid var(--line);
   font-size: var(--step--3);
 }
@@ -586,14 +587,54 @@
     display: none;
   }
 
-  /* "Not listed" and no Buy or Offer button: the meta line takes the empty
-     right-hand slot beside it instead of a row of its own, so the card loses a
-     line. Only then — a real price (or the Trenches depth cards' "$1K volume")
-     is wide enough to collide with it. */
-  .tcard-body:has(.tcard-amount.is-none):not(:has(.tcard-acts > *)) .tcard-meta {
+  /*
+   * "Not listed" and no Buy or Offer button: the meta line takes the empty
+   * right-hand slot beside it instead of a row of its own, so the card loses a
+   * line. Only then — a real price (or the Trenches depth cards' "$1K volume")
+   * is wide enough to collide with it.
+   *
+   * And only when the line is ONE fact (2026-10-28). The portfolio passes a
+   * floor, so a piece you hold reads "Floor 999 · Ed. 9 of 11" or "Floor 100 ·
+   * 7 offers · best 80" — and the right-hand column is `auto`, so it grew to
+   * that whole line and squeezed "Not listed" into nothing: the two were
+   * drawn over each other on 5 of 10 cards. Two facts or more keep their own
+   * line under it, as on every other card.
+   *
+   * Beside it, "Not listed" keeps its own width and the line gets what is
+   * left, clipped rather than overlapping if one fact is still too long for
+   * the narrowest phone.
+   */
+  .tcard-body:has(.tcard-amount.is-none):not(:has(.tcard-acts > *)) {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .tcard-body:has(.tcard-amount.is-none):not(:has(.tcard-acts > *))
+    .tcard-meta:not(:has(> :not(.tcard-offer-none) ~ :not(.tcard-offer-none))):not(
+      :has(> .tcard-offer-best)
+    ) {
     grid-column: 2;
     grid-row: 2;
     justify-self: end;
+    max-width: 100%;
+  }
+
+  /*
+   * The offers on a line of their own under the other facts. "Floor 100 ·
+   * 7 offers · best 80" is 166px and half a phone is 142px, so it was cut at
+   * "best 8…" — the one figure on the line an owner most wants. The same
+   * reason keeps the offers out of the slot beside "Not listed" above.
+   */
+  .tcard-meta {
+    flex-wrap: wrap;
+    row-gap: 0.15rem;
+  }
+
+  .tcard-meta > .tcard-offer-best {
+    flex-basis: 100%;
+  }
+
+  .tcard-meta > .tcard-offer-best::before {
+    content: none;
   }
 
   .tcard-buy-btn,

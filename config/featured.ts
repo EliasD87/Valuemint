@@ -300,6 +300,19 @@ export const PINNED_COLLECTIONS: ReadonlyArray<`0x${string}`> = [
 ];
 
 /**
+ * /collections' own order: Genesis first, then `PINNED_COLLECTIONS` as it is.
+ *
+ * Owner, 2026-10-28, asked for this on the collections page only. /market,
+ * /mint and search keep the list above, where the boxes lead because they are
+ * what is actually trading — the owner asked for that at the top of /market
+ * twice, so moving Genesis there too would undo a decision nobody revisited.
+ */
+export const COLLECTIONS_PAGE_PINNED: ReadonlyArray<`0x${string}`> = [
+  "0x5Fadc59297e86aceA20Bff519aea0f9651Cdc90B", // ValueChain Genesis, the OG
+  ...PINNED_COLLECTIONS.filter((a) => a.toLowerCase() !== "0x5fadc59297e86acea20bff519aea0f9651cdc90b"),
+];
+
+/**
  * The two collections the featured grid gives a moving ring.
  *
  * Its own list since Genesis joined `PINNED_COLLECTIONS`: pinning decides an

@@ -193,7 +193,7 @@ export async function select<T>(query: string): Promise<T[]> {
  * So anything that can exceed a page reads through here, and pages until a
  * short one comes back.
  */
-export async function selectAll<T>(query: string, pageSize = 1000): Promise<T[]> {
+export async function selectAll<T>(query: string, pageSize = 1000, max = 100_000): Promise<T[]> {
   const out: T[] = [];
 
   for (let offset = 0; ; offset += pageSize) {
@@ -204,8 +204,11 @@ export async function selectAll<T>(query: string, pageSize = 1000): Promise<T[]>
     /** A short page is the end. A full one might not be. */
     if (page.length < pageSize) return out;
 
-    /** A bound, so a mistake upstream cannot turn into an unbounded read. */
-    if (out.length >= 100_000) return out;
+    /**
+     * Enough. `max` is for a caller that keeps only the newest N anyway, and a
+     * bound, so a mistake upstream cannot turn into an unbounded read.
+     */
+    if (out.length >= max) return out;
   }
 }
 

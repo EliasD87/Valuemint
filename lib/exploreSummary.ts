@@ -171,7 +171,7 @@ export function summarise({
 }
 
 /** Each collection's `name` and `symbol`, in one call. A contract that will not say is left unnamed. */
-async function readNames(addresses: readonly string[]): Promise<Map<string, { name?: string; symbol?: string }>> {
+export async function readNames(addresses: readonly string[]): Promise<Map<string, { name?: string; symbol?: string }>> {
   const out = new Map<string, { name?: string; symbol?: string }>();
   if (addresses.length === 0) return out;
   const answers = await indexClient().multicall({

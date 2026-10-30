@@ -1,0 +1,91 @@
+/* ============================================================== OG ribbon
+ *
+ * A sash at 45° across the cover's top-left corner. The box clips the band to
+ * the corner; the card's own `overflow: hidden` rounds it to the card radius.
+ * The band sits on artwork, not on the page, so it is dark in both themes —
+ * its colours are their own tokens for that reason.
+ * ========================================================================= */
+
+.og-ribbon {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+  width: 5.75rem;
+  height: 5.75rem;
+  overflow: hidden;
+}
+
+/*
+ * Centred on the corner's diagonal, 2.1rem in on each axis: top is that less
+ * half the band's height (1.5rem), left that less half its width. Change one
+ * size and re-derive both, or the band slides off the diagonal.
+ */
+.og-ribbon-band {
+  position: absolute;
+  top: 1.35rem;
+  left: -2.65rem;
+  width: 9.5rem;
+  overflow: hidden;
+  rotate: -45deg;
+  padding: 0.3rem 0 0.26rem;
+  background: var(--og-band);
+  color: var(--og-band-ink);
+  border-block: 1px solid var(--og-ring);
+  box-shadow: 0 2px 8px var(--og-band-shadow);
+  text-align: center;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.3em;
+  /* The tracking trails the last letter; this puts the pair back on centre. */
+  text-indent: 0.3em;
+  line-height: 1.2;
+}
+
+/*
+ * The sheen: a gold glint that runs the length of the band once, then rests
+ * off it for most of the cycle.
+ */
+.og-ribbon-band::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 38%, var(--og-shine) 50%, transparent 62%);
+  translate: -100% 0;
+  animation: og-sheen 6s ease-in-out infinite;
+  animation-delay: 1.2s;
+  pointer-events: none;
+}
+
+@keyframes og-sheen {
+  0% {
+    translate: -100% 0;
+  }
+  24%,
+  100% {
+    translate: 100% 0;
+  }
+}
+
+/* Phones: the cover is a 6.5rem thumbnail, so the sash comes in a size. */
+@media (max-width: 700px) {
+  .og-ribbon {
+    width: 4.75rem;
+    height: 4.75rem;
+  }
+
+  /* 1.75rem in on each axis, band 1.2rem tall and 7.5rem long. */
+  .og-ribbon-band {
+    top: 1.15rem;
+    left: -2rem;
+    width: 7.5rem;
+    font-size: 0.59375rem;
+    padding: 0.2rem 0 0.16rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .og-ribbon-band::after {
+    animation: none;
+  }
+}

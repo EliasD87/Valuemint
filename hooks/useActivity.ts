@@ -207,11 +207,8 @@ export function useActivity(
    * be read" from saying it about a feed that was read perfectly well.
    */
   const indexedRows = useMemo(
-    () =>
-      indexed.streams === undefined
-        ? undefined
-        : buildActivityRows(indexed.streams).slice(0, MAX_ACTIVITY_ROWS),
-    [indexed.streams],
+    () => indexed.rows?.slice(0, MAX_ACTIVITY_ROWS),
+    [indexed.rows],
   );
 
   const fromIndex = indexedRows !== undefined;
@@ -255,8 +252,12 @@ export function useActivity(
      * read "not loading, no rows" as "nothing has ever traded here" — which is
      * a claim about the chain made before the chain was asked. That is the same
      * failure `logsUnavailable` exists to prevent, arriving by a different door.
+     *
+     * Rows already in hand (fetched, or rendered by the server) are not
+     * loading, whatever the hold-back says: it exists to let a page's first
+     * reads go first, not to hide an answer it already has.
      */
-    isLoading: indexed.isLoading || query.isLoading || !ready,
+    isLoading: fromIndex ? false : indexed.isLoading || query.isLoading || !ready,
     /**
      * The node would not serve some or all of the logs this feed is built from.
      *

@@ -15,7 +15,7 @@ import { useFloors } from "@/hooks/useFloors";
 import { Select } from "@/components/Select";
 import { BulkBuyBar } from "@/components/BulkBuyBar";
 import { MAX_BULK_BUY } from "@/lib/seaport";
-import { countsForNextDraw } from "@/config/treasureDraw";
+import { useNextDraw } from "@/hooks/useNextDraw";
 import type { SeaportOrder } from "@/hooks/useSeaportOrders";
 
 type Sort = "traded" | "price-asc" | "price-desc" | "recent";
@@ -83,6 +83,8 @@ export default function Market() {
   }, [sales]);
 
   const [sort, setSort] = useState<Sort>("traded");
+  /** This week's Treasure Box cut-off: boxes that count for the next draw lead the house order. */
+  const nextDraw = useNextDraw();
   const [filterTo, setFilterTo] = useState<string>("all");
 
   /**
@@ -243,8 +245,8 @@ export default function Market() {
       if (sort === "traded") {
         /* Boxes that count for SoDEX's next draw lead the house order while
            the draws run (config/treasureDraw.ts). */
-        const da = countsForNextDraw(a.collection, a.id) ? 0 : 1;
-        const db = countsForNextDraw(b.collection, b.id) ? 0 : 1;
+        const da = nextDraw.counts(a.collection, a.id) ? 0 : 1;
+        const db = nextDraw.counts(b.collection, b.id) ? 0 : 1;
         if (da !== db) return da - db;
 
         const pa = pinRank(a.collection);
@@ -261,7 +263,7 @@ export default function Market() {
       const n = cheapestFirst(a, b);
       return sort === "price-asc" ? n : -n;
     });
-  }, [listed, sort, active, tradesPerCollection]);
+  }, [listed, sort, active, tradesPerCollection, nextDraw.counts]);
 
   /**
    * There is no market-wide floor here, deliberately.
