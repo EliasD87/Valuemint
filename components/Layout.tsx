@@ -11,7 +11,6 @@ import { Search } from "./Search";
 import { SodexLogo } from "./SodexLogo";
 import { GuideWelcome } from "./GuideWelcome";
 import { NavProgress } from "./NavProgress";
-import { MaintenanceNotice } from "./MaintenanceNotice";
 import { deployment } from "@/config/contracts";
 import { SEAPORT } from "@/config/seaport";
 import "./Layout.css";
@@ -165,8 +164,6 @@ export function Layout({ children }: { children: ReactNode }) {
       <a className="skip" href="#main">
         Skip to content
       </a>
-
-      <MaintenanceNotice />
 
       <header className="header" data-menu-open={menuOpen ? "" : undefined}>
         <div className="header-inner page">
