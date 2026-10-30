@@ -1,12 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useBlockNumber } from "wagmi";
 import { useActivity, type ActivityRow } from "@/hooks/useActivity";
 import { useAllCollections } from "@/hooks/useAllCollections";
 import { useMinters } from "@/hooks/useMinters";
-import { CountUp } from "@/components/CountUp";
 import { PulseVolume } from "@/components/PulseVolume";
 import { Select } from "@/components/Select";
 import { Soso } from "@/components/Soso";
@@ -369,12 +368,10 @@ export function StatsView({ seed }: { seed?: StatsSeed }) {
 
           <ul className="pulse-figures">
             <li>
-              {/* Pending until every sale has landed: the feed alone stops at
+              {/* Held until every sale has landed: the feed alone stops at
                   2,000 events and undercounts, and a figure that settled low
                   then jumped read as wrong. */}
-              <span className="pulse-fig">
-                <CountUp value={stats.sales} pending={salesLoading} />
-              </span>
+              <Figure pending={salesLoading}>{stats.sales}</Figure>
               <span className="pulse-cap">pieces sold</span>
             </li>
             <li>
@@ -383,41 +380,27 @@ export function StatsView({ seed }: { seed?: StatsSeed }) {
                   not fit a half-width tile on a phone — it was clipped to
                   "2996.03 SOS". A stat tile's caption is where a unit belongs
                   anyway, and it makes all six figures read alike. */}
-              <span className="pulse-fig">
-                <CountUp
-                  value={Number(stats.volume) / 1e18}
-                  decimals={2}
-                  final={formatSoso(stats.volume, 2)}
-                  pending={salesLoading}
-                />
-              </span>
+              <Figure pending={salesLoading}>{formatSoso(stats.volume, 2)}</Figure>
               {/* "through Seaport" was plumbing showing through the paint. */}
               <span className="pulse-cap">SOSO settled</span>
             </li>
             <li>
-              <span className="pulse-fig">
-                <CountUp value={stats.listings} />
-              </span>
+              <Figure>{stats.listings}</Figure>
               <span className="pulse-cap">listings written</span>
             </li>
             <li>
-              <span className="pulse-fig">
-                <CountUp value={stats.offers} />
-              </span>
+              <Figure>{stats.offers}</Figure>
               <span className="pulse-cap">offers made</span>
             </li>
             <li>
-              {/* Keeps counting until the minters land (lib/minters.ts), then
-                  counts on to the full figure. */}
-              <span className="pulse-fig">
-                <CountUp value={stats.traders} pending={mintersLoading} />
-              </span>
+              {/* Held until the minters land (lib/minters.ts). Traders alone
+                  are most of the figure and none of the claimers, so showing
+                  them first meant a number that visibly climbed. */}
+              <Figure pending={mintersLoading}>{stats.traders}</Figure>
               <span className="pulse-cap">wallets involved</span>
             </li>
             <li>
-              <span className="pulse-fig">
-                <CountUp value={stats.collections} />
-              </span>
+              <Figure>{stats.collections}</Figure>
               <span className="pulse-cap">collections moving</span>
             </li>
           </ul>
@@ -582,6 +565,23 @@ export function StatsView({ seed }: { seed?: StatsSeed }) {
  * invents them is a lie told with an animation — these name the parts of one
  * job that is genuinely in flight.
  */
+/**
+ * One of the six figures: the number, or a placeholder of its shape while a
+ * part of it is still arriving.
+ *
+ * No counting up (removed 2026-10-30). The page renders on the server with
+ * its numbers already known, so animating to them only made a finished page
+ * look like it was still working; and a figure that is not final yet is
+ * better left out than shown climbing to where it will land.
+ */
+function Figure({ children, pending = false }: { children: ReactNode; pending?: boolean }) {
+  return (
+    <span className="pulse-fig">
+      {pending ? <span className="skeleton pulse-fig-wait" aria-label="Loading" /> : children}
+    </span>
+  );
+}
+
 function Waiting() {
   const stages = [
     "Reading Seaport's logs",

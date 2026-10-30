@@ -861,7 +861,11 @@
   color: var(--ink-3);
 }
 
-/* A figure still being added to (components/CountUp.tsx): true so far, visibly not final. */
-.countup-pending {
-  color: var(--ink-3);
+/* A figure not final yet (Figure in app/stats/StatsView.tsx): the shape of a
+   number, so the tile keeps its height and nothing jumps when it lands. */
+.pulse-fig-wait {
+  display: inline-block;
+  width: 3.5em;
+  height: 0.8em;
+  vertical-align: middle;
 }

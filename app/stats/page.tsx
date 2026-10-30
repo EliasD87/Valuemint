@@ -3,7 +3,8 @@ import { activityForPage } from "@/lib/indexActivity";
 import { activityQueryKey, type ActivityWire } from "@/lib/activityWire";
 import { indexClient } from "@/lib/indexSync";
 import { readNames } from "@/lib/exploreSummary";
-import { mintersOnValueMint } from "@/lib/minters";
+import { mintersOnValueMint, type Minters } from "@/lib/minters";
+import { siteUrl } from "@/lib/site";
 import { StatsView, type StatsSeed } from "./StatsView";
 
 /**
@@ -35,6 +36,13 @@ const SIDE_BUDGET_MS = 2_500;
  */
 const INDEX_BUDGET_MS = 8_000;
 
+/**
+ * Longer than the other side reads: the route is edge-cached but cold for its
+ * first request after a deploy (3.6 s measured), and this page is rebuilt in
+ * the background, so the wait is never a visitor's.
+ */
+const MINTERS_BUDGET_MS = 4_000;
+
 function within<T>(promise: Promise<T>, ms: number): Promise<T | undefined> {
   return Promise.race([
     promise.catch(() => undefined),
@@ -46,22 +54,14 @@ export default async function StatsPage() {
   const [feed, sales, minters, head] = await Promise.all([
     within(activityForPage({}, MAX_LAG_MS), INDEX_BUDGET_MS),
     within(activityForPage({ salesOnly: true }, MAX_LAG_MS), INDEX_BUDGET_MS),
-    /**
-     * Shared and memoised inside the function, so a warm server answers at
-     * once. A cold one may be mid-scan; then the page renders without it and
-     * the browser asks the cached route instead, as it always did.
-     *
-     * Not at deploy time: the scan outlives the race it loses, and a build
-     * worker waits for it. The first regeneration after deploy fills it in.
-     */
-    process.env.NEXT_PHASE === "phase-production-build" ? undefined : within(mintersOnValueMint(), SIDE_BUDGET_MS),
+    mintersForPage(),
     within(indexClient().getBlockNumber(), SIDE_BUDGET_MS),
   ]);
 
   const client = new QueryClient();
   if (feed !== undefined) client.setQueryData(activityQueryKey({}), feed);
   if (sales !== undefined) client.setQueryData(activityQueryKey({ salesOnly: true }), sales);
-  if (minters !== undefined) client.setQueryData(["stats-minters"], minters.minters);
+  if (minters !== undefined) client.setQueryData(["stats-minters"], minters);
 
   const seed: StatsSeed = {
     ...(head === undefined ? {} : { head: head.toString() }),
@@ -85,4 +85,33 @@ async function namesFor(wires: Array<ActivityWire | undefined>): Promise<Pick<St
   const names: Record<string, string> = {};
   for (const [address, { name }] of read) if (name !== undefined) names[address] = name;
   return { names };
+}
+
+/**
+ * The wallets that minted here, for "wallets involved".
+ *
+ * From the site's own `/api/stats/minters`, which the edge holds for ten
+ * minutes and serves stale for a day, so it answers at once. Asking
+ * `mintersOnValueMint` directly meant a chain scan on any server that had not
+ * run one yet, which lost the race nearly every time: the page then showed
+ * the traders alone and the figure climbed when the minters landed.
+ *
+ * The scan itself remains the fallback, except at deploy time, where it would
+ * outlive the race it loses and hold a build worker open.
+ */
+async function mintersForPage(): Promise<Minters["minters"] | undefined> {
+  try {
+    const res = await fetch(`${siteUrl()}/api/stats/minters`, {
+      signal: AbortSignal.timeout(MINTERS_BUDGET_MS),
+      next: { revalidate: 300 },
+    });
+    if (res.ok) {
+      const body = (await res.json()) as Partial<Minters>;
+      if (Array.isArray(body.minters)) return body.minters;
+    }
+  } catch {
+    /* Fall through to the scan. */
+  }
+  if (process.env.NEXT_PHASE === "phase-production-build") return undefined;
+  return (await within(mintersOnValueMint(), SIDE_BUDGET_MS))?.minters;
 }
