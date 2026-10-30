@@ -49,6 +49,10 @@ export interface CollectionStats {
   owners?: number;
   /** The history is still arriving, so volume figures are incomplete. */
   isLoading: boolean;
+  /** The order book has not answered yet, so `listed` and the floor are not known. */
+  bookLoading: boolean;
+  /** The sales history has not answered yet, so the volumes are not known. */
+  historyLoading: boolean;
   /**
    * The history could not be read at all.
    *
@@ -164,6 +168,8 @@ export function useCollectionStats(collection: `0x${string}` | undefined): Colle
     ...(sales[0]?.price === undefined ? {} : { lastSaleWei: sales[0].price }),
     ...(owners === undefined ? {} : { owners }),
     isLoading: booking || reading || !day.ready,
+    bookLoading: booking,
+    historyLoading: reading || !day.ready,
     unavailable: logsUnavailable,
   };
 }

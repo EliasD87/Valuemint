@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { cache } from "react";
 import { CollectionView } from "./CollectionView";
 import { collectionShare } from "@/lib/shareMeta";
 
@@ -17,6 +18,13 @@ import { collectionShare } from "@/lib/shareMeta";
  */
 export const revalidate = 3600;
 
+/**
+ * One read per render for both the link preview and the page (2026-10-30).
+ * `generateMetadata` and the page each asked for it, and `cache` makes that
+ * one set of chain reads rather than two.
+ */
+const shareFor = cache((address: string) => collectionShare(address));
+
 export async function generateStaticParams() {
   return [];
 }
@@ -27,7 +35,7 @@ export async function generateMetadata({
   params: Promise<{ address: string }>;
 }): Promise<Metadata> {
   const { address } = await params;
-  const share = await collectionShare(address);
+  const share = await shareFor(address);
 
   const name = share?.name ?? "Collection";
   const title = share?.symbol === undefined ? name : `${name} (${share.symbol})`;
@@ -55,5 +63,21 @@ export default async function CollectionPage({
 }: {
   params: Promise<{ address: string }>;
 }) {
-  return <CollectionView params={params} />;
+  /**
+   * The name, symbol and pieces minted, as of this page's last render (up to
+   * an hour old), so the header draws with the page instead of after the
+   * browser's own chain read. The browser still reads them and its answer
+   * replaces these the moment it lands.
+   */
+  const { address } = await params;
+  const share = await shareFor(address);
+  const seed =
+    share === undefined
+      ? undefined
+      : {
+          ...(share.name === undefined ? {} : { name: share.name }),
+          ...(share.symbol === undefined ? {} : { symbol: share.symbol }),
+          ...(share.minted === undefined ? {} : { minted: String(share.minted) }),
+        };
+  return <CollectionView params={params} {...(seed === undefined ? {} : { seed })} />;
 }

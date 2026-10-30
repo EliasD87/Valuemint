@@ -94,8 +94,13 @@ export function CollectionStats({
         */}
         <FloorChange collection={collection} floorWei={s.floorWei} />
 
-        <Cell label="Listed" note={listedShare}>
-          <span className="cs-plain">{formatCount(BigInt(s.listed))}</span>
+        {/*
+          A dash until the order book answers (2026-10-30). It said "0" for the
+          first second or two of every visit, and a collection with nothing for
+          sale is a claim, not a placeholder.
+        */}
+        <Cell label="Listed" {...(s.bookLoading ? {} : { note: listedShare })}>
+          {s.bookLoading ? <Dash /> : <span className="cs-plain">{formatCount(BigInt(s.listed))}</span>}
         </Cell>
 
         {/*
@@ -121,11 +126,15 @@ export function CollectionStats({
           for, in a strip whose job is six figures read at a glance.
         */}
         <Cell label="24h volume">
-          {s.unavailable ? <Dash /> : <Soso size={15}>{formatSosoWhole(s.volumeDayWei)}</Soso>}
+          {s.unavailable || s.historyLoading ? <Dash /> : <Soso size={15}>{formatSosoWhole(s.volumeDayWei)}</Soso>}
         </Cell>
 
         <Cell label="Total volume">
-          {s.unavailable ? <Dash /> : <Soso size={15}>{formatSosoWhole(s.volumeTotalWei)}</Soso>}
+          {s.unavailable || s.historyLoading ? (
+            <Dash />
+          ) : (
+            <Soso size={15}>{formatSosoWhole(s.volumeTotalWei)}</Soso>
+          )}
         </Cell>
       </dl>
 
