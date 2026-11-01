@@ -1,5 +1,9 @@
 import type { Metadata } from "next";
 import { cache } from "react";
+import { getAddress } from "viem";
+import { KNOWN_COLLECTIONS } from "@/config/known";
+import { MAIN_COLLECTIONS, PINNED_COLLECTIONS } from "@/config/featured";
+import { isHidden } from "@/config/hidden";
 import { dehydrate, HydrationBoundary, QueryClient } from "@tanstack/react-query";
 import { CollectionView, type CollectionSeed } from "./CollectionView";
 import { collectionShare } from "@/lib/shareMeta";
@@ -48,8 +52,25 @@ function within<T>(promise: Promise<T>, ms: number = BUDGET_MS): Promise<T | und
  */
 const shareFor = cache((address: string) => collectionShare(address));
 
+/**
+ * Every existing collection is built at deploy time (2026-10-30).
+ *
+ * The page now carries its figures, history and holders, so building it takes
+ * a few seconds, and whoever opened a collection first after a deploy waited
+ * those seconds: measured 6 to 25 on the live site. Built here, nobody does.
+ * Any other address still renders on its first visit, as before.
+ *
+ * Both spellings, because both are linked: cards and lists use the checksummed
+ * address, history rows the lower-case one, and each is its own cached page.
+ */
 export async function generateStaticParams() {
-  return [];
+  const addresses = new Set<string>();
+  for (const c of KNOWN_COLLECTIONS) addresses.add(c.address);
+  for (const a of [...PINNED_COLLECTIONS, ...MAIN_COLLECTIONS]) addresses.add(a);
+  return [...addresses]
+    .filter((a) => /^0x[0-9a-fA-F]{40}$/.test(a) && !isHidden(a))
+    .flatMap((a) => [...new Set([getAddress(a), a.toLowerCase()])])
+    .map((address) => ({ address }));
 }
 
 export async function generateMetadata({

@@ -1,15 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useMemo, useRef, type ReactNode } from "react";
 import { Art } from "@/components/Art";
 import { WarmLink } from "@/components/WarmLink";
 import { Soso } from "@/components/Soso";
-import { Wordmark } from "@/components/Wordmark";
 import { TopCollections } from "@/components/TopCollections";
-import { wordmarkFor } from "@/config/wordmarks";
 import { FEATURED } from "@/config/featured";
-import { BAND_ART, CASCADE, SPOTLIGHT, WALLET_ART } from "@/config/exploreStory";
+import { BAND_ART, CASCADE, WALLET_ART } from "@/config/exploreStory";
 import { coverFor } from "@/config/covers";
 import { formatCount, formatSoso } from "@/lib/format";
 import { stillUrl } from "@/lib/media";
@@ -23,8 +21,9 @@ import "@/styles/explore.css";
  * The 10-09 version told the site as a long gallery scroll: a second opener
  * that repeated the hero, a run of name chips, a statement set in display
  * type, a bento. It read well and said little, and it was most of the page.
- * This one is shorter and plainer: the top four collections, a collection
- * banner, what is minting, a run of pieces, and what the site can do.
+ * This one is shorter and plainer: the top four collections, what is minting,
+ * a run of pieces, and what the site can do. (The collection banner went
+ * 2026-11-01, at the owner's request.)
  * Compact, like the token page.
  *
  * The page's rule still holds: nothing here reads the chain. Pictures are our
@@ -34,8 +33,6 @@ import "@/styles/explore.css";
  */
 
 type Market = ReadonlyMap<string, { floorWei?: string; listed: number }>;
-
-const vars = (v: Record<string, string | number>) => v as CSSProperties;
 
 export function ExploreStory({
   summary,
@@ -76,7 +73,6 @@ export function ExploreStory({
         <TopCollections summary={trusted} names={names} />
       </section>
 
-      <Spotlight market={market} />
       <Mints collections={collections} />
       <Featured market={market} />
       <Features />
@@ -112,221 +108,6 @@ function SectionHead({
         </div>
       )}
     </div>
-  );
-}
-
-/* ------------------------------------------------------------- spotlight */
-
-/** How long each collection holds the banner before the next slides in. */
-const SPOTLIGHT_MS = 1500;
-
-/** The slide itself; must match `.ex-banner-track`'s transition in explore.css. */
-const SLIDE_MS = 650;
-
-/** Whether the visitor has asked for less motion. Off until known, so nothing moves on a guess. */
-function useReducedMotion(): boolean {
-  const [reduce, setReduce] = useState(false);
-  useEffect(() => {
-    const query = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const update = () => setReduce(query.matches);
-    update();
-    query.addEventListener("change", update);
-    return () => query.removeEventListener("change", update);
-  }, []);
-  return reduce;
-}
-
-/**
- * Four collections on a track that slides sideways on its own, forever in one
- * direction (2026-10-09).
- *
- * A loop, not a rewind: a copy of the first slide waits after the last. The
- * track slides onto it, and once it has arrived the track jumps back to the
- * real first slide with no animation, which looks identical. Stepping back
- * from the first slide does the same in reverse.
- *
- * It pauses while a pointer is over it. Keyboard focus inside it also holds it
- * still, only when the focus came from the keyboard, so a mouse click on an
- * arrow does not leave it paused. It never moves for anyone who asks for
- * reduced motion, and it does not tick while the tab is hidden.
- *
- * A slide carries the same layers as its collection page's header: the
- * picture, then any cut-out standing on it, and the collection's own wordmark
- * where it has one.
- */
-function Spotlight({ market }: { market: Market }) {
-  const count = SPOTLIGHT.length;
-  /** The track's position: 0..count, where `count` is the copy of the first slide. */
-  const [pos, setPos] = useState(0);
-  /** True for the one frame the track jumps instead of sliding. */
-  const [instant, setInstant] = useState(false);
-  const [hovered, setHovered] = useState(false);
-  const [keyboard, setKeyboard] = useState(false);
-  const reduce = useReducedMotion();
-  const playing = !hovered && !keyboard && !reduce;
-  const at = pos % count;
-
-  /* Restarted on every move, so a click resets the clock rather than racing it. */
-  useEffect(() => {
-    if (!playing) return;
-    const id = window.setInterval(() => {
-      if (document.visibilityState === "visible") setPos((p) => Math.min(p + 1, count));
-    }, SPOTLIGHT_MS);
-    return () => window.clearInterval(id);
-  }, [playing, pos, count]);
-
-  /* Landed on the copy of the first slide: jump to the real one once the slide has finished. */
-  useEffect(() => {
-    if (pos !== count) return;
-    const id = window.setTimeout(() => {
-      setInstant(true);
-      setPos(0);
-    }, SLIDE_MS + 40);
-    return () => window.clearTimeout(id);
-  }, [pos, count]);
-
-  /* Sliding comes back on once the jump has been painted. */
-  useEffect(() => {
-    if (!instant) return;
-    let second = 0;
-    const first = requestAnimationFrame(() => {
-      second = requestAnimationFrame(() => setInstant(false));
-    });
-    return () => {
-      cancelAnimationFrame(first);
-      cancelAnimationFrame(second);
-    };
-  }, [instant]);
-
-  const next = () => setPos((p) => Math.min(p + 1, count));
-  const prev = () => {
-    if (pos > 0) {
-      setPos(pos - 1);
-      return;
-    }
-    /* From the first slide: jump to its copy at the end, then slide back onto the last. */
-    setInstant(true);
-    setPos(count);
-    requestAnimationFrame(() =>
-      requestAnimationFrame(() => {
-        setInstant(false);
-        setPos(count - 1);
-      }),
-    );
-  };
-
-  const slides = [...SPOTLIGHT, SPOTLIGHT[0]!];
-
-  return (
-    <section className="ex page">
-      <div
-        className="ex-banner"
-        role="region"
-        aria-roledescription="carousel"
-        aria-label="Collection spotlight"
-        data-playing={playing ? "" : undefined}
-        onPointerEnter={() => setHovered(true)}
-        onPointerLeave={() => setHovered(false)}
-        onFocus={(e) => {
-          if (e.target.matches(":focus-visible")) setKeyboard(true);
-        }}
-        onBlur={(e) => {
-          if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setKeyboard(false);
-        }}
-      >
-        <div
-          className="ex-banner-track"
-          style={vars({ "--at": pos })}
-          data-instant={instant ? "" : undefined}
-          aria-live={playing ? "off" : "polite"}
-        >
-          {slides.map((slide, i) => {
-            const m = market.get(slide.address);
-            const mark = wordmarkFor(slide.address);
-            const copy = i === count;
-            const shown = i === pos;
-            return (
-              <div
-                key={`${slide.address}-${i}`}
-                className="ex-slide"
-                role={copy ? undefined : "group"}
-                aria-roledescription={copy ? undefined : "slide"}
-                aria-label={copy ? undefined : `${i + 1} of ${count}: ${slide.name}`}
-                aria-hidden={copy || !shown}
-                inert={copy || !shown}
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  className="ex-banner-img"
-                  src={slide.image}
-                  alt=""
-                  loading="lazy"
-                  decoding="async"
-                  style={slide.focus === undefined ? undefined : { objectPosition: slide.focus }}
-                />
-                <div className="ex-banner-shade" aria-hidden="true" />
-                {slide.foreground === undefined ? null : (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    className="ex-banner-fg"
-                    src={slide.foreground}
-                    alt={slide.foregroundAlt ?? ""}
-                    loading="lazy"
-                    decoding="async"
-                  />
-                )}
-                <div className="ex-banner-body">
-                  <h3 className="ex-banner-name">
-                    {mark === undefined ? slide.name : <Wordmark mark={mark} name={slide.name} on="art" />}
-                  </h3>
-                  {m === undefined ? null : (
-                    <p className="ex-banner-meta">
-                      {m.floorWei === undefined ? null : (
-                        <>
-                          Floor <b>{formatSoso(BigInt(m.floorWei), 2)} SOSO</b>
-                          {" · "}
-                        </>
-                      )}
-                      <b>{formatCount(BigInt(m.listed))}</b> for sale
-                    </p>
-                  )}
-                  <Link className="btn btn-sm ex-banner-btn" href={`/collection/${slide.address}`}>
-                    Open collection
-                  </Link>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Which slide, and while it plays, how long until the next one. */}
-        <div className="ex-banner-dots">
-          {SPOTLIGHT.map((slide, i) => (
-            <button
-              key={slide.address}
-              type="button"
-              className={i === at ? "ex-dot is-on" : "ex-dot"}
-              aria-label={`Show ${slide.name}`}
-              aria-current={i === at ? "true" : undefined}
-              onClick={() => setPos(i)}
-            >
-              <span>
-                <i key={i === at ? `on-${pos}` : "off"} style={vars({ "--dur": `${SPOTLIGHT_MS}ms` })} />
-              </span>
-            </button>
-          ))}
-        </div>
-
-        <div className="ex-banner-nav">
-          <button type="button" className="ex-round" aria-label="Previous collection" onClick={prev}>
-            <Chevron left />
-          </button>
-          <button type="button" className="ex-round" aria-label="Next collection" onClick={next}>
-            <Chevron />
-          </button>
-        </div>
-      </div>
-    </section>
   );
 }
 

@@ -1,6 +1,7 @@
 /* ================================================================== hero ===
  *
- * Centred copy standing over a fanned deck of the collections themselves.
+ * One centred column: the headline, a row of the collections' own cards, then
+ * the lede and the buttons (owner's reference, 2026-11-01).
  *
  * Theme-aware, unlike /trenches and /kols.
  *
@@ -21,7 +22,8 @@
   position: relative;
   isolation: isolate;
   overflow: hidden;
-  padding: clamp(2rem, 3.6vw, 3.25rem) 0 0;
+  /* The buttons are the floor now, not a deck cut off by the edge. */
+  padding: clamp(2rem, 3.6vw, 3.25rem) 0 clamp(2.5rem, 4.5vw, 4rem);
   color: var(--ink);
 }
 
@@ -246,8 +248,11 @@
    */
   font-family: var(--sans);
   font-optical-sizing: auto;
-  font-size: var(--step-5);
-  font-weight: 800;
+  /* Large and light, like the reference: size carries it, not weight (the
+     owner dislikes heavy type). It was --step-5 at 800. */
+  /* The floor keeps "everything on ValueChain" on one line at 375. */
+  font-size: clamp(1.75rem, 1rem + 4vw, 4.1rem);
+  font-weight: 500;
   letter-spacing: -0.045em;
   line-height: 1.06;
   /**
@@ -346,17 +351,30 @@
  */
 .hx-float {
   position: absolute;
-  /* Above the deck, whose cards run to z-index 10. On a desktop the tags sit
-     beside the copy and never meet a card, so 3 was enough; on a phone they sit
-     *on* the deck, and at 3 they disappeared behind it. */
+  /* Above the cards, which run to z-index 10. */
   z-index: 12;
-  padding: 0.3rem 0.7rem;
+  padding: 0.35rem 0.75rem;
   border-radius: var(--r-pill);
-  font-size: var(--step--3);
-  font-weight: 700;
+  font-size: var(--step--2);
+  font-weight: 600;
   white-space: nowrap;
   color: #0c0c0e;
-  box-shadow: 0 10px 24px -12px rgba(0, 0, 0, 0.9);
+  box-shadow: 0 10px 24px -12px rgba(0, 0, 0, 0.6);
+}
+
+/* The bubble's tail, pointing down at the card under it. Takes the bubble's
+   own fill, so the two colours below are written once. */
+.hx-float::after {
+  content: "";
+  position: absolute;
+  bottom: -4px;
+  left: 50%;
+  width: 10px;
+  height: 10px;
+  margin-left: -5px;
+  background: inherit;
+  rotate: 45deg;
+  border-radius: 2px;
 }
 
 /**
@@ -369,19 +387,23 @@
  * top of it. Putting the tilt in a `transform` keyframe instead would leave the
  * tags sitting flat for reduced-motion readers.
  */
+/* Placed against the outermost visible card on each side: `--reach` slots out
+   from the middle, which the phone rule below shortens when it drops cards. */
 .hx-float-a {
-  top: clamp(120px, 17vw, 210px);
-  left: clamp(0.75rem, 7vw, 8rem);
+  top: calc(var(--card-w) * -0.02);
+  left: calc(50% - var(--reach) * var(--step) - var(--card-w) * 0.2);
+  translate: -50% -100%;
   background: #7dd3fc;
-  rotate: -8deg;
+  rotate: -6deg;
   animation: hx-bob-a 11s ease-in-out infinite;
 }
 
 .hx-float-b {
-  top: clamp(170px, 23vw, 280px);
-  right: clamp(0.75rem, 7vw, 8rem);
+  top: calc(var(--card-w) * 0.1);
+  left: calc(50% + var(--reach) * var(--step) + var(--card-w) * 0.22);
+  translate: -50% -100%;
   background: #fda4af;
-  rotate: 7deg;
+  rotate: 6deg;
   animation: hx-bob-b 13s ease-in-out -4s infinite;
 }
 
@@ -397,24 +419,28 @@
 
 /* --- the deck ------------------------------------------------------------ *
  *
- * Five cards fanned from the middle. The geometry is computed rather than
- * guessed: a rotated card has a wider axis-aligned footprint than the card
- * itself, so the outer pair needs cardW*cos(2t) + cardH*sin(2t) of room, not
- * cardW. At 375 that puts the span at 552px against a 375px frame — the outer
- * cards bleed about 88px a side, which is the effect, and the section clips.
+ * Five square cards in one row, overlapping by a fifth, in a shallow arc: each
+ * card drops by the square of its distance from the middle and tilts by it, so
+ * the row reads as a hand laid on a table rather than a fan held up. Whole
+ * cards, nothing cut off by the section's edge.
  * ------------------------------------------------------------------------- */
 
 .hx-deck {
-  --card-w: clamp(150px, 20vw, 300px);
-  --card-h: calc(var(--card-w) * 1.28);
-  --step: clamp(90px, 13.5vw, 200px);
-  --tilt: 7deg;
+  --card-w: clamp(140px, 15vw, 228px);
+  /* Centre to centre. 0.8 of a card is a fifth of each one under its
+     neighbour, which is what reads as a hand rather than thumbnails. */
+  --step: calc(var(--card-w) * 0.8);
+  --tilt: 4deg;
+  /* How far the arc drops, per slot squared, as a share of the card. */
+  --drop: 3.5%;
+  /* Slots from the middle to the outermost card shown; for the tags. */
+  --reach: 2;
 
   position: relative;
-  /* Shorter than a card, so the deck is cut by the section edge and reads as
-     standing in front of it rather than floating above. */
-  height: calc(var(--card-h) * 0.82);
-  margin-top: clamp(1.75rem, 3.4vw, 2.75rem);
+  width: 100%;
+  /* The card, plus what the outer pair drops (14%) and tilts (~7%) out of it. */
+  height: calc(var(--card-w) * 1.22);
+  margin: clamp(1.75rem, 3.2vw, 2.5rem) 0 clamp(0.5rem, 1.2vw, 1rem);
 }
 
 .hx-card {
@@ -429,12 +455,13 @@
   background: var(--hx-card);
   border: 1px solid var(--hx-card-line);
   box-shadow: var(--hx-shadow);
-  /* One transform, so hover composites without re-laying anything out. */
+  /* One transform, so hover composites without re-laying anything out. Hover
+     changes only `--lift`. */
+  --lift: 0px;
   transform:
     translateX(calc(-50% + var(--slot) * var(--step)))
-    translateY(calc(var(--abs) * 7%))
-    rotate(calc(var(--slot) * var(--tilt)))
-    scale(calc(1 - var(--abs) * 0.05));
+    translateY(calc(var(--abs) * var(--abs) * var(--drop) - var(--lift)))
+    rotate(calc(var(--slot) * var(--tilt)));
   z-index: calc(10 - var(--abs));
   transition: transform 420ms var(--ease), box-shadow 420ms var(--ease),
     border-color 420ms var(--ease);
@@ -465,11 +492,9 @@
 }
 
 .hx-card:hover {
-  transform:
-    translateX(calc(-50% + var(--slot) * var(--step)))
-    translateY(calc(var(--abs) * 7% - 10px))
-    rotate(calc(var(--slot) * var(--tilt)))
-    scale(calc(1.03 - var(--abs) * 0.05));
+  --lift: 12px;
+  /* In front of its neighbours while it is looked at. */
+  z-index: 11;
   border-color: var(--ink-2);
 }
 
@@ -508,203 +533,11 @@
 }
 
 /**
- * The name, over the artwork and only while you are looking at that card.
+ * Phones: the same column, with the middle three cards.
  *
- * Two problems it solves at once. The strip this used to be - below the square
- * art, on `--surface-2` with a top rule - sat entirely inside the 18% that
- * `.hx-deck` crops away to make the fan stand in front of the section edge, so
- * the names had never been visible on any card, in any theme, at any width. And
- * a label above the deck naming the set made the hero taller and, on a phone,
- * detached from the cards entirely and read as a footer to the section.
- *
- * On the artwork it costs no layout at all, and revealing it on hover keeps the
- * default state what it should be: five pieces of art, undecorated.
- *
- * No theme tokens here, which is the one place in this file that is correct:
- * this type sits on the artwork, not on the page. All five pieces carry a dark
- * ground - the two that shipped with alpha had one composited in - so a scrim
- * and white type read identically whichever theme the site is in. Tokens would
- * make it correct against a surface it never touches.
- */
-.hx-card-body {
-  position: absolute;
-  left: 0;
-  right: 0;
-  /**
-   * Lifted by exactly what the fan pushed this card down.
-   *
-   * A card at slot |n| is moved down `n * 7%` of its own height, so on five
-   * cards the outer pair ends up 14% lower than the centre - past the edge that
-   * crops the deck, taking its name with it. Both percentages resolve against
-   * the same box, so cancelling one with the other puts every name inside the
-   * crop and lands them on one line across the fan.
-   */
-  bottom: calc(var(--abs) * 7%);
-  display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
-  padding: 2rem 0.7rem 0.6rem;
-  background: linear-gradient(
-    to top,
-    rgba(0, 0, 0, 0.86) 0%,
-    rgba(0, 0, 0, 0.66) 40%,
-    rgba(0, 0, 0, 0) 100%
-  );
-  /* Above the extension below, which is otherwise a pseudo-element and would
-     paint last — over the very text it exists to make readable. */
-  z-index: 1;
-  pointer-events: none;
-
-  /**
-   * Hidden until the card is hovered - and reachable without hovering.
-   *
-   * This file already carries the scar from content that depended on an
-   * animation: the deck's entrance began at `opacity: 0` with
-   * `animation-fill-mode: backwards`, so the visible state existed only if the
-   * animation ran, and when it did not the hero rendered empty. The same shape
-   * of mistake here would be a name no touch device can ever reach, since a
-   * phone has no hover to give.
-   *
-   * So `@media (hover: hover)` is what opts *into* hiding. A coarse pointer
-   * never matches it and simply gets the names, always. The rule below is the
-   * exception, not the default.
-   */
-  opacity: 1;
-  transform: none;
-}
-
-/**
- * The scrim, carried down to the card's edge.
- *
- * The body holds the gradient, and the body is lifted off the bottom by
- * `--abs * 7%` so the names land on one line across the fan. That lift took
- * the gradient with it: measured at 1280, a 10px strip of bare artwork under
- * the name on the |n|=1 cards and 25px on the |n|=2 pair, directly beneath
- * text that the gradient exists to make readable.
- *
- * So the gap is filled with the gradient's own darkest stop, `0.86`, which is
- * exactly the value the gradient has reached at its bottom edge — the two meet
- * with no seam to find.
- *
- * `calc(var(--abs) * 7%)` is deliberately the SAME expression that opened the
- * gap, on an element that resolves it against the same box, so the two cannot
- * drift: change the fan's spread and the patch follows it. On the centre card
- * it computes to zero and nothing is drawn. Percentages here resolve against
- * the card's untransformed height, which is also what `bottom` used, so the
- * fan's rotate and scale do not enter into it.
- */
-.hx-card::after {
-  content: "";
-  position: absolute;
-  inset: auto 0 0 0;
-  height: calc(var(--abs) * 7%);
-  background: rgba(0, 0, 0, 0.86);
-  pointer-events: none;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .hx-card-body {
-    opacity: 0;
-    transform: translateY(8px);
-    transition: opacity 260ms var(--ease), transform 260ms var(--ease);
-  }
-
-  /*
-   * It hides and arrives with the name, for the reason the name hides at all.
-   * Left visible it would be a black bar under an unhovered card with nothing
-   * on it. No transform: the body slides, but a scrim anchored to the bottom
-   * edge sliding would open the very gap this closes.
-   */
-  .hx-card::after {
-    opacity: 0;
-    transition: opacity 260ms var(--ease);
-  }
-
-  .hx-card:hover::after,
-  .hx-card:focus-visible::after,
-  .hx-card:focus-within::after {
-    opacity: 1;
-  }
-
-  /* `:focus-within` as well as `:hover`: a card that links is reachable by
-     keyboard, and its name should arrive with the focus ring rather than only
-     under a mouse. */
-  .hx-card:hover .hx-card-body,
-  .hx-card:focus-visible .hx-card-body,
-  .hx-card:focus-within .hx-card-body {
-    opacity: 1;
-    transform: none;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .hx-card-body {
-    transition: none;
-    transform: none;
-  }
-}
-
-.hx-card-body b {
-  font-family: var(--display);
-  font-size: var(--step--1);
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  line-height: 1.2;
-  color: #fff;
-  /* A fanned card is not much room for a long collection name. */
-  display: -webkit-box;
-  -webkit-line-clamp: 1;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-/* The caption is a lockup when a card carries a mark, so it lays out as one. */
-.hx-card-cap {
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
-  font-size: var(--step--3);
-  line-height: 1;
-  color: rgba(255, 255, 255, 0.78);
-}
-
-/**
- * Cards right of centre read from their right edge.
- *
- * The one in front of them covers their left, so a name that started there
- * started underneath it. Only the text moves; the card, the art and the scrim
- * are untouched, so the fan is unchanged.
- */
-.hx-card.is-right .hx-card-body {
-  align-items: flex-end;
-  text-align: right;
-}
-
-.hx-card.is-right .hx-card-cap {
-  justify-content: flex-end;
-}
-
-/* Sized off the type, not the file, so the mark and the words beside it stay in
-   proportion at every card width. The SVG is 89x24. */
-.hx-card-mark {
-  display: block;
-  width: auto;
-  height: 0.95em;
-  flex: none;
-}
-
-/**
- * Phones: the fan is kept, at a size that fits.
- *
- * The first attempt shrank the cards and hid everything past |slot| > 1, which
- * on an even count left just two — a pair, not a fan, sitting 28px inside each
- * edge with no bleed at all.
- *
- * Sized for four instead: at 375 the outer centres land 135px out with an 82px
- * half-card, so the row spans 435px against a 375px frame and clears both edges
- * by ~30px. Adjacent cards overlap by 75 of their 165, which is what reads as a
- * hand of cards rather than a row of thumbnails. Only a fifth card, which would
- * sit at |slot| 2, is dropped.
+ * At 375 a 128px card and a 102px step make the row 332px, inside the frame
+ * with room for the tilt. The outer pair (|slot| 2) is dropped; on an even
+ * count all four cards would fit, since none reaches past 1.5.
  */
 @media (max-width: 700px) {
   /* See `.hx-lede` above: removed on a phone so the buttons are reachable
@@ -713,95 +546,23 @@
     display: none;
   }
 
+  /* Three cards: the outer pair is dropped below, so the tags anchor one slot
+     out instead of two. */
   .hx-deck {
-    --card-w: min(40vw, 168px);
-    --step: min(22vw, 98px);
-    --tilt: 8deg;
+    --card-w: min(34vw, 150px);
+    --tilt: 5deg;
+    --reach: 1;
+    /* Only the ±1 pair drops here, by 3.5%. */
+    height: calc(var(--card-w) * 1.12);
+    margin: 1.75rem 0 0.75rem;
   }
 
   .hx-card.is-far {
     display: none;
   }
 
-  /**
-   * No card body at all on a phone.
-   *
-   * On a desktop the deck is shorter than a card, so the name and count are cut
-   * off by the section edge and never seen. Showing the whole card here made
-   * them appear for the first time — and immediately collide, because the fan
-   * overlaps by design and each label sat half-hidden behind its neighbour:
-   * "The Tren…", "ValueCha…". Three truncated names competing is worse than no
-   * names, and the fan is about the artwork.
-   */
-  .hx-card-body {
-    display: none;
-  }
-
-  /**
-   * The deck leads and the copy follows.
-   *
-   * On a desktop the headline comes first and the fan sits beneath it as a
-   * footing. A phone reverses that usefully: the artwork is the thing worth
-   * seeing before anything is read, and putting it first means a visitor who
-   * never scrolls has still seen what the marketplace actually holds.
-   *
-   * Reordered rather than re-authored - `order` on a flex column moves the deck
-   * without touching the markup, so the DOM keeps its reading order and the
-   * headline is still the first thing announced.
-   */
   .hx {
-    display: flex;
-    flex-direction: column;
-    /*
-     * The desktop section has no bottom padding because the deck is its floor.
-     * With the deck moved to the top, the buttons became the floor, and they
-     * sat flush on the section's edge. This gives them room to stand on.
-     */
     padding-bottom: 2rem;
-  }
-
-  .hx-deck {
-    order: -1;
-    margin-top: 0;
-    margin-bottom: 1.6rem;
-    /**
-     * Tall enough to hold the cards whole.
-     *
-     * The desktop deck is deliberately shorter than a card, so the fan is cut
-     * by the section's own bottom edge. Leading, there is no such edge to be
-     * cut by - the crop would fall across the middle of the headline instead,
-     * which reads as a mistake rather than as a composition. So the phone shows
-     * the whole card, name and count included.
-     *
-     * Measured against the card's *width*, not `--card-h`. With the body hidden
-     * a card is exactly its square of art, and `--card-h` still describes the
-     * taller desktop card that carries a body — using it left a band of empty
-     * ground under the fan.
-     *
-     * 1.16 rather than 1: the outer pair is pushed down by `--abs * 7%`, and
-     * without the extra the two of them lose their feet.
-     */
-    height: calc(var(--card-w) * 1.16);
-  }
-
-  /**
-   * The tags follow the deck up.
-   *
-   * They were anchored to the section's bottom, which was where the deck used
-   * to be; left there they would now sit over the buttons. Anchored to the top
-   * instead, since the deck is now the first thing in the section and its
-   * distance from the top is fixed.
-   */
-  .hx-float-a {
-    top: 1.75rem;
-    bottom: auto;
-    left: 0.5rem;
-  }
-
-  .hx-float-b {
-    top: 7.5rem;
-    bottom: auto;
-    right: 0.5rem;
   }
 
   /**
@@ -830,11 +591,6 @@
     font-size: var(--step--1);
     min-height: 40px;
     justify-content: center;
-  }
-
-  /* The tags now live in the space this gap used to open up. */
-  .hx-deck {
-    margin-top: 1.35rem;
   }
 
   /**

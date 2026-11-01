@@ -10,8 +10,6 @@ import { ListPrompt } from "@/components/ListPrompt";
 import "@/styles/home.css";
 import "@/styles/hero.css";
 import { HERO_DECK } from "@/config/heroDeck";
-import { Wordmark } from "@/components/Wordmark";
-import { wordmarkFor } from "@/config/wordmarks";
 import { CREATE_ENABLED } from "@/config/features";
 import { heroCopy } from "@/config/heroCopy";
 import { useExploreSummary } from "@/hooks/useExploreSummary";
@@ -121,12 +119,15 @@ interface DeckCard {
   name: string;
   image: string;
   caption?: string;
-  /** Show SoDEX's wordmark in front of the caption. See config/heroDeck.ts. */
-  brand?: "sodex";
 }
 
 /**
- * The hero: centred copy standing over a fanned deck of the collections.
+ * The hero: the headline, a row of the collections' cards, then the copy.
+ *
+ * Laid out after a reference the owner chose (2026-11-01): one clean column,
+ * the cards whole and in the middle rather than a fan cut off by the section's
+ * edge. The collection art drifting behind it, leaning away from the pointer,
+ * is kept as it was.
  *
  * The deck is the page's argument. A marketplace's front page has to answer
  * "what is on here" before it asks for anything, and a row of real collections
@@ -235,6 +236,36 @@ function Hero({ deck }: { deck: DeckCard[] }) {
           <em>{HERO_COPY.em}</em>
         </h1>
 
+        <div className="hx-deck">
+          {deck.map((c, i) => (
+            <DeckTile
+              key={`${c.name}-${i}`}
+              card={c}
+              slot={i - axis}
+              centre={Math.abs(i - axis) === nearest}
+              /*
+                Marked rather than derived in CSS: the phone rule has to drop the
+                widest cards, and `:has(+ .is-centre)` cannot express that when an
+                even count leaves two cards tied for the middle.
+
+                The threshold is 1.5 because slots are half-integers on an even
+                count: four cards sit at ±0.5 and ±1.5 and all four fit a phone,
+                while five reach ±2 and the outermost pair does not.
+              */
+              far={Math.abs(i - axis) > 1.5}
+            />
+          ))}
+
+          {/*
+            Floating markers, in place of the reference's name tags: speech
+            bubbles over the row's two top corners. Facts rather than decoration,
+            each something a buyer would otherwise have to go and look up. Inside
+            the deck, so they are placed against the cards at every width.
+          */}
+          <span className="hx-float hx-float-a" aria-hidden="true">~2s blocks</span>
+          <span className="hx-float hx-float-b" aria-hidden="true">0.008 gwei</span>
+        </div>
+
         <p className="hx-lede">{HERO_COPY.lede}</p>
 
         <div className="hx-actions">
@@ -266,35 +297,6 @@ function Hero({ deck }: { deck: DeckCard[] }) {
         </div>
 
       </div>
-
-      {/*
-        Floating markers, in place of the reference's scattered name tags. Facts
-        rather than decoration: the same visual lift, but each one is something
-        a buyer would otherwise have to go and look up.
-      */}
-      <span className="hx-float hx-float-a" aria-hidden="true">~2s blocks</span>
-      <span className="hx-float hx-float-b" aria-hidden="true">0.008 gwei</span>
-
-      <div className="hx-deck">
-        {deck.map((c, i) => (
-          <DeckTile
-            key={`${c.name}-${i}`}
-            card={c}
-            slot={i - axis}
-            centre={Math.abs(i - axis) === nearest}
-            /*
-              Marked rather than derived in CSS: the phone rule has to drop the
-              widest cards, and `:has(+ .is-centre)` cannot express that when an
-              even count leaves two cards tied for the middle.
-
-              The threshold is 1.5 because slots are half-integers on an even
-              count: four cards sit at ±0.5 and ±1.5 and all four fit a phone,
-              while five reach ±2 and the outermost pair does not.
-            */
-            far={Math.abs(i - axis) > 1.5}
-          />
-        ))}
-      </div>
     </section>
   );
 }
@@ -324,92 +326,34 @@ function DeckTile({
   centre: boolean;
   far: boolean;
 }) {
-  /**
-   * Which edge of this card is actually on show.
-   *
-   * The fan stacks toward the middle - `z-index: calc(10 - var(--abs))` - so
-   * the centre card covers the inner edge of both its neighbours. For a card
-   * left of centre that hidden edge is its right, and the visible strip is its
-   * left, which is where text already starts. For a card right of centre it is
-   * the other way round, and a name starting at the left edge started
-   * underneath the card in front of it: on the two right-hand boxes only the
-   * tail of "...easure Box" ever showed.
-   *
-   * So the two on the right align to their own right edge. Nothing about the
-   * geometry is mirrored - only the text is.
-   */
-  const className =
-    `hx-card${centre ? " is-centre" : ""}${far ? " is-far" : ""}` +
-    (slot > 0 ? " is-right" : "");
+  const className = `hx-card${centre ? " is-centre" : ""}${far ? " is-far" : ""}`;
   const style = { ["--slot" as string]: slot, ["--abs" as string]: Math.abs(slot) };
 
   const inner = (
-    <>
-      <span className="hx-card-art">
-        {/*
-          A plain <img>, not <Art>. These are our own WebPs served from this
-          origin, so the optimiser would add a round trip to save nothing - the
-          same reasoning as the SOSO mark.
+    <span className="hx-card-art">
+      {/*
+        A plain <img>, not <Art>. These are our own WebPs served from this
+        origin, so the optimiser would add a round trip to save nothing - the
+        same reasoning as the SOSO mark.
 
-          `fetchPriority="high"` and no lazy attribute: every card is above the
-          fold and they are the first thing anyone sees.
-        */}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={card.image} alt="" width={600} height={600} fetchPriority="high" decoding="async" />
-        {/*
-          The name sits ON the artwork, not under it.
+        `fetchPriority="high"` and no lazy attribute: every card is above the
+        fold and they are the first thing anyone sees.
 
-          `.hx-deck` is deliberately `card-h * 0.82` tall so the fan is cut by
-          the section edge and reads as standing in front of it - which meant
-          the strip below the art, where the name used to live, was clipped away
-          on every card. The names had never been visible.
-
-          Over the art they always are, and the effect is kept. It also works
-          without a theme: all five pieces of artwork now carry a dark ground,
-          so a scrim and white type read the same in light and dark.
-        */}
-        <span className="hx-card-body">
-          {/*
-            The collection's own wordmark where it has one.
-
-            `on="art"` rather than the theme-following default: every piece in
-            this deck carries a dark ground — that is why the scrim and white
-            type above work without a theme — so the light drawing is always
-            the right one here, and following the page theme would put a black
-            wordmark on a dark picture half the time.
-          */}
-          {wordmarkFor(card.address) === undefined ? (
-            <b>{card.name}</b>
-          ) : (
-            <b>
-              <Wordmark mark={wordmarkFor(card.address)!} name={card.name} on="art" />
-            </b>
-          )}
-          <span className="hx-card-cap">
-            {/*
-              SoDEX's own wordmark standing in for the word, in the theme it
-              ships two drawings for - the mark keeps its orange in both while
-              the type flips, so this is a swap and not a tint. It sits on the
-              artwork rather than on the page, and every piece of artwork here
-              has a dark ground, so the white one is always the right one.
-            */}
-            {card.brand === "sodex" ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                className="hx-card-mark"
-                src="/brand/sodex-dark.svg"
-                alt="SoDEX"
-                width={89}
-                height={24}
-              />
-            ) : null}
-            {/* "View collection" is the default and a promise a card cannot
-                keep before its collection exists, so a card may override it. */}
-            {card.caption ?? "View collection"}
-          </span>
-        </span>
-      </span>
-    </>
+        Artwork only, no label over it (owner, 2026-11-01): the dark scrim with
+        the name and "View collection" that rose on hover looked heavy. Hover
+        lifts the card instead. The alt text is the card's name, so the link
+        still says where it goes.
+      */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={card.image}
+        alt={card.caption === undefined ? card.name : `${card.name}, ${card.caption}`}
+        width={600}
+        height={600}
+        fetchPriority="high"
+        decoding="async"
+      />
+    </span>
   );
 
   if (card.address === undefined) {
