@@ -1,7 +1,8 @@
 "use client";
 
 import { deployment } from "@/config/contracts";
-import { explainTxError, isRejection } from "@/lib/txError";
+import { explainTxError, isRateLimited, isRejection } from "@/lib/txError";
+import { FixNetworkButton } from "@/components/FixNetworkButton";
 import "./TxResult.css";
 
 /**
@@ -46,6 +47,9 @@ export function TxResult({
     return (
       <p className={`txr ${rejected ? "txr-quiet" : "txr-bad"}`}>
         {explainTxError(error.message)}
+        {/* The wallet's own server refused it: offer to point the wallet at
+            the steadier one rather than only describing how (FixNetworkButton). */}
+        {isRateLimited(error.message) ? <FixNetworkButton /> : null}
       </p>
     );
   }

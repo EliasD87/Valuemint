@@ -74,3 +74,12 @@
     animation: none;
   }
 }
+
+/* Offered under a "network busy" refusal (FixNetworkButton). */
+.txr-fix {
+  flex: none;
+}
+
+.txr-fix-note {
+  color: var(--ink-2);
+}
