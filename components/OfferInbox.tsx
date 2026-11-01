@@ -536,7 +536,13 @@ function InboxRow({
         confirming={fill.confirming || trade.confirming}
         success={fill.isSuccess || trade.isSuccess}
         error={fill.error ?? trade.error ?? feeAllowance.error}
-        successLabel="Sold"
+        /*
+          Which step finished, not "Sold" for all of them (2026-11-01). The
+          collection approval is a transaction too, and this said "Sold" when
+          it confirmed: the owner read a sale, found the piece still theirs and
+          nothing paid, and the real sale took two more steps.
+        */
+        successLabel={fill.isSuccess ? "Sold" : "Approved. Now accept the offer."}
       />
 
       {sellingMany ? (
