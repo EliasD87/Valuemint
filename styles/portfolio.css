@@ -637,14 +637,15 @@
   min-width: 0;
 }
 
+/* --step-1 at 600: the owner's ceiling for a heading (2026-10-25). */
 .pf-cbar-name {
   display: flex;
   align-items: center;
   gap: 0.4rem;
   margin: 0;
-  font-size: var(--step-2);
-  font-weight: 650;
-  letter-spacing: -0.015em;
+  font-size: var(--step-1);
+  font-weight: 600;
+  letter-spacing: -0.01em;
 }
 
 .pf-cbar-meta {
@@ -663,6 +664,118 @@
 
 .pf-cbar .hg-traits {
   margin: 0;
+}
+
+/* The listing panel, once open, takes a line of its own under the name
+   rather than squeezing in beside "View collection". */
+.pf-cbar-tools:has(> .bulk) {
+  flex-basis: 100%;
+}
+
+.pf-cbar-tools > .bulk {
+  order: 10;
+  flex-basis: 100%;
+  margin: 0;
+}
+
+/* ----------------------------------------------------- batch list menu */
+
+/* Above the cards below it, which carry their own stacking for buttons. */
+.pf-batch {
+  position: relative;
+  z-index: 5;
+}
+
+.pf-batch-caret {
+  width: 12px;
+  height: 12px;
+  color: var(--ink-3);
+  transition: transform var(--fast);
+}
+
+.pf-batch [aria-expanded="true"] .pf-batch-caret {
+  transform: rotate(180deg);
+}
+
+.pf-batch-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  width: min(19rem, calc(100vw - 2 * var(--gutter)));
+  padding: 0.35rem;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-lg);
+}
+
+.pf-batch-title {
+  margin: 0;
+  padding: 0.45rem 0.6rem 0.35rem;
+  font-size: var(--step--2);
+  font-weight: 500;
+  color: var(--ink-3);
+}
+
+.pf-batch-menu ul {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-height: min(22rem, 60vh);
+  overflow-y: auto;
+}
+
+.pf-batch-opt {
+  display: grid;
+  grid-template-columns: 2.5rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.7rem;
+  width: 100%;
+  padding: 0.45rem 0.6rem;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: none;
+  font: inherit;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--fast);
+}
+
+/* The side list's thumbnail, without its named grid area: there is no "thumb"
+   area here, and naming one sent the picture to an implicit cell at the
+   bottom right and crushed the name column to "V…". */
+.pf-batch-opt > .pf-c-thumb {
+  grid-area: auto;
+}
+
+.pf-batch-opt:hover,
+.pf-batch-opt:focus-visible {
+  background: var(--surface-2);
+}
+
+.pf-batch-opt:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.pf-batch-name {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  min-width: 0;
+  font-size: var(--step--1);
+  font-weight: 600;
+}
+
+.pf-batch-count {
+  font-size: var(--step--2);
+  font-weight: 500;
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 /* ----------------------------------------------------------- the tools */
@@ -1188,5 +1301,12 @@
 
   .pf-cbar-head {
     align-items: flex-start;
+  }
+
+  /* The tools wrap under the name at the left on a phone, so the menu opens
+     from the button's left edge rather than off the screen. */
+  .pf-batch-menu {
+    left: 0;
+    right: auto;
   }
 }

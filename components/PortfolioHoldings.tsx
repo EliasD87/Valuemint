@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import Link from "next/link";
 import { Art } from "@/components/Art";
 import { BulkList } from "@/components/BulkList";
@@ -243,10 +243,46 @@ export function PortfolioHoldings({
     setTraitFilter({});
   };
 
+  /** The picked collection's bulk listing panel, opened from "Batch list" in the All view. */
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const pieces = useRef<HTMLDivElement>(null);
+
   const pick = (collection: string | undefined) => {
     setTraitFilter({});
+    setBulkOpen(false);
     onSelect(collection);
   };
+
+  /**
+   * "Batch list" from the All view: go to that collection with its listing
+   * panel already open, and bring the panel into view with focus on its first
+   * control. Two frames, so the collection's bar has rendered before either.
+   */
+  const batchList = (collection: string) => {
+    setTraitFilter({});
+    onSelect(collection);
+    setBulkOpen(true);
+    window.requestAnimationFrame(() =>
+      window.requestAnimationFrame(() => {
+        pieces.current?.scrollIntoView({ block: "start", behavior: "smooth" });
+        pieces.current
+          ?.querySelector<HTMLElement>(".bulk button, .bulk input")
+          ?.focus({ preventScroll: true });
+      }),
+    );
+  };
+
+  /** Where "Batch list" can go: two unlisted pieces or more, the floor `BulkList` itself keeps. */
+  const batchable = groups
+    .map((g) => ({
+      key: g.address.toLowerCase(),
+      address: g.address,
+      name: g.name,
+      image: g.image,
+      unlisted: g.items.length - g.listed,
+    }))
+    .filter((g) => g.unlisted >= 2);
+  const listedTotal = groups.reduce((n, g) => n + g.listed, 0);
 
   return (
     <div className="pf-collected">
@@ -318,7 +354,34 @@ export function PortfolioHoldings({
         </ul>
       </nav>
 
-      <div className="pf-pieces">
+      <div className="pf-pieces" ref={pieces}>
+        {/*
+          The same bar for the whole wallet, so batch listing is reachable
+          without first knowing to pick a collection in the side list (asked
+          for 2026-11-01). Listing is per collection — one approval, one price
+          per tier — so the button asks which, and then takes the reader
+          there with the panel open.
+        */}
+        {picked === undefined ? (
+          <div className="pf-cbar">
+            <div className="pf-cbar-head">
+              <div className="pf-cbar-id">
+                <h3 className="pf-cbar-name">All collections</h3>
+                <p className="pf-cbar-meta">
+                  {formatCount(BigInt(tokens.length))} held across {formatCount(BigInt(groups.length))}{" "}
+                  {groups.length === 1 ? "collection" : "collections"}
+                  {listedTotal > 0 ? <> &middot; {formatCount(BigInt(listedTotal))} listed</> : null}
+                </p>
+              </div>
+              {own && batchable.length > 0 ? (
+                <div className="pf-cbar-tools">
+                  <BatchListMenu options={batchable} onPick={batchList} />
+                </div>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
+
         {/* ---------------------------------------- the picked collection */}
         {group === undefined ? null : (
           <div className="pf-cbar">
@@ -354,6 +417,8 @@ export function PortfolioHoldings({
                     items={group.items
                       .filter((t) => t.listing === undefined)
                       .map((t) => ({ id: t.id, tier: t.tier, name: t.design }))}
+                    open={bulkOpen}
+                    onOpenChange={setBulkOpen}
                   />
                 ) : null}
                 {own ? (
@@ -513,6 +578,122 @@ export function PortfolioHoldings({
           </div>
         ) : null}
       </div>
+    </div>
+  );
+}
+
+interface BatchOption {
+  key: string;
+  address: `0x${string}`;
+  name: string;
+  image?: string;
+  unlisted: number;
+}
+
+/**
+ * "Batch list", and the collections it can list.
+ *
+ * A disclosure — a button with `aria-expanded` over a list of buttons — like
+ * the header's Community menu, not an ARIA menu. Opening it puts focus on the
+ * first collection; the arrow keys move along them, Escape or a press outside
+ * closes it and gives focus back to the button.
+ */
+function BatchListMenu({
+  options,
+  onPick,
+}: {
+  options: BatchOption[];
+  onPick: (collection: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const root = useRef<HTMLDivElement>(null);
+  const button = useRef<HTMLButtonElement>(null);
+  const list = useRef<HTMLUListElement>(null);
+  const id = useId();
+
+  useEffect(() => {
+    if (!open) return;
+    list.current?.querySelector<HTMLButtonElement>("button")?.focus();
+
+    const onDown = (e: PointerEvent) => {
+      if (root.current !== null && !root.current.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: globalThis.KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      setOpen(false);
+      button.current?.focus();
+    };
+    document.addEventListener("pointerdown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("pointerdown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  const onListKey = (e: KeyboardEvent<HTMLUListElement>) => {
+    if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
+    const all = [...(list.current?.querySelectorAll<HTMLButtonElement>("button") ?? [])];
+    const at = all.indexOf(document.activeElement as HTMLButtonElement);
+    const next = e.key === "ArrowDown" ? (at + 1) % all.length : (at - 1 + all.length) % all.length;
+    e.preventDefault();
+    all[next]?.focus();
+  };
+
+  return (
+    <div className="pf-batch" ref={root}>
+      <button
+        ref={button}
+        type="button"
+        className="bulk-open"
+        aria-expanded={open}
+        aria-controls={id}
+        onClick={() => setOpen((o) => !o)}
+      >
+        <span className="bulk-open-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.7">
+            <rect x="3.25" y="3.25" width="8" height="8" rx="2" />
+            <rect x="12.75" y="3.25" width="8" height="8" rx="2" />
+            <rect x="3.25" y="12.75" width="8" height="8" rx="2" />
+            <rect x="12.75" y="12.75" width="8" height="8" rx="2" />
+          </svg>
+        </span>
+        <span className="bulk-open-text">Batch list</span>
+        <svg className="pf-batch-caret" viewBox="0 0 12 12" aria-hidden="true" focusable="false">
+          <path d="M3 4.5 6 7.5 9 4.5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
+
+      {open ? (
+        <div className="pf-batch-menu" id={id}>
+          <p className="pf-batch-title">List several from</p>
+          <ul ref={list} onKeyDown={onListKey}>
+            {options.map((o) => (
+              <li key={o.key}>
+                <button
+                  type="button"
+                  className="pf-batch-opt"
+                  onClick={() => {
+                    setOpen(false);
+                    onPick(o.key);
+                  }}
+                >
+                  <span className="pf-c-thumb">
+                    {o.image === undefined ? null : <Art src={o.image} alt="" sizes="40px" />}
+                  </span>
+                  <span className="pf-batch-name">
+                    <span className="pf-c-name-text">{o.name}</span>
+                    <VerifiedMark collection={o.address} size={12} />
+                  </span>
+                  <span className="pf-batch-count">
+                    {formatCount(BigInt(o.unlisted))} unlisted
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
     </div>
   );
 }
