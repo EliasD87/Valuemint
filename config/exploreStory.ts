@@ -7,48 +7,6 @@
  * a picture here, not in the component.
  */
 
-export interface SpotlightSlide {
-  /** Lower-cased collection address; floors and listings are looked up by it. */
-  address: `0x${string}`;
-  name: string;
-  /** A wide picture, cropped to the banner by `object-fit: cover`. */
-  image: string;
-  /** Where the crop centres, as `object-position`. */
-  focus?: string;
-  /**
-   * A cut-out standing on the banner's floor at the right, over the picture:
-   * the same layers the collection page's own header uses (config/heroes.ts).
-   */
-  foreground?: string;
-  foregroundAlt?: string;
-}
-
-export const SPOTLIGHT: SpotlightSlide[] = [
-  {
-    address: "0x371c4f7f68be3e558b89cc1f0fb113851c76e750",
-    name: "SoDEX Treasure Box",
-    image: "/heroes/treasurebox.webp",
-  },
-  {
-    address: "0xcd30d4bcaa99e556b70a2c4bdfc4050d26e48d30",
-    name: "Cybereator",
-    image: "/heroes/cybereator-bg.webp",
-    foreground: "/heroes/cybereator-cat.webp",
-    foregroundAlt: "The Cybereator cat, leaning on a bar",
-  },
-  {
-    address: "0x5fadc59297e86acea20bff519aea0f9651cdc90b",
-    name: "ValueChain Genesis",
-    image: "/heroes/genesis-still.webp",
-  },
-  {
-    address: "0xaab0dc8f2835ed903b35d2f52ff17c4bc92bec19",
-    name: "The Trenches",
-    image: "/heroes/trenches-cover-v3.webp",
-    focus: "50% 30%",
-  },
-];
-
 export interface CascadeCard {
   image: string;
   /** The collection the card opens. */

@@ -19,8 +19,8 @@
  * **The cost, stated plainly:** this is a hardcoded list, which is the thing
  * CLAUDE.md warns about, and it will not notice a new collection or one that
  * gets hidden. That is acceptable for a decorative fan of five cards and would
- * not be for anything that quotes a number. The artwork lives in `public/hero/`
- * and `public/boxes/`; `scripts/refresh-hero.mjs` re-downloads the former.
+ * not be for anything that quotes a number. The artwork lives in
+ * `public/covers/` and `public/boxes/`.
  *
  * Everything below the hero is still live, including the collections rail - so
  * the front page still answers "what is on this marketplace" even while the
@@ -28,21 +28,25 @@
  *
  * ---
  *
- * **Why the deck is the SoDEX treasure boxes.**
+ * **Five cards, five collections (owner, 2026-11-01).**
  *
- * They are not minted and cannot be bought. SoDEX sends them to people who
- * finish tasks, so a holder did not buy one and cannot buy another - the only
- * thing left to do with it is trade it, and this is where that happens. That
- * makes them the best answer this page has to "why would I come here", which
- * is the hero's whole job.
+ * The Cybereator keeps the middle slot, the front of the fan. The four around it were two Treasure Boxes and two
+ * Genesis helmets, so the deck showed three collections and sent four clicks
+ * to two pages. Each is now one piece the owner picked from a different
+ * collection: Wickborn's The Dealer, the Trenches' Warlord, the SuperRare box
+ * and a Larper.
  *
- * The fan used to be four tiers of one box collection around the Cybereator,
- * which meant four of five cards led to the same page. The two boxes that
- * remain sit either side of the centre and keep their order; the outermost
- * card on each side is ValueChain Genesis, so the deck now shows three
- * collections rather than one contract four times. The Cybereator keeps the
- * middle slot, which is the front of the fan, because it is the only animated
- * card.
+ * The Dealer moves, as it does on its own page: the 1.1 MB, 72-frame GIF as an
+ * animated WebP at 456px (twice the card's widest), 265 KB with every frame
+ * and the GIF's timing. Warlord is the tier's art from `config/tiers.ts` at
+ * 512px. Both are in `public/hero/`, served from our own origin with a day's
+ * CDN cache (`next.config.ts`) — nothing in the deck reads the chain. A re-cut
+ * Trenches tier means re-making that file under a new name.
+ *
+ * Arranged against the faded cutouts behind the hero (`.hx-cut-*` in
+ * hero.css): the Larpers figure floats on the left, so the Larpers card sits
+ * on the right, away from its twin. White grounds on the two outer cards,
+ * dark ones on the two inner, so the fan is even either side of the centre.
  */
 
 export interface HeroCard {
@@ -64,89 +68,33 @@ export interface HeroCard {
   /** Bundled WebP, served from our own origin. See `public/`. */
   image: string;
   /**
-   * The line under the name.
-   *
-   * Defaults to "View collection", which is a promise a card cannot keep when
-   * there is no collection yet. For the boxes it carries the tier instead,
-   * which is the useful thing to say about four pictures of the same object.
+   * What the piece belongs to, when the name alone does not say ("The Dealer",
+   * "Wickborn"). Not drawn: the cards are artwork only. It completes the
+   * image's alt text, which is the link's accessible name.
    */
   caption?: string;
-  /**
-   * Show SoDEX's own wordmark in front of the caption.
-   *
-   * Four pictures of a box do not say "SoDEX Treasure Box" to anyone who has
-   * not seen one, and that is the thing worth saying - it is the reason
-   * somebody would come here. The mark carries it better than the word would,
-   * and it belongs on the cards rather than on a line of its own above them:
-   * a separate lockup made the hero taller, and on a phone it detached from the
-   * deck entirely and read as a footer.
-   */
-  brand?: "sodex";
 }
 
-/**
- * Where the cards go, now that both collections exist.
- *
- * Every card was unlinked, because when the deck was built the treasure boxes
- * were announced rather than deployed and `/collection/undefined` is not a
- * page. The test contract has been live and trading for a while — 6,451 pieces
- * — and Cybereator is live too, so five pictures of things people can actually
- * open were the one part of the front page that went nowhere.
- *
- * The two boxes point at the same collection, which is right: they are two
- * tiers of one contract, not two collections.
- */
-/*
-  The real boxes, not the test ones.
-
-  These four cards pointed at the test contract for as long as that was the
-  only one deployed — the note further up this file said to repoint them "on
-  the day the real collection ships", and it has. Verified on chain before
-  changing anything: name "SoDEXTreasureBox", symbol SOBOX, answers
-  `supportsInterface(ERC721)`, and `tokenURI(1)` resolves to SoDEX's own
-  metadata host. It is a proxy, 163 bytes of bytecode, same shape as
-  Cybereator.
-
-  Two things it is worth knowing this sends people to. It is young, so there is
-  very little in it yet — the test contract still holds essentially every box
-  that has traded. And it does not implement Enumerable (`tokenByIndex`
-  reverts), so its page finds pieces by the fallback path rather than by
-  walking an index.
-*/
-const TREASURE_BOX = "0x371c4F7F68bE3e558b89cC1f0fB113851C76E750" as const;
 const CYBEREATOR = "0xCD30D4bCaa99E556B70A2C4bDFC4050D26E48D30" as const;
-/* Verified before linking, the way the box address above was: `name()` on this
-   contract answers "ValueChain Genesis". */
-const GENESIS = "0x5Fadc59297e86aceA20Bff519aea0f9651Cdc90B" as const;
+/* The four around it. Each verified by `name()` on the explorer before linking
+   (2026-11-01), and none is in config/hidden.ts. */
+const WICKBORN = "0x5DbD25366a60bbD07960535760Cf6eef36128404" as const;
+const TRENCHES = "0xaAb0dC8f2835Ed903b35d2f52FF17c4bc92Bec19" as const;
+const TREASURE_BOX = "0x371c4F7F68bE3e558b89cC1f0fB113851C76E750" as const;
+const LARPERS = "0x0273DF41B56E3480886Fe8f0451349bEc0f8edf6" as const;
 
 export const HERO_DECK: HeroCard[] = [
-  /*
-    The two ends of the fan are a second collection, not two more tiers of the
-    first.
-
-    Four of the five cards pointed at `TREASURE_BOX`, so a deck whose job is to
-    say "here is what this marketplace holds" said one thing four times and
-    sent every click to the same page. The outermost card on each side now
-    carries different artwork and goes somewhere else, which is also the pair
-    of slots where it costs least: the fan tilts them furthest and clips them
-    most, so the two cards seen least completely are the two that are no longer
-    the same object as their neighbours.
-
-    Both are ValueChain Genesis, so both link there. Two cards from one
-    collection is the same arrangement the boxes have either side of the
-    centre — a deck of five slots showing three collections rather than one.
-  */
   {
-    name: "ValueChain Genesis",
-    address: GENESIS,
-    image: "/hero/genesis-red.webp",
+    name: "The Dealer",
+    address: WICKBORN,
+    image: "/hero/wickborn-dealer.webp",
+    caption: "Wickborn",
   },
   {
-    name: "Uncommon box",
-    address: TREASURE_BOX,
-    image: "/boxes/uncommon.webp",
-    caption: "Treasure Box",
-    brand: "sodex",
+    name: "Warlord",
+    address: TRENCHES,
+    image: "/hero/trenches-warlord.webp",
+    caption: "The Trenches",
   },
   {
     /**
@@ -154,29 +102,27 @@ export const HERO_DECK: HeroCard[] = [
      *
      * `axis` is `(deck.length - 1) / 2`, so on five cards index 2 sits at slot
      * 0: no tilt, no offset, on top of the other four. It is the one card
-     * anybody looks at first, and it is the only animated one.
+     * anybody looks at first.
      *
      * Converted from the 1,053 KB source GIF to a 324 KB animated WebP - all
-     * 33 frames, a 69% saving. It is still the heaviest thing in the deck by
-     * far (the next is 41 KB), which matters because every card is above the
-     * fold and fetched at high priority. Worth it for the front card; do not
-     * add a second.
+     * 33 frames, a 69% saving. With The Dealer (265 KB) the two animated cards
+     * are most of the deck's weight, and every card is above the fold and
+     * fetched at high priority. Two is the owner's call (2026-11-01); a third
+     * would want measuring first.
      */
     name: "Cybereator",
     address: CYBEREATOR,
     image: "/boxes/cybereator.webp",
-    caption: "Unrevealed",
   },
   {
-    name: "Rare box",
+    name: "SuperRare box",
     address: TREASURE_BOX,
-    image: "/boxes/rare.webp",
-    caption: "Treasure Box",
-    brand: "sodex",
+    image: "/boxes/superrare.webp",
+    caption: "SoDEX Treasure Box",
   },
   {
-    name: "ValueChain Genesis",
-    address: GENESIS,
-    image: "/hero/genesis-mono.webp",
+    name: "SoDex Larpers",
+    address: LARPERS,
+    image: "/covers/0273df41-1.webp",
   },
 ];
