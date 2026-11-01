@@ -148,4 +148,62 @@ describe("a node over its limit (-32005)", () => {
     expect(isRateLimited("execution reverted: InvalidTime")).toBe(false);
     expect(isRateLimited("User rejected the request.")).toBe(false);
   });
+
+  /**
+   * The shape viem actually throws from a write: the short message, then the
+   * whole call — calldata, addresses, arguments. Every number in an order ends
+   * up in here, so "429" appears by chance; only the status may count.
+   */
+  const viemWrite = (first: string, calldata: string, args: string) =>
+    `${first}
+
+Request Arguments:
+  from:   0x0879A87D6D1Ea21C902946F2dAf80a7FAD77BC84
+  to:     0x0000000000000068F116a894984e2DB1123eB395
+  value:  5 SOSO
+  data:   ${calldata}
+
+Contract Call:
+  address:   0x0000000000000068F116a894984e2DB1123eB395
+  function:  fulfillOrder((address,address,(uint8,address,uint256,uint256,uint256)[]), bytes32)
+  args:      (${args})
+
+Version: viem@2.21.0`;
+  const CALLDATA_WITH_429 = "0xb3a34c4c0000000000000000000000000000000000000000000000000000000000000040429a7f13";
+
+  it("recognises a bare HTTP 429 from the server, with no other wording", () => {
+    const raw = "HTTP request failed.\n\nStatus: 429\nURL: https://rpc.valuechain.xyz\n\nVersion: viem@2.21.0";
+    expect(isRateLimited(raw)).toBe(true);
+    expect(isRateLimited('{"status":429,"message":"slow down"}')).toBe(true);
+  });
+
+  it("recognises a wallet relaying -32005 inside its own error", () => {
+    expect(isRateLimited('Internal JSON-RPC error.\n{"code":-32005,"message":"Request exceeds defined limit"}')).toBe(true);
+  });
+
+  it("does not call a lost race busy because 429 appears in the calldata or the token id", () => {
+    const raw = viemWrite(
+      'The contract function "fulfillOrder" reverted.\n\nError: OrderAlreadyFilled(0x9f2c)',
+      CALLDATA_WITH_429,
+      "{identifierOrCriteria: 429n, startAmount: 1n}, 0x0000000000000000000000000000000000000000000000000000000000000000",
+    );
+    expect(isRateLimited(raw)).toBe(false);
+    expect(explainTxError(raw)).toMatch(/somebody else bought this first/i);
+  });
+
+  it("never resends after a Reject, whatever else the error says", () => {
+    const raw = viemWrite(
+      "User rejected the request.\n\nDetails: MetaMask Tx Signature: User denied transaction signature.",
+      CALLDATA_WITH_429,
+      "{identifierOrCriteria: 429n}",
+    );
+    expect(isRateLimited(raw)).toBe(false);
+    // Even a rejection that mentions a limit is still a rejection.
+    expect(isRateLimited("User rejected the request. (rate limit warning shown)")).toBe(false);
+  });
+
+  it("does not mistake -32005 inside a longer number for the code", () => {
+    expect(isRateLimited("value: 1-320050")).toBe(false);
+    expect(isRateLimited("salt: 99-32005")).toBe(false);
+  });
 });

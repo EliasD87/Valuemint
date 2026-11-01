@@ -39,11 +39,34 @@ export const STEADY_RPC = "https://mainnet.valuechain.xyz";
  * JSON-RPC -32005 and its HTTP 429 wording: a server over its limit at that
  * moment. Nothing reached the chain, which is what makes it safe to retry
  * (hooks/useSeaportTrade.ts, `useSeaportFill`).
+ *
+ * 429 only as an HTTP status, never as three digits anywhere (2026-11-01). A
+ * wallet's error carries the whole order — calldata, addresses, a 77-digit
+ * salt, the token id — and a bare "429" would turn up in that by chance. The
+ * first version wrote `\b429\b` with literal backspace characters, so it
+ * matched nothing at all and a plain HTTP 429 went unrecognised.
  */
-const RATE_LIMITED = /exceeds defined limit|limit exceeded|-32005|rate limit|too many requests|429/i;
+const RATE_LIMITED = new RegExp(
+  [
+    "exceeds defined limit",
+    "limit exceeded",
+    "rate[- ]limit",
+    "too many requests",
+    // The code itself, with its minus sign, which no calldata or salt carries.
+    "(?<![\\w.])-32005(?!\\d)",
+    // viem's "Status: 429", or "status": 429 in a JSON body.
+    'status"?\\s*[:=]?\\s*"?429(?!\\d)',
+  ].join("|"),
+  "i",
+);
 
+/**
+ * True when a server turned the request away for being busy, and so nothing
+ * reached the chain. Never true for a rejection: someone who pressed Reject
+ * must not see their wallet open again.
+ */
 export function isRateLimited(message: string): boolean {
-  return RATE_LIMITED.test(message);
+  return !isRejection(message) && RATE_LIMITED.test(message);
 }
 
 /** Matched against the whole message, which is where wagmi puts the detail. */
