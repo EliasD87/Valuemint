@@ -1,9 +1,9 @@
 "use client";
 
 import { WarmLink } from "@/components/WarmLink";
-import { useMemo } from "react";
+import { useMemo, type CSSProperties } from "react";
 import { Soso } from "@/components/Soso";
-import { coverFor } from "@/config/covers";
+import { avatarFor } from "@/config/covers";
 import { stillUrl } from "@/lib/media";
 import { formatSoso, shortAddress } from "@/lib/format";
 import type { ExploreCollection, ExploreSummary } from "@/lib/exploreTypes";
@@ -12,26 +12,44 @@ import "./TopCollections.css";
 /**
  * Where the trading is, with the numbers (2026-10-09).
  *
- * The four biggest collections by all-time volume, each with its floor, how
- * the floor moved in a day, and how many pieces are listed, all from the index
- * summary baked into the page. Nothing here reads the chain.
+ * The biggest collections by all-time volume, each with its floor and how the
+ * floor moved in a day, from the index summary baked into the page. Nothing
+ * here reads the chain.
  *
  * Volume orders the rows but is not shown, and there is no window switch or
  * sales column: the owner cut those on 2026-10-24 to keep the front page
  * light on figures.
+ *
+ * Redrawn 2026-11-01 as a ranked list in two columns, one through four down
+ * the left and five through eight down the right: four rows across the whole
+ * width left the middle of the table empty. Each row carries one figure, the
+ * floor, with its day's move under it; how many are listed rides with the
+ * symbol. A phone shows one column of five.
  */
 
-const ROWS = 4;
+/** Rows per column. Two columns are used once there are more than this. */
+const PER_COLUMN = 4;
+const ROWS = PER_COLUMN * 2;
 
 function Change({ percent }: { percent: number | undefined }) {
-  if (percent === undefined) return <span className="tc-dim">—</span>;
+  if (percent === undefined) return null;
   const rounded = Math.round(percent * 10) / 10;
-  if (rounded === 0) return <span className="tc-dim">0%</span>;
+  if (rounded === 0) return <span className="tc-move">0%</span>;
   return (
-    <span className={rounded > 0 ? "tc-up" : "tc-down"}>
+    <span className={`tc-move ${rounded > 0 ? "is-up" : "is-down"}`}>
       {rounded > 0 ? "+" : "−"}
       {Math.abs(rounded).toLocaleString("en-US", { maximumFractionDigits: 1 })}%
     </span>
+  );
+}
+
+function Head() {
+  return (
+    <div className="tc-head" aria-hidden="true">
+      <span className="tc-rank">#</span>
+      <span className="tc-head-who">Collection</span>
+      <span className="tc-head-num">Floor · 24h</span>
+    </div>
   );
 }
 
@@ -58,21 +76,23 @@ export function TopCollections({
   const nameOf = (c: ExploreCollection) => names.get(c.address)?.name ?? c.name ?? shortAddress(c.address);
   const symbolOf = (c: ExploreCollection) => c.symbol ?? names.get(c.address)?.symbol;
 
+  /* Waiting, the table holds the two-column shape it will most likely land in. */
+  const two = summary === undefined || rows.length > PER_COLUMN;
+  /* Fills down the first column before the second, so the ranks read in order. */
+  const style = { ["--tc-rows" as string]: PER_COLUMN } as CSSProperties;
+
   return (
-    <div className="tc card">
-      <div className="tc-row tc-headrow" aria-hidden="true">
-        <span className="tc-rank">#</span>
-        <span>Collection</span>
-        <span className="tc-num">Floor</span>
-        <span className="tc-num tc-change">24h</span>
-        <span className="tc-num">Listed</span>
+    <div className={`tc card${two ? " tc-two" : ""}`}>
+      <div className="tc-heads">
+        <Head />
+        <Head />
       </div>
 
       {summary === undefined ? (
         /* Held at the rows' own height, so nothing moves when they land. */
-        <ol className="tc-list" aria-busy="true">
+        <ol className="tc-list" style={style} aria-busy="true">
           {Array.from({ length: ROWS }, (_, i) => (
-            <li key={i} className="tc-row tc-wait">
+            <li key={i} className="tc-wait">
               <span className="skeleton" />
             </li>
           ))}
@@ -80,45 +100,36 @@ export function TopCollections({
       ) : rows.length === 0 ? (
         <p className="tc-empty">Nothing has traded yet.</p>
       ) : (
-        <ol className="tc-list">
+        <ol className="tc-list" style={style}>
           {rows.map((c, i) => {
-            const art = coverFor(c.address)?.[0];
+            const art = avatarFor(c.address);
             const name = nameOf(c);
             const symbol = symbolOf(c);
+            const listed = c.listed === 0 ? undefined : `${c.listed.toLocaleString("en-US")} listed`;
+            const sub = [symbol, listed].filter((s) => s !== undefined).join(" · ");
             return (
               <li key={c.address}>
-                <WarmLink href={`/collection/${c.address}`} className="tc-row tc-link">
+                <WarmLink href={`/collection/${c.address}`} className="tc-row">
                   <span className="tc-rank">{i + 1}</span>
-                  <span className="tc-who">
-                    {art === undefined ? (
-                      <span className="tc-art tc-art-empty" aria-hidden="true">
-                        {name.slice(0, 2)}
-                      </span>
-                    ) : (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img className="tc-art" src={stillUrl(art, 96)} alt="" loading="lazy" decoding="async" />
-                    )}
-                    <span className="tc-names">
-                      <b>{name}</b>
-                      {symbol === undefined ? null : <small>{symbol}</small>}
+                  {art === undefined ? (
+                    <span className="tc-art tc-art-empty" aria-hidden="true">
+                      {name.slice(0, 2)}
                     </span>
+                  ) : (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img className="tc-art" src={stillUrl(art, 96)} alt="" loading="lazy" decoding="async" />
+                  )}
+                  <span className="tc-names">
+                    <b>{name}</b>
+                    {sub === "" ? null : <small>{sub}</small>}
                   </span>
-                  <span className="tc-num tc-floor">
+                  <span className="tc-floor">
                     {c.floorWei === undefined ? (
-                      <span className="tc-dim">—</span>
+                      <span className="tc-dim">No floor</span>
                     ) : (
                       <Soso size={12}>{formatSoso(BigInt(c.floorWei), 2)}</Soso>
                     )}
-                    {/* A phone has no room for its own column: the move sits under the floor. */}
-                    <small className="tc-change-inline">
-                      <Change percent={c.floorChange} />
-                    </small>
-                  </span>
-                  <span className="tc-num tc-change">
                     <Change percent={c.floorChange} />
-                  </span>
-                  <span className="tc-num">
-                    {c.listed === 0 ? <span className="tc-dim">—</span> : c.listed.toLocaleString("en-US")}
                   </span>
                 </WarmLink>
               </li>

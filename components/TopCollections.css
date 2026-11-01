@@ -1,12 +1,62 @@
-/* Top collections on Explore. One card, a row per collection, figures in
-   tabular columns. Colour only on the floor's move, in the up/down tokens. */
+/* Top collections on Explore: a ranked list, two columns on a wide screen.
+   Colour only on the floor's move, mixed from the up/down tokens. */
 .tc {
-  padding: 0.5rem 0.25rem 0.35rem;
+  --tc-gap: clamp(1.5rem, 4vw, 3.5rem);
+  padding: 0.6rem clamp(0.5rem, 1.4vw, 1rem) 0.5rem;
 }
 
-.tc-link:focus-visible {
-  outline: 2px solid var(--ink);
-  outline-offset: 2px;
+/* One grid for the heads and every row, so the columns line up. */
+.tc-head,
+.tc-row {
+  display: grid;
+  grid-template-columns: 1.4rem 44px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.55rem 0.6rem;
+}
+
+.tc-heads,
+.tc-list {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  column-gap: var(--tc-gap);
+}
+
+/* The second head belongs to the second column, which only a wide screen has. */
+.tc-heads .tc-head + .tc-head {
+  display: none;
+}
+
+.tc-two .tc-heads {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.tc-two .tc-heads .tc-head + .tc-head {
+  display: grid;
+}
+
+/* Down the first column, then the second: 1-4 on the left, 5-8 on the right. */
+.tc-two .tc-list {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(var(--tc-rows), auto);
+  grid-auto-flow: column;
+}
+
+.tc-head {
+  padding-block: 0.25rem 0.5rem;
+  border-bottom: 1px solid var(--line);
+  font-size: var(--step--2);
+  font-weight: 500;
+  color: var(--ink-3);
+}
+
+/* Spans the picture and the name, so it starts where the picture does. */
+.tc-head-who {
+  grid-column: span 2;
+}
+
+.tc-head-num {
+  text-align: right;
 }
 
 .tc-list {
@@ -15,69 +65,59 @@
   list-style: none;
 }
 
-/* One grid for the header and every row, so the columns line up. */
-.tc-row {
-  display: grid;
-  grid-template-columns: 2rem minmax(0, 2.2fr) repeat(3, minmax(0, 1fr));
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.6rem 0.75rem;
-  font-variant-numeric: tabular-nums;
-}
-
-.tc-headrow {
-  padding-block: 0.35rem;
-  border-bottom: 1px solid var(--line);
-  font-size: var(--step--3);
-  font-weight: 650;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--ink-3);
-}
-
-.tc-list li + li .tc-link {
+/* Straight hairlines on the items, not the links: the links round off for
+   their hover, and a border on them curled at both ends. The first item of
+   each column has none. */
+.tc-list > li {
   border-top: 1px solid var(--line);
 }
 
-.tc-link {
+.tc-list > li:first-child,
+.tc-two .tc-list > li:nth-child(5) {
+  border-top: 0;
+}
+
+.tc-row {
+  margin-block: 2px;
   border-radius: var(--r-md);
   color: inherit;
   text-decoration: none;
+  font-variant-numeric: tabular-nums;
   transition: background var(--fast);
 }
 
-.tc-link:hover {
+.tc-row:hover {
   background: var(--surface-2);
+}
+
+.tc-row:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 1px;
 }
 
 .tc-rank {
   font-size: var(--step--1);
-  font-weight: 650;
+  font-weight: 500;
   color: var(--ink-3);
   text-align: center;
 }
 
-.tc-who {
-  display: flex;
-  align-items: center;
-  gap: 0.65rem;
-  min-width: 0;
-}
-
+/* On a tile of its own, so a picture with a transparent ground still sits in
+   a square like the rest. */
 .tc-art {
-  flex: none;
-  width: 40px;
-  height: 40px;
-  border-radius: var(--r-md);
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
   object-fit: cover;
   background: var(--surface-2);
+  box-shadow: inset 0 0 0 1px var(--line);
 }
 
 .tc-art-empty {
   display: grid;
   place-items: center;
   font-size: var(--step--2);
-  font-weight: 700;
+  font-weight: 600;
   color: var(--ink-3);
   text-transform: uppercase;
 }
@@ -85,100 +125,125 @@
 .tc-names {
   display: flex;
   flex-direction: column;
+  gap: 0.1rem;
   min-width: 0;
 }
 
-.tc-names b {
+.tc-names b,
+.tc-names small {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-weight: 650;
+}
+
+.tc-names b {
+  font-size: var(--step-0);
+  font-weight: 500;
   color: var(--ink);
 }
 
 .tc-names small {
-  font-size: var(--step--3);
+  font-size: var(--step--2);
   color: var(--ink-3);
-}
-
-.tc-num {
-  justify-self: end;
-  text-align: right;
-  font-size: var(--step--1);
-  color: var(--ink);
-  white-space: nowrap;
-}
-
-.tc-num .soso-amount {
-  font-weight: 650;
-}
-
-.tc-dim {
-  color: var(--ink-4);
 }
 
 .tc-floor {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
+  gap: 0.2rem;
+  font-size: var(--step--1);
+  color: var(--ink);
+  white-space: nowrap;
 }
 
-.tc-change-inline {
-  display: none;
+.tc-floor .soso-amount {
+  font-weight: 600;
+}
+
+/* The day's move as a small tag, tinted from the same up/down tokens. */
+.tc-move {
+  padding: 0.05rem 0.4rem;
+  border-radius: var(--r-pill);
   font-size: var(--step--3);
+  font-weight: 500;
+  line-height: 1.5;
+  color: var(--ink-3);
+  background: var(--surface-2);
 }
 
-.tc-up {
+.tc-move.is-up {
   color: var(--up);
-  font-weight: 650;
+  background: color-mix(in srgb, var(--up) 12%, transparent);
 }
 
-.tc-down {
+.tc-move.is-down {
   color: var(--down);
-  font-weight: 650;
+  background: color-mix(in srgb, var(--down) 12%, transparent);
+}
+
+.tc-dim {
+  color: var(--ink-4);
 }
 
 .tc-wait {
-  height: 61px;
-  grid-template-columns: 1fr;
+  padding: 0.55rem 0.6rem;
 }
 
 .tc-wait .skeleton {
   display: block;
-  height: 40px;
+  height: 48px;
   border-radius: var(--r-md);
 }
 
 .tc-empty {
   margin: 0;
-  padding: 1.25rem 0.75rem;
+  padding: 1.25rem 0.6rem;
   color: var(--ink-3);
 }
 
-/* A phone keeps the collection, its floor and move, and how many are listed. */
-@media (max-width: 640px) {
-  .tc-row {
-    grid-template-columns: 1.25rem minmax(0, 1fr) 4.75rem 3rem;
-    gap: 0.75rem;
-    padding-inline: 0.5rem;
+/* One column below this, and on a phone the top five of it. */
+@media (max-width: 760px) {
+  .tc-two .tc-heads,
+  .tc-two .tc-list {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: none;
+    grid-auto-flow: row;
   }
 
-  .tc-change {
+  .tc-two .tc-heads .tc-head + .tc-head {
     display: none;
   }
 
-  .tc-change-inline {
-    display: block;
+  .tc-two .tc-list > li:nth-child(5) {
+    border-top: 1px solid var(--line);
+  }
+
+  .tc-list > li:nth-child(n + 6) {
+    display: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .tc-head,
+  .tc-row {
+    grid-template-columns: 1.1rem 38px minmax(0, 1fr) auto;
+    gap: 0.65rem;
+    padding-inline: 0.35rem;
+  }
+
+  .tc-art {
+    width: 38px;
+    height: 38px;
+    border-radius: 9px;
+  }
+
+  .tc-names b {
+    font-size: var(--step--1);
   }
 
   /* The mark says SOSO; the word would cost the name its room. */
   .tc .soso-unit {
     display: none;
   }
-
-  .tc-art {
-    width: 34px;
-    height: 34px;
-  }
-
 }
