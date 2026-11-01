@@ -51,7 +51,17 @@ export function ExploreStory({
    * Before it loads, the summary stands alone rather than the table waiting.
    */
   const trusted = useMemo((): ExploreSummary | undefined => {
-    if (summary === undefined || collections.length === 0) return summary;
+    if (summary === undefined) return summary;
+    /*
+     * The server's answer when it gave one (lib/exploreSummary.ts): the same
+     * vouched-for set as the registry, already known when the page is built,
+     * so the table paints as the final list instead of re-sorting once the
+     * factory's collections arrive in the browser (2026-11-01).
+     */
+    if (summary.collections.every((c) => c.vouched !== undefined)) {
+      return { ...summary, collections: summary.collections.filter((c) => c.vouched === true) };
+    }
+    if (collections.length === 0) return summary;
     const known = new Set(collections.map((c) => c.address.toLowerCase()));
     return { ...summary, collections: summary.collections.filter((c) => known.has(c.address.toLowerCase())) };
   }, [summary, collections]);

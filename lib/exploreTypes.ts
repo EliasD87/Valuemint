@@ -20,6 +20,12 @@ export interface ExploreCollection {
   floorChange?: number;
   /** Pieces for sale now. */
   listed: number;
+  /**
+   * Made by our factory, or ValueChain Genesis, or named in `config/known.ts`,
+   * as the server read it when the page was built. Absent when the server
+   * could not ask the factory; the page then decides for itself.
+   */
+  vouched?: boolean;
   /** Settled through Seaport, in wei, per window. */
   volume: { day: string; week: string; all: string };
   sales: { day: number; week: number; all: number };

@@ -5,6 +5,8 @@ import { floorChange } from "@/lib/floorChange";
 import { indexConfigured, select, selectAll } from "@/lib/supabase";
 import { CURSOR, indexClient } from "@/lib/indexSync";
 import { isHidden } from "@/config/hidden";
+import { KNOWN_COLLECTIONS } from "@/config/known";
+import { ValueChainCollectionFactoryAbi, deployment, legacyFactories } from "@/config/contracts";
 import { SECONDS_PER_BLOCK } from "@/config/chain";
 import type { ExploreCollection, ExploreSale, ExploreSummary } from "@/lib/exploreTypes";
 
@@ -192,6 +194,45 @@ export async function readNames(addresses: readonly string[]): Promise<Map<strin
   return out;
 }
 
+/**
+ * Which of these collections something vouches for: made by our factory (the
+ * current one or a previous one), ValueChain Genesis, or named in `known.ts`.
+ * The same set the page's own registry arrives at in the browser
+ * (hooks/useAllCollections.ts), asked here so the home page's Top collections
+ * is already the final list when it first paints (2026-11-01). Before, it
+ * drew the five `known.ts` names and re-sorted a few seconds later when the
+ * factory's collections arrived and outranked them.
+ *
+ * `undefined` when the factory could not be asked at all.
+ */
+async function readVouched(addresses: readonly string[]): Promise<Set<string> | undefined> {
+  const out = new Set<string>([
+    deployment.collection.toLowerCase(),
+    ...KNOWN_COLLECTIONS.map((c) => c.address.toLowerCase()),
+  ]);
+  const factories = [deployment.factory, ...legacyFactories];
+  const answers = await indexClient().multicall({
+    allowFailure: true,
+    contracts: addresses.flatMap((address) =>
+      factories.map((factory) => ({
+        address: factory as `0x${string}`,
+        abi: ValueChainCollectionFactoryAbi,
+        functionName: "isFromFactory" as const,
+        args: [address as `0x${string}`],
+      })),
+    ),
+  });
+  if (answers.length > 0 && answers.every((a) => a.status !== "success")) return undefined;
+  addresses.forEach((address, i) => {
+    const fromFactory = factories.some((_, f) => {
+      const a = answers[i * factories.length + f];
+      return a?.status === "success" && a.result === true;
+    });
+    if (fromFactory) out.add(address.toLowerCase());
+  });
+  return out;
+}
+
 /** `undefined` when there is no index to ask, or it could not be reached. The page then asks later. */
 export async function exploreSummary(now: Date = new Date()): Promise<ExploreSummary | undefined> {
   if (!indexConfigured()) return undefined;
@@ -211,8 +252,15 @@ export async function exploreSummary(now: Date = new Date()): Promise<ExploreSum
     const summary = summarise({ events, floors, cursor: cursor[0], now });
 
     /** Names are a nicety. Without them the page falls back to its own registry. */
-    const names = await readNames(summary.collections.map((c) => c.address)).catch(() => new Map());
-    for (const c of summary.collections) Object.assign(c, names.get(c.address) ?? {});
+    const addresses = summary.collections.map((c) => c.address);
+    const [names, vouched] = await Promise.all([
+      readNames(addresses).catch(() => new Map()),
+      readVouched(addresses).catch(() => undefined),
+    ]);
+    for (const c of summary.collections) {
+      Object.assign(c, names.get(c.address) ?? {});
+      if (vouched !== undefined) c.vouched = vouched.has(c.address.toLowerCase());
+    }
 
     return summary;
   } catch (err) {

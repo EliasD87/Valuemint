@@ -73,7 +73,10 @@ export function TopCollections({
     return list.slice(0, ROWS);
   }, [summary]);
 
-  const nameOf = (c: ExploreCollection) => names.get(c.address)?.name ?? c.name ?? shortAddress(c.address);
+  /* The contract's own name, read on the server, first: the registry's can be a
+     hand-written one from `known.ts` until the browser reads the contract, and
+     the row's name changed under the reader when it did. */
+  const nameOf = (c: ExploreCollection) => c.name ?? names.get(c.address)?.name ?? shortAddress(c.address);
   const symbolOf = (c: ExploreCollection) => c.symbol ?? names.get(c.address)?.symbol;
 
   /* Waiting, the table holds the two-column shape it will most likely land in. */
