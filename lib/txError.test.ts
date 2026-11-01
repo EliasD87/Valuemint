@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { explainTxError, isRejection } from "./txError";
+import { explainTxError, isRateLimited, isRejection } from "./txError";
 
 /**
  * The two long strings below are the real errors this file was written for,
@@ -136,5 +136,16 @@ describe("a node over its limit (-32005)", () => {
     const said = explainTxError("Request exceeds defined limit.");
     expect(said).toMatch(/Nothing was sent/);
     expect(said).not.toMatch(/defined limit/);
+  });
+
+  it("recognises the 429 wording rpc.valuechain.xyz actually sends, and names the steadier server", () => {
+    const raw = 'HTTP request failed. Status: 429 {"jsonrpc":"2.0","id":1,"error":{"code":-32005,"message":"rate-limit exceeded"}}';
+    expect(isRateLimited(raw)).toBe(true);
+    expect(explainTxError(raw)).toMatch(/mainnet.valuechain.xyz/);
+  });
+
+  it("does not treat a reverted purchase or a cancelled one as a busy network", () => {
+    expect(isRateLimited("execution reverted: InvalidTime")).toBe(false);
+    expect(isRateLimited("User rejected the request.")).toBe(false);
   });
 });

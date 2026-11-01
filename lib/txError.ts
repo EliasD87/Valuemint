@@ -28,6 +28,24 @@
 
 const CHAIN_NAME = "ValueChain";
 
+/**
+ * The network's public server that did not refuse a burst when its sibling did
+ * (2026-11-01: 60 at once, all answered; rpc.valuechain.xyz turned 4 away with
+ * -32005). Named in the message so a person can point their wallet at it.
+ */
+export const STEADY_RPC = "https://mainnet.valuechain.xyz";
+
+/**
+ * JSON-RPC -32005 and its HTTP 429 wording: a server over its limit at that
+ * moment. Nothing reached the chain, which is what makes it safe to retry
+ * (hooks/useSeaportTrade.ts, `useSeaportFill`).
+ */
+const RATE_LIMITED = /exceeds defined limit|limit exceeded|-32005|rate limit|too many requests|429/i;
+
+export function isRateLimited(message: string): boolean {
+  return RATE_LIMITED.test(message);
+}
+
 /** Matched against the whole message, which is where wagmi puts the detail. */
 const RULES: Array<{ test: RegExp; say: string }> = [
   {
@@ -67,10 +85,16 @@ const RULES: Array<{ test: RegExp; say: string }> = [
      * away for being over its limit at that moment. Nothing reached the chain;
      * the address's history showed only the purchase that finally worked.
      */
-    test: /exceeds defined limit|limit exceeded|-32005|rate limit|too many requests/i,
+    test: RATE_LIMITED,
+    /**
+     * By the time a purchase shows this, the site has already retried it twice.
+     * So the advice is the lasting fix as well as the immediate one: the
+     * wallet's own connection is what keeps being refused.
+     */
     say:
-      "The network turned the request away because it was busy for a moment. " +
-      "Nothing was sent and nothing was charged. Wait a few seconds and try again.",
+      `${CHAIN_NAME}'s network server was too busy and turned the request away. ` +
+      "Nothing was sent and nothing was charged. Wait a moment and try again. " +
+      `If it keeps happening, set your wallet's ${CHAIN_NAME} RPC to ${STEADY_RPC}.`,
   },
   {
     test: /insufficient funds|exceeds the balance|gas required exceeds/i,

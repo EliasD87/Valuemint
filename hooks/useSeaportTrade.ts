@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAccount, usePublicClient, useReadContract } from "wagmi";
 import { useWriteContract } from "@/hooks/useChainWrite";
 import { useQueryClient } from "@tanstack/react-query";
@@ -10,6 +10,7 @@ import { ValueChainCollectionAbi } from "@/config/contracts";
 import { rememberValidatedOrders, rememberWithdrawals } from "@/lib/pendingOrders";
 import { SEAPORT, SeaportAbi } from "@/config/seaport";
 import { classifyFillFailure, type FillBlock } from "@/lib/fillCheck";
+import { isRateLimited } from "@/lib/txError";
 import { ALL_GONE, BULK_REVERTED, countBought } from "@/lib/bulkBuy";
 import { valuechain } from "@/config/chain";
 import { useVerifiedContracts } from "@/hooks/useVerifiedContracts";
@@ -389,6 +390,9 @@ export const FILL_REVERTED = {
   bulk: BULK_REVERTED,
 } as const;
 
+/** How long to wait before each automatic resend of a fill the network refused as busy. */
+const BUSY_RETRY_MS = [1_500, 3_500];
+
 export function useSeaportFill() {
   const { address } = useAccount();
   const client = usePublicClient();
@@ -407,7 +411,22 @@ export function useSeaportFill() {
    * attempt decides how the failure is worded.
    */
   const [side, setSide] = useState<"listing" | "offer" | "bulk">("listing");
-  const error = sendError ?? (reverted ? new Error(FILL_REVERTED[side]) : null);
+
+  /**
+   * True between a refusal for being busy and the automatic retry of it. The
+   * error is held back meanwhile: the person sees the button still working,
+   * not a failure that is about to fix itself.
+   */
+  const [retrying, setRetrying] = useState(false);
+  const live = useRef(true);
+  useEffect(() => {
+    live.current = true;
+    return () => {
+      live.current = false;
+    };
+  }, []);
+
+  const error = retrying ? null : (sendError ?? (reverted ? new Error(FILL_REVERTED[side]) : null));
 
   /**
    * Why the last attempt did not reach the wallet, if it did not.
@@ -452,6 +471,7 @@ export function useSeaportFill() {
       reset();
       setBlocked(undefined);
       setSide(side);
+      setRetrying(false);
 
       /**
        * The gas, estimated here rather than by the wallet (2026-10-20).
@@ -495,7 +515,38 @@ export function useSeaportFill() {
        * or built up. The shape is checked by `FillRequest` on the way in, and
        * by Seaport on the way out.
        */
-      writeContract((gas === undefined ? request : { ...request, gas }) as never);
+      const final = (gas === undefined ? request : { ...request, gas }) as never;
+
+      /**
+       * Sent again, twice at most, when the network turns it away for being
+       * busy (2026-11-01). rpc.valuechain.xyz refuses short bursts with -32005
+       * and a wallet pointed at it passes that straight back; the owner kept
+       * hitting it on purchases, and the third press usually worked.
+       *
+       * Safe because of what that refusal means and what this sends. A -32005
+       * or 429 is the server declining the request, so nothing reached the
+       * chain. And every request here fills a Seaport order, which can only be
+       * filled once: were one ever to land twice, the second would revert, not
+       * buy again. Anything other than that refusal is shown at once.
+       */
+      const attempt = (n: number) =>
+        writeContract(final, {
+          onError(err: Error) {
+            const delay = BUSY_RETRY_MS[n];
+            if (delay === undefined || !live.current || !isRateLimited(err.message)) {
+              setRetrying(false);
+              return;
+            }
+            setRetrying(true);
+            setTimeout(() => {
+              if (live.current) attempt(n + 1);
+            }, delay);
+          },
+          onSuccess() {
+            setRetrying(false);
+          },
+        });
+      attempt(0);
     },
     [address, client, refreshBook, reset, writeContract],
   );
@@ -795,7 +846,9 @@ export function useSeaportFill() {
     blocked,
     clearBlocked: () => setBlocked(undefined),
     checking,
-    busy: signing || confirming || checking,
+    busy: signing || confirming || checking || retrying,
+    /** Waiting to send again after the network said it was busy. */
+    retrying,
     isSuccess,
     /** Mined and reverted — beaten to the order. `error` carries the words. */
     reverted,
