@@ -216,8 +216,13 @@ export function coverFor(address: string): string[] | undefined {
  * are the only ones that qualify.
  */
 const SOLE_ARTWORK: Record<string, string> = {
-  /** Cybereator — 2,233 tokens, one file. */
-  "0xcd30d4bcaa99e556b70a2c4bdfc4050d26e48d30": "/boxes/cybereator.webp",
+  /*
+    Cybereator itself was here until its reveal (10 November 2026), when each
+    holder's piece gets its own artwork. Listed here, every revealed piece
+    would have gone on showing the sealed picture. It moved to BUNDLED_ARTWORK,
+    keyed by the sealed picture's CID: sealed pieces keep our fast copy, and a
+    revealed piece names a different image and shows its own.
+  */
 
   /** TestCybereator — the same artwork, from the same source file. */
   "0x412d8af16b7ff3fe75e1cd380bd86ef33dd8ad0f": "/boxes/cybereator.webp",
@@ -251,6 +256,14 @@ export function soleArtworkFor(address: string | undefined): string | undefined 
  * to the token's own artwork untouched.
  */
 const BUNDLED_ARTWORK: Record<string, string> = {
+  /**
+   * Cybereator, sealed — every token's picture until its holder reveals it
+   * (from 10 November 2026). The 6.58 MB GIF on IPFS, replaced by our 331 KB
+   * animated WebP of the same artwork. A revealed piece names another CID and
+   * falls through to its own artwork.
+   */
+  bafybeiexxwgg46ucafzx4fpesmobil45cwrspb34pefegnpzz5qux762p4: "/boxes/cybereator.webp",
+
   /** Treasure Box, Common — sobox/0. */
   bafybeibltyk5zokqdookfnccsfcoebl3qzp4gkx45bhtgrllm2t23kp67u: "/boxes/sobox/common.webp",
   /** Uncommon — sobox/1. */

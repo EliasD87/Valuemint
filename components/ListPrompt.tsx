@@ -10,7 +10,7 @@ import type { BulkListItem } from "@/components/BulkList";
 import { HOLDINGS_FOCUS_EVENT, holdingsAnchor } from "@/lib/anchors";
 import { formatCount } from "@/lib/format";
 import { Art } from "@/components/Art";
-import { soleArtworkFor } from "@/config/covers";
+import { bundledArtworkFor, soleArtworkFor } from "@/config/covers";
 import { verifiedAs } from "@/config/verified";
 import { VerifiedMark } from "@/components/VerifiedMark";
 import "./ListPrompt.css";
@@ -111,7 +111,7 @@ export function ListPrompt() {
          * these collections they are the same picture and ours is a third of
          * the frames. See `soleArtworkFor`.
          */
-        image: soleArtworkFor(t.collection) ?? t.image,
+        image: soleArtworkFor(t.collection) ?? bundledArtworkFor(t.image) ?? t.image,
       };
       group.items.push({ id: t.id, tier: t.tier });
       by.set(key, group);
