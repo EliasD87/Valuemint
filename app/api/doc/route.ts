@@ -26,6 +26,22 @@ const MAX_BYTES = 256 * 1024;
  * but our own Trenches tiers were re-imaged once, so not forever.
  */
 const CACHE_OK = "public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800";
+/**
+ * Cybereator's documents, which change in place (2026-11-09).
+ *
+ * The cache above assumes a reveal points a token at a new URL. Cybereator's
+ * does not: `…/nft/token/cybr/3032` stays put and its answer changes when the
+ * holder breaks the seal (from 10 November, 12:00 UTC, each holder revealing
+ * their own). A day at the edge would have shown a revealed piece sealed for
+ * a day, so these are kept two minutes and refreshed in the background.
+ */
+const CACHE_CHANGING = "public, max-age=120, s-maxage=120, stale-while-revalidate=600";
+
+/** Documents that can change at the same URL: SoDEX's per-token Cybereator ones. */
+function changesInPlace(url: string): boolean {
+  return /^https:\/\/mainnet-gw\.sodex\.dev\/api\/v1\/nft\/token\/cybr\//.test(url);
+}
+
 /** "No document here" (404, SoDEX's 501) for an hour: it can start existing. */
 const CACHE_MISSING = "public, max-age=300, s-maxage=3600";
 
@@ -66,6 +82,12 @@ export async function GET(request: Request): Promise<NextResponse> {
   }
 
   const status = upstream.status;
-  const cache = upstream.ok ? CACHE_OK : status === 404 || status === 501 ? CACHE_MISSING : "no-store";
+  const cache = upstream.ok
+    ? changesInPlace(target)
+      ? CACHE_CHANGING
+      : CACHE_OK
+    : status === 404 || status === 501
+      ? CACHE_MISSING
+      : "no-store";
   return NextResponse.json(body, { status, headers: { "cache-control": cache } });
 }
