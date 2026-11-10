@@ -300,7 +300,7 @@ export const PINNED_COLLECTIONS: ReadonlyArray<`0x${string}`> = [
 ];
 
 /**
- * /collections' own order: Genesis first, then `PINNED_COLLECTIONS` as it is.
+ * /collections' own order: Cybereator, then Genesis, then `PINNED_COLLECTIONS` as it is.
  *
  * Owner, 2026-10-28, asked for this on the collections page only. /market,
  * /mint and search keep the list above, where the boxes lead because they are
@@ -308,8 +308,12 @@ export const PINNED_COLLECTIONS: ReadonlyArray<`0x${string}`> = [
  * twice, so moving Genesis there too would undo a decision nobody revisited.
  */
 export const COLLECTIONS_PAGE_PINNED: ReadonlyArray<`0x${string}`> = [
+  /** Cybereator first for its reveal (owner, 2026-11-10), ahead of Genesis. */
+  "0xCD30D4bCaa99E556B70A2C4bDFC4050D26E48D30",
   "0x5Fadc59297e86aceA20Bff519aea0f9651Cdc90B", // ValueChain Genesis, the OG
-  ...PINNED_COLLECTIONS.filter((a) => a.toLowerCase() !== "0x5fadc59297e86acea20bff519aea0f9651cdc90b"),
+  ...PINNED_COLLECTIONS.filter(
+    (a) => !["0x5fadc59297e86acea20bff519aea0f9651cdc90b", "0xcd30d4bcaa99e556b70a2c4bdfc4050d26e48d30"].includes(a.toLowerCase()),
+  ),
 ];
 
 /**
