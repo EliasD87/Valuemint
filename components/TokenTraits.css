@@ -85,6 +85,8 @@
 
 /* Cybereator's Rarity (2026-11-10): the class in its tier colour, so Gold and
    Rare read at a glance on the line a buyer looks at first. */
-.tt-rarity-gold .tt-val { color: var(--legendary); }
-.tt-rarity-rare .tt-val { color: var(--rare); }
 .tt-rarity-common .tt-val { color: var(--common); }
+.tt-rarity-uncommon .tt-val { color: var(--uncommon); }
+.tt-rarity-rare .tt-val { color: var(--rare); }
+.tt-rarity-epic .tt-val { color: var(--epic); }
+.tt-rarity-legendary .tt-val { color: var(--legendary); }

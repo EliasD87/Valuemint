@@ -1701,8 +1701,4 @@ textarea {
   }
 }
 
-/* Cybereator's Gold class (2026-11-10), in the Legendary palette: the gold the site already has. */
-.chip-gold {
-  background: var(--legendary-wash);
-  color: var(--legendary);
-}
+
