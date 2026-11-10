@@ -14,7 +14,7 @@ import { Soso } from "@/components/Soso";
 import { AddressLink } from "@/components/AddressLink";
 import { whenExpires } from "@/components/Offers";
 import { formatSoso } from "@/lib/format";
-import { currencyLabel, remainingPieces, type SeaportOrder } from "@/lib/seaport";
+import { SEALED_ZONE, currencyLabel, remainingPieces, type SeaportOrder } from "@/lib/seaport";
 import { SellIntoOffer } from "@/components/SellIntoOffer";
 import { useT } from "@/lib/i18n";
 import { CYBEREATOR } from "@/lib/cybereator";
@@ -157,7 +157,11 @@ export function CollectionOffers({ collection }: { collection: `0x${string}` }) 
    */
   const groups = useMemo(() => {
     const byKey = new Map<string, { key: string; type?: string; value: string; offers: SeaportOrder[] }>();
-    if (anyPiece.length > 0) byKey.set("any", { key: "any", value: "Any piece", offers: [...anyPiece] });
+    /* An Unopened offer (sealedOnly) is its own row: it is not "any piece". */
+    const unopenedOffers = anyPiece.filter((o) => o.sealedOnly === true);
+    const plainOffers = anyPiece.filter((o) => o.sealedOnly !== true);
+    if (plainOffers.length > 0) byKey.set("any", { key: "any", value: "Any piece", offers: plainOffers });
+    if (unopenedOffers.length > 0) byKey.set("unopened", { key: "unopened", value: "Unopened", offers: unopenedOffers });
     for (const { offer, set } of traits) {
       const key = traitLabel(set);
       const g = byKey.get(key) ?? { key, type: set.traitType, value: set.value, offers: [] };
@@ -259,7 +263,7 @@ export function CollectionOffers({ collection }: { collection: `0x${string}` }) 
           loadingTraits={criteria.isLoading}
           sets={criteria.sets}
           bound={criteria.bound}
-          standing={[...anyPiece.map((o) => ({ o, label: tr("Any piece") })), ...traits.map((t) => ({ o: t.offer, label: traitLabel(t.set) }))]}
+          standing={[...anyPiece.map((o) => ({ o, label: tr(o.sealedOnly === true ? "Unopened" : "Any piece") })), ...traits.map((t) => ({ o: t.offer, label: traitLabel(t.set) }))]}
           onClose={() => setOpen(false)}
         />
       ) : null}
@@ -337,6 +341,14 @@ function CollectionOfferDialog({
   const [type, setType] = useState("");
   const [value, setValue] = useState("");
   const [level, setLevel] = useState("");
+  /*
+    Cybereator: "Unopened" beside the rarity levels (owner, 2026-11-10). Any
+    piece still sealed at the moment of sale; SealedOnlyZone refuses an opened
+    one on chain. Offered only once that zone is deployed.
+  */
+  const canUnopened = opened && SEALED_ZONE !== undefined;
+  const [unopenedPicked, setUnopenedPicked] = useState(false);
+  const unopened = canUnopened && unopenedPicked && !advanced;
   const pickable = ladderType === undefined ? types : otherTypes;
   const activeType = type !== "" && pickable.includes(type) ? type : (pickable[0] ?? "");
   /** Most common first, which puts a rarity ladder in its own order: Common down to the rarest. */
@@ -347,10 +359,10 @@ function CollectionOfferDialog({
     : (levels.find((s) => s.value === level) ?? levels[0]);
 
   const trait =
-    scope === "trait" && chosen !== undefined
+    scope === "trait" && chosen !== undefined && !unopened
       ? { root: chosen.root, label: traitLabel(chosen), count: chosen.count, bound }
       : undefined;
-  const target = useCollectionOfferTarget(collection, trait);
+  const target = useCollectionOfferTarget(collection, trait, unopened);
 
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
@@ -442,8 +454,23 @@ function CollectionOfferDialog({
             <div className="co-pick">
               {ladderType !== undefined ? (
                 <div className="co-levels" role="radiogroup" aria-label={tr(ladderType)}>
+                  {canUnopened ? (
+                    <button
+                      type="button"
+                      role="radio"
+                      aria-checked={unopened}
+                      className={`co-level co-level-unopened${unopened ? " is-on" : ""}`}
+                      onClick={() => {
+                        setAdvanced(false);
+                        setUnopenedPicked(true);
+                      }}
+                    >
+                      <b>{tr("Unopened")}</b>
+                      <span>{tr("sealed only")}</span>
+                    </button>
+                  ) : null}
                   {levels.map((s) => {
-                    const on = !advanced && s.value === chosen.value;
+                    const on = !advanced && !unopened && s.value === chosen.value;
                     return (
                       <button
                         key={s.value}
@@ -453,6 +480,7 @@ function CollectionOfferDialog({
                         className={`co-level co-level-${s.value.toLowerCase()}${on ? " is-on" : ""}`}
                         onClick={() => {
                           setAdvanced(false);
+                          setUnopenedPicked(false);
                           setLevel(s.value);
                         }}
                       >
@@ -495,7 +523,11 @@ function CollectionOfferDialog({
                   />
                 </>
               ) : null}
-              {bound !== undefined && opened ? (
+              {unopened ? (
+                <p className="co-pick-note">
+                  {tr("Covers any Cybereator still sealed when it is sold to you. If a piece is opened before the sale, the chain refuses it and your offer stays up.")}
+                </p>
+              ) : bound !== undefined && opened ? (
                 /* Cybereator: every piece opened so far with the trait. A
                    sealed piece is never in the set, and pieces opened later
                    are outside it for good. */

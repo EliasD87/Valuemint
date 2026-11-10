@@ -87,7 +87,7 @@ export function OfferDialog({
                   </span>
                   <span>
                     {isMine(o.maker) ? t("You") : <AddressLink address={o.maker} chars={4} />} &middot;{" "}
-                    {o.trait !== undefined ? `${o.trait} · ` : o.tokenId === undefined ? t("any piece · ") : ""}
+                    {o.trait !== undefined ? `${o.trait} · ` : o.tokenId === undefined ? t(o.sealedOnly === true ? "Unopened · " : "any piece · ") : ""}
                     {whenExpires(o.endTime, t)}
                   </span>
                 </li>

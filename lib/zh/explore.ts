@@ -262,4 +262,10 @@ export const ZH_EXPLORE: Record<string, string> = {
   "Covers the {count} opened pieces with {trait}. Sealed pieces and pieces opened after you place the offer aren’t included, and a holder of any other piece cannot sell into it.": "覆盖带有 {trait} 的 {count} 件已开盒藏品。未开盒的藏品以及你出价之后才开盒的藏品不包括在内，持有其他藏品的人无法向此出价出售。",
   "{count} opened": "{count} 件已开盒",
   "Rarity": "稀有度",
+  "Unopened": "未开盒",
+  "sealed only": "仅限未开盒",
+  "Unopened · ": "未开盒 · ",
+  "for an unopened piece · ": "针对未开盒藏品 · ",
+  "any Cybereator still sealed when it is sold to you": "成交时仍未开盒的任意 Cybereator",
+  "Covers any Cybereator still sealed when it is sold to you. If a piece is opened before the sale, the chain refuses it and your offer stays up.": "覆盖成交时仍未开盒的任意 Cybereator。如果藏品在成交前已开盒，链上会拒绝这笔成交，你的出价继续有效。",
 };

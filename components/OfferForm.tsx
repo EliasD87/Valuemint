@@ -440,6 +440,11 @@ export function useCollectionOfferTarget(
    * so a holder of anything else cannot fill it whatever a page shows.
    */
   trait?: { root: `0x${string}`; label: string; count: number; bound?: bigint },
+  /**
+   * Cybereator: any piece still sealed at the moment of sale, enforced on chain
+   * by SealedOnlyZone. Never together with `trait`.
+   */
+  sealedOnly = false,
 ): OfferTarget {
   const trade = useSeaportTrade(collection);
   const tr = useT();
@@ -447,8 +452,9 @@ export function useCollectionOfferTarget(
   return {
     spender: SEAPORT,
     batch: true,
-    buying:
-      trait === undefined
+    buying: sealedOnly
+      ? tr("any Cybereator still sealed when it is sold to you")
+      : trait === undefined
         ? tr("any piece in this collection")
         : trait.bound !== undefined
           ? collection.toLowerCase() === CYBEREATOR
@@ -458,7 +464,9 @@ export function useCollectionOfferTarget(
             ? tr("any piece with {trait} (1 piece)", { trait: trait.label })
             : tr("any piece with {trait} ({count} pieces)", { trait: trait.label, count: trait.count.toLocaleString() }),
     place: (amount, days, quantity) =>
-      trade.makeOffer(undefined, amount, days, trait?.root, trait?.bound, quantity ?? 1n),
+      sealedOnly
+        ? trade.makeOffer(undefined, amount, days, undefined, undefined, quantity ?? 1n, true)
+        : trade.makeOffer(undefined, amount, days, trait?.root, trait?.bound, quantity ?? 1n),
     signing: trade.signing,
     confirming: trade.confirming,
     busy: trade.busy,

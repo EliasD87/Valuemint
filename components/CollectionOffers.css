@@ -315,3 +315,11 @@
   grid-column: 1 / -1;
   justify-self: start;
 }
+
+/* "Unopened" (Cybereator): the sealed colour, as on the Opened / Sealed filter. */
+.co-level-unopened b { color: var(--warn); }
+.co-level-unopened.is-on {
+  background: color-mix(in srgb, var(--warn) 12%, var(--surface));
+  border-color: var(--warn);
+  box-shadow: inset 0 0 0 1px var(--warn);
+}

@@ -254,6 +254,8 @@ export function useSeaportTrade(collection: Address | undefined) {
       bound?: bigint,
       /** Pieces wanted, for a batch offer; one by default. Price is per piece. */
       quantity: bigint = 1n,
+      /** Cybereator only: any piece still sealed at the moment of sale (SealedOnlyZone). */
+      sealedOnly: boolean = false,
     ) => {
       if (collection === undefined || address === undefined) return;
       reset();
@@ -275,6 +277,7 @@ export function useSeaportTrade(collection: Address | undefined) {
                   : {}),
                 priceWei: parseEther(priceInSoso),
                 ...(tokenId === undefined && quantity > 1n ? { quantity } : {}),
+                ...(sealedOnly ? { sealedOnly: true } : {}),
                 days,
               }),
             ),

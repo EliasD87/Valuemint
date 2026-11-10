@@ -180,7 +180,7 @@ function OfferRow({ order, name, own }: { order: SeaportOrder; name: string; own
         ? set === undefined
           ? t("Trait offer")
           : traitLabel(set)
-        : t("Any piece");
+        : t(order.sealedOnly === true ? "Unopened" : "Any piece");
 
   /* Two lines, the same shape as a trade row: the piece over its collection,
      the amount over how long it has left. */

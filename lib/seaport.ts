@@ -1,5 +1,13 @@
 import { zeroAddress, zeroHash, type Address, type Hex } from "viem";
 import { deployment } from "@/config/contracts";
+import { CYBEREATOR, CYBEREATOR_SEALED_ZONE } from "@/lib/cybereator";
+
+/**
+ * The one zone an order may name: Cybereator's SealedOnlyZone, and only on the
+ * one shape `buildOffer` makes with it (see `isSealedOnlyBid`). Undefined
+ * until it is deployed, and then no order may name any zone at all.
+ */
+export const SEALED_ZONE: Address | undefined = CYBEREATOR_SEALED_ZONE as Address | undefined;
 
 /**
  * Building Seaport orders.
@@ -221,6 +229,12 @@ interface OfferInput {
    * only those pieces can be sold into the offer. Omitted: any piece.
    */
   criteria?: Hex;
+  /**
+   * Cybereator only, with no `tokenId` and no `criteria`: an "Unopened" offer.
+   * Restricted to SEALED_ZONE, which Seaport asks at the moment of sale and
+   * which refuses any piece already opened.
+   */
+  sealedOnly?: boolean;
   /** What the bidder pays for ONE piece, fee included. */
   priceWei: bigint;
   /**
@@ -274,6 +288,12 @@ export function buildOffer(input: OfferInput): OrderParameters {
   if (quantity > 1n && !anyToken) throw new Error("Only a collection or trait offer can be for several pieces.");
   const fee = splitFee(input.priceWei).fee * quantity;
   const total = input.priceWei * quantity;
+  const sealedOnly = input.sealedOnly === true;
+  if (sealedOnly) {
+    if (SEALED_ZONE === undefined) throw new Error("Unopened offers are not available yet.");
+    if (!anyToken || input.criteria !== undefined) throw new Error("An Unopened offer is on any sealed piece, not a token or a trait.");
+    if (input.collection.toLowerCase() !== CYBEREATOR) throw new Error("Unopened offers are for Cybereator only.");
+  }
 
   const consideration: ConsiderationItem[] = [
     {
@@ -306,7 +326,8 @@ export function buildOffer(input: OfferInput): OrderParameters {
 
   return {
     offerer: input.bidder,
-    zone: ZONE,
+    /* Restricted only for an Unopened offer: that is what makes Seaport ask the zone. */
+    zone: sealedOnly ? SEALED_ZONE! : ZONE,
     offer: [
       {
         itemType: ItemType.ERC20,
@@ -317,7 +338,13 @@ export function buildOffer(input: OfferInput): OrderParameters {
       },
     ],
     consideration,
-    orderType: quantity > 1n ? OrderType.PARTIAL_OPEN : OrderType.FULL_OPEN,
+    orderType: sealedOnly
+      ? quantity > 1n
+        ? OrderType.PARTIAL_RESTRICTED
+        : OrderType.FULL_RESTRICTED
+      : quantity > 1n
+        ? OrderType.PARTIAL_OPEN
+        : OrderType.FULL_OPEN,
     ...timing(input.days, input.salt),
     totalOriginalConsiderationItems: BigInt(consideration.length),
   };
@@ -387,6 +414,12 @@ export interface ReadOrder {
   /** A listing's ERC-1155 quantity, or how many pieces a bid is for; 1 otherwise. */
   amount: bigint;
   endTime: bigint;
+  /**
+   * An "Unopened" offer: any Cybereator still sealed at the moment of sale
+   * (`isSealedOnlyBid`). Its `criteria` is 0n like an any-piece offer, so check
+   * this before calling one "any piece".
+   */
+  sealedOnly?: true;
 }
 
 /**
@@ -562,9 +595,18 @@ export function unsafeReason(p: OrderParameters): UnsafeReason | undefined {
    *                    shape with the 90-day bound removed — the one mitigation
    *                    that makes a stale listing survivable.
    */
-  if (p.zone !== zeroAddress) return "order-names-a-zone";
+  /*
+    One exception, exact (2026-11-10): an "Unopened" Cybereator bid names
+    SealedOnlyZone, restricted. That zone is ours, has no owner, and can only
+    refuse a fill delivering an opened piece; `isSealedOnlyBid` checks the rest
+    of the shape, and the bid rules below still apply to it in full.
+  */
+  const sealed = SEALED_ZONE !== undefined && p.zone.toLowerCase() === SEALED_ZONE.toLowerCase();
+  if (p.zone !== zeroAddress && !sealed) return "order-names-a-zone";
   if (p.zoneHash !== zeroHash) return "order-names-a-zone";
-  if (p.orderType !== OrderType.FULL_OPEN && p.orderType !== OrderType.PARTIAL_OPEN) {
+  if (sealed) {
+    if (!isSealedOnlyBid(p)) return "order-names-a-zone";
+  } else if (p.orderType !== OrderType.FULL_OPEN && p.orderType !== OrderType.PARTIAL_OPEN) {
     return "order-type-unsupported";
   }
   if (p.endTime === 0n) return "order-never-expires";
@@ -726,7 +768,10 @@ export function unsafeReason(p: OrderParameters): UnsafeReason | undefined {
   const quantity = nfts[0]!.startAmount;
   if (quantity !== 1n) {
     if (nfts[0]!.itemType !== ItemType.ERC721_WITH_CRITERIA) return "bid-quantity-unsupported";
-    if (p.orderType !== OrderType.PARTIAL_OPEN) return "bid-quantity-unsupported";
+    /* PARTIAL_RESTRICTED is the batch form of an Unopened offer, admitted only with its zone above. */
+    if (p.orderType !== OrderType.PARTIAL_OPEN && !(sealed && p.orderType === OrderType.PARTIAL_RESTRICTED)) {
+      return "bid-quantity-unsupported";
+    }
     if (quantity < 1n || quantity > MAX_BATCH_OFFER) return "bid-quantity-unsupported";
     if (offered.startAmount % quantity !== 0n) return "bid-quantity-unsupported";
     for (const i of p.consideration) {
@@ -757,6 +802,30 @@ export function unsafeReason(p: OrderParameters): UnsafeReason | undefined {
 }
 
 export const isSafeOrder = (p: OrderParameters): boolean => unsafeReason(p) === undefined;
+
+/**
+ * Whether an order is an "Unopened" Cybereator bid, exactly as `buildOffer`
+ * makes one with `sealedOnly`: SEALED_ZONE, restricted, WSOSO offered, and the
+ * one NFT line any Cybereator (criteria 0) going to the bidder. Anything else
+ * naming that zone is not a shape this app builds and `unsafeReason` refuses it.
+ *
+ * The rest of a bid's rules (currency, fee ceiling, batch arithmetic) are not
+ * repeated here; `unsafeReason` applies them to this shape like any other bid.
+ */
+export function isSealedOnlyBid(p: OrderParameters): boolean {
+  if (SEALED_ZONE === undefined || p.zone.toLowerCase() !== SEALED_ZONE.toLowerCase()) return false;
+  if (p.zoneHash !== zeroHash) return false;
+  if (p.orderType !== OrderType.FULL_RESTRICTED && p.orderType !== OrderType.PARTIAL_RESTRICTED) return false;
+  if (p.offer.length !== 1 || p.offer[0]!.itemType !== ItemType.ERC20) return false;
+  const nfts = p.consideration.filter((i) => i.itemType !== ItemType.ERC20 && i.itemType !== ItemType.NATIVE);
+  if (nfts.length !== 1) return false;
+  const nft = nfts[0]!;
+  if (nft.itemType !== ItemType.ERC721_WITH_CRITERIA || nft.identifierOrCriteria !== 0n) return false;
+  if (nft.token.toLowerCase() !== CYBEREATOR) return false;
+  /* A single piece is FULL_RESTRICTED; only a batch may be partial. */
+  if (nft.startAmount === 1n && p.orderType !== OrderType.FULL_RESTRICTED) return false;
+  return nft.recipient.toLowerCase() === p.offerer.toLowerCase();
+}
 
 /**
  * What to call the currency an order is priced in.
@@ -843,6 +912,7 @@ export function readOrder(p: OrderParameters): ReadOrder | undefined {
       priceWei: currencyOffered.startAmount / pieces,
       amount: pieces,
       endTime: p.endTime,
+      ...(isSealedOnlyBid(p) ? { sealedOnly: true as const } : {}),
     };
   }
 
