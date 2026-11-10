@@ -25,6 +25,9 @@ export type CybereatorLevel = (typeof CYBEREATOR_LEVELS)[number];
 /** Each race's starting level, as cybereator.com has it. */
 const RACE_BASE: Record<string, number> = { Male: 0, Female: 0, Robot: 1, Orc: 1, Alien: 1, Demon: 2, Elemental: 2, Cat: 3 };
 
+/** The races cybereator.com classes; a piece of any other race gets no level. */
+export const CYBEREATOR_RACES: readonly string[] = Object.keys(RACE_BASE);
+
 /**
  * cybereator.com's own formula. Gold parts (1-3) and rare parts (one, or two
  * for rare Hair and rare Clothes together) and an Effect each raise the race's

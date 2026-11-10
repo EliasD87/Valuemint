@@ -16,6 +16,7 @@ import { whenExpires } from "@/components/Offers";
 import { formatSoso } from "@/lib/format";
 import { currencyLabel, remainingPieces, type SeaportOrder } from "@/lib/seaport";
 import { SellIntoOffer } from "@/components/SellIntoOffer";
+import { CYBEREATOR } from "@/lib/cybereator";
 import "./OfferDialog.css";
 import "./CollectionOffers.css";
 
@@ -298,6 +299,8 @@ function CollectionOfferDialog({
   /* Never "any" on a collection with traits, and nothing at all until that is known. */
   const scope: "any" | "trait" = hasTraits ? "trait" : "any";
   const undecided = loadingTraits || traitsFailed;
+  /** Cybereator's bound counts openings, not minted ids (lib/cybereatorSets.ts). */
+  const opened = collection.toLowerCase() === CYBEREATOR;
 
   const types = useMemo(
     () => [...new Set(sets.map((s) => s.traitType))].sort((a, b) => traitRank(a) - traitRank(b)),
@@ -392,10 +395,19 @@ function CollectionOfferDialog({
                   note:
                     bound === undefined
                       ? `${s.count.toLocaleString()} ${s.count === 1 ? "piece" : "pieces"}`
-                      : `${s.count.toLocaleString()} minted`,
+                      : `${s.count.toLocaleString()} ${opened ? "opened" : "minted"}`,
                 }))}
               />
-              {bound === undefined ? (
+              {bound !== undefined && opened ? (
+                /* Cybereator: every piece opened so far with the trait. A
+                   sealed piece is never in the set, and pieces opened later
+                   are outside it for good. */
+                <p className="co-pick-note">
+                  Covers the {chosen.count.toLocaleString()} opened {chosen.count === 1 ? "piece" : "pieces"} with{" "}
+                  <b>{traitLabel(chosen)}</b>. Sealed pieces and pieces opened after you place the offer
+                  aren&rsquo;t included, and a holder of any other piece cannot sell into it.
+                </p>
+              ) : bound === undefined ? (
                 <p className="co-pick-note">
                   Covers exactly the {chosen.count.toLocaleString()} {chosen.count === 1 ? "piece" : "pieces"} with{" "}
                   <b>{traitLabel(chosen)}</b>. A holder of any other piece cannot sell into it.

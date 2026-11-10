@@ -5,6 +5,9 @@ import { criteriaTree, type CriteriaTree } from "@/lib/criteria";
 import { isFilterable } from "@/lib/traitRoles";
 import { tokenDocument, tokenIdsOf } from "@/lib/tokenDocument";
 import { isTransientRpcError, withRpcRetry } from "@/lib/rpcRetry";
+import { CYBEREATOR } from "@/lib/cybereator";
+import { readOpenings } from "@/lib/cybereatorOpenings";
+import { agreedOpenings, cybereatorGroups, parseGallery, type GalleryPiece } from "@/lib/cybereatorSets";
 
 /**
  * The token sets trait offers are made over: for one collection, every piece
@@ -29,8 +32,13 @@ import { isTransientRpcError, withRpcRetry } from "@/lib/rpcRetry";
  *   and never changed. Read from the chain, not from SoDEX's metadata host,
  *   which answers 501 and on 2026-09-25 had every Level empty.
  *
- * Anything else (Cybereator, whose traits live only on SoDEX's server) gets no
- * trait offers: a set built from a host that can change its answer is a guess.
+ * - Cybereator (`cybereatorSetsOf`): the chain says which pieces are opened
+ *   and in what order, cybereator.com's gallery says what each opened piece
+ *   is. A revealed piece is final by the team's own rule, and a sealed one is
+ *   never in a set (lib/cybereatorSets.ts).
+ *
+ * Anything else gets no trait offers: a set built from a host that can change
+ * its answer is a guess.
  */
 
 export interface TraitSet {
@@ -116,6 +124,7 @@ const cache = new Map<string, { at: number; sets: TraitSet[] | undefined }>();
  * it as Common would be a claim about a box that does not exist yet.
  */
 export async function traitSetsOf(collection: Address, bound?: bigint): Promise<TraitSets | undefined> {
+  if (collection.toLowerCase() === CYBEREATOR) return cybereatorSetsOf(bound);
   const source = LEVEL_SOURCES[collection.toLowerCase()];
   if (source !== undefined) return levelSetsOf(collection, source, bound);
 
@@ -339,4 +348,64 @@ async function build(collection: Address): Promise<TraitSet[] | undefined> {
   return [...groups.values()]
     .map((g) => ({ traitType: g.traitType, value: g.value, tree: criteriaTree(g.ids) }))
     .sort((a, b) => a.traitType.localeCompare(b.traitType) || a.value.localeCompare(b.value));
+}
+
+// ----------------------------------------------------------------- Cybereator
+
+const GALLERY = "https://cybereator.com/api/gallery";
+
+/** Openings arrive all day; re-read often, and keep serving the last answer if a read fails. */
+const CYBEREATOR_TTL_MS = 60_000;
+
+let cybereatorNow: { at: number; agreed: GalleryPiece[] } | undefined;
+const cybereatorAt = new Map<number, TraitSet[]>();
+
+async function readGallery(): Promise<GalleryPiece[]> {
+  const res = await fetch(GALLERY, { cache: "no-store", signal: AbortSignal.timeout(15_000) });
+  if (!res.ok) throw new Error(`Cybereator gallery answered ${res.status}`);
+  return parseGallery(await res.json());
+}
+
+/**
+ * Cybereator's sets. The bound is a count of openings, not a token id: a set
+ * at bound B holds the pieces opened first to B-th (see lib/cybereatorSets.ts).
+ */
+async function cybereatorSetsOf(bound?: bigint): Promise<TraitSets> {
+  if (cybereatorNow === undefined || Date.now() - cybereatorNow.at >= CYBEREATOR_TTL_MS) {
+    try {
+      const [openings, gallery] = await Promise.all([
+        withRpcRetry(async (attempt) => readOpenings(client as never, await pinnedBlock(attempt))),
+        readGallery(),
+      ]);
+      const agreed = agreedOpenings(openings, gallery);
+      /* Openings only ever add up; a shorter answer is a lagging node or a gallery mid-update. */
+      cybereatorNow =
+        cybereatorNow === undefined || agreed.length >= cybereatorNow.agreed.length
+          ? { at: Date.now(), agreed }
+          : { ...cybereatorNow, at: Date.now() };
+    } catch (err) {
+      /* What was built stays right: a revealed piece never changes. Only a cold instance has to fail. */
+      if (cybereatorNow === undefined) throw err;
+      console.warn("[criteria] Cybereator refresh failed, serving the last sets", err instanceof Error ? err.message : err);
+      cybereatorNow = { ...cybereatorNow, at: Date.now() - CYBEREATOR_TTL_MS + RETRY_AFTER_FAILURE_MS };
+    }
+  }
+
+  const current = cybereatorNow.agreed.length;
+  const target = bound === undefined ? current : Number(bound);
+  if (target < 1 || target > current) return { sets: [], bound: BigInt(current) };
+
+  let sets = cybereatorAt.get(target);
+  if (sets === undefined) {
+    const b = BigInt(target);
+    sets = cybereatorGroups(cybereatorNow.agreed, target).map((g) => ({
+      traitType: g.traitType,
+      value: g.value,
+      tree: criteriaTree(g.ids),
+      bound: b,
+    }));
+    cybereatorAt.set(target, sets);
+    while (cybereatorAt.size > AT_BOUND_KEPT) cybereatorAt.delete(cybereatorAt.keys().next().value!);
+  }
+  return { sets, bound: BigInt(current) };
 }

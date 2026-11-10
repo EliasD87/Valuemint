@@ -12,6 +12,7 @@ import { deployment } from "@/config/contracts";
 import { TxResult } from "@/components/TxResult";
 import { Select } from "@/components/Select";
 import { MAX_BATCH_OFFER } from "@/lib/seaport";
+import { CYBEREATOR } from "@/lib/cybereator";
 
 /**
  * Expiry choices. Every one of them is bounded, deliberately.
@@ -429,7 +430,9 @@ export function useCollectionOfferTarget(
       trait === undefined
         ? "any piece in this collection"
         : trait.bound !== undefined
-          ? `any piece with ${trait.label} minted so far`
+          ? collection.toLowerCase() === CYBEREATOR
+            ? `any opened piece with ${trait.label}`
+            : `any piece with ${trait.label} minted so far`
           : `any piece with ${trait.label} (${trait.count.toLocaleString()} ${trait.count === 1 ? "piece" : "pieces"})`,
     place: (amount, days, quantity) =>
       trade.makeOffer(undefined, amount, days, trait?.root, trait?.bound, quantity ?? 1n),
