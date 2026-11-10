@@ -238,7 +238,8 @@ function Hero({ deck }: { deck: DeckCard[] }) {
           <em>{t(HERO_COPY.em)}</em>
         </h1>
 
-        <div className="hx-deck">
+        {/* Its own half-width in slots, so the tags find the outermost card at any count. */}
+        <div className="hx-deck" style={{ ["--axis" as string]: axis }}>
           {deck.map((c, i) => (
             <DeckTile
               key={`${c.name}-${i}`}
@@ -342,9 +343,9 @@ function DeckTile({
         fold and they are the first thing anyone sees.
 
         Artwork only, no label over it (owner, 2026-11-01): the dark scrim with
-        the name and "View collection" that rose on hover looked heavy. Hover
-        lifts the card instead. The alt text is the card's name, so the link
-        still says where it goes.
+        the name and "View collection" that rose on hover looked heavy. The
+        name rides above the card instead, in the tag below. The alt text is
+        the card's name, so the link still says where it goes.
       */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
@@ -357,11 +358,19 @@ function DeckTile({
       />
     </span>
   );
+  /* Shown above the card on hover; decoration, since the alt text names it. */
+  const tag = (
+    <span className="hx-card-tag" aria-hidden="true">
+      {card.name}
+      {card.caption === undefined ? null : <i>{card.caption}</i>}
+    </span>
+  );
 
   if (card.address === undefined) {
     return (
       <div className={className} style={style}>
         {inner}
+        {tag}
       </div>
     );
   }
@@ -369,6 +378,7 @@ function DeckTile({
   return (
     <Link href={`/collection/${card.address}`} className={className} style={style}>
       {inner}
+      {tag}
     </Link>
   );
 }

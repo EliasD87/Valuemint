@@ -28,6 +28,13 @@
  *
  * ---
  *
+ * **Seven cards: a Cybereator trio in the middle (owner, 2026-11-10).**
+ *
+ * For its reveal the middle is three revealed Cybereators: Rare No. 2517,
+ * Rare No. 2757 at the front, Gold No. 2984. They are the collection's own
+ * covers (`config/covers.ts`), so the deck and the collection page share the
+ * files. On a phone only the middle three show, which is the trio.
+ *
  * **Five cards, five collections (owner, 2026-11-01).**
  *
  * The Cybereator keeps the middle slot, the front of the fan. The four around it were two Treasure Boxes and two
@@ -97,22 +104,33 @@ export const HERO_DECK: HeroCard[] = [
     caption: "The Trenches",
   },
   {
+    name: "Cybereator #2517",
+    address: CYBEREATOR,
+    image: "/covers/cd30d4bc-revealed-2517.webp",
+    caption: "Rare",
+  },
+  {
     /**
      * The middle slot, which is the front of the fan.
      *
-     * `axis` is `(deck.length - 1) / 2`, so on five cards index 2 sits at slot
-     * 0: no tilt, no offset, on top of the other four. It is the one card
-     * anybody looks at first.
+     * `axis` is `(deck.length - 1) / 2`, so on seven cards index 3 sits at
+     * slot 0: no tilt, no offset, on top of the rest. It is the one card
+     * anybody looks at first: Rare No. 2757 on Cybereator's own yellow, the
+     * collection's avatar.
      *
-     * Converted from the 1,053 KB source GIF to a 324 KB animated WebP - all
-     * 33 frames, a 69% saving. With The Dealer (265 KB) the two animated cards
-     * are most of the deck's weight, and every card is above the fold and
-     * fetched at high priority. Two is the owner's call (2026-11-01); a third
-     * would want measuring first.
+     * It was the sealed animation (`/boxes/cybereator.webp`) until the reveal.
+     * The Dealer is the deck's only moving card now.
      */
-    name: "Cybereator",
+    name: "Cybereator #2757",
     address: CYBEREATOR,
-    image: "/boxes/cybereator.webp",
+    image: "/covers/cd30d4bc-revealed-2757.webp",
+    caption: "Rare",
+  },
+  {
+    name: "Cybereator #2984",
+    address: CYBEREATOR,
+    image: "/covers/cd30d4bc-revealed-2984.webp",
+    caption: "Gold",
   },
   {
     name: "SuperRare box",

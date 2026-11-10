@@ -426,20 +426,24 @@
  * ------------------------------------------------------------------------- */
 
 .hx-deck {
-  --card-w: clamp(140px, 15vw, 228px);
+  /* Sized for seven (2026-11-10): the row is 5.8 cards wide, about 1,050px at
+     1440 and 1,140 at its widest. */
+  --card-w: clamp(124px, 12.6vw, 196px);
   /* Centre to centre. 0.8 of a card is a fifth of each one under its
      neighbour, which is what reads as a hand rather than thumbnails. */
   --step: calc(var(--card-w) * 0.8);
-  --tilt: 4deg;
-  /* How far the arc drops, per slot squared, as a share of the card. */
-  --drop: 3.5%;
-  /* Slots from the middle to the outermost card shown; for the tags. */
-  --reach: 2;
+  --tilt: 3.5deg;
+  /* How far the arc drops, per slot squared, as a share of the card. Lower
+     than for five, or the outer pair (9 × this) sinks out of the row. */
+  --drop: 2.6%;
+  /* Slots from the middle to the outermost card shown; for the tags. `--axis`
+     is set on the element from the deck's own length. */
+  --reach: var(--axis, 2);
 
   position: relative;
   width: 100%;
-  /* The card, plus what the outer pair drops (14%) and tilts (~7%) out of it. */
-  height: calc(var(--card-w) * 1.22);
+  /* The card, plus what the outer pair drops (23%) and tilts (~8%) out of it. */
+  height: calc(var(--card-w) * 1.32);
   margin: clamp(1.75rem, 3.2vw, 2.5rem) 0 clamp(0.5rem, 1.2vw, 1rem);
 }
 
@@ -450,21 +454,32 @@
   width: var(--card-w);
   display: flex;
   flex-direction: column;
-  border-radius: clamp(14px, 1.5vw, 22px);
-  overflow: hidden;
+  --hx-r: clamp(14px, 1.5vw, 22px);
+  border-radius: var(--hx-r);
+  /* Not clipped: the hover tag stands above the card. The art clips itself. */
+  overflow: visible;
   background: var(--hx-card);
   border: 1px solid var(--hx-card-line);
   box-shadow: var(--hx-shadow);
-  /* One transform, so hover composites without re-laying anything out. Hover
-     changes only `--lift`. */
+  /*
+   * One transform, so hover composites without re-laying anything out. Hover
+   * only changes the variables: how far the card lifts, slides aside, turns,
+   * straightens and grows. See "the deck makes room" below.
+   */
   --lift: 0px;
+  --spread: 0px;
+  --turn: 0deg;
+  --straight: 1;
+  --scale: 1;
   transform:
-    translateX(calc(-50% + var(--slot) * var(--step)))
+    translateX(calc(-50% + var(--slot) * var(--step) + var(--spread)))
     translateY(calc(var(--abs) * var(--abs) * var(--drop) - var(--lift)))
-    rotate(calc(var(--slot) * var(--tilt)));
+    rotate(calc(var(--slot) * var(--tilt) * var(--straight) + var(--turn)))
+    scale(var(--scale));
   z-index: calc(10 - var(--abs));
-  transition: transform 420ms var(--ease), box-shadow 420ms var(--ease),
-    border-color 420ms var(--ease);
+  /* A little overshoot, so the cards settle like cards rather than slide. */
+  transition: transform 560ms cubic-bezier(0.22, 1.2, 0.36, 1), box-shadow 420ms var(--ease),
+    border-color 420ms var(--ease), filter 320ms var(--ease);
   /**
    * No entrance animation here, deliberately.
    *
@@ -491,11 +506,49 @@
   border-color: var(--ink-3);
 }
 
-.hx-card:hover {
-  --lift: 12px;
-  /* In front of its neighbours while it is looked at. */
-  z-index: 11;
-  border-color: var(--ink-2);
+/*
+ * The deck makes room (owner, 2026-11-10: the old hover, a 12px lift and a
+ * jump to the front, looked abrupt).
+ *
+ * The card under the pointer rises, straightens out of the fan and grows a
+ * little; every card left of it slides further left and turns away, every
+ * card right of it the other way, and the rest dim slightly so the one being
+ * looked at is the one that is lit. CSS only: `:has(~ :hover)` finds the
+ * cards before it, `:hover ~` the cards after.
+ *
+ * Mouse only. A touch screen keeps `:hover` after a tap, and the deck would
+ * stay spread open around whatever was touched last.
+ */
+@media (hover: hover) and (pointer: fine) {
+  .hx-deck:has(.hx-card:hover) .hx-card {
+    filter: saturate(0.85) brightness(0.86);
+  }
+
+  .hx-card:has(~ .hx-card:hover) {
+    --spread: calc(var(--card-w) * -0.17);
+    --turn: -2.5deg;
+  }
+
+  .hx-card:hover ~ .hx-card {
+    --spread: calc(var(--card-w) * 0.17);
+    --turn: 2.5deg;
+  }
+
+  /* Written to outrank the dimming rule above, which `:has()` makes heavier. */
+  .hx-deck:has(.hx-card:hover) .hx-card:hover {
+    --lift: 22px;
+    --straight: 0;
+    --scale: 1.08;
+    z-index: 20;
+    filter: none;
+    border-color: var(--ink-2);
+    box-shadow: 0 42px 70px -28px rgba(0, 0, 0, 0.55);
+  }
+
+  .hx-card:hover .hx-card-tag {
+    opacity: 1;
+    transform: translate(-50%, -100%) translateY(-12px);
+  }
 }
 
 .hx-card-art {
@@ -503,7 +556,54 @@
   display: block;
   aspect-ratio: 1;
   overflow: hidden;
+  /* The card no longer clips, so the art rounds its own corners, inside the
+     card's 1px border. */
+  border-radius: calc(var(--hx-r) - 1px);
   background: var(--paper-3);
+}
+
+/*
+ * What the hovered card is, as a speech bubble above it: the same shape as
+ * the "~2s blocks" tags, in ink on paper so it inverts with the theme.
+ * Hidden until hover, and absent from the accessibility tree; the image's alt
+ * text already names the card.
+ */
+.hx-card-tag {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: var(--r-pill);
+  background: var(--ink);
+  color: var(--paper);
+  font-size: var(--step--2);
+  font-weight: 500;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transform: translate(-50%, -100%) translateY(-4px);
+  transition: opacity 220ms var(--ease), transform 320ms cubic-bezier(0.22, 1.2, 0.36, 1);
+}
+
+.hx-card-tag i {
+  font-style: normal;
+  opacity: 0.6;
+}
+
+.hx-card-tag::after {
+  content: "";
+  position: absolute;
+  bottom: -4px;
+  left: 50%;
+  width: 9px;
+  height: 9px;
+  margin-left: -4.5px;
+  background: inherit;
+  rotate: 45deg;
+  border-radius: 2px;
 }
 
 /**
@@ -639,7 +739,8 @@
   }
 
   .hx-card,
-  .hx-card:hover {
+  .hx-card:hover,
+  .hx-card-tag {
     transition: none;
   }
 }
