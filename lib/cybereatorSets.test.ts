@@ -54,8 +54,11 @@ describe("Cybereator trait sets", () => {
     expect(cybereatorGroups(later, 2)).toEqual(cybereatorGroups(early, 2));
     const rarity = cybereatorGroups(later, 3).filter((g) => g.traitType === "Rarity");
     expect(rarity.map((g) => [g.value, g.ids])).toEqual([
+      ["Any", [100n, 101n, 102n]],
       ["Common", [100n, 101n]],
       ["Epic", [102n]],
     ]);
+    /* "Rarity: Any": every agreed opening up to the bound, and nothing else. */
+    expect(cybereatorGroups(later, 2).find((g) => g.value === "Any")!.ids).toEqual([100n, 101n]);
   });
 });

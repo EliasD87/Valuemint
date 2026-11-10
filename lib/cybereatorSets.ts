@@ -96,6 +96,17 @@ export function agreedOpenings(
   return out;
 }
 
+/**
+ * Every opened piece, any rarity: "Rarity: Any" (owner, 2026-11-10).
+ *
+ * One more rung on the Rarity ladder rather than a trait of its own, so the
+ * offer box lists it with the levels (first: it is the largest set). Safe as a
+ * fixed list where "sealed" is not: an opened piece never closes again, so
+ * nothing in the set can stop being what the offer asked for.
+ */
+export const OPENED_TYPE = "Rarity";
+export const OPENED_VALUE = "Any";
+
 /** The metadata's trait order (cybereator.com/metadata), after Rarity. */
 const ORDER = ["Rarity", "Race", "Background", "Backdrop", "Body", "Face", "Hair", "Clothes", "Accessory", "Drink", "Effect"];
 const rank = (t: string) => {
@@ -121,6 +132,7 @@ export function cybereatorGroups(agreed: readonly GalleryPiece[], bound: number)
     groups.set(k, g);
   };
   for (const p of agreed.slice(0, bound)) {
+    add(OPENED_TYPE, OPENED_VALUE, p.id);
     const level = galleryLevel(p);
     if (level !== undefined) add("Rarity", level, p.id);
     if (p.race !== "") add("Race", p.race, p.id);
@@ -130,7 +142,7 @@ export function cybereatorGroups(agreed: readonly GalleryPiece[], bound: number)
     (a, b) =>
       rank(a.traitType) - rank(b.traitType) ||
       a.traitType.localeCompare(b.traitType) ||
-      /* Rarity lowest first, as cybereator.com lists it; the rest A to Z. */
+      /* Rarity: Any first, then lowest first, as cybereator.com lists it; the rest A to Z. */
       (a.traitType === "Rarity" ? levelRank(a.value) - levelRank(b.value) : a.value.localeCompare(b.value)),
   );
 }
