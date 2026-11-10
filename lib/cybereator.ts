@@ -22,10 +22,11 @@ export const CYBEREATOR_OPENER = "0x8f26671664ad6940df88e70f77a6d24b20c79a15";
  * "Unopened" offers. Seaport asks it at the moment of sale, and it refuses any
  * fill that delivers a piece the opener reports as opened. No owner, no admin.
  *
- * Undefined until it is deployed (contracts/scripts/deploy-sealed-zone.ts);
+ * Deployed 2026-11-10, block 16,739,211 (contracts/scripts/deploy-sealed-zone.ts),
+ * bytecode checked against the tested build;
  * the site offers "Unopened" only once this is set, lower-case.
  */
-export const CYBEREATOR_SEALED_ZONE: `0x${string}` | undefined = undefined;
+export const CYBEREATOR_SEALED_ZONE: `0x${string}` | undefined = "0x96c865b0ce2c0419ecdb0e572cd221f939fe80b1";
 
 /**
  * Cybereator's image CDN (Cloudflare in front of the bucket below), sent by the
