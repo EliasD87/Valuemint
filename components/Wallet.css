@@ -79,11 +79,27 @@
  * beside the address in a single row the dot read as a bullet rather than a
  * status light; on the glyph it qualifies the thing it is about.
  */
-.wallet-mark {
+/*
+ * The wallet's picture (components/WalletAvatar.tsx): its rarest revealed
+ * Cybereator, the sealed cat, or colours from its own address. A circle with
+ * a hairline ring, so a pale picture still has an edge on a pale pill.
+ */
+.wallet-avatar {
   position: relative;
   display: flex;
   flex: none;
-  color: var(--ink-2);
+  width: var(--glyph);
+  height: var(--glyph);
+}
+
+.wallet-avatar img,
+.wallet-avatar-own {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  box-shadow: 0 0 0 1px var(--line);
 }
 
 .wallet-dot {

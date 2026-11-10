@@ -7,46 +7,13 @@ import { valuechain } from "@/config/chain";
 import { formatSosoFixed, tinyAddress } from "@/lib/format";
 import { useT } from "@/lib/i18n";
 
-/**
- * The account's glyph, with the live dot badged onto it.
- *
- * One component for the pill and the menu, so the two cannot drift into
- * different drawings of the same idea — the menu is meant to read as that pill
- * opened, not as a second component that happens to sit under it.
- *
- * Inline rather than an icon font: one glyph, no extra request. The dot is a
- * real element rather than part of the path so it can take `--up` and the
- * surface-coloured ring that punches it out of the wallet behind it.
- */
-function WalletGlyph({ size }: { size: number }) {
-  return (
-    <span className="wallet-mark" style={{ ["--glyph" as string]: `${size}px` }} aria-hidden="true">
-      <svg width={size} height={size} viewBox="0 0 16 16">
-        <path
-          d="M2.4 4.6h9.9a1.3 1.3 0 0 1 1.3 1.3v5.6a1.3 1.3 0 0 1-1.3 1.3H2.4a1.3 1.3 0 0 1-1.3-1.3V4.6Z"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.5"
-        />
-        <path
-          d="M1.1 5.4V4a1.3 1.3 0 0 1 1.3-1.3h7.4"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-        />
-        <circle cx="10.9" cy="8.7" r="1.05" fill="currentColor" />
-      </svg>
-      <span className="wallet-dot" />
-    </span>
-  );
-}
 import { WalletPicker } from "./WalletPicker";
 import { isRefusedConnector } from "@/lib/refusedWallets";
 import { WrappedBalance } from "@/components/WrappedBalance";
 import { SosoCallout, WhereIsMySoso } from "@/components/SosoHelp";
 import "./Wallet.css";
 import { Soso } from "@/components/Soso";
+import { WalletAvatar } from "@/components/WalletAvatar";
 
 /**
  * Wallet control.
@@ -233,7 +200,7 @@ export function Wallet() {
           native balance — and not an order's currency, which is the case
           `currencyLabel` exists for and must never be hardcoded.
         */}
-        <WalletGlyph size={15} />
+        {address === undefined ? null : <WalletAvatar address={address} size={20} />}
 
         <span className="mono wallet-addr">{tinyAddress(address)}</span>
 
@@ -284,7 +251,7 @@ export function Wallet() {
                   setCopied(true);
                 }}
               >
-                <WalletGlyph size={17} />
+                {address === undefined ? null : <WalletAvatar address={address} size={28} />}
                 <span className="mono wallet-copy-addr">{tinyAddress(address)}</span>
                 <span className="wallet-copy-hint">{copied ? t("Copied") : t("Copy")}</span>
               </button>
