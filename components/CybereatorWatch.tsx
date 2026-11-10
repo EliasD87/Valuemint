@@ -36,7 +36,7 @@ import {
  */
 
 const TICK_MS = 20_000;
-const BACKSTOP_MS = 10 * 60_000;
+const BACKSTOP_MS = 2 * 60_000;
 /** A gap wider than this (a tab asleep for hours) is not scanned: everything is refreshed instead. */
 const MAX_GAP = 20_000n;
 /** Where a fresh tab starts looking: the last minute or so of blocks. */
@@ -127,12 +127,24 @@ export function CybereatorWatch() {
       const backstop = now - lastBackstop.current >= BACKSTOP_MS;
       if (backstop) lastBackstop.current = now;
 
+      /*
+        Pieces the chain says are opened but this tab still holds as sealed
+        (2026-11-10, seen live: cards loaded before their reveal kept the
+        sealed art). The Opened filter's list is the chain's own record, so a
+        sealed copy of anything on it is stale and is asked for again now.
+      */
+      const opened = queryClient.getQueryData<string[]>(["cybereator-opened"]);
+      const openedSet = opened === undefined ? undefined : new Set(opened);
+      const idOf = (q: Query) => /\/(?:cybr|metadata)\/([0-9]+)/.exec(keyText(q))?.[1];
+
       void queryClient.invalidateQueries({
         predicate: (q) => {
           if (!isDoc(q)) return false;
           const status = cybereatorStatus(q.state.data);
           if (status === undefined) return false;
-          return status.toLowerCase() === "unopened" ? backstop : true;
+          if (status.toLowerCase() !== "unopened") return true;
+          const id = idOf(q);
+          return backstop || (id !== undefined && openedSet?.has(id) === true);
         },
       });
     };
