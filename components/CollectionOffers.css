@@ -46,12 +46,21 @@
   list-style: none;
   margin: 0;
   padding: 0;
+  /*
+   * One set of columns for every row (owner, 2026-11-10). Each row used to
+   * size its own, so a longer "1 offer · 2 wanted" pushed that row's price
+   * right of the others. The rows are subgrids of this, and `max-content`
+   * sizes a column to its widest entry across all of them.
+   */
+  display: grid;
+  grid-template-columns: minmax(0, 13rem) max-content max-content 1fr;
+  column-gap: 1.75rem;
 }
 .co-row {
+  grid-column: 1 / -1;
   display: grid;
-  grid-template-columns: minmax(0, 13rem) minmax(4.5rem, auto) minmax(6rem, auto) 1fr;
+  grid-template-columns: subgrid;
   align-items: center;
-  gap: 0.75rem;
   padding: 0.5rem 0;
   border-top: 1px solid var(--line);
   font-variant-numeric: tabular-nums;
@@ -82,8 +91,9 @@
   white-space: nowrap;
   color: var(--ink-3);
 }
+/* Right-aligned in its column, so the figures and their unit line up. */
 .co-best {
-  justify-self: start;
+  justify-self: end;
   font-size: var(--step--1);
   font-weight: 700;
 }
@@ -92,11 +102,9 @@
   justify-content: flex-end;
 }
 @media (max-width: 640px) {
-  .co-row {
-    grid-template-columns: minmax(0, 1fr) auto auto auto;
-  }
-  .co-best {
-    justify-self: end;
+  .co-board {
+    grid-template-columns: minmax(0, 1fr) max-content max-content auto;
+    column-gap: 0.75rem;
   }
 }
 
