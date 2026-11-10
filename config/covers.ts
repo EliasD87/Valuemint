@@ -35,23 +35,22 @@ import { CYBEREATOR_IMAGE_HOST, CYBEREATOR_UNOPENED_GIF, cybereatorThumb } from 
 
 /** Lower-cased address -> up to four image URLs. */
 export const COLLECTION_COVERS: Record<string, string[]> = {
-  // Cybereator — one animated GIF shared by every token.
   /*
-    The SAME animated file the tokens use, not a still of it.
+    Cybereator, revealed (10 November 2026): four revealed pieces from the
+    team's gallery thumbnails, at 512px under new names (a cover's path is
+    cached for 30 days, see The Trenches below). Rarest first, and the first is
+    the avatar: No. 2757, a Rare on Cybereator's own yellow, then Gold No.
+    2984, Rare No. 2517 and Gold No. 1054.
 
-    Localising the covers re-encoded each source through sharp, which reads one
-    frame unless told otherwise — so Cybereator's cover arrived as a single
-    still of the title card, 1 page and 8KB against the source's 33. The card
-    sat frozen on a page where the same artwork moves everywhere else.
-
-    Pointing at `/boxes/cybereator.webp` rather than re-encoding it animated:
-    it is already committed, already 33 frames, and already what
-    `soleArtworkFor` below hands to every token of these two collections. One
-    file means the card and the pieces inside it cannot drift, and on the home
-    page it is a second reference to something already downloaded.
+    Until the reveal this was `/boxes/cybereator.webp`, the sealed animation
+    every token shared. Sealed pieces still show that file on their own cards
+    (BUNDLED_ARTWORK, by its CID); the collection is the revealed pieces now.
   */
   "0xcd30d4bcaa99e556b70a2c4bdfc4050d26e48d30": [
-    "/boxes/cybereator.webp",
+    "/covers/cd30d4bc-revealed-2757.webp",
+    "/covers/cd30d4bc-revealed-2984.webp",
+    "/covers/cd30d4bc-revealed-2517.webp",
+    "/covers/cd30d4bc-revealed-1054.webp",
   ],
 
   // ValueMint KOLs — the first four portraits, from the /kols roster mirror

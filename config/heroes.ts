@@ -94,19 +94,20 @@ export interface HeroArt {
 /** Lower-cased address -> its banner art. */
 export const COLLECTION_HEROES: Record<string, HeroArt> = {
   /*
-    Cybereator — SoDEX's own art, supplied by the owner.
+    Cybereator, revealed (10 November 2026): six revealed pieces side by side,
+    from the team's own gallery thumbnails (cybereator.com), each on its own
+    ground. Two Gold, two Rare, a Demon and an Orc. 2400x400 and 135 KB.
 
-    `cybereator-bg.webp` is their `cyber-bg-yellow` cropped to its left 1020px
-    and re-encoded: 1600x900 and 42 KB became 1020x600 and 19 KB. The crop is
-    what removes the tinted cat from the right side; see the note above.
+    6:1 against a band of about 5:1, so a desktop loses ~80px off each end and
+    keeps every head; a phone shows the middle two, which is why the red Rare
+    robot and the yellow Rare skull sit there. No foreground: the cat cutout
+    was the sealed collection's mascot, and the band is the pieces now.
 
-    `cybereator-cat.webp` is their `cyber-cat-cutout` at 560px tall rather than
-    913, which is still twice what it draws at on a retina panel: 88 KB to 43.
+    The sealed-era pair (`cybereator-bg.webp`, `cybereator-cat.webp`) stays in
+    public/heroes for TestCybereator below.
   */
   "0xcd30d4bcaa99e556b70a2c4bdfc4050d26e48d30": {
-    background: "/heroes/cybereator-bg.webp",
-    foreground: "/heroes/cybereator-cat.webp",
-    foregroundAlt: "The Cybereator cat, leaning on a bar",
+    background: "/heroes/cybereator-revealed-band.webp",
   },
 
   /*
