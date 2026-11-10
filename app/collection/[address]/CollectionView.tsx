@@ -3,8 +3,9 @@
 import { CYBEREATOR } from "@/lib/cybereator";
 import { CYBEREATOR_LEVELS } from "@/lib/cybereatorRarity";
 import { useCybereatorOpened, type SealFilter } from "@/hooks/useCybereatorOpened";
+import { useCriteriaSets } from "@/hooks/useCriteria";
 import type { CollectionFiguresSeed } from "@/lib/collectionFigures";
-import { Fragment, use, useMemo, useState, type ReactNode } from "react";
+import { Fragment, use, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useAccount } from "wagmi";
 import { useCollectionBasics } from "@/hooks/useCollectionBasics";
@@ -34,6 +35,31 @@ import { hasGenesisFrame } from "@/components/GenesisFrame";
 import { useT } from "@/lib/i18n";
 
 /** A translated sentence with `{name}` slots filled by elements, so bold figures land wherever the language puts them. */
+/**
+ * Calls `onMore` when its children come within a screen of view, and again
+ * each time they return there. The button inside is the same action by hand,
+ * for anyone whose browser does not report intersection.
+ */
+function MoreOnScroll({ onMore, children }: { onMore: () => void; children: ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const more = useRef(onMore);
+  more.current = onMore;
+  useEffect(() => {
+    const el = ref.current;
+    if (el === null || typeof IntersectionObserver === "undefined") return;
+    const io = new IntersectionObserver((entries) => {
+      if (entries.some((e) => e.isIntersecting)) more.current();
+    }, { rootMargin: "0px 0px 100% 0px" });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+  return (
+    <div ref={ref} className="coll-more coll-more-scroll">
+      {children}
+    </div>
+  );
+}
+
 function richText(text: string, values: Record<string, ReactNode>): ReactNode[] {
   return text.split(/\{(\w+)\}/).map((part, i) => (i % 2 === 1 ? <Fragment key={i}>{values[part] ?? `{${part}}`}</Fragment> : part));
 }
@@ -234,7 +260,87 @@ export function CollectionView({ params, seed }: { params: Promise<{ address: st
    * above is deliberately NOT gated the same way: the stats bar shows the
    * floor on every tab, and it is one shared scan either way.
    */
-  const { tokens, isLoading } = useGenericTokens(collection, tab === "items" ? shownIds : []);
+  /* Cheapest first by default: on a marketplace the first question is "what
+     can I buy, and for how little". Unlisted pieces follow, newest first, so
+     a collection with nothing for sale reads exactly as it did before. */
+  const [sort, setSort] = useState<"id-desc" | "id-asc" | "price-asc" | "price-desc">("price-asc");
+  const [traitFilter, setTraitFilter] = useState<Record<string, string>>({});
+  const [advanced, setAdvanced] = useState(false);
+  /** Whether any trait filter is narrowing the grid right now. */
+  const filtering = Object.values(traitFilter).some((v) => v !== "");
+
+  /**
+   * The grid in its final order, before any document is read (2026-11-10).
+   *
+   * The Opened / Sealed filter and every sort need only the opened list and
+   * the order book, so the order is settled here from ids alone. That is what
+   * lets the page read and draw a page at a time: with "Opened" adding every
+   * opened Cybereator (350 and climbing), it used to fetch every document and
+   * draw every card at once, and each arriving document re-rendered them all.
+   */
+  const orderedIds = useMemo(() => {
+    const prefix = `${(collection ?? "0x0").toLowerCase()}-`;
+    const priceOf = (id: bigint) => bestListings.get(`${prefix}${id}`)?.priceWei;
+    const rosterOrder = ROSTER_ORDERED.has((collection ?? "").toLowerCase());
+    const rows = shownIds.filter(
+      (id) => seal === "all" || (opened !== undefined && (seal === "opened") === opened.has(id.toString())),
+    );
+    return rows.sort((a, b) => {
+      if (sort === "id-asc") return a < b ? -1 : a > b ? 1 : 0;
+      if (sort === "id-desc") return a > b ? -1 : a < b ? 1 : 0;
+      const pa = priceOf(a);
+      const pb = priceOf(b);
+      /**
+       * Unlisted tokens sort last in both price directions, never first.
+       * Treating "no price" as zero would put everything unlisted at the top
+       * of "price low", which is the opposite of what the control promises.
+       */
+      if (pa === undefined && pb === undefined) {
+        if (rosterOrder) return a < b ? -1 : 1;
+        return a > b ? -1 : 1;
+      }
+      if (pa === undefined) return 1;
+      if (pb === undefined) return -1;
+      const n = pa < pb ? -1 : pa > pb ? 1 : 0;
+      return sort === "price-asc" ? n : -n;
+    });
+  }, [shownIds, seal, opened, sort, bestListings, collection]);
+
+  /** How many cards are drawn; grows a page at a time as the reader scrolls. */
+  const [visible, setVisible] = useState(PAGE);
+  const viewKey = `${seal}|${sort}|${JSON.stringify(traitFilter)}`;
+  const [lastViewKey, setLastViewKey] = useState(viewKey);
+  if (lastViewKey !== viewKey) {
+    /* A new view starts at its first page (set during render: no flash of the old count). */
+    setLastViewKey(viewKey);
+    setVisible(PAGE);
+  }
+
+  /**
+   * Which documents to read: the cards about to be drawn, or, while a trait
+   * filter is set, every candidate (matching needs their traits).
+   *
+   * Append-only. `useGenericTokens` reads token URIs as one list and keeps the
+   * previous answer while a longer one loads, matched by position, so the list
+   * it is given must only ever grow at the end. Reordering it would pair cards
+   * with another piece's URI for a moment.
+   */
+  const requested = useRef<{ key: string; ids: bigint[]; seen: Set<string> }>({ key: "", ids: [], seen: new Set() });
+  const docIds = useMemo(() => {
+    const key = (collection ?? "").toLowerCase();
+    if (requested.current.key !== key) requested.current = { key, ids: [], seen: new Set() };
+    const want = filtering ? orderedIds : orderedIds.slice(0, visible);
+    const r = requested.current;
+    let grew = false;
+    for (const id of want) {
+      const k = id.toString();
+      if (!r.seen.has(k)) (r.seen.add(k), r.ids.push(id), (grew = true));
+    }
+    if (grew) r.ids = [...r.ids];
+    return r.ids;
+  }, [collection, orderedIds, visible, filtering]);
+
+  const { tokens, isLoading } = useGenericTokens(collection, tab === "items" ? docIds : []);
 
   /**
    * Sorting and trait filtering.
@@ -248,13 +354,6 @@ export function CollectionView({ params, seed }: { params: Promise<{ address: st
    * Design, an external one may have neither - and a hardcoded set would
    * show empty filters for half of them.
    */
-  /* Cheapest first by default: on a marketplace the first question is "what
-     can I buy, and for how little". Unlisted pieces follow, newest first, so
-     a collection with nothing for sale reads exactly as it did before. */
-  const [sort, setSort] = useState<"id-desc" | "id-asc" | "price-asc" | "price-desc">("price-asc");
-  const [traitFilter, setTraitFilter] = useState<Record<string, string>>({});
-  const [advanced, setAdvanced] = useState(false);
-
   const listings = new Map<string, Listing>();
   for (const id of shownIds) {
     const order = bestListings.get(`${(collection ?? "0x0").toLowerCase()}-${id}`);
@@ -290,54 +389,51 @@ export function CollectionView({ params, seed }: { params: Promise<{ address: st
     return [...out.entries()].filter(([, values]) => values.size > 1);
   }, [tokens]);
 
-  /** Cybereator's rarity levels present so far, lowest first, with counts. */
+  /**
+   * Cybereator's rarity levels, lowest first, with counts.
+   *
+   * Counted over every opened piece by the server (the same sets the offer box
+   * uses), not over the cards read so far: the grid reads a page at a time, so
+   * a count from loaded cards said "Epic 6" when there were 16.
+   */
+  const criteria = useCriteriaSets(isCybereator ? (collection as `0x${string}`) : undefined);
   const rarityOptions = useMemo(() => {
-    const levels = traitOptions.find(([type]) => type === "Rarity")?.[1];
+    const fromServer = criteria.sets.filter((s) => s.traitType === "Rarity" && s.value !== "Any");
+    const levels =
+      fromServer.length > 0
+        ? new Map(fromServer.map((s) => [s.value, s.count]))
+        : traitOptions.find(([type]) => type === "Rarity")?.[1];
     if (levels === undefined) return [];
     const rank = (v: string) => {
       const i = (CYBEREATOR_LEVELS as readonly string[]).indexOf(v);
       return i === -1 ? CYBEREATOR_LEVELS.length : i;
     };
     return [...levels.entries()].sort((a, b) => rank(a[0]) - rank(b[0]));
-  }, [traitOptions]);
+  }, [traitOptions, criteria.sets]);
 
-  /** Whether any trait filter is narrowing the grid right now. */
-  const filtering = Object.values(traitFilter).some((v) => v !== "");
-
+  /**
+   * Every piece in this view, in order: all candidates unfiltered, or those
+   * whose traits match. Only the first `visible` are drawn (`rendered`).
+   */
   const shown = useMemo(() => {
     const active = Object.entries(traitFilter).filter(([, v]) => v !== "");
-    const rows = tokens.filter((t) =>
-      (seal === "all" ||
-        (opened !== undefined && (seal === "opened") === opened.has(t.id.toString()))) &&
-      active.every(([type, value]) =>
-        (t.metadata?.attributes ?? []).some(
-          (a) => a.trait_type === type && String(a.value) === value,
-        ),
-      ),
-    );
-
-    const priceOf = (id: bigint) => listings.get(id.toString())?.price;
-    const rosterOrder = ROSTER_ORDERED.has((collection ?? "").toLowerCase());
-    return [...rows].sort((a, b) => {
-      if (sort === "id-asc") return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
-      if (sort === "id-desc") return a.id > b.id ? -1 : a.id < b.id ? 1 : 0;
-      const pa = priceOf(a.id);
-      const pb = priceOf(b.id);
-      /**
-       * Unlisted tokens sort last in both price directions, never first.
-       * Treating "no price" as zero would put everything unlisted at the top
-       * of "price low", which is the opposite of what the control promises.
-       */
-      if (pa === undefined && pb === undefined) {
-        if (rosterOrder) return a.id < b.id ? -1 : 1;
-        return a.id > b.id ? -1 : 1;
+    const byId = new Map(tokens.map((t) => [t.id.toString(), t]));
+    const out: typeof tokens = [];
+    for (const id of orderedIds) {
+      const t = byId.get(id.toString());
+      if (t === undefined) {
+        /* Not read yet: only possible beyond the drawn page when unfiltered. */
+        if (active.length === 0) out.push({ id });
+        continue;
       }
-      if (pa === undefined) return 1;
-      if (pb === undefined) return -1;
-      const n = pa < pb ? -1 : pa > pb ? 1 : 0;
-      return sort === "price-asc" ? n : -n;
-    });
-  }, [tokens, listings, sort, traitFilter, seal, opened]);
+      if (active.every(([type, value]) => (t.metadata?.attributes ?? []).some((a) => a.trait_type === type && String(a.value) === value))) {
+        out.push(t);
+      }
+    }
+    return out;
+  }, [tokens, orderedIds, traitFilter]);
+  const rendered = shown.slice(0, visible);
+  const moreToDraw = shown.length > visible;
 
   if (!valid) {
     return (
@@ -623,7 +719,7 @@ export function CollectionView({ params, seed }: { params: Promise<{ address: st
                 )
               ) : (
                 <div className="grid-tokens">
-                  {shown.map((t, i) => (
+                  {rendered.map((t, i) => (
                     <TokenCard
                       key={t.id.toString()}
                       token={t}
@@ -646,6 +742,15 @@ export function CollectionView({ params, seed }: { params: Promise<{ address: st
                   ))}
                 </div>
               )}
+
+              {/* The next page of this view, drawn as the reader nears the end of this one. */}
+              {moreToDraw ? (
+                <MoreOnScroll onMore={() => setVisible((n) => n + PAGE)}>
+                  <button type="button" className="btn" onClick={() => setVisible((n) => n + PAGE)}>
+                    {tr("Show {count} more", { count: Math.min(PAGE, shown.length - visible) })}
+                  </button>
+                </MoreOnScroll>
+              ) : null}
 
               {/*
                 What is on screen, and the way to get more of it.

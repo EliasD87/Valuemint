@@ -1,7 +1,7 @@
 "use client";
 
 import { WarmLink } from "@/components/WarmLink";
-import { useState, type ReactNode } from "react";
+import { memo, useState, type ReactNode } from "react";
 import { useAccount } from "wagmi";
 import { useTokenOffers } from "@/hooks/useTokenOffers";
 import { OfferDialog } from "@/components/OfferDialog";
@@ -104,7 +104,48 @@ interface Props {
   framed?: boolean;
 }
 
-export function TokenCard({
+/**
+ * A card re-renders only when what it draws changes (2026-11-10).
+ *
+ * Grids rebuild every token and listing object on each render, so React's
+ * shallow check never matched, and each token document that arrived re-rendered
+ * every card on the page. On Cybereator, 350 cards times 350 documents after a
+ * deploy emptied the cache, measured at half the main thread blocked for over a
+ * minute. This compares the fields the card actually uses. Its own hooks
+ * (offers, wallet, language) still update it as before.
+ */
+function sameCard(a: Props, b: Props): boolean {
+  /* Bulk picking hands a fresh toggle each render; always redraw while picking. */
+  if (a.pick !== undefined || b.pick !== undefined) return false;
+  const x = a.token;
+  const y = b.token;
+  return (
+    x.id === y.id &&
+    x.uri === y.uri &&
+    x.metadata === y.metadata &&
+    x.design === y.design &&
+    x.tier === y.tier &&
+    x.edition === y.edition &&
+    x.image === y.image &&
+    a.collection === b.collection &&
+    a.collectionName === b.collectionName &&
+    a.owner === b.owner &&
+    a.viewerAddress === b.viewerAddress &&
+    a.vouched === b.vouched &&
+    a.priority === b.priority &&
+    a.floor === b.floor &&
+    a.markOwned === b.markOwned &&
+    a.framed === b.framed &&
+    a.listing?.order.hash === b.listing?.order.hash &&
+    a.listing?.price === b.listing?.price &&
+    a.listing?.order.fillable === b.listing?.order.fillable &&
+    a.listing?.seller === b.listing?.seller
+  );
+}
+
+export const TokenCard = memo(TokenCardView, sameCard);
+
+function TokenCardView({
   token,
   collection,
   collectionName,

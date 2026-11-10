@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { unstable_cache } from "next/cache";
 import { proxyableDoc } from "@/lib/docProxy";
 import { CYBEREATOR_IMAGE_HOST, cybereatorStatus, isCybereatorDoc } from "@/lib/cybereator";
 import { enrichCybereatorDoc, type CybereatorCatalog } from "@/lib/cybereatorRarity";
@@ -64,6 +65,29 @@ export async function GET(request: Request): Promise<NextResponse> {
     return NextResponse.json({ error: "not a document this site fetches" }, { status: 400 });
   }
 
+  /*
+    A revealed Cybereator, from the server cache that outlives deploys
+    (2026-11-10). The edge cache above is emptied by every deploy, and after
+    one each piece cost a ~1 s trip to cybereator.com again: 350 of them on the
+    collection page, measured. A final document never changes (the team's
+    rule), so it is kept here for good once read. A piece still pending is not
+    kept, and is answered from the fetch already made.
+  */
+  if (isCybereatorDoc(target)) {
+    try {
+      const body = await finalCybereatorDoc(target);
+      return NextResponse.json(body, { status: 200, headers: { "cache-control": CACHE_FINAL } });
+    } catch (err) {
+      if (err instanceof NotFinal) {
+        return NextResponse.json(err.body, {
+          status: err.status,
+          headers: { "cache-control": err.status >= 200 && err.status < 300 ? CACHE_PENDING : err.status === 404 ? CACHE_MISSING : "no-store" },
+        });
+      }
+      /* The trip itself failed; fall through and try once more the ordinary way. */
+    }
+  }
+
   let upstream: Response;
   try {
     upstream = await fetch(target, {
@@ -122,6 +146,42 @@ export async function GET(request: Request): Promise<NextResponse> {
       : "no-store";
   return NextResponse.json(body, { status, headers: { "cache-control": cache } });
 }
+
+/** A Cybereator document that is not (yet) final, carried out of the cache so it is not fetched twice. */
+class NotFinal extends Error {
+  constructor(
+    readonly status: number,
+    readonly body: unknown,
+  ) {
+    super("not final");
+  }
+}
+
+/**
+ * A revealed Cybereator document with its rarity, cached for good across
+ * deploys. Throws `NotFinal` for anything else, which `unstable_cache` never
+ * stores. Bump the key's version if the rarity added here ever changes.
+ */
+const finalCybereatorDoc = unstable_cache(
+  async (url: string): Promise<unknown> => {
+    const upstream = await fetch(url, {
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+      redirect: "error",
+      headers: { accept: "application/json" },
+      cache: "no-store",
+    });
+    const text = await upstream.text();
+    if (text.length > MAX_BYTES) throw new Error("too large");
+    const body: unknown = JSON.parse(text);
+    if (!upstream.ok || cybereatorStatus(body) !== undefined) throw new NotFinal(upstream.status, body);
+    const withRarity = await addRarity(body);
+    /* Final, but the catalog did not answer: serve it unenriched, briefly, and try again next time. */
+    if (withRarity === undefined) throw new NotFinal(upstream.status, body);
+    return withRarity;
+  },
+  ["cybereator-final-doc-v1"],
+  { revalidate: false, tags: ["cybereator-doc"] },
+);
 
 /** Each catalog version, read once per server instance; it never changes (its path carries the version). */
 const catalogs = new Map<string, Promise<CybereatorCatalog | undefined>>();
