@@ -213,11 +213,22 @@
   color: var(--ink-3);
 }
 
+/* A batch row on a narrow screen: how many and the price share a line, and
+   the expiry takes the next, rather than three fields squeezing the price. */
+@media (max-width: 600px) {
+  .offers-fields:has(> .offers-qty) {
+    grid-template-columns: 5rem 1fr;
+  }
+
+  .offers-fields:has(> .offers-qty) > .offers-expiry {
+    grid-column: 1 / -1;
+  }
+}
+
 /* One column below the point where a 9.5rem select and an amount field stop
    coexisting without squeezing the number. */
 @media (max-width: 460px) {
-  .offers-fields,
-  .offers-fields:has(> .offers-qty) {
+  .offers-fields {
     grid-template-columns: 1fr;
   }
 

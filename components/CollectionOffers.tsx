@@ -277,6 +277,9 @@ export function CollectionOffers({ collection }: { collection: `0x${string}` }) 
  * trait offer is almost always its tier.
  */
 const RARITY_FIRST = ["tier", "level", "rarity", "depth"];
+
+/** The rarity dropdown's value for Cybereator's "Unopened"; no trait value looks like it. */
+const UNOPENED = "__unopened__";
 const traitRank = (t: string) => {
   const i = RARITY_FIRST.indexOf(t.toLowerCase());
   return i === -1 ? RARITY_FIRST.length : i;
@@ -452,54 +455,41 @@ function CollectionOfferDialog({
 
           {scope === "trait" && supported && chosen !== undefined ? (
             <div className="co-pick">
+              {/*
+                The ladder as one dropdown, with "Advanced filters" beside it
+                (owner, 2026-11-10): a tile per level took two rows of the
+                dialog. Each option still carries its count, and the chosen
+                level keeps its colour on the trigger.
+              */}
               {ladderType !== undefined ? (
-                <div className="co-levels" role="radiogroup" aria-label={tr(ladderType)}>
-                  {canUnopened ? (
+                <div className="co-ladder">
+                  {advanced ? null : (
+                    <Select
+                      label={tr(ladderType)}
+                      className={`co-ladder-pick co-ladder-${unopened ? "unopened" : chosen.value.toLowerCase()}`}
+                      value={unopened ? UNOPENED : chosen.value}
+                      onChange={(v) => {
+                        setAdvanced(false);
+                        setUnopenedPicked(v === UNOPENED);
+                        if (v !== UNOPENED) setLevel(v);
+                      }}
+                      options={[
+                        ...(canUnopened ? [{ value: UNOPENED, label: tr("Unopened"), note: tr("sealed only") }] : []),
+                        ...levels.map((s) => ({ value: s.value, label: tr(s.value), note: countNote(s.count) })),
+                      ]}
+                    />
+                  )}
+                  {otherTypes.length > 0 ? (
                     <button
                       type="button"
-                      role="radio"
-                      aria-checked={unopened}
-                      className={`co-level co-level-unopened${unopened ? " is-on" : ""}`}
-                      onClick={() => {
-                        setAdvanced(false);
-                        setUnopenedPicked(true);
-                      }}
+                      className={`filt co-advanced-toggle${advanced ? " is-on" : ""}`}
+                      aria-expanded={advanced}
+                      onClick={() => setAdvanced((open) => !open)}
                     >
-                      <b>{tr("Unopened")}</b>
-                      <span>{tr("sealed only")}</span>
+                      {tr("Advanced filters")}
                     </button>
                   ) : null}
-                  {levels.map((s) => {
-                    const on = !advanced && !unopened && s.value === chosen.value;
-                    return (
-                      <button
-                        key={s.value}
-                        type="button"
-                        role="radio"
-                        aria-checked={on}
-                        className={`co-level co-level-${s.value.toLowerCase()}${on ? " is-on" : ""}`}
-                        onClick={() => {
-                          setAdvanced(false);
-                          setUnopenedPicked(false);
-                          setLevel(s.value);
-                        }}
-                      >
-                        <b>{tr(s.value)}</b>
-                        <span>{countNote(s.count)}</span>
-                      </button>
-                    );
-                  })}
                 </div>
-              ) : null}
-              {ladderType !== undefined && otherTypes.length > 0 ? (
-                <button
-                  type="button"
-                  className={`filt co-advanced-toggle${advanced ? " is-on" : ""}`}
-                  aria-expanded={advanced}
-                  onClick={() => setAdvanced((open) => !open)}
-                >
-                  {tr("Advanced filters")}
-                </button>
               ) : null}
               {byTrait ? (
                 <>

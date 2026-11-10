@@ -13,7 +13,9 @@
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
-  width: min(94vw, 27rem);
+  /* 34rem, was 27 (owner, 2026-11-10): at 27 the batch row left the price
+     field about 60px to type in once "WSOSO" took its share. */
+  width: min(94vw, 34rem);
   max-height: min(86svh, 44rem);
   display: flex;
   flex-direction: column;
