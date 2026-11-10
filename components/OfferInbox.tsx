@@ -6,7 +6,7 @@ import type { Hex } from "viem";
 import { boundsOf, fetchTokenCriteria, rootKey, tokenCriteriaKey, traitLabel } from "@/hooks/useCriteria";
 import Link from "next/link";
 import { Art } from "@/components/Art";
-import { bundledArtworkFor, thumbnailFor } from "@/config/covers";
+import { bundledArtworkFor, cachedArtwork, thumbnailFor } from "@/config/covers";
 import { Soso } from "@/components/Soso";
 import { TxResult } from "@/components/TxResult";
 import { whenExpires } from "@/components/Offers";
@@ -443,7 +443,7 @@ function InboxRow({
       <Link className="inbox-piece" href={`/token/${token.collection}/${token.id}`} prefetch={false}>
         <span className="inbox-thumb">
           {token.image !== undefined ? (
-            <Art src={bundledArtworkFor(token.image) ?? thumbnailFor(token.image) ?? token.image} alt="" sizes="56px" />
+            <Art src={bundledArtworkFor(token.image) ?? cachedArtwork(thumbnailFor(token.image) ?? token.image) ?? ""} alt="" sizes="56px" />
           ) : (
             <span className="inbox-thumb-empty" aria-hidden="true" />
           )}

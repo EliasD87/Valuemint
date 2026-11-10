@@ -1,4 +1,4 @@
-import { CYBEREATOR_UNOPENED_GIF, cybereatorThumb } from "@/lib/cybereator";
+import { CYBEREATOR_IMAGE_HOST, CYBEREATOR_UNOPENED_GIF, cybereatorThumb } from "@/lib/cybereator";
 
 /**
  * The pictures a collection is known by, named rather than discovered.
@@ -354,4 +354,22 @@ export function bundledArtworkFor(image: string | undefined, uri?: string): stri
  */
 export function thumbnailFor(image: string | undefined): string | undefined {
   return cybereatorThumb(image);
+}
+
+/**
+ * An artist's image address, served through our own edge where we cache that host.
+ *
+ * Cybereator's art lives on a single storage bucket in Tokyo with no CDN, measured
+ * at 2-10 s per image from Africa. `/api/img` fetches each file once and serves the
+ * same bytes — never resized or re-encoded — from Vercel near every visitor after.
+ * Any other address is returned unchanged.
+ */
+export function cachedArtwork(image: string | undefined): string | undefined {
+  if (image === undefined) return undefined;
+  try {
+    if (new URL(image).hostname !== CYBEREATOR_IMAGE_HOST) return image;
+  } catch {
+    return image;
+  }
+  return `/api/img?url=${encodeURIComponent(image)}`;
 }

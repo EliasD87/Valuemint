@@ -86,3 +86,14 @@ describe("image addresses without a scheme", () => {
     expect(withScheme("data:image/png;base64,AAA")).toBe("data:image/png;base64,AAA");
   });
 });
+
+describe("serving Cybereator's images from our edge", () => {
+  it("routes their image host through /api/img, unchanged otherwise", async () => {
+    const { cachedArtwork } = await import("@/config/covers");
+    const thumb = "https://cybereator.oss-ap-northeast-1.aliyuncs.com/286623/0x8f26671664ad6940df88e70f77a6d24b20c79a15/thumbs/123.webp";
+    expect(cachedArtwork(thumb)).toBe(`/api/img?url=${encodeURIComponent(thumb)}`);
+    expect(cachedArtwork("https://ipfs.filebase.io/ipfs/bafy/1.png")).toBe("https://ipfs.filebase.io/ipfs/bafy/1.png");
+    expect(cachedArtwork("/boxes/cybereator.webp")).toBe("/boxes/cybereator.webp");
+    expect(cachedArtwork(undefined)).toBeUndefined();
+  });
+});
