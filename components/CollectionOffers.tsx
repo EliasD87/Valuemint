@@ -326,15 +326,14 @@ function CollectionOfferDialog({
     [sets],
   );
   /*
-    The rarity ladder (Rarity, Tier, Level) is what most bidders mean, so it
-    is a row of buttons; every other trait waits behind "Advanced filters",
-    as on the collection page (owner, 2026-11-10). One offer is one set, so
-    it is one or the other, never both.
+    The rarity ladder (Rarity, Tier, Level) is what most bidders mean, so a
+    collection that has one is offered on it alone, through one dropdown.
+    The "Advanced filters" behind it, any other single trait, went at the
+    owner's request (2026-11-10). A collection with no ladder still picks a
+    trait and a value.
   */
   const ladderType = types.find((t) => traitRank(t) < RARITY_FIRST.length);
-  const otherTypes = types.filter((t) => t !== ladderType);
-  const [advanced, setAdvanced] = useState(false);
-  const byTrait = ladderType === undefined || advanced;
+  const byTrait = ladderType === undefined;
   const [type, setType] = useState("");
   const [value, setValue] = useState("");
   const [level, setLevel] = useState("");
@@ -345,9 +344,8 @@ function CollectionOfferDialog({
   */
   const canUnopened = opened && SEALED_ZONE !== undefined;
   const [unopenedPicked, setUnopenedPicked] = useState(false);
-  const unopened = canUnopened && unopenedPicked && !advanced;
-  const pickable = ladderType === undefined ? types : otherTypes;
-  const activeType = type !== "" && pickable.includes(type) ? type : (pickable[0] ?? "");
+  const unopened = canUnopened && unopenedPicked;
+  const activeType = type !== "" && types.includes(type) ? type : (types[0] ?? "");
   /** Most common first, which puts a rarity ladder in its own order: Common down to the rarest. */
   const values = sets.filter((s) => s.traitType === activeType).sort((a, b) => b.count - a.count);
   const levels = sets.filter((s) => s.traitType === ladderType).sort((a, b) => ladderOrder(a, b));
@@ -448,46 +446,30 @@ function CollectionOfferDialog({
           {scope === "trait" && supported && chosen !== undefined ? (
             <div className="co-pick">
               {/*
-                The ladder as one dropdown, with "Advanced filters" beside it
-                (owner, 2026-11-10): a tile per level took two rows of the
-                dialog. Each option still carries its count, and the chosen
-                level keeps its colour on the trigger.
+                The ladder as one dropdown (owner, 2026-11-10): a tile per
+                level took two rows of the dialog. Each option still carries
+                its count, and the chosen level keeps its colour on the
+                trigger.
               */}
               {ladderType !== undefined ? (
                 <div className="co-ladder">
-                  {advanced ? null : (
-                    <Select
-                      label={tr(ladderType)}
-                      className={`co-ladder-pick co-ladder-${unopened ? "unopened" : chosen.value.toLowerCase()}`}
-                      value={unopened ? UNOPENED : chosen.value}
-                      onChange={(v) => {
-                        setAdvanced(false);
-                        setUnopenedPicked(v === UNOPENED);
-                        if (v !== UNOPENED) setLevel(v);
-                      }}
-                      options={[
-                        ...(canUnopened ? [{ value: UNOPENED, label: tr("Unopened"), note: tr("sealed only") }] : []),
-                        ...levels.map((s) => ({ value: s.value, label: tr(s.value), note: countNote(s.count) })),
-                      ]}
-                    />
-                  )}
-                  {otherTypes.length > 0 ? (
-                    <button
-                      type="button"
-                      className={`filt co-advanced-toggle${advanced ? " is-on" : ""}`}
-                      aria-expanded={advanced}
-                      onClick={() => setAdvanced((open) => !open)}
-                    >
-                      {tr("Advanced filters")}
-                    </button>
-                  ) : null}
+                  <Select
+                    label={tr(ladderType)}
+                    className={`co-ladder-pick co-ladder-${unopened ? "unopened" : chosen.value.toLowerCase()}`}
+                    value={unopened ? UNOPENED : chosen.value}
+                    onChange={(v) => {
+                      setUnopenedPicked(v === UNOPENED);
+                      if (v !== UNOPENED) setLevel(v);
+                    }}
+                    options={[
+                      ...(canUnopened ? [{ value: UNOPENED, label: tr("Unopened"), note: tr("sealed only") }] : []),
+                      ...levels.map((s) => ({ value: s.value, label: tr(s.value), note: countNote(s.count) })),
+                    ]}
+                  />
                 </div>
               ) : null}
               {byTrait ? (
                 <>
-                  {ladderType !== undefined ? (
-                    <p className="co-pick-note">{tr("One trait per offer: pick any single part instead of a rarity.")}</p>
-                  ) : null}
                   <Select
                     label={tr("Trait")}
                     value={activeType}
@@ -495,7 +477,7 @@ function CollectionOfferDialog({
                       setType(t);
                       setValue("");
                     }}
-                    options={pickable.map((t) => ({ value: t, label: t }))}
+                    options={types.map((t) => ({ value: t, label: t }))}
                   />
                   <Select
                     label={tr("Value")}

@@ -286,9 +286,6 @@
 .co-ladder .sel-trigger {
   min-height: 44px;
 }
-.co-advanced-toggle {
-  flex: none;
-}
 
 /* The chosen level keeps its colour on the closed dropdown, as the tiles did. */
 .co-ladder-common .sel-value { color: var(--common); }
