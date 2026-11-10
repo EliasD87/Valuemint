@@ -228,7 +228,7 @@ export function CollectionHero({
             </a>
             {x === undefined ? null : (
               <a
-                className="ch-chip ch-chip-link ch-chip-icon"
+                className="ch-chip ch-chip-link ch-chip-icon ch-social ch-social-x"
                 href={x.url}
                 target="_blank"
                 rel="noreferrer noopener"
@@ -241,12 +241,13 @@ export function CollectionHero({
                     d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"
                   />
                 </svg>
+                <span className="ch-social-label" aria-hidden="true">{t("Follow on X")}</span>
               </a>
             )}
             {/* The collection's own site and Discord, beside X, from config/socials.ts. */}
             {site === undefined ? null : (
               <a
-                className="ch-chip ch-chip-link ch-chip-icon"
+                className="ch-chip ch-chip-link ch-chip-icon ch-social ch-social-site"
                 href={site.url}
                 target="_blank"
                 rel="noreferrer noopener"
@@ -259,11 +260,14 @@ export function CollectionHero({
                     <path d="M3 12h18M12 3c2.4 2.6 3.6 5.6 3.6 9s-1.2 6.4-3.6 9c-2.4-2.6-3.6-5.6-3.6-9S9.6 5.6 12 3Z" />
                   </g>
                 </svg>
+                <span className="ch-social-label" aria-hidden="true">
+                  {t("Visit {name}", { name: name ?? site.host })}
+                </span>
               </a>
             )}
             {discord === undefined ? null : (
               <a
-                className="ch-chip ch-chip-link ch-chip-icon"
+                className="ch-chip ch-chip-link ch-chip-icon ch-social ch-social-discord"
                 href={discord}
                 target="_blank"
                 rel="noreferrer noopener"
@@ -276,6 +280,7 @@ export function CollectionHero({
                     d="M20.32 4.37a19.8 19.8 0 0 0-4.89-1.52.07.07 0 0 0-.08.04c-.21.38-.44.87-.61 1.25a18.27 18.27 0 0 0-5.49 0 12.64 12.64 0 0 0-.62-1.25.08.08 0 0 0-.08-.04 19.74 19.74 0 0 0-4.88 1.52.07.07 0 0 0-.03.03C.53 9.05-.32 13.58.1 18.06a.08.08 0 0 0 .03.05 19.9 19.9 0 0 0 5.99 3.03.08.08 0 0 0 .08-.03c.46-.63.87-1.3 1.23-1.99a.08.08 0 0 0-.04-.11 13.1 13.1 0 0 1-1.87-.89.08.08 0 0 1-.01-.13c.13-.09.25-.19.37-.29a.07.07 0 0 1 .08-.01c3.93 1.79 8.18 1.79 12.06 0a.07.07 0 0 1 .08.01c.12.1.25.2.37.29a.08.08 0 0 1-.01.13c-.6.35-1.22.65-1.87.89a.08.08 0 0 0-.04.11c.36.7.77 1.36 1.22 1.99a.08.08 0 0 0 .09.03 19.84 19.84 0 0 0 6-3.03.08.08 0 0 0 .03-.06c.5-5.18-.84-9.67-3.55-13.66a.06.06 0 0 0-.03-.03ZM8.02 15.33c-1.18 0-2.16-1.09-2.16-2.42 0-1.33.96-2.42 2.16-2.42 1.21 0 2.18 1.1 2.16 2.42 0 1.33-.96 2.42-2.16 2.42Zm7.97 0c-1.18 0-2.16-1.09-2.16-2.42 0-1.33.96-2.42 2.16-2.42 1.21 0 2.18 1.1 2.16 2.42 0 1.33-.95 2.42-2.16 2.42Z"
                   />
                 </svg>
+                <span className="ch-social-label" aria-hidden="true">{t("Join Discord")}</span>
               </a>
             )}
           </div>

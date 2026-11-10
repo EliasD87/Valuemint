@@ -345,6 +345,94 @@
 }
 
 /*
+ * The collection's X, website and Discord (owner, 2026-11-10).
+ *
+ * On a desktop they are a size up, and on hover each opens sideways to say
+ * what it does ("Follow on X", "Visit Cybereator", "Join Discord") while a
+ * fill sweeps in from the left in its own colour: the page's ink for X,
+ * Cybereator's yellow, Discord's blurple. A touch screen keeps the compact
+ * icons: there is no hover to open them, and a tap is the link.
+ */
+.ch-social {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+.ch-social svg {
+  flex: none;
+  transition: transform 520ms cubic-bezier(0.22, 1.2, 0.36, 1);
+}
+.ch-social-label {
+  max-width: 0;
+  opacity: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  font-size: var(--step--2);
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  transition: max-width 380ms var(--ease), opacity 240ms var(--ease), margin 380ms var(--ease);
+}
+.ch-social::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--social-fill);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 420ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.ch-social-x { --social-fill: var(--ink); --social-ink: var(--paper); }
+.ch-social-site { --social-fill: var(--cybereator); --social-ink: var(--dark); }
+.ch-social-discord { --social-fill: var(--discord); --social-ink: var(--dark-ink); }
+
+@media (hover: hover) and (pointer: fine) {
+  .ch-social {
+    min-height: 30px;
+    padding: 0 0.55rem;
+  }
+  .ch-social svg {
+    width: 16px;
+    height: 16px;
+  }
+  .ch-social:hover,
+  .ch-social:focus-visible {
+    color: var(--social-ink);
+    border-color: var(--social-fill);
+  }
+  .ch-social:hover::before,
+  .ch-social:focus-visible::before {
+    transform: scaleX(1);
+  }
+  .ch-social:hover .ch-social-label,
+  .ch-social:focus-visible .ch-social-label {
+    max-width: 10rem;
+    opacity: 1;
+    margin-left: 0.45rem;
+  }
+  /* Each mark moves its own way: X tips, the globe turns once, Discord hops. */
+  .ch-social-x:hover svg { transform: rotate(-12deg) scale(1.08); }
+  .ch-social-site:hover svg { transform: rotate(1turn); }
+  .ch-social-discord:hover svg { animation: ch-hop 620ms cubic-bezier(0.22, 1, 0.36, 1); }
+}
+
+@keyframes ch-hop {
+  0%, 100% { transform: translateY(0); }
+  35% { transform: translateY(-3px) rotate(-6deg); }
+  65% { transform: translateY(1px) rotate(3deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ch-social svg,
+  .ch-social::before,
+  .ch-social-label {
+    transition: none;
+    animation: none;
+  }
+}
+
+/*
  * Name left, actions right, on one line, below the band.
  *
  * `align-items: baseline` rather than centre: the actions are smaller than the

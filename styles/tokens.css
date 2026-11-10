@@ -76,6 +76,9 @@
   --accent-2: #ff8a3d;
   /* Cybereator's wordmark yellow (Trenches perk ticket). Deeper on white so it still reads. */
   --cybereator: #f0b400;
+  /* Discord's own blurple, for the Join Discord chip on a collection page. The
+     brand colour in both themes, so it is not redefined below. */
+  --discord: #5865f2;
   /**
    * Dark, not white, and the dark theme has always said so.
    *
