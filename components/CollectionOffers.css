@@ -1,15 +1,16 @@
 /* ======================================================= collection offers */
 
-/* The offers board under the stats bar: standing collection-level bids,
-   one row per trait, and the way to make one. */
+/* The offers board, the collection page's Offers tab (owner, 2026-11-10):
+   standing collection-level bids, one row per trait, and the way to make one.
+   The same card as the Activity and Top holders tabs beside it. */
 .co {
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
-  margin: 0.25rem 0 1rem;
-  padding: 0.85rem 1rem;
+  margin: 0;
+  padding: 1.15rem 1.25rem 1rem;
   border: 1px solid var(--line);
-  border-radius: var(--r-md);
+  border-radius: var(--r-lg);
   background: var(--surface);
 }
 
@@ -108,22 +109,6 @@
   }
 }
 
-.co-toggle {
-  align-self: flex-start;
-  padding: 0;
-  border: 0;
-  background: none;
-  font: inherit;
-  font-size: var(--step--1);
-  font-weight: 600;
-  color: var(--ink-2);
-  cursor: pointer;
-}
-.co-toggle:hover,
-.co-toggle:focus-visible {
-  color: var(--ink);
-}
-
 /* Any piece / by trait. */
 .co-scope {
   display: grid;
@@ -194,7 +179,7 @@
 @media (max-width: 700px) {
   .co {
     gap: 0.5rem;
-    padding: 0.65rem 0.75rem;
+    padding: 1rem;
   }
 
   .co-head {

@@ -31,15 +31,20 @@ import "./CollectionOffers.css";
  * set's Merkle root, not by this page. A Common holder cannot sell into an
  * Uncommon offer whatever they click.
  */
-export function CollectionOffers({ collection }: { collection: `0x${string}` }) {
-  /* `tr`, not `t`: this file already names trait rows `t`. */
-  const tr = useT();
+/**
+ * The offers the board shows: bids on the collection as a whole, and trait
+ * bids on a set this page recognises. One place for both the board and the
+ * count on its tab, so the two cannot disagree.
+ *
+ * Costs nothing the page was not already paying: the order book is the one
+ * the grid reads its prices from, and the trait sets are one cached request.
+ */
+function useStandingOffers(collection: `0x${string}` | undefined) {
   const { offers: all, isLoading: loadingOffers } = useCollectionOffers(collection);
   const { offers: traitOffers } = useTraitOffers(collection);
   /* Asked for the snapshots standing offers were made at too, or an offer made
      before the latest mint on a growing collection would not be recognised. */
   const criteria = useCriteriaSets(collection, boundsOf(traitOffers));
-  const [open, setOpen] = useState(false);
 
   /** Only bids on the collection as a whole: the list above also holds bids on single pieces. */
   const anyPiece = all.filter((o) => o.tokenId === undefined);
@@ -49,6 +54,25 @@ export function CollectionOffers({ collection }: { collection: `0x${string}` }) 
     const set = o.criteria === undefined ? undefined : criteria.byRoot.get(rootKey(o.criteria));
     return set === undefined ? [] : [{ offer: o, set }];
   });
+
+  return { anyPiece, traits, traitOffers, criteria, loadingOffers };
+}
+
+/**
+ * How many offers the board holds, for the count on its tab; undefined while
+ * the order book is still being read. Pass undefined where offers are off.
+ */
+export function useCollectionOfferCount(collection: `0x${string}` | undefined): number | undefined {
+  const { anyPiece, traits, loadingOffers } = useStandingOffers(collection);
+  if (collection === undefined || loadingOffers) return undefined;
+  return anyPiece.length + traits.length;
+}
+
+export function CollectionOffers({ collection }: { collection: `0x${string}` }) {
+  /* `tr`, not `t`: this file already names trait rows `t`. */
+  const tr = useT();
+  const { anyPiece, traits, traitOffers, criteria, loadingOffers } = useStandingOffers(collection);
+  const [open, setOpen] = useState(false);
 
   /**
    * A way to take an offer from here: the viewer's own piece that qualifies,
@@ -171,9 +195,6 @@ export function CollectionOffers({ collection }: { collection: `0x${string}` }) 
     return list.sort((a, b) => desc(a.offers[0]!, b.offers[0]!));
   }, [anyPiece, traits]);
 
-  const [expanded, setExpanded] = useState(false);
-  const ROWS = 4;
-  const visible = expanded ? groups : groups.slice(0, ROWS);
   const count = groups.reduce((n, g) => n + g.offers.length, 0);
   const best = groups[0]?.offers[0];
 
@@ -211,9 +232,9 @@ export function CollectionOffers({ collection }: { collection: `0x${string}` }) 
         </button>
       </div>
 
-      {visible.length === 0 ? null : (
+      {groups.length === 0 ? null : (
         <ul className="co-board">
-          {visible.map((g) => {
+          {groups.map((g) => {
             const top = g.offers[0]!;
             const target = takeable(g.offers);
             return (
@@ -234,12 +255,6 @@ export function CollectionOffers({ collection }: { collection: `0x${string}` }) 
           })}
         </ul>
       )}
-
-      {groups.length > ROWS ? (
-        <button type="button" className="co-toggle" onClick={() => setExpanded((v) => !v)} aria-expanded={expanded}>
-          {expanded ? tr("Show fewer") : tr("+{count} more", { count: groups.length - ROWS })}
-        </button>
-      ) : null}
 
       {selling !== undefined ? (
         <SellIntoOffer

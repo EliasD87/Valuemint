@@ -16,7 +16,7 @@ import { useGenericTokens } from "@/hooks/useGenericTokens";
 import { useTokenIds } from "@/hooks/useTokenIds";
 import { MintPanel } from "@/components/MintPanel";
 import { useNarrow } from "@/hooks/useNarrow";
-import { CollectionOffers } from "@/components/CollectionOffers";
+import { CollectionOffers, useCollectionOfferCount } from "@/components/CollectionOffers";
 import { TokenCard, TokenCardSkeleton } from "@/components/TokenCard";
 import { formatCount } from "@/lib/format";
 import { isFilterable } from "@/lib/traitRoles";
@@ -120,8 +120,12 @@ const ROSTER_ORDERED = new Set([KOLS_COLLECTION]);
  * As tabs they get the page's full width and cost nothing when unopened: only
  * the selected one is rendered, so a visitor who never presses "Top holders"
  * never calls the explorer. See `PageTabs`.
+ *
+ * Offers joined them on 2026-11-10 (owner): the board used to sit above the
+ * tabs on every visit, pushing the grid down the page whether or not anybody
+ * was bidding.
  */
-type Tab = "items" | "activity" | "holders";
+type Tab = "items" | "offers" | "activity" | "holders";
 
 /** The server's copy of the header's basics; see page.tsx. Display only. */
 export interface CollectionSeed {
@@ -142,7 +146,13 @@ export function CollectionView({ params, seed }: { params: Promise<{ address: st
   const valid = /^0x[0-9a-fA-F]{40}$/.test(raw);
   const collection = valid ? (raw as `0x${string}`) : undefined;
 
-  const [tab, setTab] = useState<Tab>("items");
+  const [chosenTab, setTab] = useState<Tab>("items");
+  /* Collection offers, where this collection takes them; the KOL set does not. */
+  const offersOk = collection !== undefined && offersAllowed(collection);
+  /* Free: the order book the grid reads its prices from. Shown only above zero. */
+  const offerCount = useCollectionOfferCount(offersOk ? collection : undefined);
+  /* Never left on a tab this collection does not have. */
+  const tab: Tab = chosenTab === "offers" && !offersOk ? "items" : chosenTab;
   // Matches `.coll-layout`'s single-column breakpoint in collections.css.
   const narrow = useNarrow(900);
 
@@ -472,15 +482,19 @@ export function CollectionView({ params, seed }: { params: Promise<{ address: st
   }
 
   /**
-   * Only the items tab carries a count, and that is not an omission.
+   * Only items and offers carry a count, and that is not an omission.
    *
    * A count on the other two would have to be fetched to be drawn, which means
    * calling the explorer and reading the history for a tab nobody has opened —
    * paying the whole cost of a tab to print its size next to its name. Supply
-   * is already on screen in the stats bar above, so the items count is free.
+   * is already on screen in the stats bar above, so the items count is free,
+   * and the offers count comes from the order book the grid has already read.
    */
   const tabs: ReadonlyArray<TabDef<Tab>> = [
     { key: "items", label: tr("Items"), ...(supply === undefined ? {} : { count: Number(supply) }) },
+    ...(offersOk
+      ? [{ key: "offers" as const, label: tr("Offers"), ...(offerCount === undefined || offerCount === 0 ? {} : { count: offerCount }) }]
+      : []),
     { key: "activity", label: tr("Activity") },
     { key: "holders", label: tr("Top holders") },
   ];
@@ -504,20 +518,20 @@ export function CollectionView({ params, seed }: { params: Promise<{ address: st
         {...(seed?.figures === undefined ? {} : { seed: seed.figures })}
       />
 
-      {/* On a phone the mint card leads, above the offers and the tabs, where it
-          is the page's one primary action; on a desktop it stays in the sidebar. */}
+      {/* On a phone the mint card leads, above the tabs, where it is the
+          page's one primary action; on a desktop it stays in the sidebar. */}
       {narrow && collection !== undefined ? (
         <div className="coll-mint-top">
           <MintPanel address={collection} />
         </div>
       ) : null}
 
-      {/* Bids on the whole collection or one trait, and the way to place one. */}
-      {collection === undefined || !offersAllowed(collection) ? null : <CollectionOffers collection={collection} />}
-
       <PageTabs tabs={tabs} active={tab} onChange={setTab} label={tr("Collection sections")} />
 
-      {tab === "activity" ? (
+      {tab === "offers" && collection !== undefined ? (
+        /* Bids on the whole collection or one trait, and the way to place one. */
+        <CollectionOffers collection={collection} />
+      ) : tab === "activity" ? (
         /* The page's full width, and more rows than a sidebar could hold. */
         <Activity collection={collection} limit={25} markBurned />
       ) : tab === "holders" ? (
