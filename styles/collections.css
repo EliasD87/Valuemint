@@ -765,3 +765,9 @@
   min-width: 0;
   max-width: 100%;
 }
+
+/* The trait filters, once opened under "Advanced filters": their own row,
+   below the sort pills, rather than squeezed beside them. */
+.coll-advanced {
+  flex-basis: 100%;
+}

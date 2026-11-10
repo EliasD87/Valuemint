@@ -1,5 +1,7 @@
 "use client";
 
+import { CYBEREATOR } from "@/lib/cybereator";
+import { useCybereatorOpened, type SealFilter } from "@/hooks/useCybereatorOpened";
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useAccount } from "wagmi";
@@ -197,6 +199,17 @@ export default function Market() {
   const active = chips.find((c) => c.key === filterTo);
 
   /**
+   * Opened / Sealed, under the Cybereator chip during its reveal (2026-11-10).
+   * Opened is read from the opener contract's events, so it is right for every
+   * listing whether or not its card has loaded.
+   */
+  const cybereatorChosen = filterTo === `c:${CYBEREATOR}`;
+  const [seal, setSeal] = useState<SealFilter>("all");
+  const opened = useCybereatorOpened(cybereatorChosen);
+  const isOpened = (t: (typeof listed)[number]) => opened?.has(t.id.toString()) === true;
+  const cybereatorListed = cybereatorChosen ? listed.filter((t) => t.collection.toLowerCase() === CYBEREATOR) : [];
+
+  /**
    * The per-tier breakdown, which only says something for a whole collection.
    *
    * Pointless under a tier button — it would break one tier into one row — and
@@ -207,7 +220,13 @@ export default function Market() {
   const tierFloors = chosen === undefined ? [] : tierFloorsFor(chosen);
 
   const visible = useMemo(() => {
-    const rows = active === undefined ? listed : listed.filter(active.match);
+    const inChip = active === undefined ? listed : listed.filter(active.match);
+    const rows =
+      /* Until the list of openings lands (about a second), everything in the
+         chip rather than an empty grid that reads as "none for sale". */
+      !cybereatorChosen || seal === "all" || opened === undefined
+        ? inChip
+        : inChip.filter((t) => isOpened(t) === (seal === "opened"));
 
     const cheapestFirst = (a: (typeof rows)[number], b: (typeof rows)[number]) => {
       const diff = a.listing!.price - b.listing!.price;
@@ -263,7 +282,8 @@ export default function Market() {
       const n = cheapestFirst(a, b);
       return sort === "price-asc" ? n : -n;
     });
-  }, [listed, sort, active, tradesPerCollection, nextDraw.counts]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [listed, sort, active, tradesPerCollection, nextDraw.counts, cybereatorChosen, seal, opened]);
 
   /**
    * There is no market-wide floor here, deliberately.
@@ -375,6 +395,20 @@ export default function Market() {
       {/* Within one collection a tier is its own market, so each gets its own
           floor. Shown only when there is more than one - a single row would
           just repeat the collection floor. */}
+      {cybereatorChosen ? (
+        <div className="filters mk-filters" role="group" aria-label="Opened or sealed">
+          <button className="filt" aria-pressed={seal === "all"} onClick={() => setSeal("all")}>
+            All <em>{cybereatorListed.length}</em>
+          </button>
+          <button className="filt filt-opened" aria-pressed={seal === "opened"} onClick={() => setSeal("opened")}>
+            Opened {opened === undefined ? null : <em>{cybereatorListed.filter(isOpened).length}</em>}
+          </button>
+          <button className="filt filt-sealed" aria-pressed={seal === "sealed"} onClick={() => setSeal("sealed")}>
+            Sealed {opened === undefined ? null : <em>{cybereatorListed.filter((t) => !isOpened(t)).length}</em>}
+          </button>
+        </div>
+      ) : null}
+
       {tierFloors.length > 0 ? (
         <div className="tier-floors">
           {tierFloors.map((t) => (

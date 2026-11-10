@@ -13,13 +13,16 @@ export function Sortie({
   active,
   onClick,
   children,
+  tone,
 }: {
   active: boolean;
   onClick: () => void;
   children: React.ReactNode;
+  /** A coloured dot before the label (`.filt-<tone>` in styles/home.css). */
+  tone?: string;
 }) {
   return (
-    <button type="button" className="filt" aria-pressed={active} onClick={onClick}>
+    <button type="button" className={tone === undefined ? "filt" : `filt filt-${tone}`} aria-pressed={active} onClick={onClick}>
       {children}
     </button>
   );

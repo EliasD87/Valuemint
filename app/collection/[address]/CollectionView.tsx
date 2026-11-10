@@ -1,5 +1,7 @@
 "use client";
 
+import { CYBEREATOR } from "@/lib/cybereator";
+import { useCybereatorOpened, type SealFilter } from "@/hooks/useCybereatorOpened";
 import type { CollectionFiguresSeed } from "@/lib/collectionFigures";
 import { use, useMemo, useState } from "react";
 import Link from "next/link";
@@ -194,10 +196,25 @@ export function CollectionView({ params, seed }: { params: Promise<{ address: st
    * are simply added — a handful of extra reads, for the only pieces on the
    * page that can be acted on.
    */
+  /**
+   * Cybereator's reveal (2026-11-10): All · Opened · Sealed. Which pieces are
+   * opened comes from the opener contract's own events, so the filter does not
+   * depend on which cards happen to be loaded.
+   */
+  const isCybereator = (collection ?? "").toLowerCase() === CYBEREATOR;
+  const [seal, setSeal] = useState<SealFilter>("all");
+  const opened = useCybereatorOpened(isCybereator);
+
   const shownIds = useMemo(() => {
     const seen = new Set(ids.map((id) => id.toString()));
-    return [...ids, ...listedIds.filter((id) => !seen.has(id.toString()))];
-  }, [ids, listedIds]);
+    const out = [...ids];
+    for (const id of listedIds) if (!seen.has(id.toString())) (seen.add(id.toString()), out.push(id));
+    /* "Opened" shows every opened piece, not only those in the first window. */
+    if (seal === "opened" && opened !== undefined) {
+      for (const id of opened) if (!seen.has(id)) (seen.add(id), out.push(BigInt(id)));
+    }
+    return out;
+  }, [ids, listedIds, seal, opened]);
 
   /**
    * Only while the items tab is open.
@@ -227,6 +244,7 @@ export function CollectionView({ params, seed }: { params: Promise<{ address: st
      a collection with nothing for sale reads exactly as it did before. */
   const [sort, setSort] = useState<"id-desc" | "id-asc" | "price-asc" | "price-desc">("price-asc");
   const [traitFilter, setTraitFilter] = useState<Record<string, string>>({});
+  const [advanced, setAdvanced] = useState(false);
 
   const listings = new Map<string, Listing>();
   for (const id of shownIds) {
@@ -269,6 +287,8 @@ export function CollectionView({ params, seed }: { params: Promise<{ address: st
   const shown = useMemo(() => {
     const active = Object.entries(traitFilter).filter(([, v]) => v !== "");
     const rows = tokens.filter((t) =>
+      (seal === "all" ||
+        (opened !== undefined && (seal === "opened") === opened.has(t.id.toString()))) &&
       active.every(([type, value]) =>
         (t.metadata?.attributes ?? []).some(
           (a) => a.trait_type === type && String(a.value) === value,
@@ -297,7 +317,7 @@ export function CollectionView({ params, seed }: { params: Promise<{ address: st
       const n = pa < pb ? -1 : pa > pb ? 1 : 0;
       return sort === "price-asc" ? n : -n;
     });
-  }, [tokens, listings, sort, traitFilter]);
+  }, [tokens, listings, sort, traitFilter, seal, opened]);
 
   if (!valid) {
     return (
@@ -412,6 +432,22 @@ export function CollectionView({ params, seed }: { params: Promise<{ address: st
               traits describe nobody in particular. */}
           {(supply ?? 2n) > 1n && !ROSTER_ORDERED.has((collection ?? "").toLowerCase()) ? (
             <div className="coll-controls">
+              {isCybereator ? (
+                <div className="wrap-row" role="group" aria-label="Opened or sealed">
+                  <Sortie active={seal === "all"} onClick={() => setSeal("all")}>
+                    All
+                  </Sortie>
+                  <Sortie active={seal === "opened"} onClick={() => setSeal("opened")} tone="opened">
+                    Opened{opened === undefined ? "" : ` ${opened.size.toLocaleString()}`}
+                  </Sortie>
+                  <Sortie active={seal === "sealed"} onClick={() => setSeal("sealed")} tone="sealed">
+                    Sealed
+                    {opened === undefined || supply === undefined
+                      ? ""
+                      : ` ${Math.max(0, Number(supply) - opened.size).toLocaleString()}`}
+                  </Sortie>
+                </div>
+              ) : null}
               <div className="wrap-row">
                 {/* The default first, so the selected pill leads the row. */}
                 <Sortie active={sort === "price-asc"} onClick={() => setSort("price-asc")}>
@@ -428,8 +464,26 @@ export function CollectionView({ params, seed }: { params: Promise<{ address: st
                 </Sortie>
               </div>
 
+              {/*
+                Trait filters behind one button (owner, 2026-11-10). A revealed
+                Cybereator has up to ten traits, and ten dropdowns above the
+                grid pushed the pieces themselves off the first screen.
+              */}
               {traitOptions.length > 0 ? (
-                <div className="coll-traits">
+                <button
+                  type="button"
+                  className="filt"
+                  aria-expanded={advanced}
+                  aria-controls="coll-advanced"
+                  onClick={() => setAdvanced((open) => !open)}
+                >
+                  Advanced filters
+                  {filtering ? <em>{Object.values(traitFilter).filter((v) => v !== "").length}</em> : null}
+                </button>
+              ) : null}
+
+              {traitOptions.length > 0 && advanced ? (
+                <div className="coll-traits coll-advanced" id="coll-advanced">
                   {traitOptions.map(([type, values]) => (
                     <div key={type} className="coll-trait">
                       <span className="coll-trait-label" id={`trait-${type}`}>

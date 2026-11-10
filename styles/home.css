@@ -424,3 +424,22 @@
     display: none;
   }
 }
+
+/* Opened / Sealed during Cybereator's reveal (2026-11-10): a dot in each state's
+   colour, the same device as the Treasure Box tier pills on /market. */
+.filt-opened::before,
+.filt-sealed::before {
+  content: "";
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+
+.filt-opened::before { background: var(--up); }
+.filt-sealed::before { background: var(--warn); }
+
+.filt-opened[aria-pressed="true"]::before,
+.filt-sealed[aria-pressed="true"]::before {
+  box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--paper) 55%, transparent);
+}
