@@ -38,9 +38,10 @@ export const COLLECTION_COVERS: Record<string, string[]> = {
   /*
     Cybereator, revealed (10 November 2026): four revealed pieces from the
     team's gallery thumbnails, at 512px under new names (a cover's path is
-    cached for 30 days, see The Trenches below). Rarest first, and the first is
-    the avatar: No. 2757, a Rare on Cybereator's own yellow, then Gold No.
-    2984, Rare No. 2517 and Gold No. 1054.
+    cached for 30 days, see The Trenches below). The first is
+    the avatar: No. 2757 on Cybereator's own yellow, then No. 2984, No. 2517
+    and No. 1054. (Not "Gold" and "Rare": Gold is an art class, and the
+    rarity people see is worked out from race and parts, lib/cybereatorRarity.ts.)
 
     Until the reveal this was `/boxes/cybereator.webp`, the sealed animation
     every token shared. Sealed pieces still show that file on their own cards

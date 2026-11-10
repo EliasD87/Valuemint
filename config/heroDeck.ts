@@ -30,8 +30,8 @@
  *
  * **Seven cards: a Cybereator trio in the middle (owner, 2026-11-10).**
  *
- * For its reveal the middle is three revealed Cybereators: Rare No. 2517,
- * Rare No. 2757 at the front, Gold No. 2984. They are the collection's own
+ * For its reveal the middle is three revealed Cybereators: No. 2517 (Rare),
+ * No. 2757 (Uncommon) at the front, No. 2984 (Uncommon). They are the collection's own
  * covers (`config/covers.ts`), so the deck and the collection page share the
  * files. On a phone only the middle three show, which is the trio.
  *
@@ -115,7 +115,7 @@ export const HERO_DECK: HeroCard[] = [
      *
      * `axis` is `(deck.length - 1) / 2`, so on seven cards index 3 sits at
      * slot 0: no tilt, no offset, on top of the rest. It is the one card
-     * anybody looks at first: Rare No. 2757 on Cybereator's own yellow, the
+     * anybody looks at first: No. 2757 on Cybereator's own yellow, the
      * collection's avatar.
      *
      * It was the sealed animation (`/boxes/cybereator.webp`) until the reveal.
@@ -124,13 +124,13 @@ export const HERO_DECK: HeroCard[] = [
     name: "Cybereator #2757",
     address: CYBEREATOR,
     image: "/covers/cd30d4bc-revealed-2757.webp",
-    caption: "Rare",
+    caption: "Uncommon",
   },
   {
     name: "Cybereator #2984",
     address: CYBEREATOR,
     image: "/covers/cd30d4bc-revealed-2984.webp",
-    caption: "Gold",
+    caption: "Uncommon",
   },
   {
     name: "SuperRare box",

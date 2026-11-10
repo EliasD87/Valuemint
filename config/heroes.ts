@@ -96,11 +96,11 @@ export const COLLECTION_HEROES: Record<string, HeroArt> = {
   /*
     Cybereator, revealed (10 November 2026): six revealed pieces side by side,
     from the team's own gallery thumbnails (cybereator.com), each on its own
-    ground. Two Gold, two Rare, a Demon and an Orc. 2400x400 and 135 KB.
+    ground, a Demon and an Orc among them. 2400x400 and 135 KB.
 
     6:1 against a band of about 5:1, so a desktop loses ~80px off each end and
-    keeps every head; a phone shows the middle two, which is why the red Rare
-    robot and the yellow Rare skull sit there. No foreground: the cat cutout
+    keeps every head; a phone shows the middle two, which is why the red robot
+    and the yellow skull sit there. No foreground: the cat cutout
     was the sealed collection's mascot, and the band is the pieces now.
 
     The sealed-era pair (`cybereator-bg.webp`, `cybereator-cat.webp`) stays in
