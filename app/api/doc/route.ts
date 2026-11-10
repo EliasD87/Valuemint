@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { proxyableDoc } from "@/lib/docProxy";
+import { cybereatorStatus, isCybereatorDoc } from "@/lib/cybereator";
 
 /**
  * One token document from a listed third-party host, cached at the edge
@@ -42,6 +43,17 @@ function changesInPlace(url: string): boolean {
   return /^https:\/\/mainnet-gw\.sodex\.dev\/api\/v1\/nft\/token\/cybr\//.test(url);
 }
 
+/**
+ * cybereator.com's documents, cached by what they say (their integration
+ * notes, 2026-11-10). While a document carries a `Status` trait (Unopened,
+ * Opening, Rendering) it is about to change, so it is held for seconds: enough
+ * to absorb a burst of visitors, never enough to hide a reveal. Once `Status`
+ * is gone the piece is final and its team guarantees it never changes, so it
+ * is held for a month at the edge and a day in the browser.
+ */
+const CACHE_PENDING = "public, max-age=0, s-maxage=10";
+const CACHE_FINAL = "public, max-age=86400, s-maxage=2592000, stale-while-revalidate=604800";
+
 /** "No document here" (404, SoDEX's 501) for an hour: it can start existing. */
 const CACHE_MISSING = "public, max-age=300, s-maxage=3600";
 
@@ -83,9 +95,13 @@ export async function GET(request: Request): Promise<NextResponse> {
 
   const status = upstream.status;
   const cache = upstream.ok
-    ? changesInPlace(target)
-      ? CACHE_CHANGING
-      : CACHE_OK
+    ? isCybereatorDoc(target)
+      ? cybereatorStatus(body) === undefined
+        ? CACHE_FINAL
+        : CACHE_PENDING
+      : changesInPlace(target)
+        ? CACHE_CHANGING
+        : CACHE_OK
     : status === 404 || status === 501
       ? CACHE_MISSING
       : "no-store";

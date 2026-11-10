@@ -47,6 +47,8 @@ export function metadataFetchAllowed(raw: string): boolean {
     // `file:`, `data:` and the rest have no business here at all.
     if (u.protocol !== "https:") return false;
     if ((OPTIMISED_IMAGE_HOSTS as readonly string[]).includes(u.hostname)) return true;
+    /* Cybereator's metadata host from 10 November 2026, so share previews can read it. */
+    if (u.hostname === "cybereator.com") return true;
     return u.hostname === "www.valuemint.store" || u.hostname === "valuemint.store";
   } catch {
     return false;

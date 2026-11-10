@@ -1,3 +1,5 @@
+import { CYBEREATOR_UNOPENED_GIF, cybereatorThumb } from "@/lib/cybereator";
+
 /**
  * The pictures a collection is known by, named rather than discovered.
  *
@@ -313,6 +315,17 @@ const BUNDLED_BY_URI: Record<string, string> = {
 };
 
 /**
+ * The same pictures by full image URL, for artwork that is not on IPFS.
+ *
+ * Cybereator's sealed GIF moved to its team's own storage with the switch to
+ * cybereator.com metadata (2026-11-10): the same file, a new address. Without
+ * this every sealed piece would have loaded the 6.6 MB original.
+ */
+const BUNDLED_BY_IMAGE: Record<string, string> = {
+  [CYBEREATOR_UNOPENED_GIF]: "/boxes/cybereator.webp",
+};
+
+/**
  * Our own copy of this exact picture, if we ship one.
  *
  * Accepts the image however the metadata or a gateway spelled it —
@@ -322,10 +335,23 @@ const BUNDLED_BY_URI: Record<string, string> = {
  */
 export function bundledArtworkFor(image: string | undefined, uri?: string): string | undefined {
   if (image !== undefined) {
+    const exact = BUNDLED_BY_IMAGE[image.trim()];
+    if (exact !== undefined) return exact;
     const cid =
       /^ipfs:\/\/(?:ipfs\/)?([a-z0-9]+)\/?$/i.exec(image)?.[1] ??
       /\/ipfs\/([a-z0-9]+)\/?(?:[?#].*)?$/i.exec(image)?.[1];
     return cid === undefined ? undefined : BUNDLED_ARTWORK[cid];
   }
   return uri === undefined ? undefined : BUNDLED_BY_URI[uri.trim()];
+}
+
+/**
+ * The smaller picture a list should show, where the artist publishes one.
+ *
+ * A revealed Cybereator is a 2048×2048 PNG; its team publishes a 512×512 WebP
+ * of each and asked that cards, grids and lists use it. The token page keeps
+ * the full picture.
+ */
+export function thumbnailFor(image: string | undefined): string | undefined {
+  return cybereatorThumb(image);
 }

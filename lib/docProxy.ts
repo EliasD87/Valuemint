@@ -15,7 +15,12 @@ import { OPTIMISED_IMAGE_HOSTS } from "@/lib/media";
  * Only these hosts. An open "fetch any URL" route is a server-side request
  * forgery waiting to happen; a fixed list of public metadata hosts is not.
  */
-export const DOC_PROXY_HOSTS: readonly string[] = ["mainnet-gw.sodex.dev", ...OPTIMISED_IMAGE_HOSTS];
+/**
+ * `cybereator.com` from 10 November 2026: Cybereator's metadata moves there
+ * from SoDEX's gateway. Its answers change while a piece is being revealed, so
+ * `/api/doc` caches them by what they say rather than for a fixed time.
+ */
+export const DOC_PROXY_HOSTS: readonly string[] = ["mainnet-gw.sodex.dev", "cybereator.com", ...OPTIMISED_IMAGE_HOSTS];
 
 /** Whether a document URL may go through `/api/doc`. https and a listed host only. */
 export function proxyableDoc(raw: string): boolean {

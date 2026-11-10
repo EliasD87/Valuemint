@@ -70,6 +70,21 @@ function readAttribute(raw: unknown): { trait_type: string; value: string | numb
  * Returns `undefined` when there is nothing usable at all, which every caller
  * already handles - it is the same state as a fetch that failed.
  */
+/**
+ * An image address written without its scheme, given one.
+ *
+ * Cybereator's new metadata (2026-11-10) wrote its images as
+ * `cybereator.oss-ap-northeast-1.aliyuncs.com/images/…`, and a browser reads
+ * that as a path on this site: every card would have pointed at
+ * `valuemint.store/token/…/cybereator.oss-…` and drawn nothing. A first
+ * segment that is a host name (a dot, a letter-only TLD) gets `https://`;
+ * anything with a scheme, or a genuinely relative path, is left alone.
+ */
+export function withScheme(image: string): string {
+  if (/^[a-z][a-z0-9+.-]*:/i.test(image) || image.startsWith("/")) return image;
+  return /^[a-z0-9-]+(\.[a-z0-9-]+)*\.[a-z]{2,}(?::[0-9]+)?\//i.test(image) ? `https://${image}` : image;
+}
+
 export function readTokenMetadata(raw: unknown): TokenMetadata | undefined {
   // A bare string, a number, null, or an array at the top level. All of these
   // are valid JSON and none of them is a metadata document.
@@ -94,7 +109,7 @@ export function readTokenMetadata(raw: unknown): TokenMetadata | undefined {
    * so here means the "no artwork" branches can trust the field instead of
    * re-testing it.
    */
-  const image = typeof doc.image === "string" && doc.image.trim() !== "" ? doc.image : undefined;
+  const image = typeof doc.image === "string" && doc.image.trim() !== "" ? withScheme(doc.image.trim()) : undefined;
 
   /**
    * The whole reason this file exists.

@@ -9,7 +9,7 @@ import { Select } from "@/components/Select";
 import { Soso } from "@/components/Soso";
 import { TokenCard, TokenCardSkeleton } from "@/components/TokenCard";
 import { VerifiedMark } from "@/components/VerifiedMark";
-import { bundledArtworkFor, soleArtworkFor } from "@/config/covers";
+import { bundledArtworkFor, soleArtworkFor, thumbnailFor } from "@/config/covers";
 import { useGridColumns } from "@/hooks/useGridColumns";
 import { holdingsAnchor } from "@/lib/anchors";
 import { floorForTier } from "@/lib/floors";
@@ -122,7 +122,7 @@ export function PortfolioHoldings({
       }
       if (t.listing !== undefined) g.listed += 1;
       /* The same picture ListPrompt and the cards would show for it. */
-      g.image ??= soleArtworkFor(t.collection) ?? bundledArtworkFor(t.image, t.uri) ?? t.image;
+      g.image ??= soleArtworkFor(t.collection) ?? bundledArtworkFor(t.image, t.uri) ?? thumbnailFor(t.image) ?? t.image;
       map.set(key, g);
     }
     return [...map.values()].sort((a, b) =>

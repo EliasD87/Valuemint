@@ -15,7 +15,7 @@ import { SealIcon } from "@/components/Unrevealed";
 import { Art } from "@/components/Art";
 import { Wordmark } from "@/components/Wordmark";
 import { wordmarkSaying } from "@/config/wordmarks";
-import { bundledArtworkFor, soleArtworkFor } from "@/config/covers";
+import { bundledArtworkFor, soleArtworkFor, thumbnailFor } from "@/config/covers";
 import { offersAllowed } from "@/config/kols";
 import { useNextDraw } from "@/hooks/useNextDraw";
 import { DrawBadge } from "@/components/DrawBadge";
@@ -181,7 +181,8 @@ export function TokenCard({
    * for these collections the two are the same picture, and the local file is
    * the smaller, lighter, faster-serving one. See `soleArtworkFor`.
    */
-  const image = soleArtworkFor(collection) ?? bundledArtworkFor(token.image, token.uri) ?? token.image;
+  const image =
+    soleArtworkFor(collection) ?? bundledArtworkFor(token.image, token.uri) ?? thumbnailFor(token.image) ?? token.image;
 
   /** The art as drawn, inside the collection's frame where the caller asked for one. */
   const frame = (art: ReactNode) =>
