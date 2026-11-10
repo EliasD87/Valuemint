@@ -173,6 +173,7 @@ export const ZH_EXPLORE: Record<string, string> = {
   Newest: "最新",
   Oldest: "最早",
   "Advanced filters": "高级筛选",
+  "All rarities": "全部稀有度",
   Any: "任意",
   Clear: "清除",
   "This collection doesn’t publish a token list.": "此合集没有公开代币列表。",

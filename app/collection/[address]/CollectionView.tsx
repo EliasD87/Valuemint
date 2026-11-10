@@ -1,6 +1,7 @@
 "use client";
 
 import { CYBEREATOR } from "@/lib/cybereator";
+import { CYBEREATOR_LEVELS } from "@/lib/cybereatorRarity";
 import { useCybereatorOpened, type SealFilter } from "@/hooks/useCybereatorOpened";
 import type { CollectionFiguresSeed } from "@/lib/collectionFigures";
 import { Fragment, use, useMemo, useState, type ReactNode } from "react";
@@ -289,6 +290,17 @@ export function CollectionView({ params, seed }: { params: Promise<{ address: st
     return [...out.entries()].filter(([, values]) => values.size > 1);
   }, [tokens]);
 
+  /** Cybereator's rarity levels present so far, lowest first, with counts. */
+  const rarityOptions = useMemo(() => {
+    const levels = traitOptions.find(([type]) => type === "Rarity")?.[1];
+    if (levels === undefined) return [];
+    const rank = (v: string) => {
+      const i = (CYBEREATOR_LEVELS as readonly string[]).indexOf(v);
+      return i === -1 ? CYBEREATOR_LEVELS.length : i;
+    };
+    return [...levels.entries()].sort((a, b) => rank(a[0]) - rank(b[0]));
+  }, [traitOptions]);
+
   /** Whether any trait filter is narrowing the grid right now. */
   const filtering = Object.values(traitFilter).some((v) => v !== "");
 
@@ -476,7 +488,27 @@ export function CollectionView({ params, seed }: { params: Promise<{ address: st
                 Cybereator has up to ten traits, and ten dropdowns above the
                 grid pushed the pieces themselves off the first screen.
               */}
-              {traitOptions.length > 0 ? (
+              {/*
+                Cybereator: one Rarity dropdown and nothing else (owner,
+                2026-11-10). Price follows rarity; the parts are on each
+                piece's page.
+              */}
+              {isCybereator && rarityOptions.length > 0 ? (
+                <div className="coll-trait">
+                  <span className="coll-trait-label">{tr("Rarity")}</span>
+                  <Select
+                    label={tr("Rarity")}
+                    value={traitFilter.Rarity ?? ""}
+                    onChange={(v) => setTraitFilter(v === "" ? {} : { Rarity: v })}
+                    options={[
+                      { value: "", label: tr("All rarities") },
+                      ...rarityOptions.map(([value, count]) => ({ value, label: tr(value), note: String(count) })),
+                    ]}
+                  />
+                </div>
+              ) : null}
+
+              {traitOptions.length > 0 && !isCybereator ? (
                 <button
                   type="button"
                   className="filt"
@@ -489,7 +521,7 @@ export function CollectionView({ params, seed }: { params: Promise<{ address: st
                 </button>
               ) : null}
 
-              {traitOptions.length > 0 && advanced ? (
+              {traitOptions.length > 0 && advanced && !isCybereator ? (
                 <div className="coll-traits coll-advanced" id="coll-advanced">
                   {traitOptions.map(([type, values]) => (
                     <div key={type} className="coll-trait">
