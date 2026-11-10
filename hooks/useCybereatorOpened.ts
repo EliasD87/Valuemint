@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { CYBEREATOR } from "@/lib/cybereator";
 
 /**
  * The Cybereators opened so far, as token ids (`/api/cybereator/opened`).
@@ -29,3 +30,28 @@ export function useCybereatorOpened(enabled: boolean): Set<string> | undefined {
 
 /** The three ways to look at Cybereator during its reveal. */
 export type SealFilter = "all" | "opened" | "sealed";
+
+/**
+ * Whether an "any piece" offer applies to a given piece, for showing it.
+ *
+ * On Cybereator, only to sealed ones (owner, 2026-11-10). An "any piece" bid
+ * is priced for the cheapest box, and shown beside an opened Epic it read as
+ * "50 SOSO offered for this Epic". It can still be accepted on chain, as any
+ * collection offer can; the site just does not present it as this piece's
+ * price, and does not suggest selling an opened piece into it. Until the
+ * opened list arrives, no Cybereator counts as sealed.
+ *
+ * Every other collection: always.
+ */
+export function useAnyPieceApplies(collection: string | undefined): (tokenId: bigint, pieceCollection?: string) => boolean {
+  const watching = collection === undefined || collection.toLowerCase() === CYBEREATOR;
+  const opened = useCybereatorOpened(watching);
+  return useCallback(
+    (tokenId: bigint, pieceCollection?: string) => {
+      const c = (pieceCollection ?? collection)?.toLowerCase();
+      if (c !== CYBEREATOR) return true;
+      return opened !== undefined && !opened.has(tokenId.toString());
+    },
+    [collection, opened],
+  );
+}

@@ -18,6 +18,7 @@ import { currencyLabel, remainingPieces, type SeaportOrder } from "@/lib/seaport
 import { SellIntoOffer } from "@/components/SellIntoOffer";
 import { useT } from "@/lib/i18n";
 import { CYBEREATOR } from "@/lib/cybereator";
+import { useAnyPieceApplies } from "@/hooks/useCybereatorOpened";
 import { CYBEREATOR_LEVELS } from "@/lib/cybereatorRarity";
 import "./OfferDialog.css";
 import "./CollectionOffers.css";
@@ -82,11 +83,13 @@ export function CollectionOffers({ collection }: { collection: `0x${string}` }) 
     })),
   });
   const checkingTraits = memberships.some((q) => q.isLoading);
+  /* On Cybereator, never suggest selling an opened piece into an "any piece" bid. */
+  const anyApplies = useAnyPieceApplies(collection);
   const pieceFor = (o: SeaportOrder): bigint | undefined => piecesFor(o)[0];
   /** Every piece the viewer holds that this offer can take. */
   const piecesFor = (o: SeaportOrder): bigint[] => {
     if (isMine(o)) return [];
-    if (o.criteria === undefined || o.criteria === 0n) return myIds;
+    if (o.criteria === undefined || o.criteria === 0n) return myIds.filter((id) => anyApplies(id));
     const key = rootKey(o.criteria);
     return myIds.filter((_, n) => memberships[n]?.data?.has(key) === true);
   };

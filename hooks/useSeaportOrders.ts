@@ -18,6 +18,7 @@ import { createPublicClient, fallback, http, parseAbiItem, type Address, type He
 import { RPC_HTTP, valuechain } from "@/config/chain";
 import { SEAPORT, SEAPORT_FROM_BLOCK, SeaportAbi } from "@/config/seaport";
 import { scanLogs } from "@/lib/logScan";
+import { useAnyPieceApplies } from "@/hooks/useCybereatorOpened";
 import { capCandidates } from "@/lib/orderBook";
 import { useIndexedOrders } from "@/hooks/useIndexedOrders";
 import { fillabilityQuestions, type ServerChecks } from "@/lib/orderChecks";
@@ -726,15 +727,19 @@ export function useListingFor(collection: Address | undefined, tokenId: bigint |
  */
 export function useOffersForToken(collection: Address | undefined, tokenId: bigint | undefined) {
   const { orders, isLoading, logsUnavailable } = useSeaportOrders();
+  /* On Cybereator, an "any piece" bid is not shown against an opened piece (useAnyPieceApplies). */
+  const anyApplies = useAnyPieceApplies(collection ?? "");
 
   const offers = useMemo(
     () =>
       orders
         .filter((o) => o.kind === "offer" && o.fillable)
         .filter((o) => sameAddress(o.collection, collection))
-        .filter((o) => o.tokenId === undefined || (tokenId !== undefined && o.tokenId === tokenId))
+        .filter((o) =>
+          o.tokenId === undefined ? tokenId !== undefined && anyApplies(tokenId) : tokenId !== undefined && o.tokenId === tokenId,
+        )
         .sort((a, b) => (b.priceWei > a.priceWei ? 1 : b.priceWei < a.priceWei ? -1 : 0)),
-    [orders, collection, tokenId],
+    [orders, collection, tokenId, anyApplies],
   );
 
   return { offers, best: offers[0], isLoading, logsUnavailable };

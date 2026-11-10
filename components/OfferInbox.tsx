@@ -22,6 +22,8 @@ import { AddressLink } from "@/components/AddressLink";
 import { currencyLabel, fulfillerOutlay, remainingPieces } from "@/lib/seaport";
 import { deployment } from "@/config/contracts";
 import { useT } from "@/lib/i18n";
+import { useAnyPieceApplies } from "@/hooks/useCybereatorOpened";
+import { CYBEREATOR } from "@/lib/cybereator";
 import "./OfferInbox.css";
 
 /**
@@ -177,6 +179,11 @@ export function OfferInbox({
     }),
   });
 
+  /* Cybereator: an "any piece" bid is not offered against an opened piece (useAnyPieceApplies). */
+  const anyApplies = useAnyPieceApplies(
+    holdings.some((h) => h.collection.toLowerCase() === CYBEREATOR) ? CYBEREATOR : "",
+  );
+
   const rows = useMemo<Row[]>(() => {
     const found = new Map<string, Row>();
 
@@ -194,7 +201,7 @@ export function OfferInbox({
       const matches = holdings.filter(
         (h) =>
           h.collection.toLowerCase() === offer.collection.toLowerCase() &&
-          (offer.tokenId === undefined || offer.tokenId === h.id),
+          (offer.tokenId === undefined ? anyApplies(h.id, h.collection) : offer.tokenId === h.id),
       );
       const match = matches[0];
       if (match === undefined) continue;
@@ -227,7 +234,7 @@ export function OfferInbox({
       b.offer.priceWei > a.offer.priceWei ? 1 : b.offer.priceWei < a.offer.priceWei ? -1 : 0,
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps -- isMine reads only `address`
-  }, [holdings, orders, traitOffers, candidates, memberships, address]);
+  }, [holdings, orders, traitOffers, candidates, memberships, address, anyApplies]);
 
   /**
    * Whether "no offers" is a finding yet. It used to render nothing until an
