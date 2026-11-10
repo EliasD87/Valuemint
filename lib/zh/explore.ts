@@ -90,6 +90,8 @@ export const ZH_EXPLORE: Record<string, string> = {
   "This collection": "此合集",
   "{name} on X (@{handle})": "{name} 的 X 账号（@{handle}）",
   "@{handle} on X": "X 上的 @{handle}",
+  "{name} website ({host})": "{name} 官网（{host}）",
+  "{name} on Discord": "{name} 的 Discord",
   "Verified collection — {reason}": "已认证合集：{reason}",
   "An official SoDEX collection.": "SoDEX 官方合集。",
   "The first NFT collection on ValueChain.": "ValueChain 上的第一个 NFT 合集。",

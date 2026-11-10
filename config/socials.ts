@@ -19,6 +19,30 @@ const X_HANDLES: Record<string, string> = {
   "0x371c4f7f68be3e558b89cc1f0fb113851c76e750": "sodex_official",
 };
 
+/** Lower-cased collection address -> its own website. Same rule as above. */
+const WEBSITES: Record<string, string> = {
+  /** Cybereator, supplied by the owner (2026-11-10). */
+  "0xcd30d4bcaa99e556b70a2c4bdfc4050d26e48d30": "https://cybereator.com",
+};
+
+/** Lower-cased collection address -> its Discord invite. Same rule as above. */
+const DISCORDS: Record<string, string> = {
+  /** Cybereator, supplied by the owner (2026-11-10). */
+  "0xcd30d4bcaa99e556b70a2c4bdfc4050d26e48d30": "https://discord.gg/Jwa65Z96dk",
+};
+
+/** The collection's website, with the bare domain to show, or `undefined`. */
+export function websiteFor(address: string | undefined): { url: string; host: string } | undefined {
+  if (address === undefined) return undefined;
+  const url = WEBSITES[address.toLowerCase()];
+  return url === undefined ? undefined : { url, host: new URL(url).host.replace(/^www\./, "") };
+}
+
+/** The collection's Discord invite, or `undefined`. */
+export function discordFor(address: string | undefined): string | undefined {
+  return address === undefined ? undefined : DISCORDS[address.toLowerCase()];
+}
+
 /** The collection's X account, or `undefined` if it has none on record. */
 export function xAccountFor(
   address: string | undefined,
