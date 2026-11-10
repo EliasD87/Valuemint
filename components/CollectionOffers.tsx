@@ -11,8 +11,6 @@ import { boundsOf, fetchMemberRoots, rootKey, traitLabel, useCriteriaSets, type 
 import { OfferForm, useCollectionOfferTarget } from "@/components/OfferForm";
 import { Select } from "@/components/Select";
 import { Soso } from "@/components/Soso";
-import { AddressLink } from "@/components/AddressLink";
-import { whenExpires } from "@/components/Offers";
 import { formatSoso } from "@/lib/format";
 import { SEALED_ZONE, currencyLabel, remainingPieces, type SeaportOrder } from "@/lib/seaport";
 import { SellIntoOffer } from "@/components/SellIntoOffer";
@@ -263,7 +261,6 @@ export function CollectionOffers({ collection }: { collection: `0x${string}` }) 
           loadingTraits={criteria.isLoading}
           sets={criteria.sets}
           bound={criteria.bound}
-          standing={[...anyPiece.map((o) => ({ o, label: tr(o.sealedOnly === true ? "Unopened" : "Any piece") })), ...traits.map((t) => ({ o: t.offer, label: traitLabel(t.set) }))]}
           onClose={() => setOpen(false)}
         />
       ) : null}
@@ -301,7 +298,6 @@ function CollectionOfferDialog({
   loadingTraits,
   sets,
   bound,
-  standing,
   onClose,
 }: {
   collection: `0x${string}`;
@@ -314,12 +310,10 @@ function CollectionOfferDialog({
   sets: TraitSetSummary[];
   /** On a growing collection, the highest token id the sets cover. */
   bound: bigint | undefined;
-  standing: Array<{ o: SeaportOrder; label: string }>;
   onClose: () => void;
 }) {
   /* `tr`, not `t`: the trait pickers below call their argument `t`. */
   const tr = useT();
-  const { address } = useAccount();
   /* Never "any" on a collection with traits, and nothing at all until that is known. */
   const scope: "any" | "trait" = hasTraits ? "trait" : "any";
   const undecided = loadingTraits || traitsFailed;
@@ -382,8 +376,6 @@ function CollectionOfferDialog({
     };
   }, [onClose]);
   if (!mounted) return null;
-
-  const isMine = (maker: string) => address !== undefined && maker.toLowerCase() === address.toLowerCase();
 
   /* Sentences with a bold trait in the middle, wherever the language puts it. */
   const [exactBefore, exactAfter = ""] = (
@@ -539,24 +531,8 @@ function CollectionOfferDialog({
             </div>
           ) : null}
 
-          {standing.length > 0 ? (
-            <ul className="od-standing">
-              {standing.slice(0, 4).map(({ o, label }) => (
-                <li key={o.hash}>
-                  <span className="mono">
-                    <Soso size={16} unit={currencyLabel(o.currency)}>
-                      {formatSoso(o.priceWei)}
-                    </Soso>
-                  </span>
-                  <span>
-                    {isMine(o.maker) ? tr("You") : <AddressLink address={o.maker} chars={4} />} &middot; {label} &middot;{" "}
-                    {whenExpires(o.endTime, tr)}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          ) : null}
-
+          {/* No list of the offers already standing (owner, 2026-11-10): the
+              board behind the dialog shows them, and here they crowded the form. */}
           {undecided ? null : (
             <OfferForm target={target} replacing={false} onDone={() => undefined} onPlaced={onClose} />
           )}
