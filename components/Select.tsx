@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import "./Select.css";
 
 /**
@@ -32,6 +32,12 @@ import "./Select.css";
  * make `position: fixed` resolve against an ancestor instead of the viewport.
  * If a caller ever puts one inside `overflow: hidden`, that is the moment to
  * revisit this, not before.
+ *
+ * That moment came (2026-11-10): the offer dialog scrolls, its Expires select
+ * sits at the bottom, and the menu ran past the dialog's edge and was cut off.
+ * Still no portal. The menu measures the room above and below its trigger
+ * inside the nearest box that clips it, opens upward when the room is above,
+ * as a native select does, and shrinks to whatever room there is.
  */
 
 export interface SelectOption {
@@ -136,6 +142,37 @@ export function Select({
       window.removeEventListener("scroll", moved, { capture: true });
       window.removeEventListener("resize", moved);
     };
+  }, [open]);
+
+  /**
+   * Which way the menu opens, and how tall it may be.
+   *
+   * Measured in a layout effect, so it is settled before the menu's first
+   * paint and never seen opening the wrong way. The box it must stay inside is
+   * the nearest ancestor that clips (any overflow but `visible`), or the
+   * window: a dialog's scrolling body, in the case that prompted this.
+   */
+  const [above, setAbove] = useState(false);
+  const [room, setRoom] = useState<number | undefined>(undefined);
+  useLayoutEffect(() => {
+    if (!open || button.current === null || list.current === null) return;
+    const trigger = button.current.getBoundingClientRect();
+    let top = 0;
+    let bottom = window.innerHeight;
+    for (let el = root.current?.parentElement ?? null; el !== null; el = el.parentElement) {
+      if (getComputedStyle(el).overflowY === "visible") continue;
+      const box = el.getBoundingClientRect();
+      top = Math.max(top, box.top);
+      bottom = Math.min(bottom, box.bottom);
+      break;
+    }
+    /* The 6px gap the stylesheet leaves, plus a little air at the edge. */
+    const spare = 6 + 8;
+    const below = bottom - trigger.bottom - spare;
+    const over = trigger.top - top - spare;
+    const up = list.current.scrollHeight > below && over > below;
+    setAbove(up);
+    setRoom(Math.max(120, Math.floor(up ? over : below)));
   }, [open]);
 
   /** Keep the keyboard's option in view in a list long enough to scroll. */
@@ -249,7 +286,8 @@ export function Select({
         <ul
           ref={list}
           id={listId}
-          className="sel-menu"
+          className={`sel-menu${above ? " is-above" : ""}`}
+          style={room === undefined ? undefined : ({ ["--sel-room" as string]: `${room}px` } as CSSProperties)}
           role="listbox"
           aria-label={label}
           tabIndex={-1}
