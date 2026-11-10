@@ -19,6 +19,7 @@ import { HOLDINGS_FOCUS_EVENT, anchoredCollection } from "@/lib/anchors";
 import { floorForTier } from "@/lib/floors";
 import { formatCount } from "@/lib/format";
 import { valueAtFloor } from "@/lib/portfolioValue";
+import { useT } from "@/lib/i18n";
 import "@/styles/activity.css";
 
 type Tab = "collected" | "offers" | "activity";
@@ -62,6 +63,7 @@ export function PortfolioView({
   /** Beside the address in the header. */
   extra?: ReactNode;
 }) {
+  const tr = useT();
   const { tokens, collections, unlistable, pending, expected, isDiscovering, isLoading } =
     useHoldings(address);
   const { data: balance } = useBalance({ address });
@@ -151,20 +153,20 @@ export function PortfolioView({
 
   const headerOffers: HeaderOffers = own
     ? {
-        label: "Offers received",
+        label: tr("Offers received"),
         ...(inbox.checking ? {} : { count: inbox.count }),
         ...(inbox.best === undefined ? {} : { best: inbox.best }),
         onOpen: openOffers,
       }
-    : { label: "Offers made", count: made.length, onOpen: openOffers };
+    : { label: tr("Offers made"), count: made.length, onOpen: openOffers };
 
   /** What the Offers tab wears: the money waiting on you, or a stranger's bids out. */
   const offersBadge = own ? (inbox.checking ? 0 : inbox.count) : made.length;
 
   const TABS: ReadonlyArray<{ key: Tab; label: string; count?: number; live?: boolean }> = [
-    { key: "collected", label: "Collected", count: tokens.length },
-    { key: "offers", label: "Offers", count: offersBadge, live: own && offersBadge > 0 },
-    { key: "activity", label: "Activity" },
+    { key: "collected", label: tr("Collected"), count: tokens.length },
+    { key: "offers", label: tr("Offers"), count: offersBadge, live: own && offersBadge > 0 },
+    { key: "activity", label: tr("Activity") },
   ];
 
   /** Arrow keys move along the tabs, as a tablist promises; selection follows focus. */
@@ -201,7 +203,7 @@ export function PortfolioView({
         ref={tabsRef}
         className="pf-tabs"
         role="tablist"
-        aria-label={own ? "Your portfolio" : "This wallet"}
+        aria-label={own ? tr("Your portfolio") : tr("This wallet")}
         onKeyDown={onTabKey}
       >
         {TABS.map((t, i) => {
@@ -252,10 +254,16 @@ export function PortfolioView({
             {/* Reached only when a collection neither enumerates NOR resolves
                 through the explorer index — rare now that the fallback exists,
                 and a genuine dead end rather than a marketplace limitation. */}
-            Pieces {own ? "you hold" : "this wallet holds"} in {unlistable.map((c) => c.name).join(", ")}{" "}
-            could not be identified. {unlistable.length === 1 ? "It doesn't" : "They don't"} publish a
-            per-owner index and the explorer has no record of them either. Open the token directly by
-            address if you know its number.
+            {own
+              ? tr("Pieces you hold in {names} could not be identified.", {
+                  names: unlistable.map((c) => c.name).join(", "),
+                })
+              : tr("Pieces this wallet holds in {names} could not be identified.", {
+                  names: unlistable.map((c) => c.name).join(", "),
+                })}{" "}
+            {unlistable.length === 1
+              ? tr("It doesn't publish a per-owner index and the explorer has no record of it either. Open the token directly by address if you know its number.")
+              : tr("They don't publish a per-owner index and the explorer has no record of them either. Open the token directly by address if you know its number.")}
           </p>
         ) : null}
 
@@ -269,32 +277,33 @@ export function PortfolioView({
           <div className="market-empty">
             {own ? (
               <>
-                <h3>You don&rsquo;t hold anything yet.</h3>
+                <h3>{tr("You don’t hold anything yet.")}</h3>
                 <p className="muted">
-                  Checked all {collections.length} collection{collections.length === 1 ? "" : "s"} on
-                  ValueChain and found nothing under your address.
+                  {collections.length === 1
+                    ? tr("Checked all {count} collection on ValueChain and found nothing under your address.", { count: collections.length })
+                    : tr("Checked all {count} collections on ValueChain and found nothing under your address.", { count: collections.length })}
                 </p>
                 <div className="wrap-row mt-md">
                   <Link className="btn btn-primary" href="/mint">
-                    Mint something
+                    {tr("Mint something")}
                   </Link>
                   <Link className="btn" href="/market">
-                    Browse the market
+                    {tr("Browse the market")}
                   </Link>
                   {CREATE_ENABLED ? (
                     <Link className="btn" href="/create">
-                      Create a collection
+                      {tr("Create a collection")}
                     </Link>
                   ) : null}
                 </div>
               </>
             ) : (
               <>
-                <h3>This wallet holds nothing here.</h3>
+                <h3>{tr("This wallet holds nothing here.")}</h3>
                 <p className="muted">
-                  Checked all {collections.length} collection{collections.length === 1 ? "" : "s"} on
-                  ValueChain and found nothing under this address. Its trades, if it has any, are
-                  under Activity.
+                  {collections.length === 1
+                    ? tr("Checked all {count} collection on ValueChain and found nothing under this address. Its trades, if it has any, are under Activity.", { count: collections.length })
+                    : tr("Checked all {count} collections on ValueChain and found nothing under this address. Its trades, if it has any, are under Activity.", { count: collections.length })}
                 </p>
               </>
             )}
@@ -337,7 +346,7 @@ export function PortfolioView({
 
         <div className="act-panel">
           <div className="act-head">
-            <p className="act-title">{own ? "Offers you've made" : "Offers this wallet has made"}</p>
+            <p className="act-title">{own ? tr("Offers you've made") : tr("Offers this wallet has made")}</p>
           </div>
           <MyOffers address={address} bare own={own} />
         </div>

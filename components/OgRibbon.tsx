@@ -2,6 +2,7 @@
 
 import { ogOf } from "@/config/og";
 import "./OgRibbon.css";
+import { useT } from "@/lib/i18n";
 
 /**
  * The OG sash across the top-left corner of a collection's cover.
@@ -17,12 +18,13 @@ import "./OgRibbon.css";
  * so the sash reads the same if the animation never runs.
  */
 export function OgRibbon({ collection }: { collection: string | undefined }) {
+  const t = useT();
   const entry = ogOf(collection);
   if (entry === undefined) return null;
 
   return (
-    <span className="og-ribbon" title={entry.reason}>
-      <span className="og-ribbon-band" role="img" aria-label={entry.reason}>
+    <span className="og-ribbon" title={t(entry.reason)}>
+      <span className="og-ribbon-band" role="img" aria-label={t(entry.reason)}>
         OG
       </span>
     </span>

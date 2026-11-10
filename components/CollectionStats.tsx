@@ -6,6 +6,7 @@ import { Soso } from "@/components/Soso";
 import { FloorChange } from "@/components/FloorChange";
 import { formatSoso, formatSosoWhole, formatCount } from "@/lib/format";
 import type { CollectionFiguresSeed } from "@/lib/collectionFigures";
+import { useT } from "@/lib/i18n";
 import "./CollectionStats.css";
 
 /**
@@ -40,9 +41,10 @@ function Cell({
   /** A second line under the figure — a share, a count, a qualifier. */
   note?: ReactNode;
 }) {
+  const t = useT();
   return (
     <div className="cs-cell">
-      <dt className="cs-label">{label}</dt>
+      <dt className="cs-label">{t(label)}</dt>
       <dd className="cs-value">
         {children}
         {note === undefined ? null : <span className="cs-note">{note}</span>}
@@ -66,6 +68,7 @@ export function CollectionStats({
   /** Figures the server already worked out, shown until the browser's own land. */
   seed?: CollectionFiguresSeed;
 }) {
+  const t = useT();
   const s = useCollectionStats(collection, seed);
 
   /**
@@ -81,7 +84,7 @@ export function CollectionStats({
       : undefined;
 
   return (
-    <section className="cs" aria-label="Collection figures">
+    <section className="cs" aria-label={t("Collection figures")}>
       <dl className="cs-row">
         <Cell label="Floor">
           {s.floorWei === undefined ? (
@@ -152,8 +155,7 @@ export function CollectionStats({
       */}
       {s.unavailable ? (
         <p className="cs-foot cs-foot-warn">
-          Trade history couldn&rsquo;t be read just now, so the volume figures are missing rather
-          than zero.
+          {t("Trade history couldn’t be read just now, so the volume figures are missing rather than zero.")}
         </p>
       ) : null}
     </section>

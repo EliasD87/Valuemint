@@ -1,5 +1,6 @@
 "use client";
 
+import { useT } from "@/lib/i18n";
 import "./PageTabs.css";
 
 /**
@@ -40,8 +41,10 @@ export function PageTabs<K extends string>({
   /** Names the tab list for a screen reader — "Collection sections". */
   label: string;
 }) {
+  // Idempotent on a label the caller already translated: a Chinese string is not a key.
+  const t = useT();
   return (
-    <div className="pt" role="tablist" aria-label={label}>
+    <div className="pt" role="tablist" aria-label={t(label)}>
       {tabs.map((tab) => (
         <button
           key={tab.key}
@@ -51,7 +54,7 @@ export function PageTabs<K extends string>({
           className={`pt-tab${active === tab.key ? " is-on" : ""}`}
           onClick={() => onChange(tab.key)}
         >
-          {tab.label}
+          {t(tab.label)}
           {/*
             The count is not part of the label.
 

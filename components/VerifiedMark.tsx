@@ -2,6 +2,7 @@
 
 import { verifiedAs } from "@/config/verified";
 import "./VerifiedMark.css";
+import { useT } from "@/lib/i18n";
 
 /**
  * The tick beside a collection's name.
@@ -37,10 +38,11 @@ export function VerifiedMark({
   /** Matches the text it sits beside; the SVG scales to it. */
   size?: number;
 }) {
+  const t = useT();
   const entry = verifiedAs(collection);
   if (entry === undefined) return null;
 
-  const label = `Verified collection — ${entry.reason}`;
+  const label = t("Verified collection — {reason}", { reason: t(entry.reason) });
 
   return (
     <span

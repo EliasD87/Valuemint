@@ -9,6 +9,7 @@ import { Soso } from "@/components/Soso";
 import { formatSoso, formatCount } from "@/lib/format";
 import { tierOf, type TokenMetadata } from "@/lib/tokenMetadata";
 import { useFloors } from "@/hooks/useFloors";
+import { useT } from "@/lib/i18n";
 import "./TokenStats.css";
 
 /**
@@ -70,6 +71,7 @@ export function TokenStats({
   tokenId: bigint | undefined;
   metadata?: TokenMetadata;
 }) {
+  const t = useT();
   const { best: bestListings } = useBestListings(collection);
   const { best: bestOffer } = useTokenOffers(collection, tokenId);
   const { lastSale, logsUnavailable } = useActivity(collection, tokenId);
@@ -117,7 +119,7 @@ export function TokenStats({
       : { minted, share: (minted / Number(supply)) * 100 };
 
   return (
-    <dl className="ts-row" aria-label="Token figures">
+    <dl className="ts-row" aria-label={t("Token figures")}>
       {/*
         Best offer and last sale are left out entirely until there is a figure
         to show. Most pieces have neither, and two dashed cells ahead of the
@@ -125,7 +127,7 @@ export function TokenStats({
         squeezing the one cell that did answer into "COLLECTION FL…".
       */}
       {bestOffer === undefined ? null : (
-        <Cell label="Best offer">
+        <Cell label={t("Best offer")}>
           {/*
             WSOSO, and the unit is not decoration. This marketplace refuses
             native-currency bids outright, so a row saying "SOSO" would have
@@ -142,7 +144,7 @@ export function TokenStats({
         read. Neither is a claim, and what matters is that NEITHER shows a price.
       */}
       {lastSale?.price === undefined || logsUnavailable ? null : (
-        <Cell label="Last sale">
+        <Cell label={t("Last sale")}>
           <Soso size={15}>{formatSoso(lastSale.price)}</Soso>
         </Cell>
       )}
@@ -154,19 +156,19 @@ export function TokenStats({
         it takes to notice it.
       */}
       {metadata === undefined ? (
-        <Cell label="Floor">
+        <Cell label={t("Floor")}>
           <Dash />
         </Cell>
       ) : tier === undefined ? (
-        <Cell label="Collection floor">
+        <Cell label={t("Collection floor")}>
           {floorWei === undefined ? <Dash /> : <Soso size={15}>{formatSoso(floorWei)}</Soso>}
         </Cell>
       ) : (
         /* "none listed" is a claim, so it waits for the floors to have loaded:
            a tier with no row yet is unknown, not empty. */
         <Cell
-          label={`${tier} floor`}
-          {...(tierFloor === undefined && !floorsLoading ? { note: "none listed" } : {})}
+          label={t("{tier} floor", { tier: t(tier) })}
+          {...(tierFloor === undefined && !floorsLoading ? { note: t("none listed") } : {})}
         >
           {tierFloor === undefined ? <Dash /> : <Soso size={15}>{formatSoso(tierFloor)}</Soso>}
         </Cell>
@@ -179,8 +181,8 @@ export function TokenStats({
         simply does not describe its designs.
       */}
       {rarity === undefined ? null : (
-        <Cell label="Rarity" note={`${rarity.share.toFixed(1)}% of the collection`}>
-          <span className="ts-plain">{formatCount(BigInt(rarity.minted))} share it</span>
+        <Cell label={t("Rarity")} note={t("{share}% of the collection", { share: rarity.share.toFixed(1) })}>
+          <span className="ts-plain">{t("{count} share it", { count: formatCount(BigInt(rarity.minted)) })}</span>
         </Cell>
       )}
     </dl>

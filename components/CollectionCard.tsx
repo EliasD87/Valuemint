@@ -9,6 +9,7 @@ import { TradingMark } from "@/components/TradingMark";
 import { OgRibbon } from "@/components/OgRibbon";
 import { wordmarkFor } from "@/config/wordmarks";
 import { shortAddress } from "@/lib/format";
+import { useT } from "@/lib/i18n";
 
 /**
  * One collection, as a card.
@@ -41,6 +42,7 @@ interface Props {
 }
 
 export function CollectionCard({ href, name, symbol, address, images, badge, stats, progress }: Props) {
+  const t = useT();
   const initials = (symbol || name || "?").slice(0, 2).toUpperCase();
 
   /**
@@ -129,7 +131,7 @@ export function CollectionCard({ href, name, symbol, address, images, badge, sta
         <dl className="coll-card-stats">
           {stats.map((s) => (
             <div key={s.label}>
-              <dt>{s.label}</dt>
+              <dt>{t(s.label)}</dt>
               <dd className="mono">{s.value}</dd>
             </div>
           ))}

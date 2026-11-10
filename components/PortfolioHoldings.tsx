@@ -17,6 +17,7 @@ import { formatCount, formatSoso, formatSosoFixed } from "@/lib/format";
 import { isFilterable } from "@/lib/traitRoles";
 import { isTierTrait } from "@/lib/tokenMetadata";
 import type { ChainToken } from "@/hooks/useEverything";
+import { useT } from "@/lib/i18n";
 
 type Status = "all" | "listed" | "unlisted";
 type Sort = "value-desc" | "value-asc" | "price-asc" | "collection";
@@ -93,6 +94,7 @@ export function PortfolioHoldings({
   /** How many pieces the balances say there are. */
   expected: number;
 }) {
+  const tr = useT();
   const [status, setStatus] = useState<Status>("all");
   const [sort, setSort] = useState<Sort>("value-desc");
   const [query, setQuery] = useState("");
@@ -287,9 +289,9 @@ export function PortfolioHoldings({
   return (
     <div className="pf-collected">
       {/* -------------------------------------------------- the collections */}
-      <nav className="pf-colls" aria-label="Collections held">
+      <nav className="pf-colls" aria-label={tr("Collections held")}>
         <p className="pf-colls-title">
-          Collections <span>{formatCount(BigInt(groups.length))}</span>
+          {tr("Collections")} <span>{formatCount(BigInt(groups.length))}</span>
         </p>
         <ul className="pf-colls-list">
           <li>
@@ -302,9 +304,9 @@ export function PortfolioHoldings({
                   <rect x="9" y="9" width="5" height="5" rx="1.2" />
                 </svg>
               </span>
-              <span className="pf-c-name">All collections</span>
+              <span className="pf-c-name">{tr("All collections")}</span>
               <span className="pf-c-meta">
-                {formatCount(BigInt(tokens.length))} {tokens.length === 1 ? "piece" : "pieces"}
+                {tr(tokens.length === 1 ? "{count} piece" : "{count} pieces", { count: formatCount(BigInt(tokens.length)) })}
               </span>
               <span className="pf-c-value">
                 <Soso size={11}>{formatSosoFixed(total)}</Soso>
@@ -332,13 +334,13 @@ export function PortfolioHoldings({
                     <VerifiedMark collection={g.address} size={12} />
                   </span>
                   <span className="pf-c-meta">
-                    {formatCount(BigInt(g.items.length))} {g.items.length === 1 ? "piece" : "pieces"}
-                    {g.listed > 0 ? <> &middot; {formatCount(BigInt(g.listed))} listed</> : null}
+                    {tr(g.items.length === 1 ? "{count} piece" : "{count} pieces", { count: formatCount(BigInt(g.items.length)) })}
+                    {g.listed > 0 ? <> &middot; {tr("{count} listed", { count: formatCount(BigInt(g.listed)) })}</> : null}
                   </span>
                   <span className="pf-c-value">
                     {g.priced === 0 ? (
-                      <span className="pf-c-none" title="Nothing comparable is listed">
-                        No floor
+                      <span className="pf-c-none" title={tr("Nothing comparable is listed")}>
+                        {tr("No floor")}
                       </span>
                     ) : (
                       <Soso size={11}>{formatSosoFixed(g.value)}</Soso>
@@ -366,11 +368,13 @@ export function PortfolioHoldings({
           <div className="pf-cbar">
             <div className="pf-cbar-head">
               <div className="pf-cbar-id">
-                <h3 className="pf-cbar-name">All collections</h3>
+                <h3 className="pf-cbar-name">{tr("All collections")}</h3>
                 <p className="pf-cbar-meta">
-                  {formatCount(BigInt(tokens.length))} held across {formatCount(BigInt(groups.length))}{" "}
-                  {groups.length === 1 ? "collection" : "collections"}
-                  {listedTotal > 0 ? <> &middot; {formatCount(BigInt(listedTotal))} listed</> : null}
+                  {tr(groups.length === 1 ? "{count} held across {collections} collection" : "{count} held across {collections} collections", {
+                    count: formatCount(BigInt(tokens.length)),
+                    collections: formatCount(BigInt(groups.length)),
+                  })}
+                  {listedTotal > 0 ? <> &middot; {tr("{count} listed", { count: formatCount(BigInt(listedTotal)) })}</> : null}
                 </p>
               </div>
               {own && batchable.length > 0 ? (
@@ -396,12 +400,12 @@ export function PortfolioHoldings({
                     row of Epics it read as the price of all of them. Each tier's
                     own floor is on its chip below instead. */}
                 <p className="pf-cbar-meta">
-                  {formatCount(BigInt(group.items.length))} held
-                  {group.listed > 0 ? <> &middot; {formatCount(BigInt(group.listed))} listed</> : null}
+                  {tr("{count} held", { count: formatCount(BigInt(group.items.length)) })}
+                  {group.listed > 0 ? <> &middot; {tr("{count} listed", { count: formatCount(BigInt(group.listed)) })}</> : null}
                   {tiered || collectionFloor === undefined ? null : (
                     <>
                       {" "}
-                      &middot; floor <Soso size={11}>{formatSoso(collectionFloor)}</Soso>
+                      &middot; {tr("floor")} <Soso size={11}>{formatSoso(collectionFloor)}</Soso>
                     </>
                   )}
                 </p>
@@ -430,7 +434,7 @@ export function PortfolioHoldings({
                   />
                 ) : null}
                 <Link className="head-link" href={`/collection/${group.address}`}>
-                  View collection &rarr;
+                  {tr("View collection")} &rarr;
                 </Link>
               </div>
             </div>
@@ -438,7 +442,7 @@ export function PortfolioHoldings({
             {traits.length === 0 ? null : (
               <div className="hg-traits">
                 {traits.map(([type, values]) => (
-                  <div key={type} className="hg-trait" role="group" aria-label={`${type} held`}>
+                  <div key={type} className="hg-trait" role="group" aria-label={tr("{type} held", { type })}>
                     <span className="hg-trait-label">{type}</span>
                     {values.map(([value, count]) => {
                       /* Only the tier axis has floors; a design or a background does not. */
@@ -456,7 +460,7 @@ export function PortfolioHoldings({
                           {value} <em>{count}</em>
                           {floor === undefined ? null : (
                             <span className="hg-floor">
-                              floor <Soso size={11}>{formatSoso(floor)}</Soso>
+                              {tr("floor")} <Soso size={11}>{formatSoso(floor)}</Soso>
                             </span>
                           )}
                         </button>
@@ -480,14 +484,14 @@ export function PortfolioHoldings({
               type="search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Name or number"
-              aria-label={own ? "Search your pieces" : "Search this wallet's pieces"}
+              placeholder={tr("Name or number")}
+              aria-label={own ? tr("Search your pieces") : tr("Search this wallet's pieces")}
               autoComplete="off"
               spellCheck={false}
             />
           </label>
 
-          <div className="pf-seg" role="group" aria-label="Show">
+          <div className="pf-seg" role="group" aria-label={tr("Show")}>
             {(
               [
                 ["all", "All", inScope.length],
@@ -496,17 +500,17 @@ export function PortfolioHoldings({
               ] as const
             ).map(([key, label, count]) => (
               <button key={key} type="button" aria-pressed={status === key} onClick={() => setStatus(key)}>
-                {label} <em>{formatCount(BigInt(count))}</em>
+                {tr(label)} <em>{formatCount(BigInt(count))}</em>
               </button>
             ))}
           </div>
 
           <Select
             className="pf-sort"
-            label="Sort pieces"
+            label={tr("Sort pieces")}
             value={sort}
             onChange={(v) => setSort(v as Sort)}
-            options={SORTS}
+            options={SORTS.map((o) => ({ ...o, label: tr(o.label) }))}
           />
         </div>
 
@@ -515,14 +519,16 @@ export function PortfolioHoldings({
           <div className="pf-none">
             <p>
               {filtering
-                ? "Nothing here matches."
+                ? tr("Nothing here matches.")
                 : group === undefined
-                  ? "Nothing to show yet."
-                  : `${own ? "You hold" : "This wallet holds"} nothing in ${group.name} any more.`}
+                  ? tr("Nothing to show yet.")
+                  : own
+                    ? tr("You hold nothing in {name} any more.", { name: group.name })
+                    : tr("This wallet holds nothing in {name} any more.", { name: group.name })}
             </p>
             {filtering ? (
               <button type="button" className="btn btn-sm" onClick={clearAll}>
-                Clear filters
+                {tr("Clear filters")}
               </button>
             ) : null}
           </div>
@@ -569,11 +575,14 @@ export function PortfolioHoldings({
                 className="btn btn-sm pf-more"
                 onClick={() => setPaging({ view, pages: pages + 1 })}
               >
-                Show more
+                {tr("Show more")}
               </button>
             ) : null}
             <span className="pf-more-count">
-              Showing {formatCount(BigInt(shown.length))} of {formatCount(BigInt(sorted.length))}
+              {tr("Showing {shown} of {total}", {
+                shown: formatCount(BigInt(shown.length)),
+                total: formatCount(BigInt(sorted.length)),
+              })}
             </span>
           </div>
         ) : null}
@@ -605,6 +614,7 @@ function BatchListMenu({
   options: BatchOption[];
   onPick: (collection: string) => void;
 }) {
+  const tr = useT();
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
   const button = useRef<HTMLButtonElement>(null);
@@ -658,7 +668,7 @@ function BatchListMenu({
             <rect x="12.75" y="12.75" width="8" height="8" rx="2" />
           </svg>
         </span>
-        <span className="bulk-open-text">Batch list</span>
+        <span className="bulk-open-text">{tr("Batch list")}</span>
         <svg className="pf-batch-caret" viewBox="0 0 12 12" aria-hidden="true" focusable="false">
           <path d="M3 4.5 6 7.5 9 4.5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
@@ -666,7 +676,7 @@ function BatchListMenu({
 
       {open ? (
         <div className="pf-batch-menu" id={id}>
-          <p className="pf-batch-title">List several from</p>
+          <p className="pf-batch-title">{tr("List several from")}</p>
           <ul ref={list} onKeyDown={onListKey}>
             {options.map((o) => (
               <li key={o.key}>
@@ -686,7 +696,7 @@ function BatchListMenu({
                     <VerifiedMark collection={o.address} size={12} />
                   </span>
                   <span className="pf-batch-count">
-                    {formatCount(BigInt(o.unlisted))} unlisted
+                    {tr("{count} unlisted", { count: formatCount(BigInt(o.unlisted)) })}
                   </span>
                 </button>
               </li>

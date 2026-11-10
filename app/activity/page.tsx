@@ -8,6 +8,7 @@ import { Activity } from "@/components/Activity";
 import { MyTrades } from "@/components/MyTrades";
 import { ArrowLeft } from "@/components/Arrows";
 import { shortAddress } from "@/lib/format";
+import { useT } from "@/lib/i18n";
 import "@/styles/activity.css";
 
 /**
@@ -40,6 +41,7 @@ export default function ActivityPage() {
 }
 
 function ActivityView() {
+  const t = useT();
   const params = useSearchParams();
   const { address } = useAccount();
 
@@ -73,14 +75,14 @@ function ActivityView() {
     (walletOther !== undefined && address?.toLowerCase() === walletOther.toLowerCase());
 
   const heading = walletMe
-    ? "Your trades"
+    ? t("Your trades")
     : walletOther !== undefined
-      ? `Trades of ${shortAddress(walletOther, 4)}`
+      ? t("Trades of {address}", { address: shortAddress(walletOther, 4) })
       : tokenId !== undefined
-      ? `Token #${tokenId.toString()}`
+      ? t("Token #{id}", { id: tokenId.toString() })
       : collection !== undefined
-        ? "Collection activity"
-        : "Everything that has traded";
+        ? t("Collection activity")
+        : t("Everything that has traded");
 
   /** Back to whatever this history is about, rather than always to the market. */
   const back =
@@ -98,14 +100,14 @@ function ActivityView() {
     <section className="page section">
       <div className="head">
         <div>
-          <p className="eyebrow">Activity</p>
+          <p className="eyebrow">{t("Activity")}</p>
           <h2>{heading}</h2>
         </div>
         {/* A button, and pointing back: it was a text link with a forward
             arrow, which said "onward" about a way back. */}
         <Link className="btn btn-sm act-back" href={back.href}>
           <ArrowLeft />
-          {back.label}
+          {t(back.label)}
         </Link>
       </div>
 
@@ -113,11 +115,11 @@ function ActivityView() {
           says whose history this is, and a panel titled the same thing twelve
           pixels under it is just noise. */}
       {wallet && walletAddress === undefined ? (
-        <p className="act-note">Connect a wallet to see what it has traded.</p>
+        <p className="act-note">{t("Connect a wallet to see what it has traded.")}</p>
       ) : wallet ? (
-        <MyTrades address={walletAddress} title="Full history" full own={own} />
+        <MyTrades address={walletAddress} title={t("Full history")} full own={own} />
       ) : (
-        <Activity collection={collection} tokenId={tokenId} title="Full history" full />
+        <Activity collection={collection} tokenId={tokenId} title={t("Full history")} full />
       )}
     </section>
   );

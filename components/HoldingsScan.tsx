@@ -1,5 +1,8 @@
 "use client";
 
+import { Fragment, type ReactNode } from "react";
+import { useT } from "@/lib/i18n";
+
 /**
  * What a wallet scan is doing, while it is doing it.
  *
@@ -47,32 +50,35 @@ export function HoldingsScan({
   /** Collections still being walked for ids. */
   pending: readonly string[];
 }) {
+  const t = useT();
   if (!loading) return null;
 
-  let text: React.ReactNode;
+  let text: ReactNode;
   let fraction: number | undefined;
 
   if (discovering && expected === 0) {
     text = (
-      <>
-        Scanning {collections > 0 ? <b>{collections}</b> : "every"} collection
-        {collections === 1 ? "" : "s"} on ValueChain&hellip;
-      </>
+      collections === 0
+        ? t("Scanning every collection on ValueChain…")
+        : bolded(
+            t(collections === 1 ? "Scanning {count} collection on ValueChain…" : "Scanning {count} collections on ValueChain…"),
+            { count: collections },
+          )
     );
   } else if (discovering) {
     fraction = expected > 0 ? found / expected : undefined;
     text = (
       <>
-        Found <b>{found}</b> of <b>{expected}</b> pieces
-        {pending.length > 0 ? <span className="hs-sub"> &middot; reading {pending.join(", ")}</span> : null}
+        {bolded(t("Found {found} of {expected} pieces"), { found, expected })}
+        {pending.length > 0 ? (
+          <span className="hs-sub"> &middot; {t("reading {names}", { names: pending.join(", ") })}</span>
+        ) : null}
       </>
     );
   } else {
     fraction = found > 0 ? detailed / found : undefined;
     text = (
-      <>
-        Loading details &middot; <b>{detailed}</b> of <b>{found}</b>
-      </>
+      bolded(t("Loading details · {detailed} of {found}"), { detailed, found })
     );
   }
 
@@ -91,5 +97,16 @@ export function HoldingsScan({
         </span>
       </div>
     </div>
+  );
+}
+
+/**
+ * A translated sentence with its figures in bold: the `{name}` placeholders of
+ * an already translated template become `<b>` around their values, so a
+ * sentence stays one key whatever order the language puts the figures in.
+ */
+function bolded(template: string, vars: Record<string, string | number>): ReactNode {
+  return template.split(/\{(\w+)\}/g).map((part, i) =>
+    i % 2 === 1 && part in vars ? <b key={i}>{vars[part]}</b> : <Fragment key={i}>{part}</Fragment>,
   );
 }

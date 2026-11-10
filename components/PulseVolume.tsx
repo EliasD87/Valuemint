@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, type KeyboardEvent } from "react";
 import type { ActivityRow } from "@/hooks/useActivity";
 import { bucketVolume, topCollections, type Bucket, type Grain } from "@/lib/volumeBuckets";
 import { formatSoso, shortAddress } from "@/lib/format";
+import { useT } from "@/lib/i18n";
 import "@/styles/pulse.css";
 
 /**
@@ -149,6 +150,7 @@ export function PulseVolume({
   hours: number | undefined;
   nameFor: (address: string) => string | undefined;
 }) {
+  const tr = useT();
   const [measureRef, width, measured] = useMeasured();
   const [active, setActive] = useState<number | undefined>(undefined);
   const [asTable, setAsTable] = useState(false);
@@ -259,12 +261,17 @@ export function PulseVolume({
 
   const shown = focus === undefined ? undefined : buckets[focus];
   const totalSales = buckets.reduce((n, b) => n + b.sales, 0);
+  const grainWord = tr(GRAIN_WORD[grain]);
+  const totalTraded = formatSoso(
+    buckets.reduce((s, b) => s + b.total, 0n),
+    2,
+  );
 
   return (
-    <section className="pv" aria-label="Volume traded">
+    <section className="pv" aria-label={tr("Volume traded")}>
       <div className="pv-head">
         <p className="pv-title">
-          SOSO traded <span className="pv-grain">{GRAIN_WORD[grain]}</span>
+          {tr("SOSO traded")} <span className="pv-grain">{grainWord}</span>
         </p>
 
         {/* The legend is the identity channel; colour is never asked to do it
@@ -274,7 +281,7 @@ export function PulseVolume({
           {legend.map((entry) => (
             <li key={entry.slot} className={entry.total === 0n ? "is-idle" : undefined}>
               <i className={`pv-dot ${SERIES_CLASS[entry.slot]}`} aria-hidden="true" />
-              <span className="pv-name">{entry.name}</span>
+              <span className="pv-name">{entry.slot === 0 ? tr(entry.name) : entry.name}</span>
               <span className="pv-amount">{formatSoso(entry.total, 2)}</span>
             </li>
           ))}
@@ -286,7 +293,7 @@ export function PulseVolume({
           aria-pressed={asTable}
           onClick={() => setAsTable((t) => !t)}
         >
-          {asTable ? "Chart" : "Table"}
+          {asTable ? tr("Chart") : tr("Table")}
         </button>
       </div>
 
@@ -304,7 +311,7 @@ export function PulseVolume({
           onPointerLeave={() => setActive(undefined)}
           onKeyDown={onKeyDown}
           onBlur={() => setActive(undefined)}
-          aria-label="Volume chart. Use the arrow keys to read each column."
+          aria-label={tr("Volume chart. Use the arrow keys to read each column.")}
         >
           {width === 0 ? null : (
             <svg
@@ -312,14 +319,27 @@ export function PulseVolume({
               width={width}
               height={height}
               role="img"
-              aria-label={`SOSO traded ${GRAIN_WORD[grain]}: ${formatSoso(
-                buckets.reduce((s, b) => s + b.total, 0n),
-                2,
-              )} SOSO across ${totalSales} ${totalSales === 1 ? "sale" : "sales"}${
+              aria-label={
                 peakIndex === -1
-                  ? ""
-                  : `, the busiest being ${spanLabel(buckets[peakIndex]!, grain)} at ${formatSoso(peak, 2)} SOSO`
-              }.`}
+                  ? tr(
+                      totalSales === 1
+                        ? "SOSO traded {grain}: {total} SOSO across {count} sale."
+                        : "SOSO traded {grain}: {total} SOSO across {count} sales.",
+                      { grain: grainWord, total: totalTraded, count: totalSales },
+                    )
+                  : tr(
+                      totalSales === 1
+                        ? "SOSO traded {grain}: {total} SOSO across {count} sale, the busiest being {span} at {peak} SOSO."
+                        : "SOSO traded {grain}: {total} SOSO across {count} sales, the busiest being {span} at {peak} SOSO.",
+                      {
+                        grain: grainWord,
+                        total: totalTraded,
+                        count: totalSales,
+                        span: spanLabel(buckets[peakIndex]!, grain),
+                        peak: formatSoso(peak, 2),
+                      },
+                    )
+              }
             >
               {/* Solid hairlines. Dashed ones read as a threshold or a
                   projection, and these are neither. */}
@@ -431,7 +451,7 @@ export function PulseVolume({
 
               {peak === 0n ? (
                 <text className="pv-empty" x={PAD.left + plotW / 2} y={PAD.top + plotH / 2}>
-                  No sales in this window
+                  {tr("No sales in this window")}
                 </text>
               ) : null}
             </svg>
@@ -475,6 +495,7 @@ function Tip({
   x: number;
   width: number;
 }) {
+  const t = useT();
   const TIP = 232;
   /* Centred on the column, held inside the frame at both ends. */
   const left = Math.max(4, Math.min(width - TIP - 4, x - TIP / 2));
@@ -486,14 +507,14 @@ function Tip({
     <div className="pv-tip" style={{ left, width: TIP }} role="status">
       <p className="pv-tip-when">{spanLabel(bucket, grain)}</p>
       {bucket.sales === 0 ? (
-        <p className="pv-tip-none">No sales</p>
+        <p className="pv-tip-none">{t("No sales")}</p>
       ) : (
         <>
           <p className="pv-tip-total">
             {formatSoso(bucket.total, 2)} SOSO
             <span>
               {" "}
-              · {bucket.sales} {bucket.sales === 1 ? "sale" : "sales"}
+              · {t(bucket.sales === 1 ? "{count} sale" : "{count} sales", { count: bucket.sales })}
             </span>
           </p>
           <ul>
@@ -537,23 +558,24 @@ function VolumeTable({
   series: ReadonlyArray<string>;
   labelOf: (address: string) => string;
 }) {
+  const t = useT();
   const busy = [...buckets].filter((b) => b.sales > 0).reverse();
-  if (busy.length === 0) return <p className="pv-table-empty">No sales in this window.</p>;
+  if (busy.length === 0) return <p className="pv-table-empty">{t("No sales in this window.")}</p>;
 
   return (
     <div className="pv-table-wrap">
       <table className="pv-table">
         <thead>
           <tr>
-            <th scope="col">When</th>
-            <th scope="col">Total</th>
+            <th scope="col">{t("When")}</th>
+            <th scope="col">{t("Total")}</th>
             {series.map((address) => (
               <th key={address} scope="col">
                 {labelOf(address)}
               </th>
             ))}
-            <th scope="col">Other</th>
-            <th scope="col">Sales</th>
+            <th scope="col">{t("Other")}</th>
+            <th scope="col">{t("Sales")}</th>
           </tr>
         </thead>
         <tbody>

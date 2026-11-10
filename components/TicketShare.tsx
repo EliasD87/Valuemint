@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useT } from "@/lib/i18n";
 
 /**
  * Share the Trenches perk ticket as a picture (owner, 2026-10-16): download
@@ -29,6 +30,7 @@ export function TicketShare({
   /** What the phone's share sheet posts with the picture. */
   text?: string;
 }) {
+  const tr = useT();
   const [open, setOpen] = useState(false);
   const [status, setStatus] = useState<Status>(undefined);
   const [can, setCan] = useState({ copy: false, share: false });
@@ -143,22 +145,22 @@ export function TicketShare({
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <path d="M12 3v12M7 8l5-5 5 5M5 14v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5" />
         </svg>
-        {label}
+        {tr(label)}
       </button>
 
       {open ? (
         <div className="tix-share-menu" role="menu">
           {can.share ? (
             <button type="button" role="menuitem" onClick={share} disabled={status?.kind === "busy"}>
-              Share…
+              {tr("Share…")}
             </button>
           ) : null}
           <button type="button" role="menuitem" onClick={download} disabled={status?.kind === "busy"}>
-            Download image
+            {tr("Download image")}
           </button>
           {can.copy ? (
             <button type="button" role="menuitem" onClick={copy} disabled={status?.kind === "busy"}>
-              Copy image
+              {tr("Copy image")}
             </button>
           ) : null}
         </div>
@@ -166,7 +168,7 @@ export function TicketShare({
 
       {status !== undefined ? (
         <span className={`tix-share-status is-${status.kind}`} role="status">
-          {status.text}
+          {tr(status.text)}
         </span>
       ) : null}
     </div>

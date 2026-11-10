@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { getAddress, parseEther, parseEventLogs } from "viem";
 import {
@@ -21,6 +21,19 @@ import { CREATE_ENABLED } from "@/config/features";
 import { Select } from "@/components/Select";
 import "@/styles/create.css";
 import { ConnectButton } from "@/components/ConnectButton";
+import { useT } from "@/lib/i18n";
+
+/**
+ * A translated sentence with elements in it: `{name}` placeholders left in the
+ * string by `t()` are swapped for the matching node, so the sentence stays one
+ * key and each language can put the emphasis where its grammar wants it.
+ */
+function rich(text: string, parts: Record<string, ReactNode>): ReactNode {
+  return text.split(/(\{\w+\})/).map((piece, i) => {
+    const name = /^\{(\w+)\}$/.exec(piece)?.[1];
+    return <Fragment key={i}>{name !== undefined && name in parts ? parts[name] : piece}</Fragment>;
+  });
+}
 
 /**
  * Creating a collection, artwork included.
@@ -70,9 +83,10 @@ export default function CreatePage() {
  * "come back". Nothing here promises a date, because none has been set.
  */
 function CreateClosed() {
+  const tr = useT();
   return (
     <section className="page section market-empty">
-      <p className="eyebrow">Create</p>
+      <p className="eyebrow">{tr("Create")}</p>
       {/*
         One line, and nothing about deployments.
 
@@ -83,14 +97,14 @@ function CreateClosed() {
         worry. A visitor who finds this page wants to know whether to come
         back, not what a pause does to a contract.
       */}
-      <h2>Creating a collection is temporarily closed.</h2>
-      <p className="muted">It will be back soon.</p>
+      <h2>{tr("Creating a collection is temporarily closed.")}</h2>
+      <p className="muted">{tr("It will be back soon.")}</p>
       <div className="wrap-row mt-md">
         <Link className="btn btn-primary" href="/collections">
-          Browse collections
+          {tr("Browse collections")}
         </Link>
         <Link className="btn" href="/market">
-          Go to the market
+          {tr("Go to the market")}
         </Link>
       </div>
     </section>
@@ -98,6 +112,7 @@ function CreateClosed() {
 }
 
 function Create() {
+  const tr = useT();
   const { address, isConnected } = useAccount();
   // The wallet's real network, from the connection. `useChainId()` only reports
   // chains in the config, so a wallet on Ethereum read as ValueChain (2026-09-25).
@@ -176,7 +191,7 @@ function Create() {
     const added: Design[] = [];
     for (const file of Array.from(list)) {
       if (!file.type.startsWith("image/")) {
-        setProblem(`"${file.name}" isn't an image.`);
+        setProblem(tr("\"{name}\" isn't an image.", { name: file.name }));
         continue;
       }
       added.push({
@@ -252,7 +267,7 @@ function Create() {
 
     if (usingUpload) {
       if (address === undefined) {
-        setProblem("Connect your wallet first.");
+        setProblem(tr("Connect your wallet first."));
         return;
       }
 
@@ -308,8 +323,8 @@ function Create() {
         const msg = e instanceof Error ? e.message : "";
         setProblem(
           /rejected|denied|User denied/i.test(msg)
-            ? "You cancelled the signature, so nothing was uploaded."
-            : "Could not sign the upload. Reconnect your wallet and try again.",
+            ? tr("You cancelled the signature, so nothing was uploaded.")
+            : tr("Could not sign the upload. Reconnect your wallet and try again."),
         );
         setSigning(false);
         return;
@@ -333,10 +348,10 @@ function Create() {
           body: form,
         });
         const body = await res.json();
-        if (!res.ok) throw new Error(body.error ?? "Upload failed.");
+        if (!res.ok) throw new Error(body.error ?? tr("Upload failed."));
         baseUri = body.baseUri as string;
       } catch (e) {
-        setProblem(e instanceof Error ? e.message : "Upload failed.");
+        setProblem(e instanceof Error ? e.message : tr("Upload failed."));
         setPinning(false);
         return;
       }
@@ -384,18 +399,28 @@ function Create() {
          * it, so this is true of every collection made here — it is the single
          * most important thing on this screen, not a footnote.
          */}
-        <p className="eyebrow">Created</p>
+        <p className="eyebrow">{tr("Created")}</p>
         <h1 className="create-title">
-          {minting ? `${name} is open for minting.` : `${name} is deployed. One step left.`}
+          {minting
+            ? tr("{name} is open for minting.", { name })
+            : tr("{name} is deployed. One step left.", { name })}
         </h1>
         <p className="lede">
-          You own it outright — {effectiveSupply} tokens,{" "}
-          {usingUpload ? `${designs.length} designs` : "your metadata"}, already attached.{" "}
+          {usingUpload
+            ? tr("You own it outright — {supply} tokens, {count} designs, already attached.", {
+                supply: effectiveSupply,
+                count: designs.length,
+              })
+            : tr("You own it outright — {supply} tokens, your metadata, already attached.", {
+                supply: effectiveSupply,
+              })}{" "}
           {minting ? (
-            <>Anyone can mint it now.</>
+            <>{tr("Anyone can mint it now.")}</>
           ) : (
             <>
-              <strong>Public minting is closed until you open it</strong>, so nobody can mint yet.
+              {rich(tr("{closed}, so nobody can mint yet."), {
+                closed: <strong>{tr("Public minting is closed until you open it")}</strong>,
+              })}
             </>
           )}
         </p>
@@ -412,14 +437,14 @@ function Create() {
            */}
           {minting ? (
             <Link className="btn btn-primary btn-lg" href={`/manage/${createdAddress}`}>
-              Manage it
+              {tr("Manage it")}
             </Link>
           ) : createdAddress === undefined ? (
             /* The receipt carried no CollectionCreated log, so there is no
                address to send the transaction to. Send them to the page that
                finds it by ownership rather than leaving a dead button. */
             <Link className="btn btn-primary btn-lg" href="/manage">
-              Open minting in Manage
+              {tr("Open minting in Manage")}
             </Link>
           ) : (
             <button
@@ -437,10 +462,10 @@ function Create() {
               }}
             >
               {openSigning
-                ? "Confirm in wallet…"
+                ? tr("Confirm in wallet…")
                 : openConfirming
-                  ? "Opening…"
-                  : "Open minting"}
+                  ? tr("Opening…")
+                  : tr("Open minting")}
             </button>
           )}
           <a
@@ -449,7 +474,7 @@ function Create() {
             target="_blank"
             rel="noreferrer noopener"
           >
-            View transaction
+            {tr("View transaction")}
           </a>
         </div>
 
@@ -458,18 +483,25 @@ function Create() {
           confirming={openConfirming}
           success={minting}
           error={openError}
-          successLabel="Minting is open"
+          successLabel={tr("Minting is open")}
         />
 
         {minting ? null : (
           <p className="field-hint create-next">
-            You can leave this until later — it is the same button on{" "}
-            {createdAddress === undefined ? (
-              "the collection's Manage page"
-            ) : (
-              <Link href={`/manage/${createdAddress}`}>its Manage page</Link>
+            {rich(
+              tr(
+                "You can leave this until later — it is the same button on {page}, which lists collections owned by the {wallet}.",
+              ),
+              {
+                page:
+                  createdAddress === undefined ? (
+                    tr("the collection's Manage page")
+                  ) : (
+                    <Link href={`/manage/${createdAddress}`}>{tr("its Manage page")}</Link>
+                  ),
+                wallet: <strong>{tr("connected wallet")}</strong>,
+              },
             )}
-            , which lists collections owned by the <strong>connected wallet</strong>.
           </p>
         )}
       </section>
@@ -481,8 +513,8 @@ function Create() {
   return (
     <section className="page section">
       <div className="create-head">
-        <p className="eyebrow">Create</p>
-        <h1 className="create-title">A collection, start to finish.</h1>
+        <p className="eyebrow">{tr("Create")}</p>
+        <h1 className="create-title">{tr("A collection, start to finish.")}</h1>
         <ol className="create-steps">
           {STEPS.map((label, i) => {
             /* Backwards is always allowed — reviewing what you typed is not a
@@ -494,10 +526,10 @@ function Create() {
                 <button
                   onClick={() => setStep(i)}
                   disabled={shut.length > 0}
-                  title={shut.length > 0 ? shut.join(" ") : undefined}
+                  title={shut.length > 0 ? shut.map((p) => tr(p)).join(" ") : undefined}
                 >
                   <span className="create-step-n">{i + 1}</span>
-                  {label}
+                  {tr(label)}
                 </button>
               </li>
             );
@@ -512,11 +544,11 @@ function Create() {
               <Field label="Name" hint="Shown in wallets and marketplaces. Permanent." value={name} onChange={setName} placeholder="Nocturne Editions" />
               <Field label="Symbol" hint="A short ticker. Permanent." value={symbol} onChange={(v) => setSymbol(v.toUpperCase())} placeholder="NCT" maxLength={11} />
               <div className="field">
-                <label>Description</label>
+                <label>{tr("Description")}</label>
                 <textarea
                   className="input create-textarea"
                   rows={3}
-                  placeholder="Shown on every piece."
+                  placeholder={tr("Shown on every piece.")}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                 />
@@ -535,10 +567,10 @@ function Create() {
                 }}
               >
                 <input ref={fileInput} type="file" accept="image/*" multiple hidden onChange={(e) => addFiles(e.target.files)} />
-                <p className="studio-drop-title">Drop your artwork here</p>
-                <p className="muted">One image per design. Square works best — marketplaces crop to square.</p>
+                <p className="studio-drop-title">{tr("Drop your artwork here")}</p>
+                <p className="muted">{tr("One image per design. Square works best — marketplaces crop to square.")}</p>
                 <button className="btn btn-primary" onClick={() => fileInput.current?.click()}>
-                  Choose images
+                  {tr("Choose images")}
                 </button>
               </div>
 
@@ -550,29 +582,29 @@ function Create() {
                       <img src={d.preview} alt={d.name} />
                       <div className="studio-design-fields">
                         <div className="field">
-                          <label>Name</label>
+                          <label>{tr("Name")}</label>
                           <input className="input" value={d.name} onChange={(e) => update(d.id, { name: e.target.value })} />
                         </div>
                         <div className="studio-design-row">
                           <div className="field">
-                            <label>How many</label>
+                            <label>{tr("How many")}</label>
                             <input className="input" inputMode="numeric" value={d.count} onChange={(e) => update(d.id, { count: Math.max(0, Number(e.target.value) || 0) })} />
                           </div>
                           <div className="field">
-                            <label>Tier</label>
+                            <label>{tr("Tier")}</label>
                             <Select
-                              label="Tier"
+                              label={tr("Tier")}
                               value={d.tier}
                               onChange={(v) => update(d.id, { tier: v })}
                               options={TIERS.map((t) => ({
                                 value: t,
-                                label: t === "" ? "None" : t,
+                                label: t === "" ? tr("None") : tr(t),
                               }))}
                             />
                           </div>
                         </div>
                         <button className="btn btn-sm" onClick={() => remove(d.id)}>
-                          Remove
+                          {tr("Remove")}
                         </button>
                       </div>
                     </div>
@@ -581,14 +613,14 @@ function Create() {
               ) : null}
 
               <details className="create-advanced" open={advanced} onToggle={(e) => setAdvanced(e.currentTarget.open)}>
-                <summary>Already host your own metadata?</summary>
+                <summary>{tr("Already host your own metadata?")}</summary>
                 <div className="create-advanced-body">
                   <Field
                     label="Metadata address"
                     hint="Each token resolves to this plus its id, so it must end with a slash. Leave blank to use the images above."
                     value={manualUri}
                     onChange={setManualUri}
-                    placeholder="https://…/ or ipfs://…/"
+                    placeholder={tr("https://…/ or ipfs://…/")}
                   />
                   {!usingUpload ? (
                     <Field label="Total supply" hint="How many tokens exist. Permanent." value={manualSupply} onChange={setManualSupply} />
@@ -631,12 +663,12 @@ function Create() {
             <dl className="create-review">
               <Row label="Name" value={`${name || "—"} (${symbol || "—"})`} />
               <Row label="Supply" value={String(effectiveSupply)} />
-              <Row label="Designs" value={usingUpload ? String(designs.length) : "Your own metadata"} />
+              <Row label="Designs" value={usingUpload ? String(designs.length) : tr("Your own metadata")} />
               <Row label="Public sale" value={String(Math.max(effectiveSupply - (Number(reserve) || 0), 0))} />
               <Row label="You keep" value={reserve || "0"} />
               <Row label="Price" value={`${price || "0"} SOSO`} />
-              <Row label="Per wallet" value={perWallet === "0" ? "No limit" : perWallet} />
-              <Row label="Royalty" value={`${royalty || "0"}% (EIP-2981, not paid on ValueMint)`} />
+              <Row label="Per wallet" value={perWallet === "0" ? tr("No limit") : perWallet} />
+              <Row label="Royalty" value={tr("{royalty}% (EIP-2981, not paid on ValueMint)", { royalty: royalty || "0" })} />
             </dl>
           ) : null}
 
@@ -646,7 +678,7 @@ function Create() {
           <div className="create-nav">
             {step > 0 ? (
               <button className="btn btn-lg" onClick={() => setStep(step - 1)}>
-                Back
+                {tr("Back")}
               </button>
             ) : (
               <span />
@@ -658,25 +690,25 @@ function Create() {
                 disabled={stepProblems[step]!.length > 0}
                 onClick={() => setStep(step + 1)}
               >
-                Continue
+                {tr("Continue")}
               </button>
             ) : !isConnected ? (
-              <ConnectButton>Connect wallet</ConnectButton>
+              <ConnectButton>{tr("Connect wallet")}</ConnectButton>
             ) : chainId !== valuechain.id ? (
               <button className="btn btn-primary btn-lg" disabled={switching} onClick={() => void switchTo(valuechain.id).catch(() => undefined)}>
-                {switching ? "Switching…" : "Switch to ValueChain"}
+                {switching ? tr("Switching…") : tr("Switch to ValueChain")}
               </button>
             ) : (
               <button className="btn btn-primary btn-lg" disabled={busy || problems.length > 0} onClick={create}>
                 {signing
-                ? "Sign to authorise…"
+                ? tr("Sign to authorise…")
                 : pinning
-                  ? "Uploading artwork…"
+                  ? tr("Uploading artwork…")
                   : txSigning
-                    ? "Confirm in wallet…"
+                    ? tr("Confirm in wallet…")
                     : confirming
-                      ? "Creating…"
-                      : "Create collection"}
+                      ? tr("Creating…")
+                      : tr("Create collection")}
               </button>
             )}
           </div>
@@ -691,19 +723,19 @@ function Create() {
             wrong on a form somebody has not filled in yet.
           */}
           {step < 3 && stepProblems[step]!.length > 0 ? (
-            <p className="create-nav-why">{stepProblems[step]!.join(" ")}</p>
+            <p className="create-nav-why">{stepProblems[step]!.map((p) => tr(p)).join(" ")}</p>
           ) : null}
 
           {problem !== undefined ? <p className="create-error">{problem}</p> : null}
           {writeError !== null ? (
             <p className="create-error">
-              {/rejected|denied|User denied/i.test(writeError.message) ? "You cancelled the transaction." : writeError.message.slice(0, 160)}
+              {/rejected|denied|User denied/i.test(writeError.message) ? tr("You cancelled the transaction.") : writeError.message.slice(0, 160)}
             </p>
           ) : null}
         </div>
 
         <aside className="create-panel card">
-          <h2 className="create-panel-title">{name.trim() || "Untitled"}</h2>
+          <h2 className="create-panel-title">{name.trim() || tr("Untitled")}</h2>
           <p className="create-symbol mono">{symbol.trim() || "—"}</p>
 
           {designs.length > 0 ? (
@@ -718,21 +750,25 @@ function Create() {
           <dl className="create-summary">
             <Row label="Supply" value={effectiveSupply === 0 ? "—" : String(effectiveSupply)} />
             <Row label="Price" value={`${price || "0"} SOSO`} />
-            <Row label="Royalty" value={`${royalty || "0"}% (EIP-2981)`} />
-            <Row label="Cost to create" value="Gas only" />
+            <Row label="Royalty" value={tr("{royalty}% (EIP-2981)", { royalty: royalty || "0" })} />
+            <Row label="Cost to create" value={tr("Gas only")} />
           </dl>
 
           <p className="create-permanent">
-            Supply, the public allocation and the per-wallet limit are <strong>permanent</strong>.
-            Price, artwork and royalty can be changed later.
+            {rich(
+              tr(
+                "Supply, the public allocation and the per-wallet limit are {permanent}. Price, artwork and royalty can be changed later.",
+              ),
+              { permanent: <strong>{tr("permanent")}</strong> },
+            )}
           </p>
 
           {problems.length > 0 && step === 3 ? (
             <div className="create-problems">
-              <p className="create-problems-title">Before you can create</p>
+              <p className="create-problems-title">{tr("Before you can create")}</p>
               <ul>
                 {problems.map((p) => (
-                  <li key={p}>{p}</li>
+                  <li key={p}>{tr(p)}</li>
                 ))}
               </ul>
             </div>
@@ -758,19 +794,21 @@ function Field({
   placeholder?: string;
   maxLength?: number;
 }) {
+  const tr = useT();
   return (
     <div className="field">
-      <label>{label}</label>
+      <label>{tr(label)}</label>
       <input className="input" value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} maxLength={maxLength} />
-      <span className="field-hint">{hint}</span>
+      <span className="field-hint">{tr(hint)}</span>
     </div>
   );
 }
 
 function Row({ label, value }: { label: string; value: string }) {
+  const tr = useT();
   return (
     <div className="create-row">
-      <dt>{label}</dt>
+      <dt>{tr(label)}</dt>
       <dd className="mono">{value}</dd>
     </div>
   );

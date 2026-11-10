@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { erc20Abi, type Hex } from "viem";
 import { useAccount, useReadContracts } from "wagmi";
@@ -18,6 +18,7 @@ import { formatSoso } from "@/lib/format";
 import { currencyLabel, fulfillerOutlay, remainingPieces } from "@/lib/seaport";
 import { PiecePicker } from "@/components/PiecePicker";
 import { chosenPieces, firstPieces } from "@/lib/piecePick";
+import { useT } from "@/lib/i18n";
 import "./OfferDialog.css";
 import "./SellIntoOffer.css";
 
@@ -62,6 +63,7 @@ export function SellIntoOffer({
   onClose: () => void;
 }) {
   const { address } = useAccount();
+  const t = useT();
   const trade = useSeaportTrade(collection);
   const fill = useSeaportFill();
   const ownBids = useOwnOfferExposure(address, deployment.wsoso as `0x${string}`);
@@ -151,13 +153,13 @@ export function SellIntoOffer({
         pieces.map(async (tokenId) => {
           const memberships = await fetchTokenCriteria(collection, tokenId, bounds);
           const m = memberships.find((x) => rootKey(x.root) === key);
-          if (m === undefined) throw new Error(`#${tokenId.toString()} is not in this offer's set.`);
+          if (m === undefined) throw new Error(t("#{id} is not in this offer's set.", { id: tokenId.toString() }));
           return { tokenId, proof: m.proof as readonly Hex[] };
         }),
       );
       fill.acceptOfferMany(offer, proved);
     } catch (e) {
-      setProofError(e instanceof Error ? e : new Error("Could not check your pieces just now."));
+      setProofError(e instanceof Error ? e : new Error(t("Could not check your pieces just now.")));
     } finally {
       setProving(false);
     }
@@ -173,13 +175,13 @@ export function SellIntoOffer({
   return createPortal(
     <>
       <div className="od-scrim" onClick={onClose} aria-hidden="true" />
-      <div className="od" role="dialog" aria-modal="true" aria-label="Sell into this offer">
+      <div className="od" role="dialog" aria-modal="true" aria-label={t("Sell into this offer")}>
         <div className="od-head">
           <div>
-            <p className="od-kicker">Sell into an offer</p>
-            <h2>{label}</h2>
+            <p className="od-kicker">{t("Sell into an offer")}</p>
+            <h2>{t(label)}</h2>
           </div>
-          <button type="button" className="od-close" aria-label="Close" onClick={onClose}>
+          <button type="button" className="od-close" aria-label={t("Close")} onClick={onClose}>
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M6 6l12 12M18 6L6 18" />
             </svg>
@@ -188,28 +190,36 @@ export function SellIntoOffer({
 
         <div className="od-body sio">
           <p className="sio-offer">
-            <AddressLink address={offer.maker} chars={4} /> wants <b>{wanted}</b> at{" "}
-            <Soso size={14} unit={currencyLabel(offer.currency)}>
-              {formatSoso(offer.priceWei)}
-            </Soso>{" "}
-            each. You have <b>{sorted.length}</b> that qualify.
+            {withSlots(t("{maker} wants {wanted} at {price} each. You have {held} that qualify."), {
+              maker: <AddressLink address={offer.maker} chars={4} />,
+              wanted: <b>{wanted}</b>,
+              price: (
+                <Soso size={14} unit={currencyLabel(offer.currency)}>
+                  {formatSoso(offer.priceWei)}
+                </Soso>
+              ),
+              held: <b>{sorted.length}</b>,
+            })}
           </p>
 
           {funded !== undefined && funded < Math.min(wanted, sorted.length) ? (
             <p className="sio-note">
-              The bidder&rsquo;s WSOSO covers {funded} {funded === 1 ? "piece" : "pieces"} right now, so
-              that is the most you can sell into it.
+              {funded === 1
+                ? t("The bidder’s WSOSO covers 1 piece right now, so that is the most you can sell into it.")
+                : t("The bidder’s WSOSO covers {count} pieces right now, so that is the most you can sell into it.", {
+                    count: funded,
+                  })}
             </p>
           ) : null}
 
           {max === 0 ? (
             <p className="sio-note">
-              {funded === undefined ? "Checking the bidder’s funds…" : "Nothing can be sold into this offer right now."}
+              {t(funded === undefined ? "Checking the bidder’s funds…" : "Nothing can be sold into this offer right now.")}
             </p>
           ) : (
             <>
               <label className="sio-count">
-                <span className="offers-label">How many</span>
+                <span className="offers-label">{t("How many")}</span>
                 <input
                   inputMode="numeric"
                   placeholder={String(max)}
@@ -221,7 +231,7 @@ export function SellIntoOffer({
                     if (choosing) setSelected(firstPieces(sorted, next === "" ? max : Number(next)));
                   }}
                 />
-                <small>up to {max}</small>
+                <small>{t("up to {max}", { max })}</small>
               </label>
 
               {choosing && pickerOpen ? (
@@ -239,10 +249,12 @@ export function SellIntoOffer({
                 />
               ) : (
                 <p className="sio-pieces">
-                  Selling{" "}
                   {pieces.length <= 12
-                    ? pieces.map((id) => `#${id.toString()}`).join(", ")
-                    : `${pieces.slice(0, 10).map((id) => `#${id.toString()}`).join(", ")} and ${pieces.length - 10} more`}
+                    ? t("Selling {pieces}", { pieces: pieces.map((id) => `#${id.toString()}`).join(", ") })
+                    : t("Selling {pieces} and {more} more", {
+                        pieces: pieces.slice(0, 10).map((id) => `#${id.toString()}`).join(", "),
+                        more: pieces.length - 10,
+                      })}
                 </p>
               )}
               {sorted.length > 1 ? (
@@ -260,22 +272,30 @@ export function SellIntoOffer({
                     } else setPickerOpen(!pickerOpen);
                   }}
                 >
-                  {!choosing ? "Choose which pieces" : pickerOpen ? "Hide the list" : "Change which pieces"}
+                  {t(!choosing ? "Choose which pieces" : pickerOpen ? "Hide the list" : "Change which pieces")}
                 </button>
               ) : null}
 
               <p className="sio-sum">
-                You receive{" "}
-                <b>
-                  <Soso size={14} unit={currencyLabel(offer.currency)}>
-                    {formatSoso(gross - fee)}
-                  </Soso>
-                </b>{" "}
-                for {n} {n === 1 ? "piece" : "pieces"}, after the{" "}
-                <Soso size={12} unit={currencyLabel(offer.currency)}>
-                  {formatSoso(fee)}
-                </Soso>{" "}
-                fee. One transaction.
+                {withSlots(
+                  n === 1
+                    ? t("You receive {net} for 1 piece, after the {fee} fee. One transaction.")
+                    : t("You receive {net} for {count} pieces, after the {fee} fee. One transaction.", { count: n }),
+                  {
+                    net: (
+                      <b>
+                        <Soso size={14} unit={currencyLabel(offer.currency)}>
+                          {formatSoso(gross - fee)}
+                        </Soso>
+                      </b>
+                    ),
+                    fee: (
+                      <Soso size={12} unit={currencyLabel(offer.currency)}>
+                        {formatSoso(fee)}
+                      </Soso>
+                    ),
+                  },
+                )}
               </p>
 
               <button
@@ -290,18 +310,18 @@ export function SellIntoOffer({
               >
                 {busy
                   ? proving
-                    ? "Checking your pieces…"
-                    : "Working…"
+                    ? t("Checking your pieces…")
+                    : t("Working…")
                   : mustApprove
-                    ? "Approve, then sell"
+                    ? t("Approve, then sell")
                     : mustAllowFee
-                      ? "Allow fee, then sell"
-                      : `Sell ${n}`}
+                      ? t("Allow fee, then sell")
+                      : t("Sell {count}", { count: n })}
               </button>
               {mustApprove ? (
-                <p className="sio-note">One approval per collection, then the sale.</p>
+                <p className="sio-note">{t("One approval per collection, then the sale.")}</p>
               ) : mustAllowFee ? (
-                <p className="sio-note">The fee is taken in WSOSO from what you are paid.</p>
+                <p className="sio-note">{t("The fee is taken in WSOSO from what you are paid.")}</p>
               ) : null}
             </>
           )}
@@ -313,11 +333,28 @@ export function SellIntoOffer({
             confirming={fill.confirming || trade.confirming}
             success={fill.isSuccess || trade.isSuccess}
             error={fill.error ?? trade.error ?? feeAllowance.error}
-            successLabel={fill.isSuccess ? `Sold ${n}` : "Approved"}
+            successLabel={fill.isSuccess ? t("Sold {count}", { count: n }) : "Approved"}
           />
         </div>
       </div>
     </>,
     document.body,
+  );
+}
+
+/**
+ * A translated sentence with markup in it: every `{name}` that `nodes` has an
+ * entry for is replaced by that node, so the sentence stays one key in the
+ * dictionary and the markup survives in either language.
+ */
+function withSlots(text: string, nodes: Record<string, ReactNode>): ReactNode {
+  const parts = text.split(/(\{\w+\})/);
+  return (
+    <>
+      {parts.map((part, i) => {
+        const name = /^\{(\w+)\}$/.exec(part)?.[1];
+        return name !== undefined && name in nodes ? <Fragment key={i}>{nodes[name]}</Fragment> : part;
+      })}
+    </>
   );
 }

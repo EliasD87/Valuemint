@@ -15,6 +15,7 @@ import { heroCopy } from "@/config/heroCopy";
 import { useExploreSummary } from "@/hooks/useExploreSummary";
 import { ExploreStory } from "@/components/ExploreStory";
 import type { ExploreSummary } from "@/lib/exploreTypes";
+import { useT } from "@/lib/i18n";
 
 /** "all", "listed", or a collection address. */
 
@@ -142,6 +143,7 @@ interface DeckCard {
 const HERO_COPY = heroCopy(CREATE_ENABLED);
 
 function Hero({ deck }: { deck: DeckCard[] }) {
+  const t = useT();
   /**
    * The fan's axis, which is a *position* and not a card.
    *
@@ -231,9 +233,9 @@ function Hero({ deck }: { deck: DeckCard[] }) {
       <div className="page hx-inner">
 
         <h1 className="hx-title">
-          {HERO_COPY.lead}
+          {t(HERO_COPY.lead)}
           <br />
-          <em>{HERO_COPY.em}</em>
+          <em>{t(HERO_COPY.em)}</em>
         </h1>
 
         <div className="hx-deck">
@@ -262,15 +264,15 @@ function Hero({ deck }: { deck: DeckCard[] }) {
             each something a buyer would otherwise have to go and look up. Inside
             the deck, so they are placed against the cards at every width.
           */}
-          <span className="hx-float hx-float-a" aria-hidden="true">~2s blocks</span>
+          <span className="hx-float hx-float-a" aria-hidden="true">{t("~2s blocks")}</span>
           <span className="hx-float hx-float-b" aria-hidden="true">0.008 gwei</span>
         </div>
 
-        <p className="hx-lede">{HERO_COPY.lede}</p>
+        <p className="hx-lede">{t(HERO_COPY.lede)}</p>
 
         <div className="hx-actions">
           <Link className="btn btn-lg hx-btn-ghost" href="/collections">
-            Explore collections
+            {t("Explore collections")}
           </Link>
           {/*
             The other half of the headline, and the one carrying the emphasis.
@@ -287,11 +289,11 @@ function Hero({ deck }: { deck: DeckCard[] }) {
             and white.
           */}
           <Link className="btn btn-primary btn-lg" href="/market">
-            Trade NFTs
+            {t("Trade NFTs")}
           </Link>
           {CREATE_ENABLED ? (
             <Link className="btn btn-lg hx-btn-ghost" href="/create">
-              Create a collection
+              {t("Create a collection")}
             </Link>
           ) : null}
         </div>

@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import type { FillBlock } from "@/lib/fillCheck";
+import { useT } from "@/lib/i18n";
 import "./FillBlocked.css";
 
 /**
@@ -26,11 +27,12 @@ export function FillBlocked({
   /** Anything extra this surface can add — a new price, say. */
   children?: ReactNode;
 }) {
+  const t = useT();
   if (blocked === undefined) return null;
 
   return (
     <div className="fill-blocked" role="status" aria-live="polite">
-      <p>{blocked.say}</p>
+      <p>{t(blocked.say)}</p>
       {children}
     </div>
   );

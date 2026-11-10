@@ -7,6 +7,7 @@ import { GUIDE_STEPS, type GuideIcon } from "@/config/guide";
 import { GuideArt } from "@/components/GuideArt";
 import { ArrowRight } from "@/components/Arrows";
 import { needsSoso } from "@/lib/needsSoso";
+import { useT } from "@/lib/i18n";
 import "@/styles/guide.css";
 
 /**
@@ -23,6 +24,7 @@ import "@/styles/guide.css";
  * this does not read the chain.
  */
 export function WhereIsMySoso({ balance }: { balance: bigint | undefined }) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   if (!needsSoso(balance)) return null;
 
@@ -32,7 +34,7 @@ export function WhereIsMySoso({ balance }: { balance: bigint | undefined }) {
         type="button"
         className="soso-help"
         onClick={() => setOpen(true)}
-        title="How to get SOSO onto ValueChain"
+        title={t("How to get SOSO onto ValueChain")}
       >
         <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
           <circle cx="8" cy="8" r="6.25" fill="none" stroke="currentColor" strokeWidth="1.4" />
@@ -45,7 +47,7 @@ export function WhereIsMySoso({ balance }: { balance: bigint | undefined }) {
           />
           <circle cx="8" cy="11.4" r=".85" fill="currentColor" />
         </svg>
-        Where is my SOSO?
+        {t("Where is my SOSO?")}
       </button>
       {open ? <SosoGuideDialog onClose={() => setOpen(false)} /> : null}
     </>
@@ -72,6 +74,7 @@ const CALLOUT_KEY = "valuemint:soso-callout-closed";
  * `prefers-reduced-motion`.
  */
 export function SosoCallout({ balance }: { balance: bigint | undefined }) {
+  const t = useT();
   const [closed, setClosed] = useState(false);
   const [open, setOpen] = useState(false);
 
@@ -101,12 +104,12 @@ export function SosoCallout({ balance }: { balance: bigint | undefined }) {
             />
             <circle cx="8" cy="11.4" r=".85" fill="currentColor" />
           </svg>
-          Where is my SOSO?
+          {t("Where is my SOSO?")}
         </button>
         <button
           type="button"
           className="soso-callout-close"
-          aria-label="Close"
+          aria-label={t("Close")}
           onClick={() => {
             setClosed(true);
             try {
@@ -142,6 +145,7 @@ export function SosoCallout({ balance }: { balance: bigint | undefined }) {
  * it centre itself in a 72px bar.
  */
 function SosoGuideDialog({ onClose }: { onClose: () => void }) {
+  const t = useT();
   const step = GUIDE_STEPS.find((s) => s.id === "soso");
   const [mounted, setMounted] = useState(false);
   const close = useRef<HTMLButtonElement>(null);
@@ -172,7 +176,7 @@ function SosoGuideDialog({ onClose }: { onClose: () => void }) {
     <>
       <div className="gd-scrim" onClick={onClose} aria-hidden="true" />
       <div className="sg" role="dialog" aria-modal="true" aria-labelledby="sg-title">
-        <button ref={close} type="button" className="gd-close sg-close" aria-label="Close" onClick={onClose}>
+        <button ref={close} type="button" className="gd-close sg-close" aria-label={t("Close")} onClick={onClose}>
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="M6 6l12 12M18 6L6 18" />
           </svg>
@@ -180,11 +184,11 @@ function SosoGuideDialog({ onClose }: { onClose: () => void }) {
 
         <div className="sg-top">
           <div className="sg-intro">
-            <p className="sg-kicker">Your balance is empty</p>
+            <p className="sg-kicker">{t("Your balance is empty")}</p>
             <h2 id="sg-title" className="sg-title">
-              {step.title}
+              {t(step.title)}
             </h2>
-            <p className="sg-lead">{step.body}</p>
+            <p className="sg-lead">{t(step.body)}</p>
           </div>
           <div className="sg-art">
             <GuideArt id={step.id} />
@@ -201,11 +205,11 @@ function SosoGuideDialog({ onClose }: { onClose: () => void }) {
                   </span>
                   <ActionIcon icon={a.icon} />
                 </div>
-                <h3 className="sg-card-title">{a.title}</h3>
-                <p className="sg-card-text">{a.text}</p>
+                <h3 className="sg-card-title">{t(a.title)}</h3>
+                <p className="sg-card-text">{t(a.text)}</p>
                 {a.link === undefined ? null : (
                   <a className="sg-card-link" href={a.link.href} target="_blank" rel="noreferrer noopener">
-                    {a.link.label}
+                    {t(a.link.label)}
                     <span aria-hidden="true">&#8599;</span>
                   </a>
                 )}
@@ -218,7 +222,7 @@ function SosoGuideDialog({ onClose }: { onClose: () => void }) {
             dialog is the five moves and the way to the rest. */}
         <div className="sg-foot">
           <Link className="btn btn-sm sg-full" href={`/guide#${step.id}`} onClick={onClose}>
-            Full guide
+            {t("Full guide")}
             <ArrowRight />
           </Link>
         </div>

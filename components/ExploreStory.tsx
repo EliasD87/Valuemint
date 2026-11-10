@@ -13,6 +13,7 @@ import { formatCount, formatSoso } from "@/lib/format";
 import { stillUrl } from "@/lib/media";
 import type { ExploreSummary } from "@/lib/exploreTypes";
 import type { CollectionSummary } from "@/hooks/useAllCollections";
+import { useT } from "@/lib/i18n";
 import "@/styles/explore.css";
 
 /**
@@ -76,10 +77,12 @@ export function ExploreStory({
     [summary],
   );
 
+  const t = useT();
+
   return (
     <>
       <section className="ex page">
-        <SectionHead title="Top collections" href="/collections" link="All collections" />
+        <SectionHead title={t("Top collections")} href="/collections" link={t("All collections")} />
         <TopCollections summary={trusted} names={names} />
       </section>
 
@@ -162,23 +165,26 @@ function Mints({ collections }: { collections: readonly CollectionSummary[] }) {
   /** Only once the mint settings have actually been read: before that, every collection looks closed. */
   const known = collections.some((c) => c.publicMintEnabled !== undefined);
 
+  const t = useT();
+  const [idleBefore, idleAfter] = t("Nothing is minting at the moment. Everything already minted is on the {market}.").split("{market}");
+
   const scroll = (by: number) =>
     rail.current?.scrollBy({ left: by * rail.current.clientWidth * 0.8, behavior: "smooth" });
 
   return (
     <section className="ex page">
-      <SectionHead title="Minting now" href="/mint" link="All mints">
-        <button type="button" className="ex-round ex-round-line" aria-label="Scroll back" onClick={() => scroll(-1)}>
+      <SectionHead title={t("Minting now")} href="/mint" link={t("All mints")}>
+        <button type="button" className="ex-round ex-round-line" aria-label={t("Scroll back")} onClick={() => scroll(-1)}>
           <Chevron left />
         </button>
-        <button type="button" className="ex-round ex-round-line" aria-label="Scroll on" onClick={() => scroll(1)}>
+        <button type="button" className="ex-round ex-round-line" aria-label={t("Scroll on")} onClick={() => scroll(1)}>
           <Chevron />
         </button>
       </SectionHead>
 
       {known && mintable.length === 0 ? (
         <p className="ex-empty">
-          Nothing is minting at the moment. Everything already minted is on the <Link href="/market">market</Link>.
+          {idleBefore}<Link href="/market">{t("market")}</Link>{idleAfter}
         </p>
       ) : (
         <div className="ex-rail" ref={rail}>
@@ -198,7 +204,7 @@ function Mints({ collections }: { collections: readonly CollectionSummary[] }) {
                     <span className="ex-mint-body">
                       <b className="ex-mint-name">{c.name}</b>
                       <span className="ex-mint-price">
-                        <Soso size={13}>{formatSoso(c.mintPrice)}</Soso> each
+                        <Soso size={13}>{formatSoso(c.mintPrice)}</Soso> {t("each")}
                       </span>
                       {c.maxSupply !== undefined && c.maxSupply > 0n && c.totalSupply !== undefined ? (
                         <>
@@ -206,11 +212,11 @@ function Mints({ collections }: { collections: readonly CollectionSummary[] }) {
                             <i style={{ width: `${Math.min(100, share * 100)}%` }} />
                           </span>
                           <span className="ex-mint-count">
-                            {formatCount(c.totalSupply)} of {formatCount(c.maxSupply)} minted
+                            {t("{minted} of {max} minted", { minted: formatCount(c.totalSupply), max: formatCount(c.maxSupply) })}
                           </span>
                         </>
                       ) : (
-                        <span className="ex-mint-count">{formatCount(c.publicMintRemaining)} left</span>
+                        <span className="ex-mint-count">{t("{count} left", { count: formatCount(c.publicMintRemaining) })}</span>
                       )}
                     </span>
                   </WarmLink>
@@ -225,9 +231,10 @@ function Mints({ collections }: { collections: readonly CollectionSummary[] }) {
 /* -------------------------------------------------------------- featured */
 
 function Featured({ market }: { market: Market }) {
+  const t = useT();
   return (
     <section className="ex page">
-      <SectionHead title="Featured pieces" href="/market" link="Browse the market" />
+      <SectionHead title={t("Featured pieces")} href="/market" link={t("Browse the market")} />
 
       <div className="ex-tiles">
         {FEATURED.map((piece, i) => {
@@ -247,7 +254,7 @@ function Featured({ market }: { market: Market }) {
                   piece.collectionName
                 ) : (
                   <>
-                    Floor <Soso size={10}>{formatSoso(BigInt(m.floorWei), 2)}</Soso>
+                    {t("Floor")} <Soso size={10}>{formatSoso(BigInt(m.floorWei), 2)}</Soso>
                   </>
                 )}
               </span>
@@ -268,6 +275,7 @@ function Featured({ market }: { market: Market }) {
  * the tallest section on the page. The point of it is the four sentences.
  */
 function Features() {
+  const t = useT();
   const cards: Array<{ href: string; title: string; text: string; art: string[] }> = [
     {
       href: "/market",
@@ -297,7 +305,7 @@ function Features() {
 
   return (
     <section className="ex page">
-      <SectionHead title="Built for trading" />
+      <SectionHead title={t("Built for trading")} />
       <div className="ex-feats">
         {cards.map((c) => (
           <Link key={c.title} className="ex-feat" href={c.href}>
@@ -307,8 +315,8 @@ function Features() {
                 <img key={src} src={src} alt="" loading="lazy" decoding="async" />
               ))}
             </span>
-            <b className="ex-feat-title">{c.title}</b>
-            <span className="ex-feat-text">{c.text}</span>
+            <b className="ex-feat-title">{t(c.title)}</b>
+            <span className="ex-feat-text">{t(c.text)}</span>
           </Link>
         ))}
       </div>

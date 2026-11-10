@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useAccount } from "wagmi";
 import { useTopHolders } from "@/hooks/useTopHolders";
 import { formatCount, shortAddress } from "@/lib/format";
+import { useT } from "@/lib/i18n";
 import "@/styles/activity.css";
 import "./TopHolders.css";
 
@@ -34,6 +35,7 @@ export function TopHolders({
   standalone?: boolean;
 }) {
   const { address: viewer } = useAccount();
+  const t = useT();
   const { holders, isLoading, unavailable } = useTopHolders(collection, enabled);
 
   /**
@@ -55,14 +57,16 @@ export function TopHolders({
   return (
     <div className={`act-panel${standalone ? " act-panel-standalone" : ""}`}>
       <div className="act-head">
-        <p className="act-title">Top holders</p>
+        <p className="act-title">{t("Top holders")}</p>
         {holders.length > shown.length ? (
           <span className="act-count">
-            {shown.length} of {formatCount(BigInt(holders.length))}
+            {t("{shown} of {total}", { shown: shown.length, total: formatCount(BigInt(holders.length)) })}
           </span>
         ) : holders.length > 0 ? (
           <span className="act-count">
-            {formatCount(BigInt(holders.length))} {holders.length === 1 ? "holder" : "holders"}
+            {holders.length === 1
+              ? t("1 holder")
+              : t("{count} holders", { count: formatCount(BigInt(holders.length)) })}
           </span>
         ) : null}
       </div>
@@ -80,11 +84,10 @@ export function TopHolders({
          * first is a claim about the collection and only the second is known.
          */
         <p className="act-note">
-          The explorer would not answer just now, so this could not be read. It is not empty
-          &mdash; try again in a moment.
+          {t("The explorer would not answer just now, so this could not be read. It is not empty — try again in a moment.")}
         </p>
       ) : shown.length === 0 ? (
-        <p className="act-note">Nothing has been minted here yet, so nobody holds any.</p>
+        <p className="act-note">{t("Nothing has been minted here yet, so nobody holds any.")}</p>
       ) : (
         <ol className={`act-list th-list${expanded ? " is-expanded" : ""}`}>
           {shown.map((h, i) => (
@@ -96,14 +99,14 @@ export function TopHolders({
               {/* To the holder's own page on ValueMint — what they collect —
                   rather than the explorer, which lists transactions. */}
               <Link className="th-who" href={`/address/${h.address}`} title={h.address}>
-                {mine(h.address) ? "You" : (h.name ?? shortAddress(h.address, 4))}
+                {mine(h.address) ? t("You") : (h.name ?? shortAddress(h.address, 4))}
                 {/*
                   A contract holding a lot of a collection is a different fact
                   from a person holding a lot — a bridge, a vault, or this
                   marketplace's own escrow would all top a leaderboard without
                   anybody having bought anything.
                 */}
-                {h.isContract ? <span className="th-tag">contract</span> : null}
+                {h.isContract ? <span className="th-tag">{t("contract")}</span> : null}
               </Link>
 
               <span className="th-bar" aria-hidden="true">
@@ -131,8 +134,8 @@ export function TopHolders({
       {hidden > 0 || expanded ? (
         <button type="button" className="th-more" onClick={() => setExpanded((v) => !v)}>
           {expanded
-            ? `Show top ${formatCount(BigInt(limit))}`
-            : `See all ${formatCount(BigInt(holders.length))} holders`}
+            ? t("Show top {count}", { count: formatCount(BigInt(limit)) })
+            : t("See all {count} holders", { count: formatCount(BigInt(holders.length)) })}
         </button>
       ) : null}
     </div>

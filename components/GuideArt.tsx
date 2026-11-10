@@ -1,4 +1,7 @@
+"use client";
+
 import type { GuideStep } from "@/config/guide";
+import { useT } from "@/lib/i18n";
 import "@/styles/guide.css";
 
 /**
@@ -46,12 +49,13 @@ function Piece({ x, y, w, h }: { x: number; y: number; w: number; h: number }) {
 }
 
 function Chain() {
+  const t = useT();
   return (
     <svg className="ga" viewBox={BOX} aria-hidden="true" focusable="false">
       {/* The button they are looking for, drawn as it reads in the header. */}
       <rect className="ga-solid" x="108" y="10" width="104" height="28" rx="14" />
       <text className="ga-on-solid" x="160" y="28" textAnchor="middle">
-        Connect wallet
+        {t("Connect wallet")}
       </text>
 
       {/* Vertical, so it is drawn here rather than through `Arrow`. */}
@@ -73,7 +77,7 @@ function Chain() {
       </text>
 
       <text className="ga-dim" x="160" y="136" textAnchor="middle">
-        SOSO is the coin — and the gas
+        {t("SOSO is the coin — and the gas")}
       </text>
     </svg>
   );
@@ -85,6 +89,7 @@ function Chain() {
  * is that the two boxes are the same wallet; the Transfer is the only move.
  */
 function Soso() {
+  const t = useT();
   return (
     <svg className="ga" viewBox={BOX} aria-hidden="true" focusable="false">
       <rect className="ga-panel" x="12" y="30" width="116" height="100" rx="10" />
@@ -93,23 +98,23 @@ function Soso() {
       </text>
       <rect className="ga-mark" x="24" y="64" width="92" height="28" rx="7" />
       <text className="ga-dim" x="34" y="82">
-        Spot
+        {t("Spot")}
       </text>
       <text className="ga-accent" x="106" y="82" textAnchor="end">
         SOSO
       </text>
       <text className="ga-dim" x="70" y="116" textAnchor="middle">
-        bought here
+        {t("bought here")}
       </text>
 
       <text className="ga-dim" x="160" y="70" textAnchor="middle">
-        Transfer
+        {t("Transfer")}
       </text>
       <Arrow x1={134} x2={186} y={80} />
 
       <rect className="ga-panel" x="192" y="30" width="116" height="100" rx="10" />
       <text className="ga-ink" x="250" y="52" textAnchor="middle">
-        Your wallet
+        {t("Your wallet")}
       </text>
       <rect className="ga-mark" x="204" y="64" width="92" height="28" rx="7" />
       <text className="ga-dim" x="214" y="82">
@@ -119,17 +124,18 @@ function Soso() {
         SOSO
       </text>
       <text className="ga-dim" x="250" y="116" textAnchor="middle">
-        on ValueChain
+        {t("on ValueChain")}
       </text>
 
       <text className="ga-dim" x="160" y="156" textAnchor="middle">
-        then connect that wallet here
+        {t("then connect that wallet here")}
       </text>
     </svg>
   );
 }
 
 function Buy() {
+  const t = useT();
   return (
     <svg className="ga" viewBox={BOX} aria-hidden="true" focusable="false">
       {/* The listing. The price belongs inside the card, where a price is. */}
@@ -139,7 +145,7 @@ function Buy() {
         150 SOSO
       </text>
       <text className="ga-dim" x="26" y="136">
-        listed
+        {t("listed")}
       </text>
 
       <Arrow x1={142} x2={200} y={86} />
@@ -147,7 +153,7 @@ function Buy() {
           cards is 82 units and this label is about 105 — it cannot sit there
           at any height without running into the wallet. */}
       <text className="ga-dim" x="160" y="158" textAnchor="middle">
-        one transaction, price as listed
+        {t("one transaction, price as listed")}
       </text>
 
       {/* Your wallet, with the piece now in it — accented because it is the
@@ -155,13 +161,14 @@ function Buy() {
       <rect className="ga-panel" x="210" y="34" width="98" height="102" rx="10" />
       <rect className="ga-mark" x="222" y="46" width="74" height="54" rx="6" />
       <text className="ga-dim" x="259" y="122" textAnchor="middle">
-        your wallet
+        {t("your wallet")}
       </text>
     </svg>
   );
 }
 
 function Offer() {
+  const t = useT();
   return (
     <svg className="ga" viewBox={BOX} aria-hidden="true" focusable="false">
       {/* Your wallet. The money never leaves it, which is the whole point. */}
@@ -171,12 +178,12 @@ function Offer() {
         WSOSO
       </text>
       <text className="ga-dim" x="71" y="114" textAnchor="middle">
-        stays here
+        {t("stays here")}
       </text>
 
       {/* An allowance, not a transfer — so the line is not a solid one. */}
       <text className="ga-dim" x="175" y="72" textAnchor="middle">
-        allowance
+        {t("allowance")}
       </text>
       <g className="ga-arrow ga-dashed">
         <line x1="142" y1="84" x2="201" y2="84" />
@@ -188,18 +195,19 @@ function Offer() {
       {/* Under the whole drawing, not beside the arrow: at 11px this is 110px
           wide and it ran straight into the card on the right. */}
       <text className="ga-dim" x="160" y="154" textAnchor="middle">
-        nothing is held by anyone else
+        {t("nothing is held by anyone else")}
       </text>
     </svg>
   );
 }
 
 function Sell() {
+  const t = useT();
   return (
     <svg className="ga" viewBox={BOX} aria-hidden="true" focusable="false">
       <Piece x={12} y={42} w={72} h={80} />
       <text className="ga-dim" x="48" y="142" textAnchor="middle">
-        yours
+        {t("yours")}
       </text>
 
       <Arrow x1={92} x2={122} y={82} />
@@ -209,7 +217,7 @@ function Sell() {
       <circle className="ga-accent-stroke" cx="154" cy="76" r="6" />
       <path className="ga-accent-stroke" d="M158 80l10 10M164 86l-4 4M168 90l-3 3" />
       <text className="ga-dim" x="160" y="142" textAnchor="middle">
-        approve once
+        {t("approve once")}
       </text>
 
       <Arrow x1={196} x2={226} y={82} />
@@ -220,7 +228,7 @@ function Sell() {
       <rect className="ga-dim-fill" x="248" y="74" width="48" height="6" rx="3" />
       <rect className="ga-dim-fill" x="248" y="88" width="30" height="6" rx="3" />
       <text className="ga-dim" x="272" y="142" textAnchor="middle">
-        on chain
+        {t("on chain")}
       </text>
     </svg>
   );

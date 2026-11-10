@@ -4,6 +4,7 @@ import type { AnimationEvent, MouseEvent } from "react";
 import Image from "next/image";
 import { KOLS, kolLocal, xHandle, type Kol } from "@/config/kols";
 import { KOL_POSTS, type KolPost } from "@/config/kolPosts";
+import { useT } from "@/lib/i18n";
 import "./KolWall.css";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -65,6 +66,7 @@ const XMark = () => (
  * a condition for the content to appear.
  */
 export function KolWall({ claimed, total, live }: { claimed: number; total: number; live: boolean }) {
+  const t = useT();
   const entries = KOL_POSTS
     .map((p, i) => ({ post: p, kol: KOLS.find((k) => k.n === p.kol), i }))
     .filter((e): e is { post: KolPost; kol: Kol; i: number } => e.kol !== undefined);
@@ -91,7 +93,7 @@ export function KolWall({ claimed, total, live }: { claimed: number; total: numb
   return (
     // No visible heading — the tree speaks for itself — but the section still
     // needs a name for anyone navigating by landmarks.
-    <section className="kw" aria-label="What the KOLs said">
+    <section className="kw" aria-label={t("What the KOLs said")}>
       <div className="kw-tree">
         <div className="kw-root">
           <span className="kw-root-thumbs" aria-hidden="true">
@@ -103,11 +105,11 @@ export function KolWall({ claimed, total, live }: { claimed: number; total: numb
           <span className="kw-root-meta">
             {live ? (
               <>
-                Claimed <span className="mono">{claimed} / {total}</span>
+                {t("Claimed")} <span className="mono">{claimed} / {total}</span>
               </>
             ) : (
               <>
-                <span className="mono">{total}</span> portraits
+                <span className="mono">{total}</span> {t("portraits")}
               </>
             )}
           </span>
@@ -121,7 +123,7 @@ export function KolWall({ claimed, total, live }: { claimed: number; total: numb
             <path className="kw-branch" d="M500 0 V44 Q500 60 516 60 H734 Q750 60 750 76 V120" />
             <path className="kw-branch is-dashed" d="M492 14 C 420 100, 290 16, 250 120" />
           </svg>
-          <span className="kw-chip">Posted on X</span>
+          <span className="kw-chip">{t("Posted on X")}</span>
         </div>
 
         <div className="kw-cols">
@@ -167,6 +169,7 @@ function settle(e: AnimationEvent<HTMLElement>) {
  * swing along with the card instead of holding it.
  */
 function Post({ post, kol, order }: { post: KolPost; kol: Kol; order: number }) {
+  const t = useT();
   const handle = kol.x === undefined ? undefined : xHandle(kol.x);
 
   return (
@@ -180,7 +183,7 @@ function Post({ post, kol, order }: { post: KolPost; kol: Kol; order: number }) 
             <b>{kol.name}</b>
             {handle === undefined ? null : <span>{handle}</span>}
           </span>
-          <span className="kw-x" title="Posted on X">
+          <span className="kw-x" title={t("Posted on X")}>
             <XMark />
           </span>
         </header>
@@ -189,7 +192,7 @@ function Post({ post, kol, order }: { post: KolPost; kol: Kol; order: number }) 
           <Words text={post.text} />
         </p>
         {post.translated === undefined ? null : (
-          <p className="kw-translated">Translated from {post.translated} by X</p>
+          <p className="kw-translated">{t("Translated from {language} by X", { language: t(post.translated) })}</p>
         )}
 
         <footer className="kw-card-foot">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState, type ReactNode } from "react";
 import { formatEther, parseEther } from "viem";
 import { SEAPORT } from "@/config/seaport";
 import { Steps } from "@/components/Steps";
@@ -13,6 +13,7 @@ import { TxResult } from "@/components/TxResult";
 import { Select } from "@/components/Select";
 import { MAX_BATCH_OFFER } from "@/lib/seaport";
 import { CYBEREATOR } from "@/lib/cybereator";
+import { useT } from "@/lib/i18n";
 
 /**
  * Expiry choices. Every one of them is bounded, deliberately.
@@ -100,6 +101,7 @@ export function OfferForm({
    */
   onPlaced?: () => void;
 }) {
+  const tr = useT();
   const [amount, setAmount] = useState("");
   const [days, setDays] = useState(7);
   /** How many pieces, as typed. Only on a batch-capable target; blank reads as one. */
@@ -187,7 +189,7 @@ export function OfferForm({
       <div className="offers-fields">
         {target.batch === true ? (
           <label className="offers-qty">
-            <span className="offers-label">How many</span>
+            <span className="offers-label">{tr("How many")}</span>
             <input
               inputMode="numeric"
               placeholder="1"
@@ -199,7 +201,7 @@ export function OfferForm({
         ) : null}
 
         <label className="offers-amount">
-          <span className="offers-label">{target.batch === true ? "Price each" : "Amount"}</span>
+          <span className="offers-label">{tr(target.batch === true ? "Price each" : "Amount")}</span>
           <div className="field-suffix">
             <input
               inputMode="decimal"
@@ -212,12 +214,12 @@ export function OfferForm({
         </label>
 
         <div className="offers-expiry">
-          <span className="offers-label">Expires</span>
+          <span className="offers-label">{tr("Expires")}</span>
           <Select
-            label="Expires"
+            label={tr("Expires")}
             value={String(days)}
             onChange={(v) => setDays(Number(v))}
-            options={WINDOWS.map((w) => ({ value: String(w.days), label: w.label }))}
+            options={WINDOWS.map((w) => ({ value: String(w.days), label: tr(w.label) }))}
           />
         </div>
       </div>
@@ -236,21 +238,31 @@ export function OfferForm({
       */}
       {quantity > 1n && each > 0n ? (
         <p className="offers-total">
-          {quantity.toString()} pieces at <b className="mono">{formatEther(each)}</b> each ={" "}
-          <b className="mono">{formatEther(wanted)}</b> WSOSO in total. Holders sell to you one or
-          more at a time, each at that price, until you have {quantity.toString()}.
+          {withSlots(
+            tr(
+              "{quantity} pieces at {each} each = {total} WSOSO in total. Holders sell to you one or more at a time, each at that price, until you have {quantity}.",
+              { quantity: quantity.toString() },
+            ),
+            {
+              each: <b className="mono">{formatEther(each)}</b>,
+              total: <b className="mono">{formatEther(wanted)}</b>,
+            },
+          )}
         </p>
       ) : null}
 
       <p className="offers-balance">
-        You hold <b className="mono">{formatEther(wsoso.balance)}</b> WSOSO
-        {standing > 0n ? (
-          <>
-            {" — "}
-            <b className="mono">{formatEther(standing)}</b> of it is committed to offers
-            you already have standing
-          </>
-        ) : null}
+        {withSlots(
+          tr(
+            standing > 0n
+              ? "You hold {balance} WSOSO — {standing} of it is committed to offers you already have standing"
+              : "You hold {balance} WSOSO",
+          ),
+          {
+            balance: <b className="mono">{formatEther(wsoso.balance)}</b>,
+            standing: <b className="mono">{formatEther(standing)}</b>,
+          },
+        )}
       </p>
 
       {/**
@@ -264,16 +276,16 @@ export function OfferForm({
        */}
       {wanted > 0n && (wsoso.needsWrap || wsoso.needsAllowance) ? (
         <Steps
-          label="Steps to place this offer"
+          label={tr("Steps to place this offer")}
           steps={[
-            { label: "Wrap", state: wsoso.needsWrap ? "now" : "done" },
-            { label: "Allow", state: wsoso.needsWrap ? "next" : "now" },
+            { label: tr("Wrap"), state: wsoso.needsWrap ? "now" : "done" },
+            { label: tr("Allow"), state: wsoso.needsWrap ? "next" : "now" },
             /*
               Never "now" here. This whole block is hidden once neither the
               wrap nor the allowance is outstanding, so by the time the offer
               itself is the live rung there is one button and nothing to track.
             */
-            { label: "Offer", state: "next" },
+            { label: tr("Offer"), state: "next" },
           ]}
         />
       ) : null}
@@ -288,7 +300,7 @@ export function OfferForm({
             wsoso.wrap(formatEther(wsoso.shortfall));
           }}
         >
-          {wsoso.busy ? "Wrapping…" : `Wrap ${formatEther(wsoso.shortfall)} SOSO first`}
+          {wsoso.busy ? tr("Wrapping…") : tr("Wrap {amount} SOSO first", { amount: formatEther(wsoso.shortfall) })}
         </button>
       ) : wanted > 0n && wsoso.needsAllowance ? (
         <button
@@ -300,7 +312,7 @@ export function OfferForm({
             wsoso.allow();
           }}
         >
-          {wsoso.busy ? "Approving…" : `Allow ${formatEther(wsoso.allowanceNeeded)} WSOSO`}
+          {wsoso.busy ? tr("Approving…") : tr("Allow {amount} WSOSO", { amount: formatEther(wsoso.allowanceNeeded) })}
         </button>
       ) : null}
 
@@ -319,10 +331,15 @@ export function OfferForm({
       */}
       {wanted > 0n && !wsoso.needsWrap && wsoso.needsAllowance && standing > 0n ? (
         <p className="offers-note">
-          That total is this <b className="mono">{formatEther(wanted)}</b> WSOSO offer plus
-          the <b className="mono">{formatEther(standing)}</b> already committed to your
-          standing offers — not the size of this one. Approving less would leave those
-          uncovered.
+          {withSlots(
+            tr(
+              "That total is this {wanted} WSOSO offer plus the {standing} already committed to your standing offers — not the size of this one. Approving less would leave those uncovered.",
+            ),
+            {
+              wanted: <b className="mono">{formatEther(wanted)}</b>,
+              standing: <b className="mono">{formatEther(standing)}</b>,
+            },
+          )}
         </p>
       ) : null}
 
@@ -342,20 +359,22 @@ export function OfferForm({
           }}
         >
           {target.signing
-            ? "Confirm in wallet…"
+            ? tr("Confirm in wallet…")
             : target.confirming
-              ? "Placing…"
+              ? tr("Placing…")
               : replacing
-                ? "Replace offer"
+                ? tr("Replace offer")
                 : quantity > 1n
-                  ? `Place offer for ${quantity.toString()}`
-                  : "Place offer"}
+                  ? tr("Place offer for {count}", { count: quantity.toString() })
+                  : tr("Place offer")}
         </button>
       )}
 
       <p className="offers-note">
-        Your WSOSO stays in your wallet. It only moves if a holder of {target.buying} accepts, and
-        you can withdraw the offer at any time before that.
+        {tr(
+          "Your WSOSO stays in your wallet. It only moves if a holder of {buying} accepts, and you can withdraw the offer at any time before that.",
+          { buying: tr(target.buying) },
+        )}
       </p>
 
       <TxResult
@@ -385,10 +404,11 @@ export function OfferForm({
  */
 export function useTokenOfferTarget(collection: `0x${string}`, tokenId: bigint): OfferTarget {
   const trade = useSeaportTrade(collection);
+  const tr = useT();
 
   return {
     spender: SEAPORT,
-    buying: "this piece",
+    buying: tr("this piece"),
     place: (amount, days) => trade.makeOffer(tokenId, amount, days),
     signing: trade.signing,
     confirming: trade.confirming,
@@ -422,18 +442,21 @@ export function useCollectionOfferTarget(
   trait?: { root: `0x${string}`; label: string; count: number; bound?: bigint },
 ): OfferTarget {
   const trade = useSeaportTrade(collection);
+  const tr = useT();
 
   return {
     spender: SEAPORT,
     batch: true,
     buying:
       trait === undefined
-        ? "any piece in this collection"
+        ? tr("any piece in this collection")
         : trait.bound !== undefined
           ? collection.toLowerCase() === CYBEREATOR
-            ? `any opened piece with ${trait.label}`
-            : `any piece with ${trait.label} minted so far`
-          : `any piece with ${trait.label} (${trait.count.toLocaleString()} ${trait.count === 1 ? "piece" : "pieces"})`,
+            ? tr("any opened piece with {trait}", { trait: trait.label })
+            : tr("any piece with {trait} minted so far", { trait: trait.label })
+          : trait.count === 1
+            ? tr("any piece with {trait} (1 piece)", { trait: trait.label })
+            : tr("any piece with {trait} ({count} pieces)", { trait: trait.label, count: trait.count.toLocaleString() }),
     place: (amount, days, quantity) =>
       trade.makeOffer(undefined, amount, days, trait?.root, trait?.bound, quantity ?? 1n),
     signing: trade.signing,
@@ -443,4 +466,21 @@ export function useCollectionOfferTarget(
     error: trade.error,
     hash: trade.hash,
   };
+}
+
+/**
+ * A translated sentence with markup in it: every `{name}` that `nodes` has an
+ * entry for is replaced by that node, so the sentence stays one key in the
+ * dictionary and the bold figures survive in either language.
+ */
+function withSlots(text: string, nodes: Record<string, ReactNode>): ReactNode {
+  const parts = text.split(/(\{\w+\})/);
+  return (
+    <>
+      {parts.map((part, i) => {
+        const name = /^\{(\w+)\}$/.exec(part)?.[1];
+        return name !== undefined && name in nodes ? <Fragment key={i}>{nodes[name]}</Fragment> : part;
+      })}
+    </>
+  );
 }

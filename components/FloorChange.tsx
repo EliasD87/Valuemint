@@ -4,6 +4,7 @@ import { useFloorHistory } from "@/hooks/useFloorHistory";
 import { floorChange } from "@/lib/floorChange";
 import { formatSoso } from "@/lib/format";
 import { InfoTip } from "@/components/InfoTip";
+import { useT } from "@/lib/i18n";
 import "./FloorChange.css";
 
 /**
@@ -28,18 +29,23 @@ export function FloorChange({
   /** The live floor, as the Floor cell shows it. Undefined: nothing listed. */
   floorWei: bigint | undefined;
 }) {
+  const t = useT();
   const { points, isLoading, unavailable } = useFloorHistory(collection, 2);
 
   if (isLoading) return null;
 
   const change = unavailable ? undefined : floorChange(points, floorWei);
 
+  /* One sentence with its bold phrase in the middle, wherever the language puts it. */
+  const [meansBefore, meansAfter = ""] = t(
+    "Today’s floor price compared with the floor {ago}. Positive: the cheapest piece costs more than it did yesterday; negative: less.",
+  ).split("{ago}");
+
   const label = (details: React.ReactNode) => (
     <dt className="cs-label">
-      Floor 24h
-      <InfoTip label="What this figure means">
-        Today&rsquo;s floor price compared with the floor <b>24 hours ago</b>. Positive: the cheapest
-        piece costs more than it did yesterday; negative: less.
+      {t("Floor 24h")}
+      <InfoTip label={t("What this figure means")}>
+        {meansBefore}<b>{t("24 hours ago")}</b>{meansAfter}
         <br />
         <br />
         {details}
@@ -50,12 +56,12 @@ export function FloorChange({
   if (change === undefined || change.kind !== "change") {
     const why =
       change === undefined
-        ? "The floor record could not be read just now."
+        ? t("The floor record could not be read just now.")
         : change.kind === "no-floor-now"
-          ? "Nothing is listed right now, so there is no floor today."
+          ? t("Nothing is listed right now, so there is no floor today.")
           : change.kind === "no-floor-then"
-            ? "Nothing was listed 24 hours ago, so there was no floor to compare with."
-            : "There is no record of the floor 24 hours ago yet.";
+            ? t("Nothing was listed 24 hours ago, so there was no floor to compare with.")
+            : t("There is no record of the floor 24 hours ago yet.");
     return (
       <div className="cs-cell">
         {label(why)}
@@ -68,13 +74,15 @@ export function FloorChange({
 
   const { percent } = change;
   const tone = percent > 0 ? "up" : percent < 0 ? "down" : "flat";
+  const [nowBefore, nowRest = ""] = t("Now: {now}. 24 hours ago: {then}.").split("{now}");
+  const [nowMiddle, nowAfter = ""] = nowRest.split("{then}");
   const signed = `${percent > 0 ? "+" : ""}${percent.toFixed(1)}%`;
 
   return (
     <div className="cs-cell">
       {label(
         <>
-          Now: <b>{formatSoso(change.nowWei)} SOSO</b>. 24 hours ago: <b>{formatSoso(change.thenWei)} SOSO</b>.
+          {nowBefore}<b>{formatSoso(change.nowWei)} SOSO</b>{nowMiddle}<b>{formatSoso(change.thenWei)} SOSO</b>{nowAfter}
         </>,
       )}
       <dd className="cs-value">

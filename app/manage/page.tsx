@@ -11,6 +11,7 @@ import { useCollectionArt } from "@/hooks/useCollectionArt";
 import "@/styles/manage.css";
 import "@/styles/home.css";
 import { ConnectButton } from "@/components/ConnectButton";
+import { useT } from "@/lib/i18n";
 
 /**
  * The creator's index: every collection this wallet owns.
@@ -19,6 +20,7 @@ import { ConnectButton } from "@/components/ConnectButton";
  * collection transferred to you elsewhere shows up here without us being told.
  */
 export default function Manage() {
+  const t = useT();
   const { owned, isLoading, connected } = useOwnedCollections();
   const { address } = useAccount();
 
@@ -47,13 +49,12 @@ export default function Manage() {
   if (!mounted || !connected) {
     return (
       <section className="page section market-empty">
-        <p className="eyebrow">Manage</p>
-        <h2>Connect the wallet that owns your collections.</h2>
+        <p className="eyebrow">{t("Manage")}</p>
+        <h2>{t("Connect the wallet that owns your collections.")}</h2>
         <p className="muted">
-          Ownership is read from each contract, so whatever you control shows up — including
-          collections deployed before this site existed.
+          {t("Ownership is read from each contract, so whatever you control shows up — including collections deployed before this site existed.")}
         </p>
-        <ConnectButton>Connect wallet</ConnectButton>
+        <ConnectButton>{t("Connect wallet")}</ConnectButton>
       </section>
     );
   }
@@ -62,12 +63,12 @@ export default function Manage() {
     <section className="page section">
       <div className="head">
         <div>
-          <p className="eyebrow">Manage</p>
-          <h2>Your collections</h2>
+          <p className="eyebrow">{t("Manage")}</p>
+          <h2>{t("Your collections")}</h2>
         </div>
         {CREATE_ENABLED ? (
           <Link className="btn btn-primary" href="/create">
-            Create another
+            {t("Create another")}
           </Link>
         ) : null}
       </div>
@@ -91,20 +92,19 @@ export default function Manage() {
            * collection failed to appear, and goes looking for a bug that is not
            * there. Say what is true instead, and name the wallet it is true of.
            */}
-          <h3>Nothing owned by this wallet.</h3>
+          <h3>{t("Nothing owned by this wallet.")}</h3>
           <p className="muted">
-            Collections are listed by whoever owns the contract, so only the wallet that created
-            one sees it here. If you made a collection from a different wallet, switch to it.
+            {t("Collections are listed by whoever owns the contract, so only the wallet that created one sees it here. If you made a collection from a different wallet, switch to it.")}
           </p>
           {address === undefined ? null : (
-            <p className="muted mono">connected: {address}</p>
+            <p className="muted mono">{t("connected: {address}", { address })}</p>
           )}
           <p className="muted">
-            A collection with nothing minted still appears — supply is not what decides this.
+            {t("A collection with nothing minted still appears — supply is not what decides this.")}
           </p>
           {CREATE_ENABLED ? (
             <Link className="btn btn-primary mt-sm" href="/create">
-              Create a collection
+              {t("Create a collection")}
             </Link>
           ) : null}
         </div>
@@ -138,17 +138,17 @@ export default function Manage() {
                 </div>
                 {/* Say why it is not on the marketplace, rather than leaving
                     its owner to wonder where it went. */}
-                {c.hidden === true ? <span className="chip">Unlisted</span> : null}
+                {c.hidden === true ? <span className="chip">{t("Unlisted")}</span> : null}
                 <span
                   className={`chip ${c.publicMintEnabled === true ? "chip-up" : ""}`}
                 >
-                  {c.publicMintEnabled === true ? "Minting" : "Closed"}
+                  {c.publicMintEnabled === true ? t("Minting") : t("Closed")}
                 </span>
               </div>
 
               <dl className="manage-row-stats">
                 <div>
-                  <dt>Minted</dt>
+                  <dt>{t("Minted")}</dt>
                   <dd className="mono">
                     {formatCount(c.totalSupply)}
                     {c.maxSupply !== undefined && c.maxSupply > 0n
@@ -157,11 +157,11 @@ export default function Manage() {
                   </dd>
                 </div>
                 <div>
-                  <dt>Price</dt>
+                  <dt>{t("Price")}</dt>
                   <dd className="mono">{formatSoso(c.mintPrice)} SOSO</dd>
                 </div>
                 <div>
-                  <dt>Available</dt>
+                  <dt>{t("Available")}</dt>
                   <dd className="mono">{formatCount(c.publicMintRemaining)}</dd>
                 </div>
               </dl>

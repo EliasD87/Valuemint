@@ -13,6 +13,7 @@ import { TiltCard } from "@/components/TiltCard";
 import { GiveawaysPanel, RunningGiveaway } from "@/components/HolderGiveaways";
 import { TIERS, formatVolume, type Tier } from "@/config/tiers";
 import { TIER_STRIDE, TRENCHES_ABI, TRENCHES_ADDRESS } from "@/config/trenches";
+import { useT } from "@/lib/i18n";
 import "@/styles/home.css";
 import "@/components/TokenCard.css";
 import "@/styles/trenches.css";
@@ -74,6 +75,7 @@ function formatTraded(usd: number): string {
 }
 
 export default function Trenches() {
+  const tr = useT();
   const { address } = useAccount();
   const [state, setState] = useState<State>({ kind: "idle" });
 
@@ -204,13 +206,13 @@ export default function Trenches() {
                 <span>ValueMint</span>
               </p>
               <h1 className="trx-title" id="trx-title">
-                How deep have you traded?
+                {tr("How deep have you traded?")}
               </h1>
-              <p className="trx-lede">One free NFT for every depth of SoDEX volume you pass.</p>
+              <p className="trx-lede">{tr("One free NFT for every depth of SoDEX volume you pass.")}</p>
               {/* Small print, taking almost no room (owner, 2026-10-24). */}
               <p className="trx-meta">
-                {TIERS.length} depths
-                {supply === undefined ? null : <> · {supply.toLocaleString()} claimed</>} · free, gas only
+                {tr("{count} depths", { count: TIERS.length })}
+                {supply === undefined ? null : <> · {tr("{count} claimed", { count: supply.toLocaleString() })}</>} · {tr("free, gas only")}
               </p>
             </div>
 
@@ -239,9 +241,9 @@ export default function Trenches() {
       <section className="page section trx-depths" id="depths" aria-labelledby="trx-depths-title">
         <div className="trx-depths-head">
           <h2 className="trx-depths-title" id="trx-depths-title">
-            The ten depths
+            {tr("The ten depths")}
           </h2>
-          <p className="trx-depths-note">Trade more on SoDEX to go deeper. Each depth is one free piece, claimed once.</p>
+          <p className="trx-depths-note">{tr("Trade more on SoDEX to go deeper. Each depth is one free piece, claimed once.")}</p>
         </div>
         <div className="grid-tokens trx-grid">
           {TIERS.map((t, i) => (
@@ -281,6 +283,7 @@ function YourDepth({
   /** Re-read the cards' claimed state once a claim confirms. */
   onClaimed: () => void;
 }) {
+  const tr = useT();
   const data = state.kind === "done" ? state.data : undefined;
   const tier = data?.tier == null ? undefined : TIERS.find((t) => t.n === data.tier!.n);
   const next = data?.next == null ? undefined : TIERS.find((t) => t.n === data.next!.n);
@@ -306,20 +309,20 @@ function YourDepth({
 
   let reading: React.ReactNode;
   if (!connected) {
-    reading = <span className="muted">Connect a wallet to see your depth.</span>;
+    reading = <span className="muted">{tr("Connect a wallet to see your depth.")}</span>;
   } else if (state.kind === "checking" || state.kind === "idle") {
-    reading = <span className="muted">Reading SoDEX…</span>;
+    reading = <span className="muted">{tr("Reading SoDEX…")}</span>;
   } else if (state.kind === "error") {
-    reading = <span className="muted">{state.message}</span>;
+    reading = <span className="muted">{tr(state.message)}</span>;
   } else if (tier === undefined) {
-    reading = <span>No SoDEX trades yet. Any trade reaches Halo.</span>;
+    reading = <span>{tr("No SoDEX trades yet. Any trade reaches Halo.")}</span>;
   } else {
     reading = (
       <>
         <b>{tier.name}</b>
         <span className="muted">
           {" "}
-          · Depth {tier.n} of {TIERS.length}
+          · {tr("Depth {n} of {total}", { n: tier.n, total: TIERS.length })}
         </span>
       </>
     );
@@ -358,9 +361,9 @@ function YourDepth({
         <div className="trx-you-top">
           <p className="trx-you-reading">{reading}</p>
           {claim.open === true ? (
-            <span className="chip chip-up">Claiming open</span>
+            <span className="chip chip-up">{tr("Claiming open")}</span>
           ) : claim.open === false ? (
-            <span className="chip">Claiming paused</span>
+            <span className="chip">{tr("Claiming paused")}</span>
           ) : null}
         </div>
         {/*
@@ -369,7 +372,7 @@ function YourDepth({
           filling toward the next; the rest still to go.
         */}
         {showBar ? (
-          <ol className={`trx-ladder${loading ? " is-loading" : ""}`} aria-label="Depths">
+          <ol className={`trx-ladder${loading ? " is-loading" : ""}`} aria-label={tr("Depths")}>
             {TIERS.map((t) => {
               const done = t.n <= reachedN;
               const active = !loading && next !== undefined && t.n === next.n;
@@ -377,8 +380,8 @@ function YourDepth({
                 <li
                   key={t.n}
                   className={`trx-rung${done ? " is-done" : active ? " is-active" : ""}`}
-                  title={`${t.name} · ${t.min === 0 ? "any trade" : formatVolume(t.min)}`}
-                  aria-label={`${t.name}: ${done ? "reached" : active ? `${towardPct}% of the way` : "not yet"}`}
+                  title={`${t.name} · ${t.min === 0 ? tr("any trade") : formatVolume(t.min)}`}
+                  aria-label={`${t.name}: ${done ? tr("reached") : active ? tr("{pct}% of the way", { pct: towardPct }) : tr("not yet")}`}
                 >
                   <span className="trx-rung-dot">
                     {done ? (
@@ -412,7 +415,7 @@ function YourDepth({
         {/* The goal: all the volume so far against the next depth's mark. */}
         {showBar ? (
           <div className="trx-goal">
-            {!loading && next === undefined ? <span className="trx-goal-label">Every depth reached</span> : null}
+            {!loading && next === undefined ? <span className="trx-goal-label">{tr("Every depth reached")}</span> : null}
             <div className="trx-goal-figures">
               <span className="trx-goal-num">
                 {loading ? (
@@ -424,7 +427,7 @@ function YourDepth({
                 )}
                 {!loading && next !== undefined ? (
                   <span className="trx-goal-of">
-                    /{formatVolume(next.min)} to {next.name}
+                    /{tr("{amount} to {tier}", { amount: formatVolume(next.min), tier: next.name })}
                   </span>
                 ) : null}
               </span>
@@ -433,7 +436,7 @@ function YourDepth({
             <div
               className={`trx-goal-track${loading ? " is-loading" : ""}`}
               role="progressbar"
-              aria-label={next === undefined ? "Volume" : `Volume toward ${next.name}`}
+              aria-label={next === undefined ? tr("Volume") : tr("Volume toward {tier}", { tier: next.name })}
               aria-valuemin={0}
               aria-valuemax={100}
               aria-valuenow={towardPct}
@@ -443,10 +446,10 @@ function YourDepth({
           </div>
         ) : null}
         {!connected ? (
-          <ConnectButton className="btn btn-primary btn-block">Connect wallet to claim</ConnectButton>
+          <ConnectButton className="btn btn-primary btn-block">{tr("Connect wallet to claim")}</ConnectButton>
         ) : state.kind === "error" ? (
           <button type="button" className="btn btn-sm" onClick={onRetry}>
-            Try again
+            {tr("Try again")}
           </button>
         ) : tier !== undefined && claim.deployed ? (
           <ClaimAction claim={claim} />
@@ -465,6 +468,7 @@ function YourDepth({
  * chain, not worked out here.
  */
 function ClaimAction({ claim }: { claim: ReturnType<typeof useTrenchesClaim> }) {
+  const tr = useT();
   const { phase, owedCount, open } = claim;
 
   if (phase.kind === "confirming" || phase.kind === "done") {
@@ -474,24 +478,24 @@ function ClaimAction({ claim }: { claim: ReturnType<typeof useTrenchesClaim> }) 
         confirming={phase.kind === "confirming"}
         success={phase.kind === "done"}
         error={null}
-        successLabel="Claimed. They are in your wallet"
+        successLabel={tr("Claimed. They are in your wallet")}
       />
     );
   }
 
   if (open === false) {
-    return <p className="trx-claim-note">Claiming is paused for now.</p>;
+    return <p className="trx-claim-note">{tr("Claiming is paused for now.")}</p>;
   }
   if (open === undefined || owedCount === undefined) {
     return (
       <button type="button" className="btn btn-primary btn-block is-busy" disabled aria-busy="true">
         <span className="trx-spin" aria-hidden="true" />
-        Checking what you can claim…
+        {tr("Checking what you can claim…")}
       </button>
     );
   }
   if (owedCount === 0) {
-    return <p className="trx-claim-note">All claimed</p>;
+    return <p className="trx-claim-note">{tr("All claimed")}</p>;
   }
 
   const busy = phase.kind === "authorising" || phase.kind === "signing";
@@ -506,12 +510,14 @@ function ClaimAction({ claim }: { claim: ReturnType<typeof useTrenchesClaim> }) 
       >
         {busy ? <span className="trx-spin" aria-hidden="true" /> : null}
         {phase.kind === "authorising"
-          ? "Checking your volume…"
+          ? tr("Checking your volume…")
           : phase.kind === "signing"
-            ? "Confirm in your wallet…"
-            : `Claim ${owedCount} ${owedCount === 1 ? "piece" : "pieces"}, free`}
+            ? tr("Confirm in your wallet…")
+            : owedCount === 1
+              ? tr("Claim {count} piece, free", { count: owedCount })
+              : tr("Claim {count} pieces, free", { count: owedCount })}
       </button>
-      {phase.kind === "error" ? <p className="txr txr-bad">{phase.message}</p> : null}
+      {phase.kind === "error" ? <p className="txr txr-bad">{tr(phase.message)}</p> : null}
     </>
   );
 }
@@ -528,18 +534,19 @@ function DepthCard({ tier, minted, status }: { tier: Tier; minted: number | unde
       ? `/token/${TRENCHES_ADDRESS}/${tier.n * TIER_STRIDE + 1}`
       : undefined;
 
+  const tr = useT();
   const locked = status === "locked";
   return (
     <TiltCard className="trx-card">
-      {href !== undefined ? <Link href={href} className="trx-card-hit" aria-label={`${tier.name}, depth ${tier.n}`} /> : null}
+      {href !== undefined ? <Link href={href} className="trx-card-hit" aria-label={tr("{tier}, depth {n}", { tier: tier.name, n: tier.n })} /> : null}
       <TrenchesFrame
         tier={tier}
         status={status !== undefined && !locked ? <Chip status={status} /> : undefined}
-        lock={locked ? (tier.min === 0 ? "Make a trade" : `Reach ${formatVolume(tier.min)}`) : undefined}
+        lock={locked ? (tier.min === 0 ? tr("Make a trade") : tr("Reach {amount}", { amount: formatVolume(tier.min) })) : undefined}
         meta={
           <>
-            <b>{tier.min === 0 ? "Any trade" : formatVolume(tier.min)}</b>
-            {minted === undefined ? null : minted === 0 ? " · none yet" : ` · ${minted.toLocaleString()} claimed`}
+            <b>{tier.min === 0 ? tr("Any trade") : formatVolume(tier.min)}</b>
+            {minted === undefined ? null : minted === 0 ? ` · ${tr("none yet")}` : ` · ${tr("{count} claimed", { count: minted.toLocaleString() })}`}
           </>
         }
       />
@@ -548,8 +555,9 @@ function DepthCard({ tier, minted, status }: { tier: Tier; minted: number | unde
 }
 
 function Chip({ status }: { status: Status }) {
-  if (status === "claimed") return <span className="chip chip-accent">Claimed</span>;
-  if (status === "here") return <span className="chip chip-up">You&rsquo;re here</span>;
-  if (status === "earned") return <span className="chip chip-up">Earned</span>;
-  return <span className="chip">Locked</span>;
+  const tr = useT();
+  if (status === "claimed") return <span className="chip chip-accent">{tr("Claimed")}</span>;
+  if (status === "here") return <span className="chip chip-up">{tr("You’re here")}</span>;
+  if (status === "earned") return <span className="chip chip-up">{tr("Earned")}</span>;
+  return <span className="chip">{tr("Locked")}</span>;
 }

@@ -5,6 +5,7 @@ import type { Hex } from "viem";
 import { AddressLink } from "@/components/AddressLink";
 import { TIERS } from "@/config/tiers";
 import { numbersOf, ownerOfTicket, type DrawEntry } from "@/lib/draw";
+import { useT } from "@/lib/i18n";
 
 /**
  * Every wallet in a draw and the ticket numbers it holds, in address order —
@@ -22,17 +23,16 @@ const DEPTH = Object.fromEntries(TIERS.map((t) => [t.n, t]));
 
 /** Previous / page n of m / Next, under a long table. */
 export function Pager({ page, pages, onPage }: { page: number; pages: number; onPage: (p: number) => void }) {
+  const tr = useT();
   if (pages <= 1) return null;
   return (
-    <nav className="perk-pager" aria-label="Pages">
+    <nav className="perk-pager" aria-label={tr("Pages")}>
       <button type="button" onClick={() => onPage(page - 1)} disabled={page <= 0}>
-        Previous
+        {tr("Previous")}
       </button>
-      <span>
-        Page {page + 1} of {pages}
-      </span>
+      <span>{tr("Page {page} of {pages}", { page: page + 1, pages })}</span>
       <button type="button" onClick={() => onPage(page + 1)} disabled={page >= pages - 1}>
-        Next
+        {tr("Next")}
       </button>
     </nav>
   );
@@ -75,6 +75,7 @@ export function TicketList({
   open: boolean;
   onOpen: (open: boolean) => void;
 }) {
+  const tr = useT();
   const [page, setPage] = useState(0);
 
   const q = query.trim().toLowerCase().replace(/,/g, "");
@@ -91,12 +92,12 @@ export function TicketList({
     if (/^\d+$/.test(n)) {
       const owner = ownerOfTicket(entries, Number(n), numberSeed);
       return owner === undefined
-        ? { rows: [], note: `No ticket #${fmt(Number(n))}: they run from #1 to #${fmt(tickets)}.` }
-        : { rows: [owner], note: `Ticket #${fmt(Number(n))} belongs to this wallet.` };
+        ? { rows: [], note: tr("No ticket #{n}: they run from #1 to #{last}.", { n: fmt(Number(n)), last: fmt(tickets) }) }
+        : { rows: [owner], note: tr("Ticket #{n} belongs to this wallet.", { n: fmt(Number(n)) }) };
     }
     const rows = byTickets.filter((e) => e.wallet.includes(q));
-    return { rows, note: rows.length === 0 ? "No wallet in the list matches that." : undefined };
-  }, [entries, byTickets, q, tickets, numberSeed]);
+    return { rows, note: rows.length === 0 ? tr("No wallet in the list matches that.") : undefined };
+  }, [entries, byTickets, q, tickets, numberSeed, tr]);
 
   /* Your own row is pinned on top while browsing: in a long list it can be
      page eighteen. It still sits in its real place further down. */
@@ -112,10 +113,8 @@ export function TicketList({
     <details className="perk-list" open={open} onToggle={(e) => onOpen((e.currentTarget as HTMLDetailsElement).open)}>
       <summary>
         <span>
-          Every wallet&rsquo;s tickets
-          <small>
-            {fmt(entries.length)} wallets · {fmt(tickets)} tickets
-          </small>
+          {tr("Every wallet’s tickets")}
+          <small>{tr("{wallets} wallets · {tickets} tickets", { wallets: fmt(entries.length), tickets: fmt(tickets) })}</small>
         </span>
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <path d="m6 9 6 6 6-6" />
@@ -130,10 +129,10 @@ export function TicketList({
               <path d="m15.5 15.5 5 5" />
             </svg>
             <input
-              aria-label="Find a wallet or a ticket number"
+              aria-label={tr("Find a wallet or a ticket number")}
               type="text"
               spellCheck={false}
-              placeholder="Wallet or ticket number"
+              placeholder={tr("Wallet or ticket number")}
               value={query}
               onChange={(e) => {
                 onQuery(e.target.value);
@@ -142,12 +141,12 @@ export function TicketList({
             />
           </label>
           <p className="perk-list-rule">
-            {numberSeed !== undefined ? "Numbers shuffled on ValueChain." : "Listed in address order."}
+            {numberSeed !== undefined ? tr("Numbers shuffled on ValueChain.") : tr("Listed in address order.")}
             {lockedHref !== undefined ? (
               <>
                 {" "}
                 <a href={lockedHref} target="_blank" rel="noreferrer">
-                  Same list on ValueChain
+                  {tr("Same list on ValueChain")}
                 </a>
               </>
             ) : null}
@@ -157,15 +156,15 @@ export function TicketList({
         {result.note !== undefined ? <p className="perk-list-note">{result.note}</p> : null}
 
         {rows.length > 0 ? (
-          <div className="perk-list-table" role="table" aria-label="Ticket list">
+          <div className="perk-list-table" role="table" aria-label={tr("Ticket list")}>
             <div className="perk-list-row is-head" role="row">
-              <span role="columnheader">Wallet</span>
-              <span role="columnheader">Pieces</span>
+              <span role="columnheader">{tr("Wallet")}</span>
+              <span role="columnheader">{tr("Pieces")}</span>
               <span role="columnheader" className="perk-list-count">
-                Tickets
+                {tr("Tickets")}
               </span>
               <span role="columnheader" className="perk-list-range">
-                Numbers
+                {tr("Numbers")}
               </span>
             </div>
             {rows.map((e, i) => {
@@ -180,11 +179,11 @@ export function TicketList({
                 >
                   <span role="cell" className="perk-list-wallet">
                     <AddressLink address={e.wallet} chars={4} />
-                    {isYou ? <span className="perk-list-you">You</span> : null}
+                    {isYou ? <span className="perk-list-you">{tr("You")}</span> : null}
                   </span>
                   <span role="cell" className="perk-list-pieces">
                     {heldDepths(e.depths).map(([d, n]) => (
-                      <span key={d} className="perk-list-depth" title={`${DEPTH[d]?.name ?? `Depth ${d}`}${n > 1 ? ` ×${n}` : ""}`}>
+                      <span key={d} className="perk-list-depth" title={`${DEPTH[d]?.name ?? tr("Depth {n}", { n: d })}${n > 1 ? ` ×${n}` : ""}`}>
                         <i style={{ background: DEPTH[d]?.colour }} aria-hidden="true" />
                         {d}
                         {n > 1 ? <span>×{n}</span> : null}
@@ -215,7 +214,7 @@ export function TicketList({
 
         {single !== undefined ? (
           <div className="perk-list-all">
-            <p>All {fmt(single.tickets)} numbers of this wallet</p>
+            <p>{tr("All {count} numbers of this wallet", { count: fmt(single.tickets) })}</p>
             <div className="tix-nums">
               {numbersOf(single, tickets, numberSeed!).map((n) => (
                 <span key={n} className={q.replace(/^#/, "") === String(n) ? "is-hit" : undefined}>

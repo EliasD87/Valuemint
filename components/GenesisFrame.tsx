@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { useT } from "@/lib/i18n";
 import "./GenesisFrame.css";
 
 const GENESIS = "0x5fadc59297e86acea20bff519aea0f9651cdc90b";
@@ -37,6 +38,8 @@ export function GenesisFrame({
   /** The artwork, already drawn by the card. */
   children: ReactNode;
 }) {
+  /* Only ever drawn inside TokenCard, a client component, so the hook is safe here. */
+  const t = useT();
   const key = tier?.toLowerCase();
   const tone = key === "legendary" || key === "epic" || key === "rare" ? key : sealedLabel !== undefined ? "sealed" : "common";
   return (
@@ -47,7 +50,7 @@ export function GenesisFrame({
           <span className="gframe-word">
             ValueChain <span>Genesis</span>
           </span>
-          <span className="gframe-tier">{tier ?? sealedLabel ?? " "}</span>
+          <span className="gframe-tier">{tier !== undefined ? t(tier) : (sealedLabel ?? " ")}</span>
         </span>
       </div>
     </div>

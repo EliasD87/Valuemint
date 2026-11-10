@@ -5,6 +5,7 @@ import { useAccount, useBalance, useConnect, useDisconnect } from "wagmi";
 import { SWITCH_STALLED, useSwitchToChain } from "@/hooks/useChainWrite";
 import { valuechain } from "@/config/chain";
 import { formatSosoFixed, tinyAddress } from "@/lib/format";
+import { useT } from "@/lib/i18n";
 
 /**
  * The account's glyph, with the live dot badged onto it.
@@ -56,6 +57,7 @@ import { Soso } from "@/components/Soso";
  * so the wrong-network case gets its own loud treatment.
  */
 export function Wallet() {
+  const t = useT();
   const { address, isConnected } = useAccount();
   // The wallet's real network, from the connection. `useChainId()` only reports
   // chains in the config, so a wallet on Ethereum read as ValueChain (2026-09-25).
@@ -118,7 +120,7 @@ export function Wallet() {
   if (!mounted) {
     return (
       <button className="btn btn-solid" disabled>
-        Connect<span className="wide-only">&nbsp;wallet</span>
+        {t("Connect")}<span className="wide-only">{t("\u00a0wallet")}</span>
       </button>
     );
   }
@@ -139,11 +141,11 @@ export function Wallet() {
         <button className="btn btn-solid" disabled={isPending} onClick={() => setPicking(true)}>
           {isPending ? (
             <>
-              Connecting<span className="wide-only">&nbsp;your wallet</span>…
+              {t("Connecting")}<span className="wide-only">{t("\u00a0your wallet")}</span>…
             </>
           ) : (
             <>
-              Connect<span className="wide-only">&nbsp;wallet</span>
+              {t("Connect")}<span className="wide-only">{t("\u00a0wallet")}</span>
             </>
           )}
         </button>
@@ -173,21 +175,24 @@ export function Wallet() {
         <button
           className="btn wallet-wrong"
           disabled={isSwitching}
-          title={switchStalled ? SWITCH_STALLED : undefined}
+          title={switchStalled ? t(SWITCH_STALLED) : undefined}
           onClick={() => {
             setSwitchStalled(false);
             switchTo(valuechain.id).catch(() => setSwitchStalled(true));
           }}
         >
           {isSwitching ? (
-            "Check your wallet…"
+            t("Check your wallet…")
           ) : switchStalled ? (
             <>
-              Switch in your wallet<span className="wide-only">&nbsp;— retry</span>
+              {t("Switch in your wallet")}<span className="wide-only">{t("\u00a0— retry")}</span>
             </>
           ) : (
             <>
-              Wrong network<span className="wide-only">&nbsp;— switch{connector?.name ? ` in ${connector.name}` : ""}</span>
+              {t("Wrong network")}
+              <span className="wide-only">
+                {connector?.name ? t("\u00a0— switch in {wallet}", { wallet: connector.name }) : t("\u00a0— switch")}
+              </span>
             </>
           )}
         </button>
@@ -196,10 +201,10 @@ export function Wallet() {
           className="btn btn-sm wallet-wrong-out"
           /* Which wallet this is, because it is not always the one people think:
              an earlier connection can come back as the active one. */
-          title={connector?.name ? `Connected with ${connector.name}` : undefined}
+          title={connector?.name ? t("Connected with {wallet}", { wallet: connector.name }) : undefined}
           onClick={() => disconnect()}
         >
-          Disconnect
+          {t("Disconnect")}
         </button>
       </span>
     );
@@ -250,7 +255,7 @@ export function Wallet() {
         <>
           <button
             className="wallet-scrim"
-            aria-label="Close"
+            aria-label={t("Close")}
             onClick={() => {
               setCopied(false);
               setOpen(false);
@@ -266,7 +271,7 @@ export function Wallet() {
               One row now: the short form, click to copy, and it says so.
             */}
             <div className="wallet-menu-head">
-              <span className="label">Connected</span>
+              <span className="label">{t("Connected")}</span>
 
               {/* The same glyph the pill carries, so the menu reads as that
                   pill opened rather than as a different component. */}
@@ -281,7 +286,7 @@ export function Wallet() {
               >
                 <WalletGlyph size={17} />
                 <span className="mono wallet-copy-addr">{tinyAddress(address)}</span>
-                <span className="wallet-copy-hint">{copied ? "Copied" : "Copy"}</span>
+                <span className="wallet-copy-hint">{copied ? t("Copied") : t("Copy")}</span>
               </button>
             </div>
 
@@ -300,8 +305,8 @@ export function Wallet() {
                 rather than leave it to be inferred.
               */}
               <span className="wallet-menu-bal-label">
-                Balance
-                <small>on {valuechain.name}</small>
+                {t("Balance")}
+                <small>{t("on {chain}", { chain: valuechain.name })}</small>
               </span>
               <span className="mono wallet-menu-bal-value">
                 <Soso size={13}>{formatSosoFixed(balance?.value, 2)}</Soso>
@@ -342,7 +347,7 @@ export function Wallet() {
                 target="_blank"
                 rel="noreferrer noopener"
               >
-                View on explorer
+                {t("View on explorer")}
               </a>
               <button
                 className="btn btn-sm wallet-disconnect"
@@ -351,7 +356,7 @@ export function Wallet() {
                   setOpen(false);
                 }}
               >
-                Disconnect
+                {t("Disconnect")}
               </button>
             </div>
           </div>

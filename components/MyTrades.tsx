@@ -9,6 +9,7 @@ import { deployment } from "@/config/contracts";
 import { formatSosoFixed, shortAddress, timeAgo, timeAgoShort, tinyAddress } from "@/lib/format";
 import { Soso } from "@/components/Soso";
 import { ArrowRight } from "@/components/Arrows";
+import { useT } from "@/lib/i18n";
 import "@/styles/activity.css";
 
 /**
@@ -79,6 +80,7 @@ export function MyTrades({
    */
   own?: boolean;
 }) {
+  const t = useT();
   const { rows, isLoading, logsUnavailable } = useActivity(undefined, undefined, {
     wallet: address,
   });
@@ -123,7 +125,7 @@ export function MyTrades({
   const summary =
     settled > 0 ? (
       <>
-        {totals.bought} bought &middot; {totals.sold} sold
+        {t("{bought} bought · {sold} sold", { bought: totals.bought, sold: totals.sold })}
       </>
     ) : null;
 
@@ -138,14 +140,15 @@ export function MyTrades({
       ) : logsUnavailable ? (
         /* Absence of a read is not an absence of trades. */
         <p className="act-note">
-          {own ? "Your" : "This wallet's"} history could not be read &mdash; the node would not
-          serve event logs. It is not empty; try again in a moment.
+          {own
+            ? t("Your history could not be read — the node would not serve event logs. It is not empty; try again in a moment.")
+            : t("This wallet's history could not be read — the node would not serve event logs. It is not empty; try again in a moment.")}
         </p>
       ) : rows.length === 0 ? (
         <p className="act-note">
           {own
-            ? "Nothing yet. Every piece you buy, sell, list or bid on through ValueMint shows up here, read straight from the chain."
-            : "No trades on ValueMint yet. Anything this wallet buys, sells, lists or bids on shows up here."}
+            ? t("Nothing yet. Every piece you buy, sell, list or bid on through ValueMint shows up here, read straight from the chain.")
+            : t("No trades on ValueMint yet. Anything this wallet buys, sells, lists or bids on shows up here.")}
         </p>
       ) : (
         /*
@@ -171,11 +174,11 @@ export function MyTrades({
           <table className="tr-table tr-trades">
             <thead>
               <tr>
-                <th scope="col">Item</th>
+                <th scope="col">{t("Item")}</th>
                 <th scope="col" className="tr-num">
-                  Price
+                  {t("Price")}
                 </th>
-                <th scope="col">From / To</th>
+                <th scope="col">{t("From / To")}</th>
               </tr>
             </thead>
             <tbody>
@@ -196,12 +199,12 @@ export function MyTrades({
                             else takes its own kind, so Listed, Offered and
                             Cancelled each get their own dot. */}
                         <span className={`act-kind act-kind-${r.kind === "sale" ? tone : r.kind}`}>
-                          {label}
+                          {t(label)}
                         </span>
                         {r.collectionOffer === true ? (
                           /* Any piece or a trait: no single token, so no "#0" and no link. */
                           <span className="tr-piece" title={nameFor(r.collection)}>
-                            Collection offer
+                            {t("Collection offer")}
                           </span>
                         ) : (
                           <Link
@@ -240,22 +243,22 @@ export function MyTrades({
                         href={`${deployment.explorer}/block/${r.blockNumber.toString()}`}
                         target="_blank"
                         rel="noreferrer noopener"
-                        title={`${at === undefined ? "" : `${timeAgo(at)} · `}block #${r.blockNumber.toString()}`}
+                        title={`${at === undefined ? "" : `${timeAgo(at)} · `}${t("block #{block}", { block: r.blockNumber.toString() })}`}
                       >
                         {ago === undefined
                           ? `#${r.blockNumber.toString()}`
                           : ago === "now"
-                            ? "just now"
-                            : `${ago} ago`}
+                            ? t("just now")
+                            : t("{ago} ago", { ago })}
                       </a>
                     </td>
 
                     <td className="tr-parties">
                       <span className="tr-l1">
-                        <Party address={r.from} me={me} self={own ? "You" : "This wallet"} />
+                        <Party address={r.from} me={me} self={own ? t("You") : t("This wallet")} />
                       </span>
                       <span className="tr-l2">
-                        <Party address={r.to} me={me} self={own ? "You" : "This wallet"} />
+                        <Party address={r.to} me={me} self={own ? t("You") : t("This wallet")} />
                       </span>
                     </td>
                   </tr>
@@ -271,7 +274,7 @@ export function MyTrades({
           className="btn btn-sm btn-block act-all"
           href={own ? "/activity?wallet=me" : `/activity?wallet=${address}`}
         >
-          See all {rows.length} events
+          {t("See all {count} events", { count: rows.length })}
           <ArrowRight />
         </Link>
       ) : null}
@@ -298,7 +301,7 @@ export function MyTrades({
   return (
     <div className="act-panel act-panel-standalone">
       <div className="act-head">
-        <p className="act-title">{title}</p>
+        <p className="act-title">{t(title)}</p>
         {summary === null ? null : <span className="act-count">{summary}</span>}
       </div>
       {body}

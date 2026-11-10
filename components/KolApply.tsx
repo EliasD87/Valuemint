@@ -7,6 +7,7 @@ import { useAccount, useSignMessage } from "wagmi";
 import { ConnectButton } from "@/components/ConnectButton";
 import { KOLS, kolLocal } from "@/config/kols";
 import { applyMessage, normaliseHandle } from "@/lib/kolApply";
+import { useT } from "@/lib/i18n";
 import "./KolApply.css";
 
 /** What someone has typed but not sent yet, kept across closing and reloads. */
@@ -44,6 +45,7 @@ type Phase = "idle" | "signing" | "sending" | "sent";
  * been sent, except a note that it was.
  */
 export function KolApply() {
+  const tr = useT();
   const [open, setOpen] = useState(false);
   const [handle, setHandle] = useState("");
   const [phase, setPhase] = useState<Phase>("idle");
@@ -97,7 +99,7 @@ export function KolApply() {
             <span className="kap-seat">+</span>
           </span>
           <span className="kap-label">
-            Want in? <b>Apply to join</b>
+            {tr("Want in?")} <b>{tr("Apply to join")}</b>
           </span>
           <span className="kap-arrow" aria-hidden="true">
             →
@@ -112,7 +114,7 @@ export function KolApply() {
             <span className="kap-seat">✓</span>
           </span>
           <span className="kap-label">
-            Applied as <b>@{sentAs}</b>
+            {tr("Applied as")} <b>@{sentAs}</b>
           </span>
         </p>
       )}
@@ -158,6 +160,7 @@ function ApplyDialog({
   onSent: (handle: string) => void;
   onClose: () => void;
 }) {
+  const tr = useT();
   const { address, isConnected } = useAccount();
   const { signMessageAsync } = useSignMessage();
   const input = useRef<HTMLInputElement>(null);
@@ -223,7 +226,7 @@ function ApplyDialog({
         {/* Once sent, the confirmation has its own stage and title; the form's
             header would only repeat it. */}
         {phase === "sent" ? (
-          <button type="button" className="kap-close is-floating" aria-label="Close" onClick={onClose}>
+          <button type="button" className="kap-close is-floating" aria-label={tr("Close")} onClick={onClose}>
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M6 6l12 12M18 6L6 18" />
             </svg>
@@ -231,10 +234,10 @@ function ApplyDialog({
         ) : (
           <div className="kap-head">
             <div>
-              <p className="kap-kicker">ValueMint KOL collection</p>
-              <h2 id="kap-title">Apply to join</h2>
+              <p className="kap-kicker">{tr("ValueMint KOL collection")}</p>
+              <h2 id="kap-title">{tr("Apply to join")}</h2>
             </div>
-            <button type="button" className="kap-close" aria-label="Close" onClick={onClose}>
+            <button type="button" className="kap-close" aria-label={tr("Close")} onClick={onClose}>
               <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M6 6l12 12M18 6L6 18" />
               </svg>
@@ -253,11 +256,12 @@ function ApplyDialog({
             }}
           >
             <p className="kap-lede">
-              For the people who keep showing up around SoDEX. Tell us who you are, and if you&rsquo;re picked
-              we&rsquo;ll make your 1/1 portrait.
+              {tr(
+                "For the people who keep showing up around SoDEX. Tell us who you are, and if you’re picked we’ll make your 1/1 portrait.",
+              )}
             </p>
             <label className="kap-field">
-              <span>Your X handle</span>
+              <span>{tr("Your X handle")}</span>
               <span className="kap-at">
                 <span aria-hidden="true">@</span>
                 <input
@@ -272,27 +276,27 @@ function ApplyDialog({
                 />
               </span>
               {handle !== "" && clean === undefined ? (
-                <small className="kap-bad">That doesn&rsquo;t look like an X handle.</small>
+                <small className="kap-bad">{tr("That doesn’t look like an X handle.")}</small>
               ) : null}
             </label>
 
             <div className="kap-field">
-              <span>Your wallet</span>
+              <span>{tr("Your wallet")}</span>
               {isConnected && address !== undefined ? (
                 <p className="kap-wallet">
-                  <b className="mono">{short(address)}</b> Your portrait would be sent here.
+                  <b className="mono">{short(address)}</b> {tr("Your portrait would be sent here.")}
                 </p>
               ) : (
-                <ConnectButton className="btn btn-block">Connect wallet</ConnectButton>
+                <ConnectButton className="btn btn-block">{tr("Connect wallet")}</ConnectButton>
               )}
             </div>
 
-            {error !== null ? <p className="kap-error">{error}</p> : null}
+            {error !== null ? <p className="kap-error">{tr(error)}</p> : null}
 
             <button type="submit" className="btn btn-primary btn-block" disabled={!ready}>
-              {phase === "signing" ? "Sign in your wallet…" : phase === "sending" ? "Sending…" : "Sign and apply"}
+              {phase === "signing" ? tr("Sign in your wallet…") : phase === "sending" ? tr("Sending…") : tr("Sign and apply")}
             </button>
-            <p className="kap-fine">Signing is free and sends nothing from your wallet. It proves the wallet is yours.</p>
+            <p className="kap-fine">{tr("Signing is free and sends nothing from your wallet. It proves the wallet is yours.")}</p>
           </form>
         )}
       </div>
@@ -316,6 +320,7 @@ function ApplyDialog({
  * the end.
  */
 function SeatFound({ handle, onClose }: { handle: string; onClose: () => void }) {
+  const tr = useT();
   const [stage, setStage] = useState(0);
   const done = useRef<HTMLButtonElement>(null);
 
@@ -331,7 +336,7 @@ function SeatFound({ handle, onClose }: { handle: string; onClose: () => void })
     if (stage === 4) done.current?.focus();
   }, [stage]);
 
-  const steps = ["Wallet signed", `@${handle} received`, "Saved"];
+  const steps = [tr("Wallet signed"), tr("@{handle} received", { handle }), tr("Saved")];
   const found = stage >= 4;
 
   return (
@@ -349,18 +354,18 @@ function SeatFound({ handle, onClose }: { handle: string; onClose: () => void })
               <path d="M20 92c2-18 14-28 30-28s28 10 30 28" />
             </svg>
             <span className="kap-scan" />
-            <span className="kap-stamp">On the list</span>
+            <span className="kap-stamp">{tr("On the list")}</span>
           </div>
           <div className="kap-pcard-foot">
             <b>@{handle}</b>
-            <span>{found ? "In review" : "Pending"}</span>
+            <span>{found ? tr("In review") : tr("Pending")}</span>
           </div>
         </div>
       </div>
 
       <div className="kap-found-copy">
-        <p className="kap-found-eyebrow">{found ? "Application saved" : "Finding you a seat"}</p>
-        <h2 id="kap-title">{found ? `You’re on the list, @${handle}.` : "Hold tight…"}</h2>
+        <p className="kap-found-eyebrow">{found ? tr("Application saved") : tr("Finding you a seat")}</p>
+        <h2 id="kap-title">{found ? tr("You’re on the list, @{handle}.", { handle }) : tr("Hold tight…")}</h2>
         <ol className="kap-steps">
           {steps.map((t, i) => (
             <li key={t} className={stage > i ? "is-on" : undefined}>
@@ -370,10 +375,10 @@ function SeatFound({ handle, onClose }: { handle: string; onClose: () => void })
         </ol>
         <div className={`kap-found-end${found ? " is-on" : ""}`}>
           <p className="kap-found-lede">
-            We&rsquo;ll reach out to you on X if you&rsquo;re picked. Keep showing up 🧡
+            {tr("We’ll reach out to you on X if you’re picked. Keep showing up 🧡")}
           </p>
           <button ref={done} type="button" className="btn btn-primary btn-block" onClick={onClose} disabled={!found}>
-            Done
+            {tr("Done")}
           </button>
         </div>
       </div>

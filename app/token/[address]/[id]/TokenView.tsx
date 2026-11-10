@@ -2,7 +2,7 @@
 
 import { parseEther } from "viem";
 
-import { use, useEffect, useState } from "react";
+import { use, useEffect, useState, type ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useAccount, useReadContract } from "wagmi";
@@ -46,6 +46,7 @@ import { useSosoPrice } from "@/hooks/useSosoPrice";
 import { useTokenOffers } from "@/hooks/useTokenOffers";
 import { useActivity } from "@/hooks/useActivity";
 import { formatUsd, sosoToUsd } from "@/lib/usd";
+import { useT } from "@/lib/i18n";
 
 
 /**
@@ -85,6 +86,7 @@ export function TokenView({
   })();
 
   const { address } = useAccount();
+  const t = useT();
   /**
    * Which page to render at all.
    *
@@ -326,9 +328,9 @@ export function TokenView({
   if (tokenId === undefined || collection === undefined) {
     return (
       <section className="page section">
-        <h1 className="token-title">That isn&rsquo;t a valid token.</h1>
+        <h1 className="token-title">{t("That isn’t a valid token.")}</h1>
         <Link className="btn" href="/">
-          Back to the marketplace
+          {t("Back to the marketplace")}
         </Link>
       </section>
     );
@@ -444,6 +446,8 @@ export function TokenView({
 
   const collectionLabel =
     typeof collectionName === "string" && collectionName !== "" ? collectionName : "Collection";
+  /** The fallback label is ours to translate; a collection's own name never is. */
+  const collectionShown = collectionLabel === "Collection" ? t("Collection") : collectionLabel;
   const avatar = avatarFor(collection);
   /**
    * The number beside the name, unless the name already carries it.
@@ -470,18 +474,18 @@ export function TokenView({
 
   /** What the badge over the trade card says. Colour only for the live state. */
   const status = checkingListing
-    ? { text: "Checking…", tone: "quiet" }
+    ? { text: t("Checking…"), tone: "quiet" }
     : gone
-    ? { text: "Burned", tone: "gone" }
+    ? { text: t("Burned"), tone: "gone" }
     : settling
-      ? { text: justListed ? "Listing…" : justBought ? "Settling…" : "Cancelling…", tone: "busy" }
+      ? { text: t(justListed ? "Listing…" : justBought ? "Settling…" : "Cancelling…"), tone: "busy" }
       : listed
         ? active
-          ? { text: "For sale", tone: "live" }
-          : { text: "Listing stale", tone: "warn" }
+          ? { text: t("For sale"), tone: "live" }
+          : { text: t("Listing stale"), tone: "warn" }
         : logsUnavailable
-          ? { text: "Listing unknown", tone: "quiet" }
-          : { text: "Not for sale", tone: "quiet" };
+          ? { text: t("Listing unknown"), tone: "quiet" }
+          : { text: t("Not for sale"), tone: "quiet" };
 
   const explorerHref = `${deployment.explorer}/token/${collectionParam}/instance/${id}`;
 
@@ -505,23 +509,26 @@ export function TokenView({
                 request for it takes ten seconds and the figure was empty for all
                 of them. See the component.
               */
-              <MovingArt src={image} alt={metadata?.name ?? `Token ${id}`} />
+              <MovingArt src={image} alt={metadata?.name ?? t("Token {id}", { id })} />
             ) : noMetadata ? (
               /* Nothing is loading here and nothing ever will. See `noMetadata`. */
               <div className="token-placeholder token-bare">
-                <span>No artwork published</span>
+                <span>{t("No artwork published")}</span>
                 <small>
                   {collectionLabel !== "Collection"
-                    ? `${collectionLabel} does not publish per-token metadata, `
-                    : "This collection does not publish per-token metadata, "}
-                  so there is no picture or traits to show &mdash; only its creator can add
-                  them. The piece itself is real and trades normally.
+                    ? t(
+                        "{collection} does not publish per-token metadata, so there is no picture or traits to show — only its creator can add them. The piece itself is real and trades normally.",
+                        { collection: collectionLabel },
+                      )
+                    : t(
+                        "This collection does not publish per-token metadata, so there is no picture or traits to show — only its creator can add them. The piece itself is real and trades normally.",
+                      )}
                 </small>
               </div>
             ) : (
               <div className="token-placeholder skeleton" />
             )}
-            {gone ? <figcaption className="tk-art-gone">Burned</figcaption> : null}
+            {gone ? <figcaption className="tk-art-gone">{t("Burned")}</figcaption> : null}
           </figure>
 
           <div className="tk-side">
@@ -542,11 +549,11 @@ export function TokenView({
             )}
 
             {/* The plain facts of the piece, which used to be a lone link. */}
-            <section className="tk-details" aria-label="Details">
-              <p className="eyebrow">Details</p>
+            <section className="tk-details" aria-label={t("Details")}>
+              <p className="eyebrow">{t("Details")}</p>
               <dl>
                 <div>
-                  <dt>Contract</dt>
+                  <dt>{t("Contract")}</dt>
                   <dd>
                     <a
                       href={`${deployment.explorer}/address/${collectionParam}`}
@@ -558,20 +565,20 @@ export function TokenView({
                   </dd>
                 </div>
                 <div>
-                  <dt>Token ID</dt>
+                  <dt>{t("Token ID")}</dt>
                   <dd>{id}</dd>
                 </div>
                 <div>
-                  <dt>Standard</dt>
+                  <dt>{t("Standard")}</dt>
                   <dd>ERC-721</dd>
                 </div>
                 <div>
-                  <dt>Chain</dt>
+                  <dt>{t("Chain")}</dt>
                   <dd>ValueChain</dd>
                 </div>
               </dl>
               <a className="tk-explorer" href={explorerHref} target="_blank" rel="noreferrer noopener">
-                View on the block explorer &rarr;
+                {t("View on the block explorer →")}
               </a>
             </section>
           </div>
@@ -584,13 +591,13 @@ export function TokenView({
               <Link href={`/collection/${collectionParam}`} className="tk-coll">
                 <span className="tk-coll-avatar" aria-hidden="true">
                   {avatar === undefined ? (
-                    <span>{collectionLabel.slice(0, 1)}</span>
+                    <span>{collectionShown.slice(0, 1)}</span>
                   ) : (
                     /* eslint-disable-next-line @next/next/no-img-element -- a 24px thumbnail */
                     <img src={avatar} alt="" width={48} height={48} decoding="async" />
                   )}
                 </span>
-                <span className="tk-coll-name">{collectionLabel}</span>
+                <span className="tk-coll-name">{collectionShown}</span>
                 <VerifiedMark collection={collection} size={15} />
               </Link>
               <div className="tk-tools">
@@ -615,7 +622,7 @@ export function TokenView({
                 <Wordmark mark={titleMark} name={metadata.name} />
               ) : (
                 <span className="tk-title-text">
-                  {metadata?.name ?? (isLoading ? "Loading…" : collectionLabel)}
+                  {metadata?.name ?? (isLoading ? t("Loading…") : collectionShown)}
                 </span>
               )}
               {showNumber ? <span className="tk-num">#{id}</span> : null}
@@ -624,15 +631,15 @@ export function TokenView({
             <div className="tk-meta">
               <span className="tk-owner">
                 {gone ? (
-                  "No owner"
+                  t("No owner")
                 ) : (
                   <>
-                    Owned by{" "}
+                    {t("Owned by")}{" "}
                     <b>
                       {owner === undefined ? (
                         "…"
                       ) : isOwner ? (
-                        "you"
+                        t("you")
                       ) : (
                         <AddressLink address={owner as string} chars={4} />
                       )}
@@ -641,12 +648,12 @@ export function TokenView({
                 )}
               </span>
               {tierOf(metadata) !== undefined ? (
-                <span className={`chip chip-${tierClass(tierOf(metadata))}`}>{tierOf(metadata)}</span>
+                <span className={`chip chip-${tierClass(tierOf(metadata))}`}>{t(tierOf(metadata)!)}</span>
               ) : null}
               {trait(metadata, "Edition") !== undefined ? (
                 <span className="chip">{trait(metadata, "Edition")}</span>
               ) : null}
-              {isOwner ? <span className="chip chip-up">You own this</span> : null}
+              {isOwner ? <span className="chip chip-up">{t("You own this")}</span> : null}
               {!gone && nextDraw.counts(collection, tokenId) ? <DrawBadge variant="chip" /> : null}
             </div>
           </header>
@@ -655,7 +662,7 @@ export function TokenView({
           <div className="tk-trade">
             <div className="tk-trade-top">
               <span className={`tk-status is-${status.tone}`}>{status.text}</span>
-              {listed && !gone ? <span className="tk-trade-label">Price</span> : null}
+              {listed && !gone ? <span className="tk-trade-label">{t("Price")}</span> : null}
             </div>
 
             {/*
@@ -670,19 +677,24 @@ export function TokenView({
             <FillBlocked blocked={fill.blocked}>
               {moved !== undefined ? (
                 <p>
-                  It is listed again at <strong>{formatSoso(moved.nowWei)} SOSO</strong> —{" "}
-                  {moved.direction === "cheaper" ? "less" : "more"} than the price you clicked.
-                  Check it before buying.
+                  {withSlot(
+                    t(
+                      moved.direction === "cheaper"
+                        ? "It is listed again at {price} — less than the price you clicked. Check it before buying."
+                        : "It is listed again at {price} — more than the price you clicked. Check it before buying.",
+                    ),
+                    "{price}",
+                    <strong>{formatSoso(moved.nowWei)} SOSO</strong>,
+                  )}
                 </p>
               ) : listing === undefined ? (
-                <p>Nothing is listed for this piece at the moment.</p>
+                <p>{t("Nothing is listed for this piece at the moment.")}</p>
               ) : null}
             </FillBlocked>
 
             {gone ? (
               <p className="tk-gone">
-                This piece was burned, so it no longer exists. It can&rsquo;t be bought, sold or
-                offered on. Its history is below.
+                {t("This piece was burned, so it no longer exists. It can’t be bought, sold or offered on. Its history is below.")}
               </p>
             ) : listed ? (
               <>
@@ -693,15 +705,15 @@ export function TokenView({
 
                 {justBought ? (
                   <p className="token-note">
-                    This piece is yours. The listing above is the one you just bought and
-                    disappears within a minute, once the order book has read the block it
-                    settled in.
+                    {t(
+                      "This piece is yours. The listing above is the one you just bought and disappears within a minute, once the order book has read the block it settled in.",
+                    )}
                   </p>
                 ) : !active ? (
                   <p className="token-warn">
-                    {isOwner
+                    {t(isOwner
                       ? "You hold this piece, and the listing showing here was made by whoever held it before you. It can no longer be filled, and it stops showing once it expires or its maker cancels it."
-                      : "This listing is stale — the owner moved the token or withdrew the marketplace’s approval. Buying it would fail, so the button is disabled."}
+                      : "This listing is stale — the owner moved the token or withdrew the marketplace’s approval. Buying it would fail, so the button is disabled.")}
                   </p>
                 ) : null}
 
@@ -715,10 +727,10 @@ export function TokenView({
                         if (listing !== undefined) trade.cancelOrder(listing);
                       }}
                     >
-                      {trade.busy ? "Cancelling…" : "Cancel listing"}
+                      {trade.busy ? t("Cancelling…") : t("Cancel listing")}
                     </button>
                   ) : isOwner ? null : address === undefined ? (
-                    <ConnectButton className="btn btn-primary">Connect wallet to buy</ConnectButton>
+                    <ConnectButton className="btn btn-primary">{t("Connect wallet to buy")}</ConnectButton>
                   ) : (
                     <button
                       className="btn btn-primary"
@@ -731,43 +743,45 @@ export function TokenView({
                         }
                       }}
                     >
-                      {blockedNow
-                        ? "No longer available"
-                        : fill.checking
-                          ? "Checking it is still for sale…"
-                          : fill.signing
-                            ? "Confirm in wallet…"
-                            : fill.confirming
-                              ? "Buying…"
-                              : "Buy now"}
+                      {t(
+                        blockedNow
+                          ? "No longer available"
+                          : fill.checking
+                            ? "Checking it is still for sale…"
+                            : fill.signing
+                              ? "Confirm in wallet…"
+                              : fill.confirming
+                                ? "Buying…"
+                                : "Buy now",
+                      )}
                     </button>
                   )}
                   {canOffer ? (
                     address === undefined ? null : (
                       <button type="button" className="btn" onClick={() => setOffering(true)}>
-                        Make offer
+                        {t("Make offer")}
                       </button>
                     )
                   ) : null}
                 </div>
               </>
             ) : checkingListing ? (
-              <div className="tk-checking" role="status" aria-label="Checking whether this is for sale">
+              <div className="tk-checking" role="status" aria-label={t("Checking whether this is for sale")}>
                 <span className="skeleton tk-checking-price" />
                 <span className="skeleton tk-checking-btn" />
               </div>
             ) : settling ? (
               <p className="token-note">
-                {justListed
+                {t(justListed
                   ? "Your listing is on chain. It takes up to a minute to appear in the market, because the book is rebuilt from confirmed blocks. Do not list it again — you would end up with two live listings at different prices."
-                  : "Your cancellation is on chain and the listing will stop showing shortly."}
+                  : "Your cancellation is on chain and the listing will stop showing shortly.")}
               </p>
             ) : isOwner ? (
               <div className="tk-sell">
-                <p className="tk-sell-title">Sell this piece</p>
+                <p className="tk-sell-title">{t("Sell this piece")}</p>
 
                 <div className="field">
-                  <label htmlFor="price">Price in SOSO</label>
+                  <label htmlFor="price">{t("Price in SOSO")}</label>
                   <input
                     id="price"
                     className="input"
@@ -781,11 +795,11 @@ export function TokenView({
                 {preview.price > 0n ? (
                   <dl className="token-split">
                     <div>
-                      <dt>You receive</dt>
+                      <dt>{t("You receive")}</dt>
                       <dd className="mono">{formatSoso(preview.proceeds)}</dd>
                     </div>
                     <div>
-                      <dt>Marketplace</dt>
+                      <dt>{t("Marketplace")}</dt>
                       <dd className="mono">{formatSoso(preview.fee)}</dd>
                     </div>
                   </dl>
@@ -800,10 +814,10 @@ export function TokenView({
                  */}
                 {trade.needsApproval || lastAction === "approve" ? (
                   <Steps
-                    label={`Listing: step ${trade.needsApproval ? 1 : 2} of 2`}
+                    label={t("Listing: step {step} of 2", { step: trade.needsApproval ? 1 : 2 })}
                     steps={[
-                      { label: "Approve once", state: trade.needsApproval ? "now" : "done" },
-                      { label: "List it", state: trade.needsApproval ? "next" : "now" },
+                      { label: t("Approve once"), state: trade.needsApproval ? "now" : "done" },
+                      { label: t("List it"), state: trade.needsApproval ? "next" : "now" },
                     ]}
                   />
                 ) : null}
@@ -811,8 +825,9 @@ export function TokenView({
                 {trade.needsApproval ? (
                   <>
                     <p className="token-note">
-                      The marketplace needs permission to move this token when it sells. Your token
-                      stays in your wallet either way — this is one transaction, once per collection.
+                      {t(
+                        "The marketplace needs permission to move this token when it sells. Your token stays in your wallet either way — this is one transaction, once per collection.",
+                      )}
                     </p>
                     <button
                       className="btn btn-primary"
@@ -822,7 +837,7 @@ export function TokenView({
                         trade.approve();
                       }}
                     >
-                      {trade.busy ? "Approving…" : "Approve marketplace"}
+                      {trade.busy ? t("Approving…") : t("Approve marketplace")}
                     </button>
                   </>
                 ) : (
@@ -834,7 +849,7 @@ export function TokenView({
                       trade.list(tokenId, price);
                     }}
                   >
-                    {trade.signing ? "Confirm in wallet…" : trade.confirming ? "Listing…" : "List for sale"}
+                    {t(trade.signing ? "Confirm in wallet…" : trade.confirming ? "Listing…" : "List for sale")}
                   </button>
                 )}
               </div>
@@ -844,24 +859,26 @@ export function TokenView({
                  buyer takes the cheaper one — so the seller loses the spread on
                  a piece they believed was unlisted. */
               <p className="token-note">
-                Whether this is listed could not be read &mdash; the node would not serve
-                event logs. Do not list it again until this loads; you could end up with
-                two live listings at different prices.
+                {t(
+                  "Whether this is listed could not be read — the node would not serve event logs. Do not list it again until this loads; you could end up with two live listings at different prices.",
+                )}
               </p>
             ) : (
               <>
                 <p className="tk-unlisted">
-                  {canOffer
-                    ? "The owner hasn’t set a price. Make an offer and they can accept it."
-                    : "The owner hasn’t set a price."}
+                  {t(
+                    canOffer
+                      ? "The owner hasn’t set a price. Make an offer and they can accept it."
+                      : "The owner hasn’t set a price.",
+                  )}
                 </p>
                 {canOffer ? (
                   <div className="tk-actions">
                     {address === undefined ? (
-                      <ConnectButton className="btn btn-primary">Connect wallet to offer</ConnectButton>
+                      <ConnectButton className="btn btn-primary">{t("Connect wallet to offer")}</ConnectButton>
                     ) : (
                       <button type="button" className="btn btn-primary" onClick={() => setOffering(true)}>
-                        Make offer
+                        {t("Make offer")}
                       </button>
                     )}
                   </div>
@@ -901,7 +918,7 @@ export function TokenView({
 
           {/* --- offers and history, one at a time ----------------------- */}
           <div className="tk-tabs">
-            <div className="tk-tablist" role="tablist" aria-label="Offers and activity">
+            <div className="tk-tablist" role="tablist" aria-label={t("Offers and activity")}>
               {offersTab ? (
                 <button
                   type="button"
@@ -912,7 +929,7 @@ export function TokenView({
                   className="tk-tab"
                   onClick={() => setTab("offers")}
                 >
-                  Offers{offerCount > 0 ? <span className="tk-tab-n">{offerCount}</span> : null}
+                  {t("Offers")}{offerCount > 0 ? <span className="tk-tab-n">{offerCount}</span> : null}
                 </button>
               ) : null}
               <button
@@ -924,7 +941,7 @@ export function TokenView({
                 className="tk-tab"
                 onClick={() => setTab("activity")}
               >
-                Activity{historyCount > 0 ? <span className="tk-tab-n">{historyCount}</span> : null}
+                {t("Activity")}{historyCount > 0 ? <span className="tk-tab-n">{historyCount}</span> : null}
               </button>
             </div>
 
@@ -970,5 +987,22 @@ export function TokenView({
         />
       ) : null}
     </section>
+  );
+}
+
+/**
+ * A translated sentence with one piece of markup in it: the text is split at
+ * `slot` and `node` goes where the placeholder was, so the sentence stays one
+ * key in the dictionary and the emphasis survives in either language.
+ */
+function withSlot(text: string, slot: string, node: ReactNode): ReactNode {
+  const at = text.indexOf(slot);
+  if (at < 0) return text;
+  return (
+    <>
+      {text.slice(0, at)}
+      {node}
+      {text.slice(at + slot.length)}
+    </>
   );
 }

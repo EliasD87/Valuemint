@@ -11,6 +11,7 @@ import { formatSosoFixed, shortAddress } from "@/lib/format";
 import { whenExpires } from "@/components/Offers";
 import { Soso } from "@/components/Soso";
 import { remainingPieces } from "@/lib/seaport";
+import { useT } from "@/lib/i18n";
 import "@/styles/activity.css";
 
 /**
@@ -61,6 +62,7 @@ export function MyOffers({
   bare?: boolean;
 }) {
   const { offers, isLoading } = useOrdersBy(address);
+  const t = useT();
 
   const committed = useMemo(
     /* A batch offer commits its price for every piece it still wants. */
@@ -81,11 +83,15 @@ export function MyOffers({
     if (!bare) return null;
     return (
       <p className="act-note">
-        {isLoading
-          ? `Reading ${own ? "your" : "this wallet's"} offers from the chain…`
-          : own
-            ? "No standing offers. Anything you bid on shows here until it is taken, expires or you withdraw it."
-            : "No standing offers from this wallet."}
+        {t(
+          isLoading
+            ? own
+              ? "Reading your offers from the chain…"
+              : "Reading this wallet's offers from the chain…"
+            : own
+              ? "No standing offers. Anything you bid on shows here until it is taken, expires or you withdraw it."
+              : "No standing offers from this wallet.",
+        )}
       </p>
     );
   }
@@ -95,7 +101,7 @@ export function MyOffers({
       <Soso size={12} unit="WSOSO">
         {formatSosoFixed(committed)}
       </Soso>{" "}
-      committed
+      {t("committed")}
     </>
   );
 
@@ -107,13 +113,13 @@ export function MyOffers({
       <table className="tr-table">
         <thead>
           <tr>
-            <th scope="col">Item</th>
+            <th scope="col">{t("Item")}</th>
             <th scope="col" className="tr-num">
-              Offer
+              {t("Offer")}
             </th>
             {own ? (
               <th scope="col">
-                <span className="tr-sr">Action</span>
+                <span className="tr-sr">{t("Action")}</span>
               </th>
             ) : null}
           </tr>
@@ -139,7 +145,7 @@ export function MyOffers({
   return (
     <div className="act-panel act-panel-standalone">
       <div className="act-head">
-        <p className="act-title">Your offers</p>
+        <p className="act-title">{t("Your offers")}</p>
         <span className="act-count">{summary}</span>
       </div>
       {body}
@@ -156,6 +162,7 @@ export function MyOffers({
  */
 function OfferRow({ order, name, own }: { order: SeaportOrder; name: string; own: boolean }) {
   const trade = useSeaportTrade(order.collection);
+  const t = useT();
 
   /**
    * A collection-wide bid names no token: any piece. A trait bid names none
@@ -171,9 +178,9 @@ function OfferRow({ order, name, own }: { order: SeaportOrder; name: string; own
       ? `#${order.tokenId.toString()}`
       : isTrait
         ? set === undefined
-          ? "Trait offer"
+          ? t("Trait offer")
           : traitLabel(set)
-        : "Any piece";
+        : t("Any piece");
 
   /* Two lines, the same shape as a trade row: the piece over its collection,
      the amount over how long it has left. */
@@ -210,9 +217,12 @@ function OfferRow({ order, name, own }: { order: SeaportOrder; name: string; own
           {order.amount > 1n
             ? remainingPieces(order) === order.amount
               ? `×${order.amount.toString()} · `
-              : `${remainingPieces(order).toString()} of ${order.amount.toString()} left · `
+              : t("{left} of {total} left · ", {
+                  left: remainingPieces(order).toString(),
+                  total: order.amount.toString(),
+                })
             : ""}
-          {whenExpires(order.endTime)}
+          {whenExpires(order.endTime, t)}
         </span>
       </td>
 
@@ -224,7 +234,7 @@ function OfferRow({ order, name, own }: { order: SeaportOrder; name: string; own
             disabled={trade.busy}
             onClick={() => trade.cancelOrder(order)}
           >
-            {trade.busy ? "Withdrawing…" : "Withdraw"}
+            {trade.busy ? t("Withdrawing…") : t("Withdraw")}
           </button>
         </td>
       ) : null}

@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 import { useDeferred } from "@/hooks/useDeferred";
 import { GUIDE_STEPS } from "@/config/guide";
 import { GuideArt } from "@/components/GuideArt";
+import { useT } from "@/lib/i18n";
 import "@/styles/guide.css";
 
 /**
@@ -88,6 +89,7 @@ export function GuideWelcome() {
  * centres itself inside the 72px bar instead of the window.
  */
 function GuidePanel({ onClose }: { onClose: () => void }) {
+  const t = useT();
   const [step, setStep] = useState(0);
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
@@ -113,14 +115,14 @@ function GuidePanel({ onClose }: { onClose: () => void }) {
   return createPortal(
     <>
       <div className="gd-scrim" onClick={onClose} aria-hidden="true" />
-      <div className="gd" role="dialog" aria-modal="true" aria-label="Getting started on ValueMint">
+      <div className="gd" role="dialog" aria-modal="true" aria-label={t("Getting started on ValueMint")}>
         <div className="gd-head">
           {/* It opens unasked now, so the first page says what it is. */}
           <p className="gd-count">
-            {step === 0 ? "Welcome to ValueMint · " : ""}
-            {step + 1} of {GUIDE_STEPS.length}
+            {step === 0 ? t("Welcome to ValueMint · ") : ""}
+            {t("{step} of {total}", { step: step + 1, total: GUIDE_STEPS.length })}
           </p>
-          <button type="button" className="gd-close" aria-label="Close" onClick={onClose}>
+          <button type="button" className="gd-close" aria-label={t("Close")} onClick={onClose}>
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M6 6l12 12M18 6L6 18" />
             </svg>
@@ -153,13 +155,13 @@ function GuidePanel({ onClose }: { onClose: () => void }) {
             />
           )}
 
-          <h2 className="gd-title">{current.title}</h2>
-          <p className="gd-text">{current.body}</p>
+          <h2 className="gd-title">{t(current.title)}</h2>
+          <p className="gd-text">{t(current.body)}</p>
           {/* A step that happens on another site has numbered instructions the
               panel has no room for; this is the way to them. */}
           {current.howTo === undefined ? null : (
             <Link className="gd-howto-link" href={`/guide#${current.id}`} onClick={onClose}>
-              Show me step by step
+              {t("Show me step by step")}
             </Link>
           )}
         </div>
@@ -176,11 +178,11 @@ function GuidePanel({ onClose }: { onClose: () => void }) {
           <div className="gd-acts">
             {step > 0 ? (
               <button type="button" className="gd-back" onClick={() => setStep(step - 1)}>
-                Back
+                {t("Back")}
               </button>
             ) : (
               <button type="button" className="gd-back" onClick={onClose}>
-                Skip
+                {t("Skip")}
               </button>
             )}
 
@@ -197,15 +199,15 @@ function GuidePanel({ onClose }: { onClose: () => void }) {
               */
               <>
                 <Link className="gd-aside" href="/guide" onClick={onClose}>
-                  Full guide &rarr;
+                  {t("Full guide")} &rarr;
                 </Link>
                 <button type="button" className="gd-next" onClick={onClose}>
-                  Done
+                  {t("Done")}
                 </button>
               </>
             ) : (
               <button type="button" className="gd-next" onClick={() => setStep(step + 1)}>
-                Next
+                {t("Next")}
               </button>
             )}
           </div>

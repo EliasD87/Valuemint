@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useQueries } from "@tanstack/react-query";
 import type { Hex } from "viem";
 import { boundsOf, fetchTokenCriteria, rootKey, tokenCriteriaKey, traitLabel } from "@/hooks/useCriteria";
@@ -21,6 +21,7 @@ import { formatSoso } from "@/lib/format";
 import { AddressLink } from "@/components/AddressLink";
 import { currencyLabel, fulfillerOutlay, remainingPieces } from "@/lib/seaport";
 import { deployment } from "@/config/contracts";
+import { useT } from "@/lib/i18n";
 import "./OfferInbox.css";
 
 /**
@@ -110,6 +111,7 @@ export function OfferInbox({
    */
   onSummary?: (summary: InboxSummary) => void;
 }) {
+  const tr = useT();
   const { orders, traitOffers, isLoading: bookLoading } = useSeaportOrders();
 
   /**
@@ -287,13 +289,13 @@ export function OfferInbox({
   return (
     <div className="inbox card">
       <div className="inbox-head">
-        <p className="eyebrow">Offers you can take</p>
+        <p className="eyebrow">{tr("Offers you can take")}</p>
         <span className="inbox-count">
           {shown.length === 0
             ? null
             : shown.length === 1
-                ? "1 live offer"
-                : `${shown.length} live offers`}
+                ? tr("1 live offer")
+                : tr("{count} live offers", { count: shown.length })}
         </span>
       </div>
 
@@ -302,23 +304,31 @@ export function OfferInbox({
           {checking ? (
             <>
               <span className="inbox-spin" aria-hidden="true" />
-              Checking for offers on your pieces…
+              {tr("Checking for offers on your pieces…")}
             </>
           ) : (
-            "No offers on your pieces right now."
+            tr("No offers on your pieces right now.")
           )}
         </p>
       ) : null}
 
       {sold.map((s) => (
         <p key={s.hash} className="txr txr-good">
-          Sold {s.piece} for{" "}
-          <Soso size={13} unit={currencyLabel(s.currency)}>
-            {formatSoso(s.price)}
-          </Soso>
-          . It is in your balance above as WSOSO, which unwraps to SOSO one for one.{" "}
+          {withSlots(
+            tr(
+              "Sold {piece} for {price}. It is in your balance above as WSOSO, which unwraps to SOSO one for one.",
+              { piece: s.piece },
+            ),
+            {
+              price: (
+                <Soso size={13} unit={currencyLabel(s.currency)}>
+                  {formatSoso(s.price)}
+                </Soso>
+              ),
+            },
+          )}{" "}
           <a href={`${deployment.explorer}/tx/${s.hash}`} target="_blank" rel="noreferrer noopener">
-            View transaction
+            {tr("View transaction")}
           </a>
         </p>
       ))}
@@ -326,7 +336,7 @@ export function OfferInbox({
       {gone.map((g) => (
         <div key={g.key} className="fill-blocked" role="status" aria-live="polite">
           <p>
-            <b>{g.piece}:</b> {g.say}
+            <b>{g.piece}:</b> {tr(g.say)}
           </p>
         </div>
       ))}
@@ -370,6 +380,7 @@ function InboxRow({
   onGone: (g: Gone) => void;
 }) {
   const { offer } = row;
+  const tr = useT();
 
   /**
    * The piece this sale would use. The first that qualifies until the holder
@@ -461,18 +472,23 @@ function InboxRow({
           {formatSoso(offer.priceWei)}
         </Soso>
         <span className="inbox-meta">
-          {row.trait !== undefined ? `for ${row.trait} · ` : offer.tokenId === undefined ? "for any piece · " : ""}
-          {offer.amount > 1n ? `wants ${remainingPieces(offer).toString()} · ` : ""}
-          from <AddressLink address={offer.maker} chars={4} /> · {whenExpires(offer.endTime)}
+          {row.trait !== undefined
+            ? tr("for {trait} · ", { trait: row.trait })
+            : offer.tokenId === undefined
+              ? tr("for any piece · ")
+              : ""}
+          {offer.amount > 1n ? tr("wants {count} · ", { count: remainingPieces(offer).toString() }) : ""}
+          {withSlots(tr("from {maker}"), { maker: <AddressLink address={offer.maker} chars={4} /> })} ·{" "}
+          {whenExpires(offer.endTime, tr)}
         </span>
       </span>
 
       <span className="inbox-act">
         {row.choices.length > 1 ? (
           <span className="inbox-pick">
-            <span className="inbox-fine">Sell with</span>
+            <span className="inbox-fine">{tr("Sell with")}</span>
             <Select
-              label="Which of your pieces to sell into this offer"
+              label={tr("Which of your pieces to sell into this offer")}
               value={token.id.toString()}
               onChange={setPick}
               options={row.choices.map((c) => ({
@@ -486,7 +502,7 @@ function InboxRow({
         <span className="inbox-buttons">
           {canSellMany ? (
             <button type="button" className="btn btn-sm" disabled={busy} onClick={() => setSellingMany(true)}>
-              Sell up to {most}
+              {tr("Sell up to {count}", { count: most })}
             </button>
           ) : null}
           <button
@@ -506,21 +522,23 @@ function InboxRow({
               else fill.acceptOffer(offer, token.id, choice.proof);
             }}
           >
-            {busy
-              ? "Working…"
-              : mustApprove
-                ? "Approve, then accept"
-                : mustAllowFee
-                  ? "Allow fee, then accept"
-                  : canSellMany
-                    ? "Accept 1"
-                    : "Accept offer"}
+            {tr(
+              busy
+                ? "Working…"
+                : mustApprove
+                  ? "Approve, then accept"
+                  : mustAllowFee
+                    ? "Allow fee, then accept"
+                    : canSellMany
+                      ? "Accept 1"
+                      : "Accept offer",
+            )}
           </button>
         </span>
         {mustApprove ? (
-          <span className="inbox-fine">One approval per collection, then accept.</span>
+          <span className="inbox-fine">{tr("One approval per collection, then accept.")}</span>
         ) : mustAllowFee ? (
-          <span className="inbox-fine">The fee is taken in WSOSO from what you are paid.</span>
+          <span className="inbox-fine">{tr("The fee is taken in WSOSO from what you are paid.")}</span>
         ) : null}
       </span>
 
@@ -561,5 +579,22 @@ function InboxRow({
         />
       ) : null}
     </li>
+  );
+}
+
+/**
+ * A translated sentence with markup in it: every `{name}` that `nodes` has an
+ * entry for is replaced by that node, so the sentence stays one key in the
+ * dictionary and the markup survives in either language.
+ */
+function withSlots(text: string, nodes: Record<string, ReactNode>): ReactNode {
+  const parts = text.split(/(\{\w+\})/);
+  return (
+    <>
+      {parts.map((part, i) => {
+        const name = /^\{(\w+)\}$/.exec(part)?.[1];
+        return name !== undefined && name in nodes ? <Fragment key={i}>{nodes[name]}</Fragment> : part;
+      })}
+    </>
   );
 }

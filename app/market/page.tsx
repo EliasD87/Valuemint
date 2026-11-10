@@ -1,6 +1,7 @@
 "use client";
 
 import { CYBEREATOR } from "@/lib/cybereator";
+import { useT } from "@/lib/i18n";
 import { useCybereatorOpened, type SealFilter } from "@/hooks/useCybereatorOpened";
 import { useMemo, useState } from "react";
 import Link from "next/link";
@@ -50,6 +51,8 @@ const pinRank = (address: string) => PIN_RANK.get(address.toLowerCase()) ?? PIN_
 const PAGE = 60;
 
 export default function Market() {
+  /* `tr`, not `t`: this page already calls each row `t`. */
+  const tr = useT();
   const { address } = useAccount();
   const { tokens: listed, collections, isLoading, logsUnavailable } = useListingFeed();
   const { floorFor, tierFloorsFor } = useFloors();
@@ -329,7 +332,7 @@ export default function Market() {
         {chips.length > 1 ? (
         <div className="filters mk-filters">
           <button className="filt" aria-pressed={filterTo === "all"} onClick={() => setFilterTo("all")}>
-            All <em>{listed.length}</em>
+            {tr("All")} <em>{listed.length}</em>
           </button>
           {chips.map((chip) => (
             <button
@@ -348,7 +351,7 @@ export default function Market() {
                 look at, and every card below already carries its own price.
                 With one figure per pill there is nothing left to misread.
               */}
-              {chip.label} <em>{chip.count}</em>
+              {tr(chip.label)} <em>{chip.count}</em>
             </button>
           ))}
         </div>
@@ -376,17 +379,17 @@ export default function Market() {
             aria-pressed={picking}
             onClick={() => (picking ? stopPicking() : setPicking(true))}
           >
-            {picking ? "Done" : "Bulk buy"}
+            {picking ? tr("Done") : tr("Bulk buy")}
           </button>
           <Select
-            label="Sort listings"
+            label={tr("Sort listings")}
             value={sort}
             onChange={(v) => setSort(v as Sort)}
             options={[
-              { value: "traded", label: "Featured" },
-              { value: "price-asc", label: "Price low to high" },
-              { value: "price-desc", label: "Price high to low" },
-              { value: "recent", label: "Newest" },
+              { value: "traded", label: tr("Featured") },
+              { value: "price-asc", label: tr("Price low to high") },
+              { value: "price-desc", label: tr("Price high to low") },
+              { value: "recent", label: tr("Newest") },
             ]}
           />
         </div>
@@ -396,15 +399,15 @@ export default function Market() {
           floor. Shown only when there is more than one - a single row would
           just repeat the collection floor. */}
       {cybereatorChosen ? (
-        <div className="filters mk-filters" role="group" aria-label="Opened or sealed">
+        <div className="filters mk-filters" role="group" aria-label={tr("Opened or sealed")}>
           <button className="filt" aria-pressed={seal === "all"} onClick={() => setSeal("all")}>
-            All <em>{cybereatorListed.length}</em>
+            {tr("All")} <em>{cybereatorListed.length}</em>
           </button>
           <button className="filt filt-opened" aria-pressed={seal === "opened"} onClick={() => setSeal("opened")}>
-            Opened {opened === undefined ? null : <em>{cybereatorListed.filter(isOpened).length}</em>}
+            {tr("Opened")} {opened === undefined ? null : <em>{cybereatorListed.filter(isOpened).length}</em>}
           </button>
           <button className="filt filt-sealed" aria-pressed={seal === "sealed"} onClick={() => setSeal("sealed")}>
-            Sealed {opened === undefined ? null : <em>{cybereatorListed.filter((t) => !isOpened(t)).length}</em>}
+            {tr("Sealed")} {opened === undefined ? null : <em>{cybereatorListed.filter((t) => !isOpened(t)).length}</em>}
           </button>
         </div>
       ) : null}
@@ -418,12 +421,12 @@ export default function Market() {
                   inside a bordered pill. `tierClass` so "Super Rare" and
                   "SuperRare" find the same colour. */}
               <span className={`tier-floor-name tier-dot-${tierClass(t.tier) ?? "none"}`}>
-                {t.tier}
+                {tr(t.tier)}
               </span>
               <span className="tier-floor-price">
-                from {formatSoso(t.price)} SOSO
+                {tr("from {price} SOSO", { price: formatSoso(t.price) })}
               </span>
-              <span className="tier-floor-count">{t.count} listed</span>
+              <span className="tier-floor-count">{tr("{count} listed", { count: t.count })}</span>
             </span>
           ))}
         </div>
@@ -431,8 +434,7 @@ export default function Market() {
       
       {logsUnavailable ? (
         <p className="portfolio-note">
-          The node would not serve event logs just now, so listings may be incomplete. Open a
-          collection directly to see what is on offer in it.
+          {tr("The node would not serve event logs just now, so listings may be incomplete. Open a collection directly to see what is on offer in it.")}
         </p>
       ) : null}
 
@@ -444,18 +446,21 @@ export default function Market() {
         </div>
       ) : visible.length === 0 ? (
         <div className="market-empty">
-          <h3>Nothing is listed right now.</h3>
+          <h3>{tr("Nothing is listed right now.")}</h3>
           <p className="muted">
-            Nothing across {collections.length} collection{collections.length === 1 ? "" : "s"} is
-            on offer. Listings are non-custodial, so a piece only appears here once its owner puts
-            it up.
+            {tr(
+              collections.length === 1
+                ? "Nothing across {n} collection is on offer. Listings are non-custodial, so a piece only appears here once its owner puts it up."
+                : "Nothing across {n} collections is on offer. Listings are non-custodial, so a piece only appears here once its owner puts it up.",
+              { n: collections.length },
+            )}
           </p>
           <div className="wrap-row mt-md">
             <Link className="btn btn-primary" href="/portfolio">
-              List something you own
+              {tr("List something you own")}
             </Link>
             <Link className="btn" href="/mint">
-              Mint something first
+              {tr("Mint something first")}
             </Link>
           </div>
         </div>
@@ -483,14 +488,14 @@ export default function Market() {
           {visible.length > limit ? (
             <div className="market-more">
               <p className="market-more-count">
-                Showing <b>{limit.toLocaleString()}</b> of <b>{visible.length.toLocaleString()}</b>
+                {tr("Showing")} <b>{limit.toLocaleString()}</b> {tr("of")} <b>{visible.length.toLocaleString()}</b>
               </p>
               <button
                 type="button"
                 className="btn"
                 onClick={() => setPaging({ view, limit: limit + PAGE })}
               >
-                Show {Math.min(PAGE, visible.length - limit)} more
+                {tr("Show {count} more", { count: Math.min(PAGE, visible.length - limit) })}
               </button>
             </div>
           ) : null}

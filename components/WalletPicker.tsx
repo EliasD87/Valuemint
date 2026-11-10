@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useConnect, type Connector } from "wagmi";
 import { injectedIsRefused, isRefusedNamed, REFUSED_NOTE } from "@/lib/refusedWallets";
+import { useT } from "@/lib/i18n";
 import "./WalletPicker.css";
 
 /**
@@ -27,6 +28,7 @@ export function WalletPicker({
   /** Opened because a Phantom connection was just dropped: say why. */
   refused?: boolean;
 }) {
+  const t = useT();
   const { connect, connectors, isPending, error } = useConnect();
   const panel = useRef<HTMLDivElement>(null);
 
@@ -90,17 +92,17 @@ export function WalletPicker({
   return createPortal(
     <>
       <div className="wp-scrim" onClick={onClose} aria-hidden="true" />
-      <div className="wp" role="dialog" aria-modal="true" aria-label="Connect a wallet" ref={panel}>
+      <div className="wp" role="dialog" aria-modal="true" aria-label={t("Connect a wallet")} ref={panel}>
         <div className="wp-head">
-          <h2>Connect a wallet</h2>
-          <button type="button" className="wp-close" aria-label="Close" onClick={onClose}>
+          <h2>{t("Connect a wallet")}</h2>
+          <button type="button" className="wp-close" aria-label={t("Close")} onClick={onClose}>
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M6 6l12 12M18 6L6 18" />
             </svg>
           </button>
         </div>
 
-        {refused ? <p className="wp-note">{REFUSED_NOTE}</p> : null}
+        {refused ? <p className="wp-note">{t(REFUSED_NOTE)}</p> : null}
 
         <div className="wp-list">
           {installed.map((c) => (
@@ -114,7 +116,7 @@ export function WalletPicker({
                 <img className="wp-mark" src={c.icon} alt="" width={28} height={28} />
               )}
               <span className="wp-name">{c.name}</span>
-              <span className="wp-tag">Installed</span>
+              <span className="wp-tag">{t("Installed")}</span>
             </button>
           ))}
 
@@ -135,19 +137,27 @@ export function WalletPicker({
                 </svg>
               </span>
               <span className="wp-name">
-                {installed.length === 0 ? "Connect a wallet" : "Another wallet"}
-                <span className="wp-sub">Scan a QR code, or open a wallet on your phone</span>
+                {installed.length === 0 ? t("Connect a wallet") : t("Another wallet")}
+                <span className="wp-sub">{t("Scan a QR code, or open a wallet on your phone")}</span>
               </span>
             </button>
           )}
 
           {installed.length === 0 && walletConnect === undefined ? (
             <p className="wp-empty">
-              No wallet found in this browser.{" "}
-              <a href="https://metamask.io/download/" target="_blank" rel="noreferrer noopener">
-                Install one
-              </a>{" "}
-              to continue.
+              {/* One sentence, one key: the link sits where {link} does in either language. */}
+              {(() => {
+                const [before = "", after = ""] = t("No wallet found in this browser. {link} to continue.").split("{link}");
+                return (
+                  <>
+                    {before}
+                    <a href="https://metamask.io/download/" target="_blank" rel="noreferrer noopener">
+                      {t("Install one")}
+                    </a>
+                    {after}
+                  </>
+                );
+              })()}
             </p>
           ) : null}
         </div>
@@ -155,7 +165,7 @@ export function WalletPicker({
         {error === null ? null : (
           <p className="wp-error">
             {/rejected|denied|User denied/i.test(error.message)
-              ? "That request was cancelled in your wallet."
+              ? t("That request was cancelled in your wallet.")
               : error.message.slice(0, 160)}
           </p>
         )}

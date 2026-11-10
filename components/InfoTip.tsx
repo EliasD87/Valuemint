@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { useT } from "@/lib/i18n";
 
 /**
  * A small "i" that explains the figure beside it.
@@ -18,6 +19,7 @@ import { createPortal } from "react-dom";
  * a fixed bubble left behind by a scroll would point at nothing.
  */
 export function InfoTip({ label, children }: { label: string; children: ReactNode }) {
+  const t = useT();
   const [at, setAt] = useState<{ top: number; left: number; width: number } | null>(null);
   const [mounted, setMounted] = useState(false);
   const button = useRef<HTMLButtonElement>(null);
@@ -59,7 +61,7 @@ export function InfoTip({ label, children }: { label: string; children: ReactNod
         ref={button}
         type="button"
         className="info-tip"
-        aria-label={label}
+        aria-label={t(label)}
         aria-describedby={at === null ? undefined : id}
         aria-expanded={at !== null}
         onMouseEnter={show}

@@ -2,6 +2,7 @@
 
 import { useId } from "react";
 import { useNextDraw } from "@/hooks/useNextDraw";
+import { useT } from "@/lib/i18n";
 import "./DrawBadge.css";
 
 /**
@@ -16,6 +17,7 @@ import "./DrawBadge.css";
  * other chips.
  */
 export function DrawBadge({ variant }: { variant: "card" | "chip" }) {
+  const t = useT();
   const id = useId();
   /* Only drawn where `useNextDraw` already said this box counts, so the week is known. */
   const { snapshot, drawDay } = useNextDraw();
@@ -42,17 +44,18 @@ export function DrawBadge({ variant }: { variant: "card" | "chip" }) {
         }}
       >
         <GiftIcon />
-        <span>{variant === "chip" ? "Counts for the next draw" : "Next draw"}</span>
+        <span>{variant === "chip" ? t("Counts for the next draw") : t("Next draw")}</span>
         <InfoIcon />
       </button>
       <span className="draw-tip" role="tooltip" id={id}>
-        <b>Eligible for SoDEX&rsquo;s next Treasure Box draw</b>
+        <b>{t("Eligible for SoDEX’s next Treasure Box draw")}</b>
         <span>
-          Minted after the {when ?? "latest"} UTC snapshot, so it enters the live draw on{" "}
-          {draw ?? "the next Wednesday"} while it stays unopened. A new snapshot is taken every
-          Tuesday at 12:00 UTC.
+          {t(
+            "Minted after the {when} UTC snapshot, so it enters the live draw on {draw} while it stays unopened. A new snapshot is taken every Tuesday at 12:00 UTC.",
+            { when: when ?? t("latest"), draw: draw ?? t("the next Wednesday") },
+          )}
         </span>
-        <span className="draw-tip-fine">Opening the box burns it, and the entry goes with it.</span>
+        <span className="draw-tip-fine">{t("Opening the box burns it, and the entry goes with it.")}</span>
       </span>
     </span>
   );

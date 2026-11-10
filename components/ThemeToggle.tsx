@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useT } from "@/lib/i18n";
 
 /**
  * Light / dark switch.
@@ -38,6 +39,7 @@ function stored(): Choice | undefined {
 }
 
 export function ThemeToggle() {
+  const t = useT();
   const [theme, setTheme] = useState<Choice>("light");
   const [mounted, setMounted] = useState(false);
 
@@ -113,8 +115,8 @@ export function ThemeToggle() {
       type="button"
       className="theme-toggle"
       onClick={toggle}
-      aria-label={isDark ? "Switch to light theme" : "Switch to dark theme"}
-      title={isDark ? "Light" : "Dark"}
+      aria-label={isDark ? t("Switch to light theme") : t("Switch to dark theme")}
+      title={isDark ? t("Light") : t("Dark")}
     >
       <span className="theme-toggle-track" aria-hidden="true">
         <span className="theme-toggle-thumb" data-dark={isDark ? "" : undefined}>

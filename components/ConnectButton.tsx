@@ -3,6 +3,7 @@
 import { useState, type ReactNode } from "react";
 import { useConnect } from "wagmi";
 import { WalletPicker } from "./WalletPicker";
+import { useT } from "@/lib/i18n";
 
 /**
  * Connect, from anywhere that is not the header.
@@ -52,6 +53,7 @@ export function ConnectButton({
    * picker — keeping them out of here is what stops this growing its own
    * opinion about which wallet to use.
    */
+  const t = useT();
   const { isPending } = useConnect();
   const [picking, setPicking] = useState(false);
 
@@ -63,7 +65,7 @@ export function ConnectButton({
         disabled={isPending}
         onClick={() => setPicking(true)}
       >
-        {isPending ? "Check your wallet…" : children}
+        {isPending ? t("Check your wallet…") : children}
       </button>
       {picking ? <WalletPicker onClose={() => setPicking(false)} /> : null}
     </>

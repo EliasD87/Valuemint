@@ -1432,3 +1432,29 @@
   opacity: 1;
 }
 
+/* 中文 / EN (2026-11-10): a quiet pill beside the theme switch, the same height. */
+.lang-switch {
+  flex: none;
+  height: 26px;
+  padding: 0 0.6rem;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--line-strong);
+  background: var(--paper-3);
+  color: var(--ink-2);
+  font-size: var(--step--2);
+  font-weight: 600;
+  line-height: 1;
+  transition: border-color var(--fast), color var(--fast);
+}
+
+.lang-switch:hover {
+  border-color: var(--ink-3);
+  color: var(--ink);
+}
+
+/* On phones it moves into the drawer with the theme switch. */
+@media (max-width: 1180px) {
+  .header-actions > .lang-switch {
+    display: none;
+  }
+}

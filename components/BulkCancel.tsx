@@ -1,11 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState, type ReactNode } from "react";
 import { useBulkCancel } from "@/hooks/useBulkCancel";
 import { Soso } from "@/components/Soso";
 import { formatCount, formatSoso } from "@/lib/format";
 import { tierClass } from "@/lib/tokenMetadata";
 import type { SeaportOrder } from "@/hooks/useSeaportOrders";
+import { useT } from "@/lib/i18n";
 import "@/styles/bulklist.css";
 
 /**
@@ -39,6 +40,7 @@ export function BulkCancel({
   minimum?: number;
 }) {
   const { cancelMany, progress, error, perTransaction, reset } = useBulkCancel();
+  const t = useT();
   const [open, setOpen] = useState(false);
   const [level, setLevel] = useState(ALL);
 
@@ -62,13 +64,15 @@ export function BulkCancel({
   const batches = Math.ceil(count / perTransaction);
   const asking = chosen.list.reduce((sum, it) => sum + it.order.priceWei, 0n);
   const what = chosen.name === ALL || chosen.name === NO_LEVEL ? "" : `${chosen.name} `;
+  /** The level in the visitor's language, or nothing when the choice is every listing. */
+  const levelShown = what === "" ? undefined : t(chosen.name);
 
   if (!open) {
     return (
       <button
         className="bulk-open"
         onClick={() => setOpen(true)}
-        title={`Withdraw several listings at once: ${formatCount(BigInt(items.length))} listed`}
+        title={t("Withdraw several listings at once: {count} listed", { count: formatCount(BigInt(items.length)) })}
       >
         <span className="bulk-open-mark" aria-hidden="true">
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.7">
@@ -76,7 +80,7 @@ export function BulkCancel({
             <path d="M8.5 8.5l7 7M15.5 8.5l-7 7" />
           </svg>
         </span>
-        <span className="bulk-open-text">Delist {formatCount(BigInt(items.length))}</span>
+        <span className="bulk-open-text">{t("Delist {count}", { count: formatCount(BigInt(items.length)) })}</span>
       </button>
     );
   }
@@ -84,7 +88,7 @@ export function BulkCancel({
   return (
     <div className="bulk">
       {groups.length > 1 ? (
-        <div className="bulk-levels" role="radiogroup" aria-label="Which listings to withdraw">
+        <div className="bulk-levels" role="radiogroup" aria-label={t("Which listings to withdraw")}>
           {groups.map((g) => (
             <button
               key={g.name}
@@ -97,7 +101,7 @@ export function BulkCancel({
               disabled={progress.busy}
               onClick={() => setLevel(g.name)}
             >
-              {g.name}
+              {t(g.name)}
               <b>{formatCount(BigInt(g.list.length))}</b>
             </button>
           ))}
@@ -105,29 +109,49 @@ export function BulkCancel({
       ) : null}
 
       <p className="bulk-note">
-        Withdraw <b>{formatCount(BigInt(count))}</b> {what}
-        {count === 1 ? "listing" : "listings"}, asking{" "}
-        <b>
-          <Soso size={14}>{formatSoso(asking)}</Soso>
-        </b>{" "}
-        in total, in{" "}
-        <b>
-          {batches} {batches === 1 ? "transaction" : "transactions"}
-        </b>
-        . The pieces stay in your wallet, unlisted.
+        {withSlots(
+          t(
+            levelShown === undefined
+              ? count === 1
+                ? "Withdraw {count} listing, asking {asking} in total, in {batches}. The pieces stay in your wallet, unlisted."
+                : "Withdraw {count} listings, asking {asking} in total, in {batches}. The pieces stay in your wallet, unlisted."
+              : count === 1
+                ? "Withdraw {count} {level} listing, asking {asking} in total, in {batches}. The pieces stay in your wallet, unlisted."
+                : "Withdraw {count} {level} listings, asking {asking} in total, in {batches}. The pieces stay in your wallet, unlisted.",
+            levelShown === undefined ? undefined : { level: levelShown },
+          ),
+          {
+            count: <b>{formatCount(BigInt(count))}</b>,
+            asking: (
+              <b>
+                <Soso size={14}>{formatSoso(asking)}</Soso>
+              </b>
+            ),
+            batches: <b>{batches === 1 ? t("1 transaction") : t("{count} transactions", { count: batches })}</b>,
+          },
+        )}
       </p>
 
       {progress.total > 0 ? (
         <p className={error === undefined ? "bulk-progress" : "bulk-progress is-stopped"}>
           {progress.busy
-            ? `Withdrawing… ${progress.done} of ${progress.total} transactions confirmed, ${formatCount(BigInt(progress.cancelled))} delisted.`
+            ? t("Withdrawing… {done} of {total} transactions confirmed, {cancelled} delisted.", {
+                done: progress.done,
+                total: progress.total,
+                cancelled: formatCount(BigInt(progress.cancelled)),
+              })
             : error === undefined
-              ? `Done. ${formatCount(BigInt(progress.cancelled))} ${progress.cancelled === 1 ? "listing is" : "listings are"} withdrawn.`
-              : `Stopped after ${formatCount(BigInt(progress.cancelled))} of ${formatCount(BigInt(progress.requested))}. Those are withdrawn. Run it again for the rest.`}
+              ? progress.cancelled === 1
+                ? t("Done. {count} listing is withdrawn.", { count: formatCount(BigInt(progress.cancelled)) })
+                : t("Done. {count} listings are withdrawn.", { count: formatCount(BigInt(progress.cancelled)) })
+              : t("Stopped after {cancelled} of {requested}. Those are withdrawn. Run it again for the rest.", {
+                  cancelled: formatCount(BigInt(progress.cancelled)),
+                  requested: formatCount(BigInt(progress.requested)),
+                })}
         </p>
       ) : null}
 
-      {error !== undefined ? <p className="bulk-error">{error.message}</p> : null}
+      {error !== undefined ? <p className="bulk-error">{t(error.message)}</p> : null}
 
       <div className="wrap-row">
         <button
@@ -138,17 +162,40 @@ export function BulkCancel({
             void cancelMany(chosen.list.map((it) => it.order));
           }}
         >
-          {progress.busy ? "Check your wallet…" : `Delist ${formatCount(BigInt(count))}`}
+          {progress.busy ? t("Check your wallet…") : t("Delist {count}", { count: formatCount(BigInt(count)) })}
         </button>
         <button className="btn" disabled={progress.busy} onClick={() => setOpen(false)}>
-          Close
+          {t("Close")}
         </button>
       </div>
 
       <p className="bulk-fine">
-        Only your {what}
-        {collectionName} listings are withdrawn. You can list them again at a new price straight after.
+        {levelShown === undefined
+          ? t("Only your {collection} listings are withdrawn. You can list them again at a new price straight after.", {
+              collection: collectionName,
+            })
+          : t(
+              "Only your {level} {collection} listings are withdrawn. You can list them again at a new price straight after.",
+              { level: levelShown, collection: collectionName },
+            )}
       </p>
     </div>
+  );
+}
+
+/**
+ * A translated sentence with markup in it: every `{name}` that `nodes` has an
+ * entry for is replaced by that node, so the sentence stays one key in the
+ * dictionary and the markup survives in either language.
+ */
+function withSlots(text: string, nodes: Record<string, ReactNode>): ReactNode {
+  const parts = text.split(/(\{\w+\})/);
+  return (
+    <>
+      {parts.map((part, i) => {
+        const name = /^\{(\w+)\}$/.exec(part)?.[1];
+        return name !== undefined && name in nodes ? <Fragment key={i}>{nodes[name]}</Fragment> : part;
+      })}
+    </>
   );
 }

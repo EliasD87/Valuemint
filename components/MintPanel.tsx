@@ -14,6 +14,7 @@ import { formatCount, formatSoso } from "@/lib/format";
 import "@/styles/mint.css";
 import { Soso } from "@/components/Soso";
 import { ConnectButton } from "@/components/ConnectButton";
+import { useT } from "@/lib/i18n";
 
 /**
  * Minting for any collection, not a particular one.
@@ -24,6 +25,7 @@ import { ConnectButton } from "@/components/ConnectButton";
  * because nothing here is special-cased to it.
  */
 export function MintPanel({ address: collection }: { address: `0x${string}` }) {
+  const t = useT();
   const { address, isConnected } = useAccount();
   // The wallet's real network, from the connection. `useChainId()` only reports
   // chains in the config, so a wallet on Ethereum read as ValueChain (2026-09-25).
@@ -120,7 +122,7 @@ export function MintPanel({ address: collection }: { address: `0x${string}` }) {
     /* `id="mint"`: the sealed-pieces notice above the grid links here. */
     <aside className="mint-panel card" id="mint">
       <div className="mint-panel-head">
-        <span className="dim">Mint price</span>
+        <span className="dim">{t("Mint price")}</span>
         <span className="mint-total mono">
           <Soso>{formatSoso(price)}</Soso>
         </span>
@@ -142,7 +144,7 @@ export function MintPanel({ address: collection }: { address: `0x${string}` }) {
           <div className="mint-action">
             {!isConnected ? (
               <ConnectButton className="btn btn-primary btn-lg btn-block">
-                Connect wallet to mint
+                {t("Connect wallet to mint")}
               </ConnectButton>
             ) : wrongChain ? (
               <button
@@ -150,48 +152,48 @@ export function MintPanel({ address: collection }: { address: `0x${string}` }) {
                 disabled={switching}
                 onClick={() => void switchTo(valuechain.id).catch(() => undefined)}
               >
-                {switching ? "Switching…" : "Switch to ValueChain"}
+                {switching ? t("Switching…") : t("Switch to ValueChain")}
               </button>
             ) : remaining === 0 ? (
               <button className="btn btn-lg btn-block" disabled>
-                Sold out
+                {t("Sold out")}
               </button>
             ) : yourRemaining === 0 && perWallet > 0 ? (
               <button className="btn btn-lg btn-block" disabled>
-                You&rsquo;ve minted your limit
+                {t("You’ve minted your limit")}
               </button>
             ) : !canAfford ? (
               <button className="btn btn-lg btn-block" disabled>
-                Not enough SOSO
+                {t("Not enough SOSO")}
               </button>
             ) : (
               <button className="btn btn-primary btn-lg btn-block" disabled={busy} onClick={mint}>
-                {signing ? "Confirm in wallet…" : confirming ? "Minting…" : `Mint for ${formatSoso(price)} SOSO`}
+                {signing ? t("Confirm in wallet…") : confirming ? t("Minting…") : t("Mint for {price} SOSO", { price: formatSoso(price) })}
               </button>
             )}
           </div>
 
           <dl className="mint-meta">
             <div>
-              <dt>Available</dt>
+              <dt>{t("Available")}</dt>
               <dd className="mono">{formatCount(remaining)}</dd>
             </div>
             <div>
-              <dt>Per wallet</dt>
-              <dd className="mono">{perWallet === 0 ? "No limit" : perWallet}</dd>
+              <dt>{t("Per wallet")}</dt>
+              <dd className="mono">{perWallet === 0 ? t("No limit") : perWallet}</dd>
             </div>
           </dl>
       </>
 
       {isSuccess ? (
         <div className="mint-note mint-note-good">
-          <strong>Minted.</strong>
+          <strong>{t("Minted.")}</strong>
           <a
             href={`${deployment.explorer}/tx/${hash}`}
             target="_blank"
             rel="noreferrer noopener"
           >
-            View transaction
+            {t("View transaction")}
           </a>
         </div>
       ) : null}
@@ -199,7 +201,7 @@ export function MintPanel({ address: collection }: { address: `0x${string}` }) {
       {error !== null ? (
         <div className="mint-note mint-note-bad">
           {/rejected|denied|User denied/i.test(error.message)
-            ? "You cancelled the transaction."
+            ? t("You cancelled the transaction.")
             : error.message.slice(0, 160)}
         </div>
       ) : null}

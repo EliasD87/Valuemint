@@ -15,15 +15,20 @@ import { OfferForm, useTokenOfferTarget } from "@/components/OfferForm";
 import { TxResult } from "@/components/TxResult";
 import "./Offers.css";
 import { Soso } from "@/components/Soso";
+import { translate, useT } from "@/lib/i18n";
 
-export function whenExpires(expiry: bigint): string {
-  if (expiry === 0n) return "no expiry";
+/** `t` from `useT()`, so the answer reads in the visitor's language. English when not given. */
+type Translator = (text: string, vars?: Record<string, string | number>) => string;
+const inEnglish: Translator = (text, vars) => translate("en", text, vars);
+
+export function whenExpires(expiry: bigint, t: Translator = inEnglish): string {
+  if (expiry === 0n) return t("no expiry");
   const secs = Number(expiry) - Math.floor(Date.now() / 1000);
-  if (secs <= 0) return "expired";
+  if (secs <= 0) return t("expired");
   const days = Math.floor(secs / 86_400);
-  if (days >= 1) return `${days}d left`;
+  if (days >= 1) return t("{days}d left", { days });
   const hours = Math.floor(secs / 3600);
-  return hours >= 1 ? `${hours}h left` : "under an hour";
+  return hours >= 1 ? t("{hours}h left", { hours }) : t("under an hour");
 }
 
 /**
@@ -59,6 +64,7 @@ export function Offers({
   showForm?: boolean;
 }) {
   const { address, isConnected } = useAccount();
+  const t = useT();
   const { offers: direct, logsUnavailable, isLoading: loadingDirect } = useOffersForToken(collection, tokenId);
 
   /**
@@ -136,24 +142,26 @@ export function Offers({
   return (
     <div className="offers">
       <div className="offers-head">
-        <p className="eyebrow">Offers</p>
+        <p className="eyebrow">{t("Offers")}</p>
         {offers.length > 0 ? (
           <span className="offers-count">
             {/* Derived, not a literal. The whitelist guarantees WSOSO today, so
                 this is not exploitable — but a hardcoded unit beside a number
                 is exactly the shape that rendered an attacker's worthless token
                 as "1,000,000 WSOSO" to a holder about to accept it. */}
-            {offers.length} live &middot; best {formatSoso(offers[0]!.priceWei)}{" "}
-            {currencyLabel(offers[0]!.currency)}
+            {t("{count} live · best {price}", {
+              count: offers.length,
+              price: `${formatSoso(offers[0]!.priceWei)} ${currencyLabel(offers[0]!.currency)}`,
+            })}
           </span>
         ) : null}
       </div>
 
       {mustApproveToken && best !== undefined ? (
         <p className="offers-approve-note">
-          Before you can accept, the marketplace needs permission to move this piece when it
-          sells. One transaction, once per collection — the piece stays in your wallet until
-          somebody buys it.
+          {t(
+            "Before you can accept, the marketplace needs permission to move this piece when it sells. One transaction, once per collection — the piece stays in your wallet until somebody buys it.",
+          )}
         </p>
       ) : mustAllowFee && best !== undefined ? (
         <p className="offers-approve-note">
@@ -161,9 +169,9 @@ export function Offers({
               answers a question nobody asked; what a seller wants to know is
               why accepting needs a second signature and whether it costs
               anything. */}
-          Last step before you can accept. The marketplace fee comes out of what the buyer
-          pays you, in WSOSO, so it needs permission to take that much — nothing leaves your
-          wallet now, and you never have to hold WSOSO yourself.
+          {t(
+            "Last step before you can accept. The marketplace fee comes out of what the buyer pays you, in WSOSO, so it needs permission to take that much — nothing leaves your wallet now, and you never have to hold WSOSO yourself.",
+          )}
         </p>
       ) : null}
 
@@ -173,15 +181,16 @@ export function Offers({
            no bids on their piece makes different decisions than one who knows
            we could not look. */
         <p className="offers-empty">
-          Offers could not be loaded just now — the node would not serve event logs.
-          This does not mean there are none.
+          {t(
+            "Offers could not be loaded just now — the node would not serve event logs. This does not mean there are none.",
+          )}
         </p>
       ) : offers.length === 0 && loadingOffers ? (
         <p className="offers-empty" role="status">
-          Checking offers…
+          {t("Checking offers…")}
         </p>
       ) : offers.length === 0 ? (
-        <p className="offers-empty">No offers yet.</p>
+        <p className="offers-empty">{t("No offers yet.")}</p>
       ) : (
         <ul className="offers-list">
           {offers.map((o) => {
@@ -194,11 +203,16 @@ export function Offers({
                   </Soso>
                 </span>
                 <span className="offers-who">
-                  {mineRow ? "You" : <AddressLink address={o.maker} chars={4} />}
+                  {mineRow ? t("You") : <AddressLink address={o.maker} chars={4} />}
                   <span className="offers-when">
-                    {o.trait !== undefined ? `${o.trait} · ` : o.tokenId === undefined ? "any piece · " : ""}
-                    {o.amount > 1n ? `${remainingPieces(o).toString()} of ${o.amount.toString()} wanted · ` : ""}
-                    {whenExpires(o.endTime)}
+                    {o.trait !== undefined ? `${o.trait} · ` : o.tokenId === undefined ? t("any piece · ") : ""}
+                    {o.amount > 1n
+                      ? t("{left} of {total} wanted · ", {
+                          left: remainingPieces(o).toString(),
+                          total: o.amount.toString(),
+                        })
+                      : ""}
+                    {whenExpires(o.endTime, t)}
                   </span>
                 </span>
 
@@ -211,7 +225,7 @@ export function Offers({
                     disabled={busy}
                     onClick={() => trade.cancelOrder(o)}
                   >
-                    Withdraw
+                    {t("Withdraw")}
                   </button>
                 ) : isOwner ? (
                   <button
@@ -237,11 +251,13 @@ export function Offers({
                         about why, so it read as an unexplained extra hurdle;
                         "Accept" alone would have been a lie on the rungs that
                         do not sell anything. */}
-                    {mustApproveToken
-                      ? "Approve, then accept"
-                      : mustAllowFee
-                        ? "Allow fee, then accept"
-                        : "Accept offer"}
+                    {t(
+                      mustApproveToken
+                        ? "Approve, then accept"
+                        : mustAllowFee
+                          ? "Allow fee, then accept"
+                          : "Accept offer",
+                    )}
                   </button>
                 ) : (
                   <span />
@@ -271,7 +287,7 @@ export function Offers({
       {isOwner || !isConnected || !showForm ? null : (
         <div className="offers-make-wrap">
           <p className="offers-make-title">
-            {mine === undefined ? "Make an offer" : "Make another offer"}
+            {t(mine === undefined ? "Make an offer" : "Make another offer")}
           </p>
           <OfferForm target={offerTarget} replacing={false} onDone={after} />
         </div>

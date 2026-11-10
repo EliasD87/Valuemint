@@ -3,6 +3,7 @@
 import { useCollectionBasics } from "@/hooks/useCollectionBasics";
 import { isDisplayable } from "@/lib/traitRoles";
 import type { TokenMetadata } from "@/lib/tokenMetadata";
+import { useT } from "@/lib/i18n";
 import "./TokenTraits.css";
 
 /**
@@ -40,6 +41,7 @@ export function TokenTraits({
   metadata?: TokenMetadata;
 }) {
   const { supply } = useCollectionBasics(collection);
+  const t = useT();
 
   const traits = (metadata?.attributes ?? []).filter((a) => isDisplayable(a.trait_type));
 
@@ -61,7 +63,7 @@ export function TokenTraits({
 
   return (
     <section className="tt">
-      <p className="eyebrow">Traits</p>
+      <p className="eyebrow">{t("Traits")}</p>
 
       <dl className="tt-grid">
         {traits.map((a) => {

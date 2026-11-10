@@ -6,6 +6,7 @@ import { useVerifiedContracts } from "@/hooks/useVerifiedContracts";
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { Wallet } from "./Wallet";
 import { ThemeToggle } from "./ThemeToggle";
+import { LanguageSwitch, LocaleSync, useT } from "@/lib/i18n";
 import { FocusLine } from "./FocusLine";
 import { Search } from "./Search";
 import { SodexLogo } from "./SodexLogo";
@@ -85,6 +86,7 @@ const NAV: NavEntry[] = [
 ];
 
 export function Layout({ children }: { children: ReactNode }) {
+  const t = useT();
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuButton = useRef<HTMLButtonElement>(null);
@@ -161,20 +163,21 @@ export function Layout({ children }: { children: ReactNode }) {
   return (
     <>
       <NavProgress />
+      <LocaleSync />
       <a className="skip" href="#main">
-        Skip to content
+        {t("Skip to content")}
       </a>
 
       <header className="header" data-menu-open={menuOpen ? "" : undefined}>
         <div className="header-inner page">
-          <Link href="/" className="brand" aria-label="ValueMint, home">
+          <Link href="/" className="brand" aria-label={t("ValueMint, home")}>
             <span className="brand-mark" aria-hidden="true">
               <Mark />
             </span>
             <BrandName />
           </Link>
 
-          <nav className="nav" aria-label="Primary">
+          <nav className="nav" aria-label={t("Primary")}>
             {NAV.map((entry) =>
               isGroup(entry) ? (
                 <NavMenu key={entry.label} group={entry} isActive={isActive} />
@@ -186,7 +189,7 @@ export function Layout({ children }: { children: ReactNode }) {
                   aria-current={isActive(entry) ? "page" : undefined}
                 >
                   {entry.mark === true ? <SodexLogo variant="mark" className="nav-mark" /> : null}
-                  {entry.label}
+                  {t(entry.label)}
                 </Link>
               ),
             )}
@@ -196,6 +199,7 @@ export function Layout({ children }: { children: ReactNode }) {
             {/* Below 940 this hides and the drawer carries the switch instead,
                 so the phone header is only brand, wallet and the menu. */}
             <Search />
+            <LanguageSwitch className="lang-switch" />
             <ThemeToggle />
             <Wallet />
             <button
@@ -204,7 +208,7 @@ export function Layout({ children }: { children: ReactNode }) {
               className="menu-button"
               aria-expanded={menuOpen}
               aria-controls="mobile-nav"
-              aria-label={menuOpen ? "Close menu" : "Open menu"}
+              aria-label={menuOpen ? t("Close menu") : t("Open menu")}
               onClick={() => setMenuOpen((v) => !v)}
             >
               <span className="menu-bars" aria-hidden="true">
@@ -238,7 +242,7 @@ export function Layout({ children }: { children: ReactNode }) {
         data-open={menuOpen ? "" : undefined}
       >
         <div className="drawer-head">
-          <Link href="/" className="brand" aria-label="ValueMint, home">
+          <Link href="/" className="brand" aria-label={t("ValueMint, home")}>
             <span className="brand-mark" aria-hidden="true">
               <Mark />
             </span>
@@ -247,7 +251,7 @@ export function Layout({ children }: { children: ReactNode }) {
           <button
             type="button"
             className="drawer-close"
-            aria-label="Close menu"
+            aria-label={t("Close menu")}
             onClick={() => {
               setMenuOpen(false);
               menuButton.current?.focus();
@@ -259,7 +263,7 @@ export function Layout({ children }: { children: ReactNode }) {
           </button>
         </div>
 
-        <nav className="drawer-nav" aria-label="Primary">
+        <nav className="drawer-nav" aria-label={t("Primary")}>
           {/* Flat on a phone (owner, 2026-10-24): a group's pages are rows like the rest, not folded. */}
           {NAV.flatMap((entry) => (isGroup(entry) ? entry.items : [entry])).map((item) => (
             <DrawerLink key={item.to} item={item} active={isActive(item)} />
@@ -267,6 +271,7 @@ export function Layout({ children }: { children: ReactNode }) {
         </nav>
 
         <div className="drawer-foot">
+          <LanguageSwitch className="lang-switch" />
           <ThemeToggle />
           <span className="drawer-chain">ValueChain · 286623</span>
         </div>
@@ -322,7 +327,7 @@ export function Layout({ children }: { children: ReactNode }) {
             </div>
             <FocusLine
               className="footer-statement"
-              text="The marketplace for everything minted on ValueChain."
+              text={t("The marketplace for everything minted on ValueChain.")}
             />
           </div>
 
@@ -333,16 +338,16 @@ export function Layout({ children }: { children: ReactNode }) {
             the explorer's front page) that a visitor never comes to the
             footer for. A nav landmark rather than a heading names the row.
           */}
-          <nav className="footer-col footer-links" aria-label="More">
+          <nav className="footer-col footer-links" aria-label={t("More")}>
             <ul>
               <li>
-                <Link href="/stats">Stats</Link>
+                <Link href="/stats">{t("Stats")}</Link>
               </li>
               {/* The way back in. The pill that offers this is dismissed for
                   good on the first click, so without a standing link the guide
                   would be unreachable to anyone who closed it. */}
               <li>
-                <Link href="/guide">Getting started</Link>
+                <Link href="/guide">{t("Getting started")}</Link>
               </li>
               <li>
                 <a
@@ -350,7 +355,7 @@ export function Layout({ children }: { children: ReactNode }) {
                   target="_blank"
                   rel="noreferrer noopener"
                 >
-                  Marketplace contract
+                  {t("Marketplace contract")}
                 </a>
               </li>
             </ul>
@@ -358,13 +363,13 @@ export function Layout({ children }: { children: ReactNode }) {
         </div>
 
         <div className="footer-base">
-          <span>Built on SoSoValue&rsquo;s Layer 1.</span>
+          <span>{t("Built on SoSoValue’s Layer 1.")}</span>
           <a
             className="footer-social"
             href="https://x.com/valuemintNFT"
             target="_blank"
             rel="noreferrer noopener"
-            aria-label="ValueMint on X, @valuemintNFT"
+            aria-label={t("ValueMint on X, @valuemintNFT")}
           >
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path
@@ -374,7 +379,7 @@ export function Layout({ children }: { children: ReactNode }) {
             </svg>
             @valuemintNFT
           </a>
-          <span className="mono">Gas settles in SOSO</span>
+          <span className="mono">{t("Gas settles in SOSO")}</span>
         </div>
       </footer>
     </>
@@ -395,6 +400,7 @@ export function Layout({ children }: { children: ReactNode }) {
  * that followed would close it again.
  */
 function NavMenu({ group, isActive }: { group: NavGroup; isActive: (item: NavItem) => boolean }) {
+  const t = useT();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
@@ -455,7 +461,7 @@ function NavMenu({ group, isActive }: { group: NavGroup; isActive: (item: NavIte
         aria-controls={open ? id : undefined}
         onClick={() => setOpen((v) => (hovering.current ? true : !v))}
       >
-        {group.label}
+        {t(group.label)}
         <Chevron />
       </button>
 
@@ -472,10 +478,10 @@ function NavMenu({ group, isActive }: { group: NavGroup; isActive: (item: NavIte
               <span className="nav-menu-text">
                 <span className="nav-menu-label">
                   {item.mark === true ? <SodexLogo variant="mark" className="nav-mark" /> : null}
-                  {item.label}
-                  {item.tag === undefined ? null : <span className="nav-menu-tag">{item.tag}</span>}
+                  {t(item.label)}
+                  {item.tag === undefined ? null : <span className="nav-menu-tag">{t(item.tag)}</span>}
                 </span>
-                {item.note === undefined ? null : <span className="nav-menu-note">{item.note}</span>}
+                {item.note === undefined ? null : <span className="nav-menu-note">{t(item.note)}</span>}
               </span>
             </Link>
           ))}
@@ -486,6 +492,7 @@ function NavMenu({ group, isActive }: { group: NavGroup; isActive: (item: NavIte
 }
 
 function DrawerLink({ item, active }: { item: NavItem; active: boolean }) {
+  const t = useT();
   return (
     <Link
       href={item.to}
@@ -496,7 +503,7 @@ function DrawerLink({ item, active }: { item: NavItem; active: boolean }) {
           62px in while the others sat flush, and a single icon does not justify
           reserving the slot on every row. Trailing, every label aligns and the
           mark reads as a tag on Trenches. */}
-      <span>{item.label}</span>
+      <span>{t(item.label)}</span>
       {item.mark === true ? <SodexLogo variant="mark" className="nav-mark" /> : null}
     </Link>
   );
@@ -545,7 +552,7 @@ function Chevron() {
  * There is no JavaScript in the animation; the only thing this does is hand CSS
  * an ordinal.
  *
- * `aria-hidden` because the link already carries `aria-label="ValueMint, home"`,
+ * `aria-hidden` because the link already carries `aria-label={t("ValueMint, home")}`,
  * so the accessible name is right either way — and without it some screen
  * readers announce a per-letter split one letter at a time. Selecting and
  * copying the text still works: the characters are really there.
@@ -596,20 +603,22 @@ function Mark() {
  * chain has actually answered and the answer was wrong.
  */
 function ContractIdentityBanner() {
+  const t = useT();
   const { mismatch, problems } = useVerifiedContracts();
   if (!mismatch) return null;
 
   return (
     <div className="identity-alarm" role="alert">
-      <strong>Stop. This site is not talking to the contracts it should be.</strong>
+      <strong>{t("Stop. This site is not talking to the contracts it should be.")}</strong>
       <ul>
         {problems.map((p) => (
-          <li key={p}>{p}</li>
+          <li key={p}>{t(p)}</li>
         ))}
       </ul>
       <p>
-        Do not approve anything and do not send a transaction. Approving would grant
-        blanket rights over your collection to whatever contract this is.
+        {t(
+          "Do not approve anything and do not send a transaction. Approving would grant blanket rights over your collection to whatever contract this is.",
+        )}
       </p>
     </div>
   );

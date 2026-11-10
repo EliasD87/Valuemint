@@ -12,6 +12,7 @@ import { VerifiedMark } from "@/components/VerifiedMark";
 import { TradingMark } from "@/components/TradingMark";
 import { deployment } from "@/config/contracts";
 import { formatCount, shortAddress } from "@/lib/format";
+import { useT } from "@/lib/i18n";
 import "./CollectionHero.css";
 
 /**
@@ -48,6 +49,7 @@ export function CollectionHero({
   symbol?: string;
   supply?: bigint;
 }) {
+  const t = useT();
   const hero = heroFor(address);
   const covers = coverFor(address);
   const mark = wordmarkFor(address);
@@ -181,7 +183,7 @@ export function CollectionHero({
               {name !== undefined && mark !== undefined ? (
                 <Wordmark mark={mark} name={name} />
               ) : (
-                (name ?? "Loading…")
+                (name ?? t("Loading…"))
               )}
               {/*
                 Inside the heading, beside the name it qualifies. Outside it the
@@ -198,7 +200,7 @@ export function CollectionHero({
             <div className="ch-actions">
               <ShareLink title={name ?? undefined} />
               <Link className="ch-back" href="/collections">
-                All collections
+                {t("All collections")}
               </Link>
             </div>
           </div>
@@ -207,7 +209,7 @@ export function CollectionHero({
             {symbol === undefined ? null : <span className="ch-chip">{symbol}</span>}
             {supply === undefined ? null : (
               <span className="ch-chip">
-                {formatCount(supply)} {supply === 1n ? "piece" : "pieces"}
+                {t(supply === 1n ? "{count} piece" : "{count} pieces", { count: formatCount(supply) })}
               </span>
             )}
             {/*
@@ -228,8 +230,8 @@ export function CollectionHero({
                 href={x.url}
                 target="_blank"
                 rel="noreferrer noopener"
-                aria-label={`${name ?? "This collection"} on X (@${x.handle})`}
-                title={`@${x.handle} on X`}
+                aria-label={t("{name} on X (@{handle})", { name: name ?? t("This collection"), handle: x.handle })}
+                title={t("@{handle} on X", { handle: x.handle })}
               >
                 <svg viewBox="0 0 24 24" width="12" height="12" aria-hidden="true" focusable="false">
                   <path

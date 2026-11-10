@@ -15,8 +15,10 @@ import { CollectionCard, CollectionCardSkeleton } from "@/components/CollectionC
 import { useCollectionArt } from "@/hooks/useCollectionArt";
 import "@/styles/collections.css";
 import { useFloors } from "@/hooks/useFloors";
+import { useT } from "@/lib/i18n";
 
 export default function Collections() {
+  const t = useT();
   const { collections: fromFactory } = useRegistry(48);
   const { data: discovered, isLoading, error } = useDiscoveredCollections();
 
@@ -142,7 +144,7 @@ export default function Collections() {
         symbol={c.symbol}
         address={c.address}
         images={artFor(c.address)}
-        badge={s.open === true ? <span className="chip chip-up">Minting</span> : null}
+        badge={s.open === true ? <span className="chip chip-up">{t("Minting")}</span> : null}
         progress={
           s.maxSupply !== undefined && s.maxSupply > 0n
             ? Number(s.totalSupply ?? 0n) / Number(s.maxSupply)
@@ -175,7 +177,7 @@ export default function Collections() {
                 ? "—"
                 : `${formatSoso(floorFor(c.address)!)} SOSO`,
           },
-          { label: "Origin", value: c.fromFactory ? "ValueMint" : "External" },
+          { label: "Origin", value: c.fromFactory ? "ValueMint" : t("External") },
         ]}
       />
     );
@@ -186,11 +188,11 @@ export default function Collections() {
       <div className="head coll-page-head">
         <div>
           {/* The label is the heading; see `.head h2.eyebrow` in global.css. */}
-          <h2 className="eyebrow">Collections</h2>
+          <h2 className="eyebrow">{t("Collections")}</h2>
         </div>
         {CREATE_ENABLED ? (
           <Link className="btn btn-primary" href="/create">
-            Create yours
+            {t("Create yours")}
           </Link>
         ) : null}
       </div>
@@ -209,9 +211,7 @@ export default function Collections() {
             at is the header search, which takes an address and opens the
             collection at it — that still exists.
           */}
-          The block explorer&rsquo;s token list is unavailable right now, so some smaller
-          collections are missing from this page. They are still tradeable (search an address to
-          open one) and reappear here as soon as the explorer answers again.
+          {t("The block explorer’s token list is unavailable right now, so some smaller collections are missing from this page. They are still tradeable (search an address to open one) and reappear here as soon as the explorer answers again.")}
         </p>
       ) : null}
 
@@ -230,7 +230,7 @@ export default function Collections() {
               {showAll ? <div className="coll-grid coll-grid-more coll-rows">{more.map(card)}</div> : null}
               <div className="coll-more">
                 <button type="button" className="btn" onClick={() => setShowAll((v) => !v)} aria-expanded={showAll}>
-                  {showAll ? "Show fewer" : `See more (${more.length})`}
+                  {showAll ? t("Show fewer") : t("See more ({count})", { count: more.length })}
                 </button>
               </div>
             </>

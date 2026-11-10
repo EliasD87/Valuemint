@@ -9,6 +9,7 @@ import { Soso } from "@/components/Soso";
 import { ArrowRight } from "@/components/Arrows";
 import { AddressLink } from "@/components/AddressLink";
 import { formatSoso, timeAgo } from "@/lib/format";
+import { useT } from "@/lib/i18n";
 import "@/styles/activity.css";
 
 /**
@@ -51,13 +52,14 @@ function Row({
   /** This row's token has since been burned. */
   burned: boolean;
 }) {
+  const t = useT();
   return (
     <li className={`act-row act-${row.kind}`}>
-      <span className={`act-kind act-kind-${row.kind}`}>{LABEL[row.kind]}</span>
+      <span className={`act-kind act-kind-${row.kind}`}>{t(LABEL[row.kind])}</span>
 
       {!showToken ? null : row.collectionOffer === true ? (
         /* An offer on any piece, or on a trait, names no token to link to. */
-        <span className="act-token act-token-any">Collection offer</span>
+        <span className="act-token act-token-any">{t("Collection offer")}</span>
       ) : (
         <Link className="act-token" href={`/token/${row.collection}/${row.tokenId}`} prefetch={false}>
           #{row.tokenId.toString()}
@@ -95,7 +97,7 @@ function Row({
           the piece afterwards; a burn does not reach back and change it.
         */}
         {burned && row.kind === "listed" ? (
-          <span className="act-gone" title="This piece has since been burned">
+          <span className="act-gone" title={t("This piece has since been burned")}>
             {/*
               An opened box: a body with both lid flaps folded out and up.
 
@@ -110,7 +112,7 @@ function Row({
               <path d="M4 10 2 6l8-2.5L12 10z" />
               <path d="M20 10l2-4-8-2.5L12 10z" />
             </svg>
-            burned
+            {t("burned")}
           </span>
         ) : null}
       </span>
@@ -130,7 +132,7 @@ function Row({
         href={`${deployment.explorer}/block/${row.blockNumber.toString()}`}
         target="_blank"
         rel="noreferrer noopener"
-        title={`Block #${row.blockNumber.toString()}`}
+        title={t("Block #{block}", { block: row.blockNumber.toString() })}
       >
         {head === undefined
           ? `#${row.blockNumber.toString()}`
@@ -177,6 +179,7 @@ export function Activity({
   markBurned?: boolean;
 }) {
   const { rows, isLoading, logsUnavailable, logsPartial } = useActivity(collection, tokenId);
+  const t = useT();
 
   /**
    * Which of these tokens have since been burned.
@@ -209,14 +212,14 @@ export function Activity({
   return (
     <div className={`act-panel${standalone ? " act-panel-standalone" : ""}`}>
       <div className="act-head">
-        <p className="act-title">{title}</p>
+        <p className="act-title">{t(title)}</p>
         {rows.length > shown.length ? (
           <span className="act-count">
-            {shown.length} of {rows.length}
+            {t("{shown} of {total}", { shown: shown.length, total: rows.length })}
           </span>
         ) : rows.length > 0 ? (
           <span className="act-count">
-            {rows.length} {rows.length === 1 ? "event" : "events"}
+            {rows.length === 1 ? t("1 event") : t("{count} events", { count: rows.length })}
           </span>
         ) : null}
       </div>
@@ -232,13 +235,15 @@ export function Activity({
            first when only the second is known is how a buyer concludes a piece
            has no history and prices it accordingly. */
         <p className="act-note">
-          The node would not serve event logs just now, so this history could not be read.
-          It is not empty &mdash; try again in a moment.
+          {t(
+            "The node would not serve event logs just now, so this history could not be read. It is not empty — try again in a moment.",
+          )}
         </p>
       ) : shown.length === 0 ? (
         <p className="act-note">
-          Nothing has traded here yet. Every sale, listing and offer made through this
-          marketplace shows up here permanently.
+          {t(
+            "Nothing has traded here yet. Every sale, listing and offer made through this marketplace shows up here permanently.",
+          )}
         </p>
       ) : (
         /* One token page needs one column fewer, and an empty cell is not the
@@ -258,13 +263,13 @@ export function Activity({
 
       {logsPartial && shown.length > 0 ? (
         <p className="act-more dim">
-          Some event types could not be read, so this history is incomplete.
+          {t("Some event types could not be read, so this history is incomplete.")}
         </p>
       ) : null}
 
       {!full && rows.length > shown.length ? (
         <Link className="btn btn-sm btn-block act-all" href={allHref}>
-          See all {rows.length} events
+          {t("See all {count} events", { count: rows.length })}
           <ArrowRight />
         </Link>
       ) : null}
@@ -286,11 +291,12 @@ export function LastSale({
   tokenId: bigint | undefined;
 }) {
   const { lastSale } = useActivity(collection, tokenId, { salesOnly: true });
+  const t = useT();
   if (lastSale?.price === undefined) return null;
 
   return (
     <span className="last-sale">
-      <span className="dim">Last sold</span>
+      <span className="dim">{t("Last sold")}</span>
       <Soso size={15}>{formatSoso(lastSale.price)}</Soso>
     </span>
   );

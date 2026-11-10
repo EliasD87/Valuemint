@@ -27,7 +27,13 @@ export function FocusLine({
   className?: string;
   dwellMs?: number;
 }) {
-  const words = text.split(" ");
+  /*
+   * Chinese is written without spaces, so split on spaces it is one "word" and
+   * the whole line sits sharp with nothing to walk. There the focus walks
+   * character by character instead, and nothing is put between them.
+   */
+  const cjk = !text.includes(" ") && /[㐀-鿿]/.test(text);
+  const words = cjk ? Array.from(text) : text.split(" ");
 
   const [at, setAt] = useState(0);
   /** A pointer is choosing, so the cycle stops arguing with it. */
@@ -81,7 +87,7 @@ export function FocusLine({
             {word}
           </span>
           {/* A real space, so the sentence is still a sentence to a reader. */}
-          {i < words.length - 1 ? " " : null}
+          {i < words.length - 1 && !cjk ? " " : null}
         </Fragment>
       ))}
     </p>

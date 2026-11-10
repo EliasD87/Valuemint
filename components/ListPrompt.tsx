@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useAccount } from "wagmi";
 import { useDeferred } from "@/hooks/useDeferred";
@@ -13,6 +13,7 @@ import { Art } from "@/components/Art";
 import { bundledArtworkFor, cachedArtwork, soleArtworkFor, thumbnailFor } from "@/config/covers";
 import { verifiedAs } from "@/config/verified";
 import { VerifiedMark } from "@/components/VerifiedMark";
+import { useT } from "@/lib/i18n";
 import "./ListPrompt.css";
 
 /**
@@ -78,6 +79,7 @@ function remember(signature: string): void {
 
 export function ListPrompt() {
   const { address } = useAccount();
+  const tr = useT();
 
   /**
    * Held back until the page has issued the reads it paints with.
@@ -161,7 +163,7 @@ export function ListPrompt() {
    * viewport, and the home page has several. `document.body` has none.
    */
   return createPortal(
-    <aside className="lp" role="region" aria-label="Pieces you could list">
+    <aside className="lp" role="region" aria-label={tr("Pieces you could list")}>
       <div className="lp-head">
         {/*
           "Not listed", because that is what every card and every token page
@@ -170,10 +172,12 @@ export function ListPrompt() {
           unavailable — rather than as the offer this panel is making.
         */}
         <p className="lp-title">
-          You hold <strong>{formatCount(BigInt(total))}</strong>
-          {total === 1 ? " piece that isn’t listed" : " pieces that aren’t listed"}
+          {withSlots(
+            tr(total === 1 ? "You hold {count} piece that isn’t listed" : "You hold {count} pieces that aren’t listed"),
+            { count: <strong>{formatCount(BigInt(total))}</strong> },
+          )}
         </p>
-        <button type="button" className="lp-close" onClick={close} aria-label="Dismiss">
+        <button type="button" className="lp-close" onClick={close} aria-label={tr("Dismiss")}>
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.8">
             <path d="M6 6l12 12M18 6L6 18" />
           </svg>
@@ -251,12 +255,29 @@ export function ListPrompt() {
                 window.dispatchEvent(new CustomEvent(HOLDINGS_FOCUS_EVENT, { detail: g.address }));
               }}
             >
-              List {formatCount(BigInt(g.items.length))}
+              {tr("List {count}", { count: formatCount(BigInt(g.items.length)) })}
             </Link>
           </li>
         ))}
       </ul>
     </aside>,
     document.body,
+  );
+}
+
+/**
+ * A translated sentence with markup in it: every `{name}` that `nodes` has an
+ * entry for is replaced by that node, so the sentence stays one key in the
+ * dictionary and the markup survives in either language.
+ */
+function withSlots(text: string, nodes: Record<string, ReactNode>): ReactNode {
+  const parts = text.split(/(\{\w+\})/);
+  return (
+    <>
+      {parts.map((part, i) => {
+        const name = /^\{(\w+)\}$/.exec(part)?.[1];
+        return name !== undefined && name in nodes ? <Fragment key={i}>{nodes[name]}</Fragment> : part;
+      })}
+    </>
   );
 }

@@ -13,6 +13,7 @@ import { formatCount, formatSoso, formatSosoFixed, shortAddress } from "@/lib/fo
 import { currencyLabel } from "@/lib/seaport";
 import { formatUsd, sosoToUsd } from "@/lib/usd";
 import type { FloorValue } from "@/lib/portfolioValue";
+import { useT } from "@/lib/i18n";
 
 /** The fourth figure: offers waiting on the holder, or bids a wallet has out. */
 export interface HeaderOffers {
@@ -83,6 +84,7 @@ export function PortfolioHeader({
   /** Beside the address: a "this is you" badge, a share control. */
   extra?: ReactNode;
 }) {
+  const t = useT();
   const price = useSosoPrice();
   /* Offers are made in WSOSO, so a bidder's spending money is partly wrapped.
      Read for THIS address — see the note above. */
@@ -123,8 +125,8 @@ export function PortfolioHeader({
               href={`${deployment.explorer}/address/${address}`}
               target="_blank"
               rel="noreferrer noopener"
-              aria-label="View this wallet on the block explorer"
-              title="View on the explorer"
+              aria-label={t("View this wallet on the block explorer")}
+              title={t("View on the explorer")}
             >
               <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
                 <path
@@ -142,8 +144,16 @@ export function PortfolioHeader({
               said as "0 pieces" while the count is still arriving. */}
           {pieces > 0 ? (
             <p className="ph-sub">
-              {formatCount(BigInt(pieces))} {pieces === 1 ? "piece" : "pieces"} across{" "}
-              {formatCount(BigInt(collections))} {collections === 1 ? "collection" : "collections"}
+              {t(
+                pieces === 1
+                  ? collections === 1
+                    ? "{pieces} piece across {collections} collection"
+                    : "{pieces} piece across {collections} collections"
+                  : collections === 1
+                    ? "{pieces} pieces across {collections} collection"
+                    : "{pieces} pieces across {collections} collections",
+                { pieces: formatCount(BigInt(pieces)), collections: formatCount(BigInt(collections)) },
+              )}
             </p>
           ) : null}
         </div>
@@ -152,10 +162,10 @@ export function PortfolioHeader({
 
       <dl className="ph-stats">
         <div className="ph-stat ph-stat-lead">
-          <dt>Balance</dt>
+          <dt>{t("Balance")}</dt>
           <dd>
             {balance === undefined ? (
-              <span className="skeleton ph-total-wait" aria-label="Loading balance" role="status" />
+              <span className="skeleton ph-total-wait" aria-label={t("Loading balance")} role="status" />
             ) : (
               <p className="ph-total">
                 <span className="ph-total-amount" title={`${formatSoso(balance, 18)} SOSO`}>
@@ -170,8 +180,11 @@ export function PortfolioHeader({
                     className="ph-total-usd"
                     title={
                       wsoso > 0n
-                        ? `${formatSosoFixed(balance)} SOSO + ${formatSosoFixed(wsoso)} WSOSO, at CoinGecko's current SOSO price`
-                        : "At CoinGecko's current SOSO price"
+                        ? t("{soso} SOSO + {wsoso} WSOSO, at CoinGecko's current SOSO price", {
+                            soso: formatSosoFixed(balance),
+                            wsoso: formatSosoFixed(wsoso),
+                          })
+                        : t("At CoinGecko's current SOSO price")
                     }
                   >
                     {formatUsd(usd)}
@@ -193,13 +206,12 @@ export function PortfolioHeader({
                   <span className="ph-wrapped-unit">WSOSO</span>
                   {own ? (
                     <button type="button" className="ph-link" onClick={() => setUnwrapping(true)}>
-                      Unwrap to SOSO
+                      {t("Unwrap to SOSO")}
                     </button>
                   ) : null}
                 </p>
                 <p className="ph-wrapped-note">
-                  Wrapped SOSO, worth exactly 1 SOSO each. Offers are made in it, and an offer you
-                  accept pays you in it.
+                  {t("Wrapped SOSO, worth exactly 1 SOSO each. Offers are made in it, and an offer you accept pays you in it.")}
                 </p>
               </div>
             ) : null}
@@ -211,8 +223,8 @@ export function PortfolioHeader({
         </div>
 
         <div className="ph-stat">
-          <dt title="Each piece at the cheapest ask for its tier, or its collection's where it has no tier">
-            At floor
+          <dt title={t("Each piece at the cheapest ask for its tier, or its collection's where it has no tier")}>
+            {t("At floor")}
           </dt>
           <dd className="ph-fig">
             {nfts === undefined ? (
@@ -225,24 +237,24 @@ export function PortfolioHeader({
             {nfts === undefined
               ? " "
               : nfts.unpriced > 0
-                ? `${formatCount(BigInt(nfts.unpriced))} without a floor, not counted`
-                : "Cheapest asks, by tier"}
+                ? t("{count} without a floor, not counted", { count: formatCount(BigInt(nfts.unpriced)) })
+                : t("Cheapest asks, by tier")}
           </dd>
         </div>
 
         <div className="ph-stat">
-          <dt>Listed</dt>
+          <dt>{t("Listed")}</dt>
           <dd className="ph-fig">
             {formatCount(BigInt(listed))}
-            {pieces > 0 ? <span className="ph-fig-of"> of {formatCount(BigInt(pieces))}</span> : null}
+            {pieces > 0 ? <span className="ph-fig-of"> {t("of {count}", { count: formatCount(BigInt(pieces)) })}</span> : null}
           </dd>
           <dd className="ph-note">
             {listed > 0 ? (
               <>
-                <Soso size={11}>{formatSosoFixed(asking)}</Soso> asking
+                <Soso size={11}>{formatSosoFixed(asking)}</Soso> {t("asking")}
               </>
             ) : (
-              "Nothing for sale"
+              t("Nothing for sale")
             )}
           </dd>
         </div>
@@ -252,21 +264,21 @@ export function PortfolioHeader({
             <dt>{offers.label}</dt>
             <dd className="ph-fig">
               {offers.count === undefined ? (
-                <span className="skeleton ph-fig-wait" aria-label="Checking" role="status" />
+                <span className="skeleton ph-fig-wait" aria-label={t("Checking")} role="status" />
               ) : (
                 formatCount(BigInt(offers.count))
               )}
             </dd>
             <dd className="ph-note">
               {offers.count === undefined ? (
-                "Checking…"
+                t("Checking…")
               ) : offers.count === 0 ? (
-                "None right now"
+                t("None right now")
               ) : (
                 <>
                   {offers.best === undefined ? null : (
                     <>
-                      Best{" "}
+                      {t("Best")}{" "}
                       <Soso size={11} unit={currencyLabel(offers.best.currency)}>
                         {formatSosoFixed(offers.best.price)}
                       </Soso>
@@ -274,7 +286,7 @@ export function PortfolioHeader({
                   )}
                   {offers.onOpen === undefined ? null : (
                     <button type="button" className="ph-link" onClick={offers.onOpen}>
-                      Review
+                      {t("Review")}
                     </button>
                   )}
                 </>
@@ -289,6 +301,7 @@ export function PortfolioHeader({
 
 /** Copies the address, and says so for a moment. */
 function CopyButton({ text }: { text: string }) {
+  const t = useT();
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
@@ -301,8 +314,8 @@ function CopyButton({ text }: { text: string }) {
     <button
       type="button"
       className={`ph-icon${copied ? " is-done" : ""}`}
-      aria-label={copied ? "Address copied" : "Copy address"}
-      title={copied ? "Copied" : "Copy address"}
+      aria-label={copied ? t("Address copied") : t("Copy address")}
+      title={copied ? t("Copied") : t("Copy address")}
       onClick={() => {
         void navigator.clipboard?.writeText(text).then(() => setCopied(true));
       }}

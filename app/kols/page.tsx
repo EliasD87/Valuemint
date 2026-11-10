@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import Image from "next/image";
 import dynamic from "next/dynamic";
 import Link from "next/link";
@@ -14,6 +14,7 @@ import { KolWall } from "@/components/KolWall";
 import { KOLS, kolLocal, xHandle, type Kol, kolCard } from "@/config/kols";
 import { useKolRewards, type Stage } from "@/hooks/useKolRewards";
 import { formatSoso } from "@/lib/format";
+import { useT } from "@/lib/i18n";
 import "@/styles/kols.css";
 
 /**
@@ -109,7 +110,16 @@ const day = (unix: number) =>
     minute: "2-digit",
   });
 
+/** A translated sentence with React nodes in its {placeholders}, so bold words and amounts keep their place in either language. */
+function withNodes(text: string, nodes: Record<string, React.ReactNode>): React.ReactNode {
+  return text.split(/(\{\w+\})/).map((part, i) => {
+    const name = /^\{(\w+)\}$/.exec(part)?.[1];
+    return name !== undefined && name in nodes ? <Fragment key={i}>{nodes[name]}</Fragment> : part;
+  });
+}
+
 export default function Kols() {
+  const t = useT();
   const rewards = useKolRewards();
   const stage = rewards.stage ?? "soon";
   const live = stage === "open" || stage === "ended";
@@ -141,17 +151,18 @@ export default function Kols() {
                 accessible name and are read as "One of oneComing soon". A
                 whitespace-only text node generates no flex item, so this
                 changes nothing on screen. */}
-            One of one{" "}
+            {t("One of one")}{" "}
             <span className="kol-eyebrow-rule" aria-hidden="true" />
             <span className={`kol-soon is-${stage}`}>
               <span className="kol-soon-dot" aria-hidden="true" />
-              {STAGE_LABEL[stage]}
+              {t(STAGE_LABEL[stage])}
             </span>
           </p>
-          <h1 className="kol-title">The people who show up</h1>
+          <h1 className="kol-title">{t("The people who show up")}</h1>
           <p className="kol-lede">
-            A small appreciation collection for the people who keep showing up around SoDEX:
-            posting, contributing, trading, helping, and being part of the community.
+            {t(
+              "A small appreciation collection for the people who keep showing up around SoDEX: posting, contributing, trading, helping, and being part of the community.",
+            )}
           </p>
 
           {/*
@@ -170,7 +181,7 @@ export default function Kols() {
                     <Image key={k.n} src={kolLocal(k)} alt="" width={48} height={48} loading="eager" />
                   ))}
                 </span>
-                1/1 portrait NFT
+                {t("1/1 portrait NFT")}
               </span>
               <span className="kol-gift-plus" aria-hidden="true">
                 +
@@ -208,12 +219,12 @@ export default function Kols() {
                   {/* eslint-disable-next-line @next/next/no-img-element -- a 4 KB local icon, as in Soso.tsx */}
                   <img className="kol-gift-soso" src="/soso-dark.png" alt="" width={128} height={128} />
                 </span>
-                Surprise reward
+                {t("Surprise reward")}
               </span>
             </p>
             <span className="kol-sponsor-rule" aria-hidden="true" />
             <p className="kol-sponsor-by">
-              <span>Sponsored by</span>
+              <span>{t("Sponsored by")}</span>
               <b className="kol-sponsor-mark">ValueChain</b>
             </p>
           </div>
@@ -270,7 +281,7 @@ export default function Kols() {
                     href={k.x}
                     target="_blank"
                     rel="noreferrer noopener"
-                    aria-label={`${k.name} on X`}
+                    aria-label={t("{name} on X", { name: k.name })}
                   >
                     <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                       <path d="M18.9 2H22l-6.8 7.8L23.2 22h-6.3l-4.9-6.4L6.4 22H3.3l7.3-8.3L2.8 2h6.4l4.4 5.8L18.9 2Zm-1.1 18.1h1.7L8.3 3.8H6.5l11.3 16.3Z" />
@@ -288,10 +299,10 @@ export default function Kols() {
                         <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
                           <path d="M3.5 8.5l3 3 6-7" />
                         </svg>
-                        Claimed
+                        {t("Claimed")}
                       </>
                     ) : (
-                      "Not claimed yet"
+                      t("Not claimed yet")
                     )}
                   </p>
                 ) : null}
@@ -305,16 +316,17 @@ export default function Kols() {
           {/* All of them together, closing the page: a thank-you, then the
               group cut-out supplied by the owner (2026-09-26). */}
           <div className="kol-thanks">
-            <h2>Thank you for showing up.</h2>
+            <h2>{t("Thank you for showing up.")}</h2>
             <p>
-              For every post, every trade, and every reply that helped someone find their way.
-              SoDEX is better because you&rsquo;re in it.
+              {t(
+                "For every post, every trade, and every reply that helped someone find their way. SoDEX is better because you’re in it.",
+              )}
             </p>
           </div>
           <div className="kol-crowd">
             <Image
               src="/kols/crowd.webp"
-              alt="All 37 KOL portraits together"
+              alt={t("All 37 KOL portraits together")}
               width={1901}
               height={458}
               sizes="(max-width: 1180px) 100vw, 1100px"
@@ -343,6 +355,7 @@ function Yours({
   rewards: ReturnType<typeof useKolRewards>;
   stage: Stage;
 }) {
+  const t = useT();
   const { isConnected } = useAccount();
   const { mine, tx, deadline } = rewards;
   const [envelope, setEnvelope] = useState(false);
@@ -375,9 +388,11 @@ function Yours({
     return (
       <div className="kol-invite">
         <p>
-          <b>On the roster?</b> Connect the wallet you shared with us to claim your portrait.
+          {withNodes(t("{q} Connect the wallet you shared with us to claim your portrait."), {
+            q: <b>{t("On the roster?")}</b>,
+          })}
         </p>
-        <ConnectButton className="btn btn-primary">Connect wallet</ConnectButton>
+        <ConnectButton className="btn btn-primary">{t("Connect wallet")}</ConnectButton>
       </div>
     );
   }
@@ -388,7 +403,7 @@ function Yours({
     if (stage !== "open") return null;
     return (
       <p className="kol-invite-note">
-        No portrait is waiting for this wallet. On the roster? Connect the wallet you shared with us.
+        {t("No portrait is waiting for this wallet. On the roster? Connect the wallet you shared with us.")}
       </p>
     );
   }
@@ -407,38 +422,40 @@ function Yours({
 
       <div className="kol-yours-body">
         <p className="kol-yours-eyebrow">
-          {claimed ? "In your wallet" : "Made for you"} · #{kol.n}
+          {claimed ? t("In your wallet") : t("Made for you")} · #{kol.n}
         </p>
         <h2 id="kol-yours-title" className="kol-yours-title">
-          {claimed ? <>It&rsquo;s yours, {kol.name}.</> : <>GM, {kol.name}.</>}
+          {claimed ? t("It’s yours, {name}.", { name: kol.name }) : t("GM, {name}.", { name: kol.name })}
         </h2>
 
         {claimed ? (
           <ClaimedActions kol={kol} portraits={rewards.portraits} share={share} />
         ) : stage === "preparing" ? (
           <p className="kol-yours-lede">
-            Your portrait is set aside for this wallet. Claiming opens soon, so check back here.
+            {t("Your portrait is set aside for this wallet. Claiming opens soon, so check back here.")}
           </p>
         ) : stage === "ended" ? (
           <p className="kol-yours-lede">
-            Claiming closed{deadline === undefined ? "" : ` on ${day(deadline)}`}. Reach out to us and we will
-            sort it out.
+            {deadline === undefined
+              ? t("Claiming closed. Reach out to us and we will sort it out.")
+              : t("Claiming closed on {date}. Reach out to us and we will sort it out.", { date: day(deadline) })}
           </p>
         ) : (
           <>
             <p className="kol-yours-lede">
-              One of one, drawn for you and nobody else
-              {share === undefined ? "." : ", with SOSO alongside it, straight to this wallet."}
+              {share === undefined
+                ? t("One of one, drawn for you and nobody else.")
+                : t("One of one, drawn for you and nobody else, with SOSO alongside it, straight to this wallet.")}
             </p>
 
             <ul className="kol-yours-gets">
               <li>
-                <span>Portrait</span>
-                <b>#{kol.n} · 1 of 1</b>
+                <span>{t("Portrait")}</span>
+                <b>#{kol.n} · {t("1 of 1")}</b>
               </li>
               {share === undefined ? null : (
                 <li>
-                  <span>Reward</span>
+                  <span>{t("Reward")}</span>
                   <b>
                     <Soso size={16}>{share}</Soso>
                   </b>
@@ -448,11 +465,11 @@ function Yours({
 
             {/* The claim itself happens in the envelope; this reopens it. */}
             <button type="button" className="btn btn-primary btn-lg btn-block kol-yours-open" onClick={openEnvelope}>
-              {tx.busy ? "Claiming…" : "Open your envelope"}
+              {tx.busy ? t("Claiming…") : t("Open your envelope")}
             </button>
             <p className="kol-yours-small">
-              Sponsored by ValueChain
-              {deadline === undefined ? null : <> · Open until {day(deadline)}</>}
+              {t("Sponsored by ValueChain")}
+              {deadline === undefined ? null : <> · {t("Open until {date}", { date: day(deadline) })}</>}
             </p>
           </>
         )}
@@ -481,6 +498,7 @@ function ClaimedActions({
   portraits: `0x${string}` | undefined;
   share: string | undefined;
 }) {
+  const t = useT();
   const text = "Just claimed my one-of-one portrait on ValueMint, made for the people who show up on SoDEX.";
   const intent =
     `https://x.com/intent/post?text=${encodeURIComponent(text)}` +
@@ -490,21 +508,21 @@ function ClaimedActions({
     <>
       <p className="kol-yours-lede">
         {share === undefined ? (
-          "Your portrait is in this wallet. Thank you for showing up."
+          t("Your portrait is in this wallet. Thank you for showing up.")
         ) : (
-          <>
-            Your portrait and <Soso size={14}>{share}</Soso> are in this wallet. Thank you for showing up.
-          </>
+          withNodes(t("Your portrait and {amount} are in this wallet. Thank you for showing up."), {
+            amount: <Soso size={14}>{share}</Soso>,
+          })
         )}
       </p>
       <div className="kol-yours-actions">
         {portraits === undefined ? null : (
           <Link className="btn btn-primary" href={`/token/${portraits}/${kol.n}`}>
-            View your portrait
+            {t("View your portrait")}
           </Link>
         )}
         <a className="btn" href={intent} target="_blank" rel="noreferrer noopener">
-          Share on X
+          {t("Share on X")}
         </a>
       </div>
     </>

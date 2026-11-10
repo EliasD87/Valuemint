@@ -3,6 +3,7 @@
 import { deployment } from "@/config/contracts";
 import { explainTxError, isRateLimited, isRejection } from "@/lib/txError";
 import { FixNetworkButton } from "@/components/FixNetworkButton";
+import { useT } from "@/lib/i18n";
 import "./TxResult.css";
 
 /**
@@ -37,6 +38,7 @@ export function TxResult({
   /** What happened, in the past tense: "Listed", "Bought", "Offer placed". */
   successLabel: string;
 }) {
+  const t = useT();
   if (error !== null) {
     /**
      * A rejection is a decision, not a failure, and must not be dressed up as
@@ -46,7 +48,7 @@ export function TxResult({
     const rejected = isRejection(error.message);
     return (
       <p className={`txr ${rejected ? "txr-quiet" : "txr-bad"}`}>
-        {explainTxError(error.message)}
+        {t(explainTxError(error.message))}
         {/* The wallet's own server refused it: offer to point the wallet at
             the steadier one rather than only describing how (FixNetworkButton). */}
         {isRateLimited(error.message) ? <FixNetworkButton /> : null}
@@ -58,10 +60,10 @@ export function TxResult({
     return (
       <p className="txr txr-wait">
         <span className="txr-spin" aria-hidden="true" />
-        Waiting for the chain to confirm…
+        {t("Waiting for the chain to confirm…")}
         {hash === undefined ? null : (
           <a href={`${deployment.explorer}/tx/${hash}`} target="_blank" rel="noreferrer noopener">
-            Track it
+            {t("Track it")}
           </a>
         )}
       </p>
@@ -71,10 +73,10 @@ export function TxResult({
   if (success) {
     return (
       <p className="txr txr-good">
-        <strong>{successLabel}.</strong>
+        <strong>{t("{label}.", { label: t(successLabel) })}</strong>
         {hash === undefined ? null : (
           <a href={`${deployment.explorer}/tx/${hash}`} target="_blank" rel="noreferrer noopener">
-            View transaction
+            {t("View transaction")}
           </a>
         )}
       </p>

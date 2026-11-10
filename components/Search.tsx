@@ -5,6 +5,28 @@ import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { useAllCollections } from "@/hooks/useAllCollections";
 import { searchResults, type SearchResult } from "@/lib/search";
+import { useT } from "@/lib/i18n";
+
+type Translate = ReturnType<typeof useT>;
+
+/**
+ * The English that lib/search.ts builds, read back into dictionary keys. Its
+ * strings carry a symbol, an address, a number or the query itself, so each
+ * known shape is matched and handed to `t` with that part as a placeholder;
+ * anything unrecognised shows as it came.
+ */
+function localiseSearchText(t: Translate, text: string): string {
+  let m: RegExpExecArray | null;
+  if ((m = /^Collection · (.+)$/.exec(text)) !== null) return t("Collection · {symbol}", { symbol: m[1]! });
+  if ((m = /^Wallet (.+)$/.exec(text)) !== null) return t("Wallet {address}", { address: m[1]! });
+  if ((m = /^Add the collection's name to find piece #(\d+): for example "Genesis \d+"\.$/.exec(text)) !== null) {
+    return t("Add the collection's name to find piece #{digits}: for example \"Genesis {digits}\".", { digits: m[1]! });
+  }
+  if ((m = /^No collection matches "([\s\S]*)"\. Paste a 0x address to look up a wallet\.$/.exec(text)) !== null) {
+    return t('No collection matches "{query}". Paste a 0x address to look up a wallet.', { query: m[1]! });
+  }
+  return t(text);
+}
 
 /**
  * Search: collections by name, a piece by collection and number, or an address.
@@ -22,6 +44,7 @@ import { searchResults, type SearchResult } from "@/lib/search";
  */
 
 export function Search() {
+  const t = useT();
   const [open, setOpen] = useState(false);
 
   /**
@@ -50,8 +73,8 @@ export function Search() {
       <button
         type="button"
         className="search-trigger"
-        aria-label="Search collections, pieces and addresses"
-        title="Search (press /)"
+        aria-label={t("Search collections, pieces and addresses")}
+        title={t("Search (press /)")}
         onClick={() => setOpen(true)}
       >
         {/* Inline rather than an icon font: one glyph, no extra request. */}
@@ -67,6 +90,7 @@ export function Search() {
 }
 
 function Dialog({ onClose }: { onClose: () => void }) {
+  const t = useT();
   const router = useRouter();
   const { collections, isLoading } = useAllCollections();
   const [value, setValue] = useState("");
@@ -113,13 +137,13 @@ function Dialog({ onClose }: { onClose: () => void }) {
         className="search-dialog"
         role="dialog"
         aria-modal="true"
-        aria-label="Search"
+        aria-label={t("Search")}
         onClick={(e) => e.stopPropagation()}
       >
         <input
           ref={inputRef}
           className="search-input"
-          placeholder="Collection, piece (Genesis 45) or 0x address"
+          placeholder={t("Collection, piece (Genesis 45) or 0x address")}
           value={value}
           spellCheck={false}
           autoComplete="off"
@@ -145,12 +169,12 @@ function Dialog({ onClose }: { onClose: () => void }) {
         />
 
         {!Array.isArray(found) ? (
-          <p className="search-hint">{found.hint}</p>
+          <p className="search-hint">{localiseSearchText(t, found.hint)}</p>
         ) : results.length === 0 ? (
-          <p className="search-hint">{isLoading ? "Loading collections…" : "No collections yet."}</p>
+          <p className="search-hint">{isLoading ? t("Loading collections…") : t("No collections yet.")}</p>
         ) : (
           <>
-            {value.trim() === "" ? <p className="search-label">Collections</p> : null}
+            {value.trim() === "" ? <p className="search-label">{t("Collections")}</p> : null}
             <ul className="search-results" id="search-results" role="listbox">
               {results.map((r, i) => (
                 <li
@@ -169,8 +193,9 @@ function Dialog({ onClose }: { onClose: () => void }) {
                     <img className="search-art" src={r.art} alt="" loading="lazy" decoding="async" />
                   )}
                   <span className="search-text">
-                    <b>{r.title}</b>
-                    <small>{r.sub}</small>
+                    {/* Only the two address rows have a title of our own; every other title is a collection or piece name. */}
+                    <b>{r.key === "wallet" || r.key === "as-collection" ? localiseSearchText(t, r.title) : r.title}</b>
+                    <small>{localiseSearchText(t, r.sub)}</small>
                   </span>
                   <span className="search-enter" aria-hidden="true">
                     ↵

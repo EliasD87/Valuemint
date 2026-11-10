@@ -8,6 +8,7 @@ import { deployment } from "@/config/contracts";
 import { formatSoso } from "@/lib/format";
 import { Soso } from "@/components/Soso";
 import { UnwrapDialog } from "@/components/UnwrapDialog";
+import { useT } from "@/lib/i18n";
 
 /**
  * Wrapped SOSO in the wallet menu, and the door to getting it back.
@@ -33,6 +34,7 @@ import { UnwrapDialog } from "@/components/UnwrapDialog";
  * of it is being looked at.
  */
 export function WrappedBalance() {
+  const t = useT();
   const { address } = useAccount();
 
   /** Nothing is being bought here, so nothing is needed and nothing is approved. */
@@ -58,8 +60,8 @@ export function WrappedBalance() {
     <div className="wallet-wsoso">
       <div className="wallet-menu-bal">
         <span className="wallet-menu-bal-label">
-          Wrapped
-          <small>for offers</small>
+          {t("Wrapped")}
+          <small>{t("for offers")}</small>
         </span>
         <span className="mono wallet-menu-bal-value">
           <Soso size={13}>{formatSoso(held)}</Soso>
@@ -72,7 +74,7 @@ export function WrappedBalance() {
           className="btn btn-sm wallet-wsoso-btn"
           onClick={() => setUnwrapping(true)}
         >
-          Unwrap to SOSO
+          {t("Unwrap to SOSO")}
         </button>
       ) : (
         /*
@@ -81,7 +83,7 @@ export function WrappedBalance() {
          * instead, with the reason — the balance looks spendable and is not.
          */
         <p className="wallet-wsoso-note">
-          All of it is behind offers you have standing. Withdraw an offer to free it.
+          {t("All of it is behind offers you have standing. Withdraw an offer to free it.")}
         </p>
       )}
 

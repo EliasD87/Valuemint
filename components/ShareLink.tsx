@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useT } from "@/lib/i18n";
 import "./ShareLink.css";
 
 /**
@@ -17,6 +18,7 @@ import "./ShareLink.css";
  * them is refused more often than its reputation suggests.
  */
 export function ShareLink({ title }: { title?: string }) {
+  const t = useT();
   const [state, setState] = useState<"idle" | "copied" | "failed">("idle");
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
@@ -118,7 +120,7 @@ export function ShareLink({ title }: { title?: string }) {
           </>
         )}
       </svg>
-      <span>{state === "copied" ? "Copied" : state === "failed" ? "Copy failed" : "Share"}</span>
+      <span>{state === "copied" ? t("Copied") : state === "failed" ? t("Copy failed") : t("Share")}</span>
     </button>
   );
 }

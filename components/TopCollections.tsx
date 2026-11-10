@@ -7,6 +7,7 @@ import { avatarFor } from "@/config/covers";
 import { stillUrl } from "@/lib/media";
 import { formatSoso, shortAddress } from "@/lib/format";
 import type { ExploreCollection, ExploreSummary } from "@/lib/exploreTypes";
+import { useT } from "@/lib/i18n";
 import "./TopCollections.css";
 
 /**
@@ -44,11 +45,12 @@ function Change({ percent }: { percent: number | undefined }) {
 }
 
 function Head() {
+  const t = useT();
   return (
     <div className="tc-head" aria-hidden="true">
       <span className="tc-rank">#</span>
-      <span className="tc-head-who">Collection</span>
-      <span className="tc-head-num">Floor · 24h</span>
+      <span className="tc-head-who">{t("Collection")}</span>
+      <span className="tc-head-num">{t("Floor · 24h")}</span>
     </div>
   );
 }
@@ -61,6 +63,7 @@ export function TopCollections({
   /** The page's own registry, for any collection the summary could not name. */
   names: ReadonlyMap<string, { name: string; symbol?: string }>;
 }) {
+  const t = useT();
   const rows = useMemo(() => {
     const list = [...(summary?.collections ?? [])];
     /* Biggest all-time volume first; listings break ties. */
@@ -101,14 +104,14 @@ export function TopCollections({
           ))}
         </ol>
       ) : rows.length === 0 ? (
-        <p className="tc-empty">Nothing has traded yet.</p>
+        <p className="tc-empty">{t("Nothing has traded yet.")}</p>
       ) : (
         <ol className="tc-list" style={style}>
           {rows.map((c, i) => {
             const art = avatarFor(c.address);
             const name = nameOf(c);
             const symbol = symbolOf(c);
-            const listed = c.listed === 0 ? undefined : `${c.listed.toLocaleString("en-US")} listed`;
+            const listed = c.listed === 0 ? undefined : t("{count} listed", { count: c.listed.toLocaleString("en-US") });
             const sub = [symbol, listed].filter((s) => s !== undefined).join(" · ");
             return (
               <li key={c.address}>
@@ -128,7 +131,7 @@ export function TopCollections({
                   </span>
                   <span className="tc-floor">
                     {c.floorWei === undefined ? (
-                      <span className="tc-dim">No floor</span>
+                      <span className="tc-dim">{t("No floor")}</span>
                     ) : (
                       <Soso size={12}>{formatSoso(BigInt(c.floorWei), 2)}</Soso>
                     )}

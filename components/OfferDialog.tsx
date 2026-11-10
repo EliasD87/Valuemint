@@ -11,6 +11,7 @@ import { currencyLabel } from "@/lib/seaport";
 import { whenExpires } from "@/components/Offers";
 import "./OfferDialog.css";
 import { Soso } from "@/components/Soso";
+import { useT } from "@/lib/i18n";
 
 /**
  * Make an offer without leaving the page.
@@ -35,6 +36,7 @@ export function OfferDialog({
   onClose: () => void;
 }) {
   const { address } = useAccount();
+  const t = useT();
   const { offers, logsUnavailable } = useTokenOffers(collection, tokenId);
   const isMine = (maker: string) =>
     address !== undefined && maker.toLowerCase() === address.toLowerCase();
@@ -60,13 +62,13 @@ export function OfferDialog({
   return createPortal(
     <>
       <div className="od-scrim" onClick={onClose} aria-hidden="true" />
-      <div className="od" role="dialog" aria-modal="true" aria-label={`Make an offer on ${name}`}>
+      <div className="od" role="dialog" aria-modal="true" aria-label={t("Make an offer on {name}", { name })}>
         <div className="od-head">
           <div>
-            <p className="od-kicker">Make an offer</p>
+            <p className="od-kicker">{t("Make an offer")}</p>
             <h2>{name}</h2>
           </div>
-          <button type="button" className="od-close" aria-label="Close" onClick={onClose}>
+          <button type="button" className="od-close" aria-label={t("Close")} onClick={onClose}>
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M6 6l12 12M18 6L6 18" />
             </svg>
@@ -84,18 +86,20 @@ export function OfferDialog({
                     </Soso>
                   </span>
                   <span>
-                    {isMine(o.maker) ? "You" : <AddressLink address={o.maker} chars={4} />} &middot;{" "}
-                    {o.trait !== undefined ? `${o.trait} · ` : o.tokenId === undefined ? "any piece · " : ""}
-                    {whenExpires(o.endTime)}
+                    {isMine(o.maker) ? t("You") : <AddressLink address={o.maker} chars={4} />} &middot;{" "}
+                    {o.trait !== undefined ? `${o.trait} · ` : o.tokenId === undefined ? t("any piece · ") : ""}
+                    {whenExpires(o.endTime, t)}
                   </span>
                 </li>
               ))}
             </ul>
           ) : (
             <p className="od-empty">
-              {logsUnavailable
-                ? "Offers could not be loaded — the node would not serve event logs."
-                : "No offers on this one yet."}
+              {t(
+                logsUnavailable
+                  ? "Offers could not be loaded — the node would not serve event logs."
+                  : "No offers on this one yet.",
+              )}
             </p>
           )}
 

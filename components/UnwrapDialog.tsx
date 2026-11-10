@@ -10,6 +10,7 @@ import { deployment } from "@/config/contracts";
 import { formatSoso } from "@/lib/format";
 import { Soso } from "@/components/Soso";
 import { TxResult } from "@/components/TxResult";
+import { useT } from "@/lib/i18n";
 import "./UnwrapDialog.css";
 
 /**
@@ -29,6 +30,7 @@ import "./UnwrapDialog.css";
  */
 export function UnwrapDialog({ onClose }: { onClose: () => void }) {
   const { address } = useAccount();
+  const t = useT();
   const wsoso = useWsoso(0n);
 
   /**
@@ -93,13 +95,13 @@ export function UnwrapDialog({ onClose }: { onClose: () => void }) {
   return createPortal(
     <>
       <div className="uw-scrim" onClick={onClose} aria-hidden="true" />
-      <div className="uw" role="dialog" aria-modal="true" aria-label="Unwrap SOSO">
+      <div className="uw" role="dialog" aria-modal="true" aria-label={t("Unwrap SOSO")}>
         <div className="uw-head">
           <div>
-            <p className="uw-kicker">Wrapped SOSO</p>
-            <h2>Turn it back into SOSO</h2>
+            <p className="uw-kicker">{t("Wrapped SOSO")}</p>
+            <h2>{t("Turn it back into SOSO")}</h2>
           </div>
-          <button type="button" className="uw-close" aria-label="Close" onClick={onClose}>
+          <button type="button" className="uw-close" aria-label={t("Close")} onClick={onClose}>
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M6 6l12 12M18 6L6 18" />
             </svg>
@@ -109,21 +111,21 @@ export function UnwrapDialog({ onClose }: { onClose: () => void }) {
         <div className="uw-body">
           <dl className="uw-figures">
             <div>
-              <dt>Wrapped</dt>
+              <dt>{t("Wrapped")}</dt>
               <dd className="mono">
                 <Soso size={14}>{formatSoso(held)}</Soso>
               </dd>
             </div>
             {committed > 0n ? (
               <div>
-                <dt>Behind your offers</dt>
+                <dt>{t("Behind your offers")}</dt>
                 <dd className="mono">
                   <Soso size={14}>{formatSoso(committed)}</Soso>
                 </dd>
               </div>
             ) : null}
             <div>
-              <dt>Free to unwrap</dt>
+              <dt>{t("Free to unwrap")}</dt>
               <dd className="mono">
                 <Soso size={14}>{formatSoso(free)}</Soso>
               </dd>
@@ -137,15 +139,15 @@ export function UnwrapDialog({ onClose }: { onClose: () => void }) {
           */}
           {committed > 0n ? (
             <p className="uw-note">
-              WSOSO behind a live offer stays in your wallet — that is how an offer can stand
-              without the marketplace holding your money. Unwrapping it would leave those offers
-              unfillable, so it is held back. Withdraw the offer first to free it.
+              {t(
+                "WSOSO behind a live offer stays in your wallet — that is how an offer can stand without the marketplace holding your money. Unwrapping it would leave those offers unfillable, so it is held back. Withdraw the offer first to free it.",
+              )}
             </p>
           ) : null}
 
           {free === 0n ? null : (
             <label className="uw-field">
-              <span>How much</span>
+              <span>{t("How much")}</span>
               <div className="uw-input">
                 <input
                   inputMode="decimal"
@@ -160,13 +162,13 @@ export function UnwrapDialog({ onClose }: { onClose: () => void }) {
                   onClick={() => setAmount(formatEther(free))}
                   disabled={wsoso.busy}
                 >
-                  Max
+                  {t("Max")}
                 </button>
               </div>
               <small>
                 {overAsked
-                  ? `More than is free — ${formatSoso(free)} will be unwrapped.`
-                  : "It arrives as SOSO in this wallet, one for one."}
+                  ? t("More than is free — {amount} will be unwrapped.", { amount: formatSoso(free) })
+                  : t("It arrives as SOSO in this wallet, one for one.")}
               </small>
             </label>
           )}
@@ -180,13 +182,13 @@ export function UnwrapDialog({ onClose }: { onClose: () => void }) {
             onClick={() => wsoso.unwrap(formatEther(wanted))}
           >
             {wsoso.busy
-              ? "Unwrapping…"
+              ? t("Unwrapping…")
               : wanted === 0n
-                ? "Nothing to unwrap"
-                : `Unwrap ${formatSoso(wanted)}`}
+                ? t("Nothing to unwrap")
+                : t("Unwrap {amount}", { amount: formatSoso(wanted) })}
           </button>
           <button type="button" className="btn" onClick={onClose} disabled={wsoso.busy}>
-            Close
+            {t("Close")}
           </button>
         </div>
 

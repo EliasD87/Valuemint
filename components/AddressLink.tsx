@@ -1,5 +1,8 @@
+"use client";
+
 import Link from "next/link";
 import { shortAddress } from "@/lib/format";
+import { useT } from "@/lib/i18n";
 
 /**
  * A wallet address that opens that wallet.
@@ -24,11 +27,12 @@ export function AddressLink({
   label?: React.ReactNode;
   className?: string;
 }) {
+  const t = useT();
   return (
     <Link
       className={`addr-link${className === undefined ? "" : ` ${className}`}`}
       href={`/address/${address}`}
-      title={`${address} — see what this wallet holds`}
+      title={t("{address} — see what this wallet holds", { address })}
     >
       {label ?? shortAddress(address as `0x${string}`, chars)}
     </Link>

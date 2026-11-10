@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { getAddress, isAddress, keccak256, toHex, zeroHash, type Hex } from "viem";
@@ -18,6 +18,7 @@ import { TicketLeaderboard } from "@/components/TicketLeaderboard";
 import { TicketShare } from "@/components/TicketShare";
 import { WinnerStrip } from "@/components/WinnerStrip";
 import { TicketList, rangeText } from "@/components/TicketList";
+import { useT } from "@/lib/i18n";
 import "./TrenchesPerk.css";
 
 /**
@@ -43,6 +44,14 @@ type Phase = "before" | "counting" | "listed" | "drawn";
 
 const fmt = (n: number) => n.toLocaleString("en-US");
 const DEPTH = Object.fromEntries(TIERS.map((t) => [t.n, t]));
+
+/** A translated sentence with React nodes in its {placeholders}, so bold figures and links keep their place in either language. */
+function withNodes(text: string, nodes: Record<string, React.ReactNode>): React.ReactNode {
+  return text.split(/(\{\w+\})/).map((part, i) => {
+    const name = /^\{(\w+)\}$/.exec(part)?.[1];
+    return name !== undefined && name in nodes ? <Fragment key={i}>{nodes[name]}</Fragment> : part;
+  });
+}
 
 /** A barcode for the stub. Decoration only: bar widths come from the wallet's own characters. */
 function Barcode({ seed }: { seed: string }) {
@@ -77,6 +86,7 @@ const PREVIEW_MY_PLACE = 3;
 
 /** Days / hours / minutes / seconds to a moment, ticking once a second. */
 function Countdown({ to }: { to: number }) {
+  const tr = useT();
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 1000);
@@ -96,7 +106,7 @@ function Countdown({ to }: { to: number }) {
       {parts.map(([v, unit]) => (
         <span key={unit} className="perk-clock-unit">
           <b>{String(v).padStart(2, "0")}</b>
-          <i>{unit}</i>
+          <i>{tr(unit)}</i>
         </span>
       ))}
     </span>
@@ -118,6 +128,7 @@ function whenText(iso: string): string {
 
 /** One giveaway, from its entry in config/draws.ts (`DRAWS`). */
 export function TrenchesPerk({ draw: DRAW }: { draw: PerkDraw }) {
+  const tr = useT();
   const { address } = useAccount();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
@@ -298,27 +309,27 @@ export function TrenchesPerk({ draw: DRAW }: { draw: PerkDraw }) {
   const steps = [
     {
       key: "snapshot",
-      name: "Snapshot",
+      name: tr("Snapshot"),
       when: whenText(DRAW.snapshotAt),
       block: DRAW.snapshotBlock,
       state: phase === "before" ? "now" : "done",
       /* While it is ahead, the clock on the ticket says when. */
-      note: phase === "before" ? "" : "Taken",
+      note: phase === "before" ? "" : tr("Taken"),
     },
     {
       key: "list",
-      name: "Ticket list",
-      when: "After the snapshot",
+      name: tr("Ticket list"),
+      when: tr("After the snapshot"),
       block: undefined,
       state: phase === "counting" ? "now" : phase === "before" ? "next" : "done",
       note:
         list !== undefined ? (
           <>
             <span className="tix-step-stat">
-              <b>{fmt(list.tickets)}</b> tickets
+              {withNodes(tr("{count} tickets"), { count: <b>{fmt(list.tickets)}</b> })}
             </span>
             <span className="tix-step-stat">
-              <b>{fmt(list.wallets)}</b> wallets
+              {withNodes(tr("{count} wallets"), { count: <b>{fmt(list.wallets)}</b> })}
             </span>
             {listOnChain === true ? (
               <a
@@ -331,29 +342,29 @@ export function TrenchesPerk({ draw: DRAW }: { draw: PerkDraw }) {
                   <rect x="5" y="11" width="14" height="10" rx="2" />
                   <path d="M8 11V8a4 4 0 0 1 8 0v3" />
                 </svg>
-                Locked on chain
+                {tr("Locked on chain")}
               </a>
             ) : listOnChain === false ? (
-              <span className="tix-step-warn">Does not match the chain</span>
+              <span className="tix-step-warn">{tr("Does not match the chain")}</span>
             ) : null}
           </>
         ) : phase === "counting" ? (
-          "Counting…"
+          tr("Counting…")
         ) : (
           ""
         ),
     },
     {
       key: "draw",
-      name: "Draw",
-      when: announced ? whenText(drawAtOf(DRAW, drawBlock, head)) : "Coming soon",
+      name: tr("Draw"),
+      when: announced ? whenText(drawAtOf(DRAW, drawBlock, head)) : tr("Coming soon"),
       block: announced ? drawBlock : undefined,
       state: phase === "listed" ? "now" : phase === "drawn" ? "done" : "next",
       note:
         phase === "drawn"
-          ? "Drawn"
+          ? tr("Drawn")
           : announced && head !== undefined && phase !== "before" && head >= drawBlock
-            ? "Drawing…" /* before then, the clock on the ticket counts down to it */
+            ? tr("Drawing…") /* before then, the clock on the ticket counts down to it */
             : "",
     },
   ] as const;
@@ -380,7 +391,7 @@ export function TrenchesPerk({ draw: DRAW }: { draw: PerkDraw }) {
         {held.map(([d, n]) => (
           <span key={d} className="perk-chip">
             <i style={{ background: DEPTH[d]?.colour }} aria-hidden="true" />
-            {DEPTH[d]?.name ?? `Depth ${d}`}
+            {DEPTH[d]?.name ?? tr("Depth {n}", { n: d })}
             <b>{d}</b>
             {n > 1 ? <span className="perk-chip-count">×{n}</span> : null}
           </span>
@@ -394,16 +405,16 @@ export function TrenchesPerk({ draw: DRAW }: { draw: PerkDraw }) {
     stub = (
       <p className="tix-stub-note">
         {phase === "drawn"
-          ? "Connect a wallet to see if it won, or check any wallet below."
-          : "Connect a wallet to see your tickets, or check any wallet below."}
+          ? tr("Connect a wallet to see if it won, or check any wallet below.")
+          : tr("Connect a wallet to see your tickets, or check any wallet below.")}
       </p>
     );
   } else if (excluded) {
-    stub = <p className="tix-stub-note">A ValueMint test or deployer wallet, so it is left out.</p>;
+    stub = <p className="tix-stub-note">{tr("A ValueMint test or deployer wallet, so it is left out.")}</p>;
   } else if (phase === "before" && holdings.loading) {
-    stub = <p className="tix-stub-note">Reading its Trenches pieces…</p>;
+    stub = <p className="tix-stub-note">{tr("Reading its Trenches pieces…")}</p>;
   } else if (phase === "counting") {
-    stub = <p className="tix-stub-note">Snapshot taken. The tickets appear here once the list is out.</p>;
+    stub = <p className="tix-stub-note">{tr("Snapshot taken. The tickets appear here once the list is out.")}</p>;
   } else if (won !== undefined && list !== undefined) {
     /* The winner's stub: the ticket that came up, and where the prize is. */
     const tx = sent[won.wallet.toLowerCase()];
@@ -414,17 +425,20 @@ export function TrenchesPerk({ draw: DRAW }: { draw: PerkDraw }) {
         </p>
         <p className="tix-stub-wallet">{shortAddress(won.wallet as `0x${string}`, 4)}</p>
         <p className="tix-stub-note">
-          Drawn from all <b>{fmt(list.tickets)}</b> tickets. {isOther ? "It" : "You"} held <b>{fmt(won.tickets)}</b>.
+          {withNodes(tr(isOther ? "Drawn from all {total} tickets. It held {held}." : "Drawn from all {total} tickets. You held {held}."), {
+            total: <b>{fmt(list.tickets)}</b>,
+            held: <b>{fmt(won.tickets)}</b>,
+          })}
         </p>
         {tx !== undefined ? (
           <a className="tix-stub-sent" href={`${deployment.explorer}/tx/${tx}`} target="_blank" rel="noreferrer">
-            Cybereator sent
+            {tr("Cybereator sent")}
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M7 17 17 7M9 7h8v8" />
             </svg>
           </a>
         ) : (
-          <p className="tix-stub-sent is-pending">Cybereator on its way</p>
+          <p className="tix-stub-sent is-pending">{tr("Cybereator on its way")}</p>
         )}
       </>
     );
@@ -434,7 +448,7 @@ export function TrenchesPerk({ draw: DRAW }: { draw: PerkDraw }) {
       <>
         <p className="tix-stub-num">
           <b>{fmt(listed.tickets)}</b>
-          <span>{listed.tickets === 1 ? "ticket" : "tickets"}</span>
+          <span>{listed.tickets === 1 ? tr("ticket") : tr("tickets")}</span>
         </p>
         {myNumbers !== undefined ? (
           <div className="tix-nums">
@@ -450,7 +464,7 @@ export function TrenchesPerk({ draw: DRAW }: { draw: PerkDraw }) {
                   requestAnimationFrame(() => document.querySelector(".perk-list")?.scrollIntoView({ behavior: "smooth", block: "start" }));
                 }}
               >
-                +{myNumbers.length - STUB_NUMBERS} more
+                {tr("+{count} more", { count: myNumbers.length - STUB_NUMBERS })}
               </button>
             ) : null}
           </div>
@@ -458,10 +472,13 @@ export function TrenchesPerk({ draw: DRAW }: { draw: PerkDraw }) {
           <p className="tix-stub-range">{rangeText(listed)}</p>
         )}
         <p className="tix-stub-note">
-          <b>{share < 0.01 ? "<0.01" : share.toFixed(2)}%</b> of all {fmt(list.tickets)} tickets
+          {withNodes(tr("{share} of all {total} tickets"), {
+            share: <b>{share < 0.01 ? "<0.01" : share.toFixed(2)}%</b>,
+            total: fmt(list.tickets),
+          })}
         </p>
         {chips}
-        {phase === "drawn" && winners !== undefined ? <p className="tix-stub-note">Not drawn this time. Thank you for playing.</p> : null}
+        {phase === "drawn" && winners !== undefined ? <p className="tix-stub-note">{tr("Not drawn this time. Thank you for playing.")}</p> : null}
       </>
     );
   } else {
@@ -469,21 +486,21 @@ export function TrenchesPerk({ draw: DRAW }: { draw: PerkDraw }) {
       <>
         <p className="tix-stub-num">
           <b>{fmt(tickets)}</b>
-          <span>{tickets === 1 ? "ticket" : "tickets"}</span>
+          <span>{tickets === 1 ? tr("ticket") : tr("tickets")}</span>
         </p>
         {chips}
         <p className="tix-stub-note">
           {tickets === 0 ? (
             phase === "before" ? (
-              <>
-                No depth {DRAW.minDepth}+ piece yet.{" "}
-                <Link href={`/collection/${TRENCHES_ADDRESS}`}>Find one on the market</Link>.
-              </>
+              withNodes(tr("No depth {depth}+ piece yet. {link}."), {
+                depth: DRAW.minDepth,
+                link: <Link href={`/collection/${TRENCHES_ADDRESS}`}>{tr("Find one on the market")}</Link>,
+              })
             ) : (
-              `No depth ${DRAW.minDepth}+ piece at the snapshot.`
+              tr("No depth {depth}+ piece at the snapshot.", { depth: DRAW.minDepth })
             )
           ) : phase === "before" ? (
-            "If this wallet still holds them at the snapshot."
+            tr("If this wallet still holds them at the snapshot.")
           ) : null}
         </p>
       </>
@@ -529,25 +546,25 @@ export function TrenchesPerk({ draw: DRAW }: { draw: PerkDraw }) {
 
           <div className="tix-face">
             <p className="tix-kicker">
-              SoDEX Trenches · Holder draw
+              SoDEX Trenches · {tr("Holder draw")}
               {/* Once drawn, say so on the ticket itself, so nobody takes it for a draw still open (owner, 2026-10-18). */}
               {phase === "drawn" ? (
                 <span className="tix-done">
                   <svg viewBox="0 0 24 24" aria-hidden="true">
                     <path d="m5 12 5 5 9-10" />
                   </svg>
-                  Completed
+                  {tr("Completed")}
                 </span>
               ) : null}
             </p>
             <h2 className="tix-title" id="perk-title">
               {won !== undefined
                 ? isOther
-                  ? "This wallet won a"
-                  : "You won a"
+                  ? tr("This wallet won a")
+                  : tr("You won a")
                 : phase === "drawn" && winners !== undefined
-                  ? `${winners.length} holders won a`
-                  : "Win a"}{" "}
+                  ? tr("{count} holders won a", { count: winners.length })
+                  : tr("Win a")}{" "}
               {/* The Cybereator wordmark itself, tinted gold (owner, 2026-10-16); the word stays for screen readers. */}
               <span className="tix-wordmark">
                 <span className="visually-hidden">Cybereator</span>
@@ -560,14 +577,14 @@ export function TrenchesPerk({ draw: DRAW }: { draw: PerkDraw }) {
                   <svg viewBox="0 0 24 24" aria-hidden="true">
                     <path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4ZM7 6H4a3 3 0 0 0 3 4M17 6h3a3 3 0 0 1-3 4" />
                   </svg>
-                  Winner #{won.place} of {winners.length}
+                  {tr("Winner #{place} of {total}", { place: won.place, total: winners.length })}
                 </span>
-                <span className="tix-win-how">Picked on ValueChain from block {fmt(Number(drawBlock))}</span>
+                <span className="tix-win-how">{tr("Picked on ValueChain from block {block}", { block: fmt(Number(drawBlock)) })}</span>
               </div>
             ) : (
               <div className="tix-count">
-                <span className="tix-count-label">{count.label}</span>
-                {count.to !== undefined ? <Countdown to={count.to} /> : <span className={`tix-count-text${phase === "drawn" ? " is-done" : ""}`}>{count.text}</span>}
+                <span className="tix-count-label">{tr(count.label)}</span>
+                {count.to !== undefined ? <Countdown to={count.to} /> : <span className={`tix-count-text${phase === "drawn" ? " is-done" : ""}`}>{count.text === undefined ? undefined : tr(count.text)}</span>}
               </div>
             )}
 
@@ -576,7 +593,7 @@ export function TrenchesPerk({ draw: DRAW }: { draw: PerkDraw }) {
                 <li
                   key={s.key}
                   className={`tix-step is-${s.state}`}
-                  title={s.block !== undefined ? `Block ${fmt(Number(s.block))}` : undefined}
+                  title={s.block !== undefined ? tr("Block {n}", { n: fmt(Number(s.block)) }) : undefined}
                 >
                   <span className="tix-step-name">
                     <i aria-hidden="true" />
@@ -589,14 +606,14 @@ export function TrenchesPerk({ draw: DRAW }: { draw: PerkDraw }) {
                       {/* Why the snapshot came early, behind an "i" so the step stays one word. */}
                       {s.key === "snapshot" && phase !== "before" && DRAW.snapshotNote !== undefined ? (
                         <span className="tix-info">
-                          <button type="button" className="tix-info-btn" aria-label={DRAW.snapshotNote}>
+                          <button type="button" className="tix-info-btn" aria-label={tr(DRAW.snapshotNote)}>
                             <svg viewBox="0 0 24 24" aria-hidden="true">
                               <circle cx="12" cy="12" r="9" />
                               <path d="M12 11v5M12 8h.01" />
                             </svg>
                           </button>
                           <span className="tix-info-tip" role="tooltip">
-                            {DRAW.snapshotNote}
+                            {tr(DRAW.snapshotNote)}
                           </span>
                         </span>
                       ) : null}
@@ -609,23 +626,23 @@ export function TrenchesPerk({ draw: DRAW }: { draw: PerkDraw }) {
 
           <div className="tix-stub" aria-live="polite">
             <p className="tix-stub-label">
-              {won !== undefined ? "Winning ticket" : isOther ? "That wallet" : phase === "before" ? "Your tickets now" : "Your tickets"}
+              {won !== undefined ? tr("Winning ticket") : isOther ? tr("That wallet") : phase === "before" ? tr("Your tickets now") : tr("Your tickets")}
             </p>
             {stub}
             {won !== undefined ? (
               <span className="tix-stamp" aria-hidden="true">
-                Winner
+                {tr("Winner")}
               </span>
             ) : null}
             <Barcode seed={lookup ?? DRAW.id} />
             <span className="tix-admit" aria-hidden="true">
-              Admit one wallet · {DRAW.id}
+              {tr("Admit one wallet")} · {DRAW.id}
             </span>
           </div>
         </div>
 
         <p className="tix-shot-foot" aria-hidden="true">
-          <span>{won !== undefined ? "Cybereator × ValueMint · Trenches holder draw" : "Cybereator × ValueMint"}</span>
+          <span>{won !== undefined ? `Cybereator × ValueMint · ${tr("Trenches holder draw")}` : "Cybereator × ValueMint"}</span>
           <b>valuemint.store/trenches</b>
         </p>
       </div>
@@ -649,10 +666,10 @@ export function TrenchesPerk({ draw: DRAW }: { draw: PerkDraw }) {
             <path d="m15.5 15.5 5 5" />
           </svg>
           <input
-            aria-label="Check another wallet"
+            aria-label={tr("Check another wallet")}
             type="text"
             spellCheck={false}
-            placeholder="Check any wallet 0x…"
+            placeholder={tr("Check any wallet 0x…")}
             value={typed}
             onChange={(e) => setTyped(e.target.value)}
           />
@@ -664,8 +681,7 @@ export function TrenchesPerk({ draw: DRAW }: { draw: PerkDraw }) {
           <>
             {agrees === false ? (
               <p className="perk-you-note perk-disagree">
-                The contract&rsquo;s result and this page&rsquo;s own check disagree. Do not rely on either until this is
-                looked at.
+                {tr("The contract’s result and this page’s own check disagree. Do not rely on either until this is looked at.")}
               </p>
             ) : null}
             <WinnerStrip
@@ -697,7 +713,7 @@ export function TrenchesPerk({ draw: DRAW }: { draw: PerkDraw }) {
 
         <details className="perk-how">
           <summary>
-            How it works
+            {tr("How it works")}
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="m6 9 6 6 6-6" />
             </svg>
@@ -706,20 +722,24 @@ export function TrenchesPerk({ draw: DRAW }: { draw: PerkDraw }) {
               mechanics are in lib/draw.ts for anyone who wants them. */}
           <ul>
             <li>
-              Hold a Trenches piece of <b>depth {DRAW.minDepth} or deeper</b>, claimed or bought.
+              {withNodes(tr("Hold a Trenches piece of {depth}, claimed or bought."), {
+                depth: <b>{tr("depth {depth} or deeper", { depth: DRAW.minDepth })}</b>,
+              })}
             </li>
             <li>
-              Each piece is worth <b>its depth in tickets</b>: Inferno 5 up to Monolith 10.
+              {withNodes(tr("Each piece is worth {worth}: Inferno 5 up to Monolith 10."), {
+                worth: <b>{tr("its depth in tickets")}</b>,
+              })}
             </li>
             <li>
-              What counts is what your wallet holds <b>at the snapshot</b>.
+              {withNodes(tr("What counts is what your wallet holds {when}."), { when: <b>{tr("at the snapshot")}</b> })}
             </li>
-            <li>After the snapshot, the full list is locked on ValueChain and everyone&rsquo;s ticket numbers are given out at random.</li>
-            <li>The draw is random and public: nobody, ValueMint included, can pick the winners.</li>
+            <li>{tr("After the snapshot, the full list is locked on ValueChain and everyone’s ticket numbers are given out at random.")}</li>
+            <li>{tr("The draw is random and public: nobody, ValueMint included, can pick the winners.")}</li>
             <li>
-              <b>One NFT per wallet.</b>
+              <b>{tr("One NFT per wallet.")}</b>
             </li>
-            <li>ValueMint&rsquo;s own wallets are left out.</li>
+            <li>{tr("ValueMint’s own wallets are left out.")}</li>
           </ul>
         </details>
       </div>

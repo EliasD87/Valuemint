@@ -9,6 +9,7 @@ import { deployment } from "@/config/contracts";
 import { formatCount, shortAddress } from "@/lib/format";
 import "@/styles/approvals.css";
 import { ConnectButton } from "@/components/ConnectButton";
+import { useT } from "@/lib/i18n";
 
 /**
  * What this wallet has let other contracts move, and how to stop them.
@@ -20,6 +21,7 @@ import { ConnectButton } from "@/components/ConnectButton";
  * why the control has to exist in the interface that asked for it.
  */
 export default function Approvals() {
+  const t = useT();
   const { address } = useAccount();
   const { approvals, retired, isLoading, connected, refetch } = useApprovals();
 
@@ -41,10 +43,10 @@ export default function Approvals() {
   if (!mounted || !connected) {
     return (
       <section className="page section market-empty">
-        <p className="eyebrow">Approvals</p>
-        <h2>What can move your NFTs</h2>
-        <p className="muted">Connect a wallet to see what it has approved.</p>
-        <ConnectButton>Connect wallet</ConnectButton>
+        <p className="eyebrow">{t("Approvals")}</p>
+        <h2>{t("What can move your NFTs")}</h2>
+        <p className="muted">{t("Connect a wallet to see what it has approved.")}</p>
+        <ConnectButton>{t("Connect wallet")}</ConnectButton>
       </section>
     );
   }
@@ -53,11 +55,11 @@ export default function Approvals() {
     <section className="page section">
       <div className="head">
         <div>
-          <p className="eyebrow">Approvals</p>
-          <h2>What can move your NFTs</h2>
+          <p className="eyebrow">{t("Approvals")}</p>
+          <h2>{t("What can move your NFTs")}</h2>
         </div>
         <Link className="head-link" href="/portfolio">
-          Your pieces &rarr;
+          {t("Your pieces")} &rarr;
         </Link>
       </div>
 
@@ -65,7 +67,7 @@ export default function Approvals() {
           itself in a paragraph before showing anything is a page nobody
           reads. */}
       <p className="lede approvals-lede">
-        Each of these can move every token you hold in that collection, until you revoke it.
+        {t("Each of these can move every token you hold in that collection, until you revoke it.")}
       </p>
 
       <TxResult
@@ -73,7 +75,7 @@ export default function Approvals() {
         confirming={revoke.confirming}
         success={revoke.isSuccess}
         error={revoke.error}
-        successLabel="Approval revoked"
+        successLabel={t("Approval revoked")}
       />
 
       {isLoading && approvals.length === 0 ? (
@@ -86,8 +88,8 @@ export default function Approvals() {
         </ul>
       ) : approvals.length === 0 ? (
         <div className="market-empty">
-          <h3>Nothing is approved.</h3>
-          <p className="muted">Nothing can move what this wallet holds.</p>
+          <h3>{t("Nothing is approved.")}</h3>
+          <p className="muted">{t("Nothing can move what this wallet holds.")}</p>
           <p className="muted mono">{address}</p>
         </div>
       ) : (
@@ -96,10 +98,10 @@ export default function Approvals() {
             <p className="approvals-warn">
               <strong>
                 {retired.length === 1
-                  ? "1 approval is to a marketplace nothing uses."
-                  : `${retired.length} approvals are to marketplaces nothing uses.`}
+                  ? t("1 approval is to a marketplace nothing uses.")
+                  : t("{count} approvals are to marketplaces nothing uses.", { count: retired.length })}
               </strong>{" "}
-              Revoking costs gas and breaks nothing.
+              {t("Revoking costs gas and breaks nothing.")}
             </p>
           ) : null}
 
@@ -138,6 +140,7 @@ function Row({
   anyBusy: boolean;
   onRevoke: () => void;
 }) {
+  const t = useT();
   const { collection, operator, held } = approval;
   const retired = operator.standing === "retired";
 
@@ -145,7 +148,7 @@ function Row({
     <li className={`approvals-row ${retired ? "is-retired" : ""}`}>
       <div className="approvals-what">
         <b>{collection.name}</b>
-        {retired ? <span className="chip chip-warn">Not in use</span> : null}
+        {retired ? <span className="chip chip-warn">{t("Not in use")}</span> : null}
       </div>
 
       <p className="approvals-sub">
@@ -154,16 +157,16 @@ function Row({
           target="_blank"
           rel="noreferrer noopener"
         >
-          {operator.name}
+          {t(operator.name)}
         </a>
         <span className="dim"> {shortAddress(operator.address, 4)}</span>
-        <span className="dim"> &middot; {operator.why}</span>
+        <span className="dim"> &middot; {t(operator.why)}</span>
       </p>
 
       {/* The number is the point: an approval over nothing is a different
           decision from an approval over everything you own. */}
       <span className="approvals-held">
-        {held === 0n ? <span className="dim">none held</span> : <b>{formatCount(held)}</b>}
+        {held === 0n ? <span className="dim">{t("none held")}</span> : <b>{formatCount(held)}</b>}
       </span>
 
       <button
@@ -171,7 +174,7 @@ function Row({
         disabled={anyBusy}
         onClick={onRevoke}
       >
-        {busy ? "Revoking…" : "Revoke"}
+        {busy ? t("Revoking…") : t("Revoke")}
       </button>
     </li>
   );

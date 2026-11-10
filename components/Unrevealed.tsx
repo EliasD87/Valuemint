@@ -4,6 +4,7 @@ import { useReadContracts } from "wagmi";
 import { heldBackFor } from "@/config/reveal";
 import { ValueChainCollectionAbi, deployment } from "@/config/contracts";
 import { revealDay, revealLong, revealPending } from "@/lib/unrevealed";
+import { useT } from "@/lib/i18n";
 import "./Unrevealed.css";
 
 /** A padlock, for anything sealed. Inherits the text colour. */
@@ -45,6 +46,8 @@ export function SealIcon({ size = 12 }: { size?: number }) {
  * watches the date.
  */
 export function SealedNotice({ collection }: { collection: `0x${string}` | undefined }) {
+  /* `tr`, not `t`: the tier rows below are called `t`. */
+  const tr = useT();
   const held = heldBackFor(collection);
   const pending = held !== undefined && revealPending(held);
 
@@ -73,26 +76,26 @@ export function SealedNotice({ collection }: { collection: `0x${string}` | undef
       </span>
       <div className="ur-notice-text">
         <p className="ur-notice-title" id="ur-notice-title">
-          {held.count} pieces are sealed, revealed {revealLong(held)}
+          {tr("{count} pieces are sealed, revealed {when}", { count: held.count, when: revealLong(held) })}
         </p>
         {canMint ? (
           <p className="ur-notice-lead">
-            Mint {day === undefined ? "now" : `before ${day}`} to be part of the reveal ·{" "}
-            <strong>{left} left</strong>
+            {day === undefined ? tr("Mint now to be part of the reveal") : tr("Mint before {day} to be part of the reveal", { day })} ·{" "}
+            <strong>{tr("{count} left", { count: left })}</strong>
           </p>
         ) : null}
       </div>
-      <ul className="ur-pot" aria-label="What the sealed pieces hold">
+      <ul className="ur-pot" aria-label={tr("What the sealed pieces hold")}>
         {held.tiers.map((t) => (
           <li key={t.name} className={`ur-chip ur-chip-${t.name.toLowerCase()}`}>
             <span className="ur-chip-count">{t.count}</span>
-            <span className="ur-chip-name">{t.name}</span>
+            <span className="ur-chip-name">{tr(t.name)}</span>
           </li>
         ))}
       </ul>
       {canMint ? (
         <a className="btn btn-sm btn-primary ur-notice-cta" href="#mint">
-          Mint
+          {tr("Mint")}
         </a>
       ) : null}
     </aside>
@@ -126,20 +129,24 @@ export function SealedNotice({ collection }: { collection: `0x${string}` | undef
  * else's work.
  */
 export function Unrevealed({ collection }: { collection: `0x${string}` | undefined }) {
+  /* `tr`, not `t`: the tier rows below are called `t`. */
+  const tr = useT();
   const held = heldBackFor(collection);
   if (held === undefined) return null;
 
   const when = revealLong(held);
+  /* The bold count sits wherever the language puts it. */
+  const [oneOfBefore, oneOfAfter = ""] = tr("One of {count} sealed pieces. Yours is revealed {when}.", { when }).split("{count}");
 
   return (
     <section className="ur" aria-labelledby="ur-title">
       <div className="ur-card">
         <h3 className="ur-title" id="ur-title">
-          Not revealed yet
+          {tr("Not revealed yet")}
         </h3>
 
         <p className="ur-lead">
-          One of <strong>{held.count}</strong> sealed pieces. Yours is revealed {when}.
+          {oneOfBefore}<strong>{held.count}</strong>{oneOfAfter}
         </p>
 
         {/*
@@ -152,7 +159,7 @@ export function Unrevealed({ collection }: { collection: `0x${string}` | undefin
           {held.tiers.map((t) => (
             <li key={t.name} className={`ur-chip ur-chip-${t.name.toLowerCase()}`}>
               <span className="ur-chip-count">{t.count}</span>
-              <span className="ur-chip-name">{t.name}</span>
+              <span className="ur-chip-name">{tr(t.name)}</span>
             </li>
           ))}
         </ul>
@@ -164,7 +171,7 @@ export function Unrevealed({ collection }: { collection: `0x${string}` | undefin
           rel="noreferrer noopener"
         >
           {/* The character itself: JSX leaves `&nearr;` as literal text. */}
-          Sealed on chain before minting ↗
+          {tr("Sealed on chain before minting")} ↗
         </a>
       </div>
     </section>

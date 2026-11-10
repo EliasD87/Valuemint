@@ -3,7 +3,7 @@
 import { CYBEREATOR } from "@/lib/cybereator";
 import { useCybereatorOpened, type SealFilter } from "@/hooks/useCybereatorOpened";
 import type { CollectionFiguresSeed } from "@/lib/collectionFigures";
-import { use, useMemo, useState } from "react";
+import { Fragment, use, useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useAccount } from "wagmi";
 import { useCollectionBasics } from "@/hooks/useCollectionBasics";
@@ -30,6 +30,12 @@ import { CollectionStats } from "@/components/CollectionStats";
 import { PageTabs, type TabDef } from "@/components/PageTabs";
 import { KOLS_COLLECTION, offersAllowed } from "@/config/kols";
 import { hasGenesisFrame } from "@/components/GenesisFrame";
+import { useT } from "@/lib/i18n";
+
+/** A translated sentence with `{name}` slots filled by elements, so bold figures land wherever the language puts them. */
+function richText(text: string, values: Record<string, ReactNode>): ReactNode[] {
+  return text.split(/\{(\w+)\}/).map((part, i) => (i % 2 === 1 ? <Fragment key={i}>{values[part] ?? `{${part}}`}</Fragment> : part));
+}
 
 /**
  * Any ERC-721 on ValueChain, not only ours.
@@ -101,6 +107,8 @@ export interface CollectionSeed {
 }
 
 export function CollectionView({ params, seed }: { params: Promise<{ address: string }>; seed?: CollectionSeed }) {
+  /* `tr`, not `t`: this component already calls each token `t`. */
+  const tr = useT();
   const { address: raw } = use(params);
   const { address: viewer } = useAccount();
 
@@ -322,10 +330,10 @@ export function CollectionView({ params, seed }: { params: Promise<{ address: st
   if (!valid) {
     return (
       <section className="page section market-empty">
-        <h2>That isn&rsquo;t a contract address.</h2>
-        <p className="muted">A ValueChain address is 0x followed by 40 characters.</p>
+        <h2>{tr("That isn’t a contract address.")}</h2>
+        <p className="muted">{tr("A ValueChain address is 0x followed by 40 characters.")}</p>
         <Link className="btn" href="/collections">
-          Back to collections
+          {tr("Back to collections")}
         </Link>
       </section>
     );
@@ -334,10 +342,9 @@ export function CollectionView({ params, seed }: { params: Promise<{ address: st
   if (!probing && isErc721 !== true) {
     return (
       <section className="page section market-empty">
-        <h2>Nothing tradeable at that address.</h2>
+        <h2>{tr("Nothing tradeable at that address.")}</h2>
         <p className="muted">
-          It doesn&rsquo;t answer as an ERC-721, so this marketplace can&rsquo;t move its tokens.
-          ERC-1155 collections exist on ValueChain but aren&rsquo;t supported here yet.
+          {tr("It doesn’t answer as an ERC-721, so this marketplace can’t move its tokens. ERC-1155 collections exist on ValueChain but aren’t supported here yet.")}
         </p>
         <div className="wrap-row mt-sm">
           <a
@@ -346,10 +353,10 @@ export function CollectionView({ params, seed }: { params: Promise<{ address: st
             target="_blank"
             rel="noreferrer noopener"
           >
-            Inspect it on the explorer
+            {tr("Inspect it on the explorer")}
           </a>
           <Link className="btn" href="/collections">
-            Back to collections
+            {tr("Back to collections")}
           </Link>
         </div>
       </section>
@@ -365,9 +372,9 @@ export function CollectionView({ params, seed }: { params: Promise<{ address: st
    * is already on screen in the stats bar above, so the items count is free.
    */
   const tabs: ReadonlyArray<TabDef<Tab>> = [
-    { key: "items", label: "Items", ...(supply === undefined ? {} : { count: Number(supply) }) },
-    { key: "activity", label: "Activity" },
-    { key: "holders", label: "Top holders" },
+    { key: "items", label: tr("Items"), ...(supply === undefined ? {} : { count: Number(supply) }) },
+    { key: "activity", label: tr("Activity") },
+    { key: "holders", label: tr("Top holders") },
   ];
 
   return (
@@ -400,7 +407,7 @@ export function CollectionView({ params, seed }: { params: Promise<{ address: st
       {/* Bids on the whole collection or one trait, and the way to place one. */}
       {collection === undefined || !offersAllowed(collection) ? null : <CollectionOffers collection={collection} />}
 
-      <PageTabs tabs={tabs} active={tab} onChange={setTab} label="Collection sections" />
+      <PageTabs tabs={tabs} active={tab} onChange={setTab} label={tr("Collection sections")} />
 
       {tab === "activity" ? (
         /* The page's full width, and more rows than a sidebar could hold. */
@@ -433,15 +440,15 @@ export function CollectionView({ params, seed }: { params: Promise<{ address: st
           {(supply ?? 2n) > 1n && !ROSTER_ORDERED.has((collection ?? "").toLowerCase()) ? (
             <div className="coll-controls">
               {isCybereator ? (
-                <div className="wrap-row" role="group" aria-label="Opened or sealed">
+                <div className="wrap-row" role="group" aria-label={tr("Opened or sealed")}>
                   <Sortie active={seal === "all"} onClick={() => setSeal("all")}>
-                    All
+                    {tr("All")}
                   </Sortie>
                   <Sortie active={seal === "opened"} onClick={() => setSeal("opened")} tone="opened">
-                    Opened{opened === undefined ? "" : ` ${opened.size.toLocaleString()}`}
+                    {tr("Opened")}{opened === undefined ? "" : ` ${opened.size.toLocaleString()}`}
                   </Sortie>
                   <Sortie active={seal === "sealed"} onClick={() => setSeal("sealed")} tone="sealed">
-                    Sealed
+                    {tr("Sealed")}
                     {opened === undefined || supply === undefined
                       ? ""
                       : ` ${Math.max(0, Number(supply) - opened.size).toLocaleString()}`}
@@ -451,16 +458,16 @@ export function CollectionView({ params, seed }: { params: Promise<{ address: st
               <div className="wrap-row">
                 {/* The default first, so the selected pill leads the row. */}
                 <Sortie active={sort === "price-asc"} onClick={() => setSort("price-asc")}>
-                  Price low
+                  {tr("Price low")}
                 </Sortie>
                 <Sortie active={sort === "price-desc"} onClick={() => setSort("price-desc")}>
-                  Price high
+                  {tr("Price high")}
                 </Sortie>
                 <Sortie active={sort === "id-desc"} onClick={() => setSort("id-desc")}>
-                  Newest
+                  {tr("Newest")}
                 </Sortie>
                 <Sortie active={sort === "id-asc"} onClick={() => setSort("id-asc")}>
-                  Oldest
+                  {tr("Oldest")}
                 </Sortie>
               </div>
 
@@ -477,7 +484,7 @@ export function CollectionView({ params, seed }: { params: Promise<{ address: st
                   aria-controls="coll-advanced"
                   onClick={() => setAdvanced((open) => !open)}
                 >
-                  Advanced filters
+                  {tr("Advanced filters")}
                   {filtering ? <em>{Object.values(traitFilter).filter((v) => v !== "").length}</em> : null}
                 </button>
               ) : null}
@@ -497,7 +504,7 @@ export function CollectionView({ params, seed }: { params: Promise<{ address: st
                         value={traitFilter[type] ?? ""}
                         onChange={(v) => setTraitFilter((f) => ({ ...f, [type]: v }))}
                         options={[
-                          { value: "", label: "Any" },
+                          { value: "", label: tr("Any") },
                           ...[...values.entries()]
                             .sort((a, b) => b[1] - a[1])
                             .map(([value, count]) => ({
@@ -512,7 +519,7 @@ export function CollectionView({ params, seed }: { params: Promise<{ address: st
 
                   {Object.values(traitFilter).some((v) => v !== "") ? (
                     <button type="button" className="filt" onClick={() => setTraitFilter({})}>
-                      Clear
+                      {tr("Clear")}
                     </button>
                   ) : null}
                 </div>
@@ -524,12 +531,9 @@ export function CollectionView({ params, seed }: { params: Promise<{ address: st
             <div className="coll-layout-main">
               {supplyKnown && supply === undefined ? (
                 <div className="market-empty">
-                  <h3>This collection doesn&rsquo;t publish a token list.</h3>
+                  <h3>{tr("This collection doesn’t publish a token list.")}</h3>
                   <p className="muted">
-                    It&rsquo;s a valid ERC-721 and its tokens can still be traded, but it
-                    doesn&rsquo;t implement the optional Enumerable extension, so there&rsquo;s
-                    no way to walk its contents from the chain alone. Open a token directly if
-                    you know its id.
+                    {tr("It’s a valid ERC-721 and its tokens can still be traded, but it doesn’t implement the optional Enumerable extension, so there’s no way to walk its contents from the chain alone. Open a token directly if you know its id.")}
                   </p>
                 </div>
               ) : (!supplyKnown || isLoading || findingIds) && tokens.length === 0 ? (
@@ -554,12 +558,12 @@ export function CollectionView({ params, seed }: { params: Promise<{ address: st
                 */
                 filtering ? (
                   <div className="market-empty">
-                    <h3>Nothing matches those traits.</h3>
-                    <p className="muted">Clear a filter to widen the search.</p>
+                    <h3>{tr("Nothing matches those traits.")}</h3>
+                    <p className="muted">{tr("Clear a filter to widen the search.")}</p>
                   </div>
                 ) : supply === 0n ? (
                   <div className="market-empty">
-                    <h3>This collection is empty.</h3>
+                    <h3>{tr("This collection is empty.")}</h3>
                     {/*
                       Both halves, because `totalSupply` cannot tell them apart: it
                       counts what exists now, not what has ever existed. A collection
@@ -568,8 +572,7 @@ export function CollectionView({ params, seed }: { params: Promise<{ address: st
                       be wrong in front of somebody who minted them.
                     */}
                     <p className="muted">
-                      Nothing has been minted yet — or everything that was has since been
-                      burned.
+                      {tr("Nothing has been minted yet — or everything that was has since been burned.")}
                     </p>
                   </div>
                 ) : (
@@ -580,11 +583,9 @@ export function CollectionView({ params, seed }: { params: Promise<{ address: st
                       is the only route to them and it did not answer, which is a
                       failure to read rather than a collection with nothing in it.
                     */}
-                    <h3>Couldn&rsquo;t list this collection&rsquo;s pieces.</h3>
+                    <h3>{tr("Couldn’t list this collection’s pieces.")}</h3>
                     <p className="muted">
-                      It reports {formatCount(supply as bigint | undefined)} minted, but the
-                      token list could not be read just now. Try again shortly, or open a piece
-                      directly if you know its id.
+                      {tr("It reports {count} minted, but the token list could not be read just now. Try again shortly, or open a piece directly if you know its id.", { count: formatCount(supply as bigint | undefined) })}
                     </p>
                   </div>
                 )
@@ -643,13 +644,15 @@ export function CollectionView({ params, seed }: { params: Promise<{ address: st
                     */}
                     {filtering ? (
                       <>
-                        Searched <b>{formatCount(BigInt(ids.length))}</b> of{" "}
-                        <b>{formatCount(supply as bigint)}</b> —{" "}
-                        <b>{formatCount(BigInt(shown.length))}</b> match so far
+                        {richText(tr("Searched {searched} of {total} — {matched} match so far"), {
+                          searched: <b>{formatCount(BigInt(ids.length))}</b>,
+                          total: <b>{formatCount(supply as bigint)}</b>,
+                          matched: <b>{formatCount(BigInt(shown.length))}</b>,
+                        })}
                       </>
                     ) : (
                       <>
-                        Showing <b>{formatCount(BigInt(shown.length))}</b> of{" "}
+                        {tr("Showing")} <b>{formatCount(BigInt(shown.length))}</b> {tr("of")}{" "}
                         <b>{formatCount(supply as bigint)}</b>
                       </>
                     )}
@@ -661,7 +664,7 @@ export function CollectionView({ params, seed }: { params: Promise<{ address: st
                       onClick={() => setLimit((n) => n + PAGE)}
                       disabled={loadingMore}
                     >
-                      {loadingMore ? "Loading…" : `Load ${PAGE} more`}
+                      {loadingMore ? tr("Loading…") : tr("Load {count} more", { count: PAGE })}
                     </button>
                   ) : null}
                 </div>

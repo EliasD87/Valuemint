@@ -1,6 +1,8 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { firstPieces, pieceKey, togglePiece } from "@/lib/piecePick";
+import { useT } from "@/lib/i18n";
 import "./PiecePicker.css";
 
 export interface PieceChoice {
@@ -36,17 +38,18 @@ export function PiecePicker({
   /** What is being chosen, for screen readers: "Pieces to list". */
   label: string;
 }) {
+  const t = useT();
   const cap = Math.min(max ?? pieces.length, pieces.length);
   const count = pieces.filter((p) => selected.has(pieceKey(p.id))).length;
   const full = count >= cap;
   const ids = pieces.map((p) => p.id);
 
   return (
-    <div className="pp" role="group" aria-label={label}>
+    <div className="pp" role="group" aria-label={t(label)}>
       <div className="pp-head">
         <span className="pp-count">
-          <b>{count}</b> of {pieces.length} chosen
-          {cap < pieces.length ? <span className="pp-cap"> · up to {cap}</span> : null}
+          {withSlot(t("{count} of {total} chosen", { total: pieces.length }), "{count}", <b>{count}</b>)}
+          {cap < pieces.length ? <span className="pp-cap">{t(" · up to {cap}", { cap })}</span> : null}
         </span>
         <span className="pp-acts">
           <button
@@ -55,7 +58,7 @@ export function PiecePicker({
             disabled={disabled || count === cap}
             onClick={() => onChange(firstPieces(ids, cap))}
           >
-            {cap < pieces.length ? `First ${cap}` : "All"}
+            {cap < pieces.length ? t("First {cap}", { cap }) : t("All")}
           </button>
           <button
             type="button"
@@ -63,7 +66,7 @@ export function PiecePicker({
             disabled={disabled || count === 0}
             onClick={() => onChange(new Set())}
           >
-            None
+            {t("None")}
           </button>
         </span>
       </div>
@@ -86,5 +89,22 @@ export function PiecePicker({
         })}
       </div>
     </div>
+  );
+}
+
+/**
+ * A translated sentence with one piece of markup in it: the text is split at
+ * `slot` and `node` goes where the placeholder was, so the sentence stays one
+ * key in the dictionary and the markup survives in either language.
+ */
+function withSlot(text: string, slot: string, node: ReactNode): ReactNode {
+  const at = text.indexOf(slot);
+  if (at < 0) return text;
+  return (
+    <>
+      {text.slice(0, at)}
+      {node}
+      {text.slice(at + slot.length)}
+    </>
   );
 }

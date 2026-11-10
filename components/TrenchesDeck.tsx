@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { TIERS, formatVolume } from "@/config/tiers";
 import { TrenchesFrame } from "@/components/TrenchesFrame";
+import { useT } from "@/lib/i18n";
 import "./TrenchesDeck.css";
 
 /**
@@ -33,6 +34,7 @@ export function TrenchesDeck({
   /** How many of each depth have been claimed, in depth order, once read. */
   claimed?: readonly (number | undefined)[];
 }) {
+  const tr = useT();
   const [index, setIndex] = useState(0);
   const [touched, setTouched] = useState(false);
   const [hover, setHover] = useState(false);
@@ -97,7 +99,7 @@ export function TrenchesDeck({
         className="tdeck-stage"
         role="group"
         aria-roledescription="carousel"
-        aria-label="The ten Trenches depths"
+        aria-label={tr("The ten Trenches depths")}
         onPointerMove={tilt}
         onPointerDown={(e) => {
           if (e.pointerType !== "mouse") drag.current = { x: e.clientX, id: e.pointerId };
@@ -130,8 +132,8 @@ export function TrenchesDeck({
                 tier={t}
                 meta={
                   <>
-                    <b>{t.min === 0 ? "Any trade" : formatVolume(t.min)}</b>
-                    {claimed?.[i] === undefined ? null : claimed[i] === 0 ? " · none yet" : ` · ${claimed[i]!.toLocaleString()} claimed`}
+                    <b>{t.min === 0 ? tr("Any trade") : formatVolume(t.min)}</b>
+                    {claimed?.[i] === undefined ? null : claimed[i] === 0 ? ` · ${tr("none yet")}` : ` · ${tr("{count} claimed", { count: claimed[i]!.toLocaleString() })}`}
                   </>
                 }
               />
@@ -142,33 +144,33 @@ export function TrenchesDeck({
       </div>
 
       <div className="tdeck-nav">
-        <button type="button" className="tdeck-arrow" aria-label="Previous depth" onClick={() => go(index - 1)}>
+        <button type="button" className="tdeck-arrow" aria-label={tr("Previous depth")} onClick={() => go(index - 1)}>
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="m15 6-6 6 6 6" />
           </svg>
         </button>
-        <div className="tdeck-dots" role="tablist" aria-label="Choose a depth">
+        <div className="tdeck-dots" role="tablist" aria-label={tr("Choose a depth")}>
           {TIERS.map((t, i) => (
             <button
               key={t.n}
               type="button"
               role="tab"
               aria-selected={i === index}
-              aria-label={`${t.name}, depth ${t.n}`}
+              aria-label={tr("{tier}, depth {n}", { tier: t.name, n: t.n })}
               className={`tdeck-dot${i === index ? " is-on" : ""}`}
               style={{ ["--c" as string]: t.colour }}
               onClick={() => go(i)}
             />
           ))}
         </div>
-        <button type="button" className="tdeck-arrow" aria-label="Next depth" onClick={() => go(index + 1)}>
+        <button type="button" className="tdeck-arrow" aria-label={tr("Next depth")} onClick={() => go(index + 1)}>
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="m9 6 6 6-6 6" />
           </svg>
         </button>
       </div>
       <p className="tdeck-caption" aria-live="polite">
-        Depth {tier.n} of {n} · <b>{tier.name}</b>
+        {tr("Depth {n} of {total}", { n: tier.n, total: n })} · <b>{tier.name}</b>
       </p>
     </div>
   );

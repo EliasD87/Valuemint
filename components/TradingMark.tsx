@@ -1,6 +1,7 @@
 "use client";
 
 import { tradingMarkOf } from "@/config/tradingMark";
+import { useT } from "@/lib/i18n";
 import "./TradingMark.css";
 
 /**
@@ -22,12 +23,13 @@ export function TradingMark({
   /** Matches the text it sits beside; the SVG scales to it. */
   size?: number;
 }) {
+  const t = useT();
   const entry = tradingMarkOf(collection);
   if (entry === undefined) return null;
 
   return (
-    <span className="tm" title={entry.reason} style={{ ["--tm-size" as string]: `${size}px` }}>
-      <svg viewBox="0 0 24 24" role="img" aria-label={entry.reason} focusable="false">
+    <span className="tm" title={t(entry.reason)} style={{ ["--tm-size" as string]: `${size}px` }}>
+      <svg viewBox="0 0 24 24" role="img" aria-label={t(entry.reason)} focusable="false">
         <circle className="tm-badge" cx="12" cy="12" r="11" />
         <g className="tm-candle tm-up tm-c1">
           <line x1="7" y1="8.5" x2="7" y2="17.5" />

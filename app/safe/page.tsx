@@ -18,6 +18,7 @@ import { deployment } from "@/config/contracts";
 import { TxResult } from "@/components/TxResult";
 import "./safe.css";
 import { ConnectButton } from "@/components/ConnectButton";
+import { useT } from "@/lib/i18n";
 
 /**
  * The owner console for the project's multisig.
@@ -297,6 +298,7 @@ function approvedHashSignatures(owners: readonly string[]): `0x${string}` {
 }
 
 export default function SafeConsole() {
+  const t = useT();
   const { isConnected } = useAccount();
 
   // Read once on mount rather than through a router hook, so the page is a
@@ -359,7 +361,7 @@ export default function SafeConsole() {
   });
 
   const call = describeCall(data);
-  const targetName = TARGETS[to.trim().toLowerCase()] ?? "an unrecognised contract";
+  const targetName = TARGETS[to.trim().toLowerCase()] ?? t("an unrecognised contract");
 
   /**
    * Is "Contract to call" a contract at all, and the right one?
@@ -379,9 +381,13 @@ export default function SafeConsole() {
   const targetProblem: string | undefined = !validTo
     ? undefined
     : codeRead && (code === undefined || code === "0x")
-      ? `${to.trim()} is a plain wallet, not a contract. A Safe transaction sent there does nothing but use up a nonce. Check "Contract to call".`
+      ? t('{address} is a plain wallet, not a contract. A Safe transaction sent there does nothing but use up a nonce. Check "Contract to call".', { address: to.trim() })
       : call.target !== undefined && to.trim().toLowerCase() !== call.target
-        ? `This call belongs to ${TARGETS[call.target] ?? call.target} (${call.target}), but "Contract to call" is ${to.trim()}. Fix the address before approving.`
+        ? t('This call belongs to {name} ({target}), but "Contract to call" is {address}. Fix the address before approving.', {
+            name: TARGETS[call.target] ?? call.target,
+            target: call.target,
+            address: to.trim(),
+          })
         : undefined;
   const approvable = call.safe && targetProblem === undefined && (!validTo || codeRead);
 
@@ -389,36 +395,36 @@ export default function SafeConsole() {
     <section className="page section safe-page">
       <div className="head">
         <div>
-          <p className="eyebrow">Multisig</p>
-          <h2>Approve a Safe transaction</h2>
+          <p className="eyebrow">{t("Multisig")}</p>
+          <h2>{t("Approve a Safe transaction")}</h2>
         </div>
       </div>
 
       {rejected ? (
-        <p className="safe-warn">That address is not recognised. Check it before approving anything.</p>
+        <p className="safe-warn">{t("That address is not recognised. Check it before approving anything.")}</p>
       ) : safeAddress === undefined ? (
-        <p className="safe-warn">No Safe named.</p>
+        <p className="safe-warn">{t("No Safe named.")}</p>
       ) : null}
 
       <div className="safe-grid">
         <div className="safe-card card">
-          <p className="eyebrow">The Safe</p>
+          <p className="eyebrow">{t("The Safe")}</p>
           <dl className="safe-facts">
-            <div><dt>Address</dt><dd className="mono">{safeAddress === undefined ? "—" : safeAddress}</dd></div>
-            <div><dt>Rule</dt><dd>{ready ? `${threshold} of ${owners.length}` : "…"}</dd></div>
-            <div><dt>Next nonce</dt><dd className="mono">{ready ? String(safeNonce) : "…"}</dd></div>
+            <div><dt>{t("Address")}</dt><dd className="mono">{safeAddress === undefined ? "—" : safeAddress}</dd></div>
+            <div><dt>{t("Rule")}</dt><dd>{ready ? t("{threshold} of {owners}", { threshold: String(threshold), owners: owners.length }) : "…"}</dd></div>
+            <div><dt>{t("Next nonce")}</dt><dd className="mono">{ready ? String(safeNonce) : "…"}</dd></div>
           </dl>
         </div>
 
         <div className="safe-card card">
-          <p className="eyebrow">What you would be approving</p>
+          <p className="eyebrow">{t("What you would be approving")}</p>
 
           <label className="field">
-            <span>Contract to call</span>
+            <span>{t("Contract to call")}</span>
             <input className="input mono" value={to} onChange={(e) => setTo(e.target.value)} spellCheck={false} />
           </label>
           <label className="field">
-            <span>Calldata</span>
+            <span>{t("Calldata")}</span>
             <input className="input mono" value={data} onChange={(e) => setData(e.target.value)} spellCheck={false} />
           </label>
 
@@ -430,24 +436,23 @@ export default function SafeConsole() {
 
           {txHash !== undefined ? (
             <>
-              <p className="safe-hash-label">Safe transaction hash</p>
+              <p className="safe-hash-label">{t("Safe transaction hash")}</p>
               <p className="safe-hash mono">{txHash}</p>
               <p className="safe-fine">
-                Computed by the Safe itself from the two fields above. If this doesn&rsquo;t match
-                the hash you were given, something differs — don&rsquo;t approve it.
+                {t("Computed by the Safe itself from the two fields above. If this doesn’t match the hash you were given, something differs — don’t approve it.")}
               </p>
             </>
           ) : (
             <p className="safe-fine">
               {safeAddress === undefined
-                ? "No Safe loaded, so the hash cannot be computed. Open this page with ?safe=0x… on the end."
-                : "Fill in a valid address and calldata to see the hash."}
+                ? t("No Safe loaded, so the hash cannot be computed. Open this page with ?safe=0x… on the end.")
+                : t("Fill in a valid address and calldata to see the hash.")}
             </p>
           )}
 
           {!isConnected ? (
             <ConnectButton className="btn btn-primary btn-block">
-              Connect wallet to approve
+              {t("Connect wallet to approve")}
             </ConnectButton>
           ) : (
             <ApproveRow
@@ -488,6 +493,7 @@ function ApproveRow({
   callIsSafe: boolean;
   onDone: () => void;
 }) {
+  const t = useT();
   const { address } = useAccount();
 
   /**
@@ -543,18 +549,18 @@ function ApproveRow({
     <>
       {txHash === undefined || threshold === undefined ? null : (
         <p className="safe-fine">
-          Approvals: {approvers.length} of {String(threshold)}
-          {alreadyApproved ? " · including yours" : null}
+          {t("Approvals: {count} of {threshold}", { count: approvers.length, threshold: String(threshold) })}
+          {alreadyApproved ? t(" · including yours") : null}
         </p>
       )}
 
       {!ownersKnown ? (
-        <p className="safe-fine">Reading the Safe…</p>
+        <p className="safe-fine">{t("Reading the Safe…")}</p>
       ) : !isOwner ? (
-        <p className="safe-warn">This wallet can&rsquo;t approve for this Safe. Switch wallets.</p>
+        <p className="safe-warn">{t("This wallet can’t approve for this Safe. Switch wallets.")}</p>
       ) : alreadyApproved && !enough ? (
         <p className="safe-fine">
-          You&rsquo;ve approved this. Waiting on one more owner before it can run.
+          {t("You’ve approved this. Waiting on one more owner before it can run.")}
         </p>
       ) : null}
 
@@ -573,14 +579,13 @@ function ApproveRow({
             })
           }
         >
-          {busy ? "Confirm in your wallet…" : !callIsSafe ? "Can't approve: see the warning above" : "Approve"}
+          {busy ? t("Confirm in your wallet…") : !callIsSafe ? t("Can't approve: see the warning above") : t("Approve")}
         </button>
       ) : null}
 
       {!callIsSafe ? (
         <p className="safe-warn">
-          Approving is disabled: either the calldata could not be fully accounted for, or
-          it is aimed at the wrong address. Fix what the warning above names before signing anything.
+          {t("Approving is disabled: either the calldata could not be fully accounted for, or it is aimed at the wrong address. Fix what the warning above names before signing anything.")}
         </p>
       ) : null}
 
@@ -602,7 +607,7 @@ function ApproveRow({
             })
           }
         >
-          {busy ? "Confirm in your wallet…" : "Execute — enough approvals"}
+          {busy ? t("Confirm in your wallet…") : t("Execute — enough approvals")}
         </button>
       ) : null}
 
@@ -611,7 +616,7 @@ function ApproveRow({
         confirming={confirming}
         success={isSuccess}
         error={error}
-        successLabel="Done"
+        successLabel={t("Done")}
       />
     </>
   );

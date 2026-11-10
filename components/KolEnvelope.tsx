@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
 import Link from "next/link";
@@ -10,6 +10,7 @@ import { kolLocal, xHandle } from "@/config/kols";
 import type { useKolRewards } from "@/hooks/useKolRewards";
 import { formatSoso } from "@/lib/format";
 import { renderKolShareImage } from "@/lib/kolShareImage";
+import { useT } from "@/lib/i18n";
 import "./KolEnvelope.css";
 
 /**
@@ -39,6 +40,14 @@ const SPARKS = [
   [83, 0.5, 4],
 ] as const;
 
+/** A translated sentence with React nodes in its {placeholders}, so the SOSO amount keeps its place in either language. */
+function withNodes(text: string, nodes: Record<string, React.ReactNode>): React.ReactNode {
+  return text.split(/(\{\w+\})/).map((part, i) => {
+    const name = /^\{(\w+)\}$/.exec(part)?.[1];
+    return name !== undefined && name in nodes ? <Fragment key={i}>{nodes[name]}</Fragment> : part;
+  });
+}
+
 export function KolEnvelope({
   rewards,
   onClose,
@@ -46,6 +55,7 @@ export function KolEnvelope({
   rewards: ReturnType<typeof useKolRewards>;
   onClose: () => void;
 }) {
+  const t = useT();
   const { mine, tx, deadline, portraits } = rewards;
   const [mounted, setMounted] = useState(false);
   /** The share picture: idle, drawing, on the clipboard, or saved as a file instead. */
@@ -137,7 +147,7 @@ export function KolEnvelope({
         aria-modal="true"
         aria-labelledby="kce-title"
       >
-        <button type="button" className="kce-close" aria-label="Close" onClick={onClose}>
+        <button type="button" className="kce-close" aria-label={t("Close")} onClick={onClose}>
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="M6 6l12 12M18 6L6 18" />
           </svg>
@@ -173,7 +183,7 @@ export function KolEnvelope({
               </div>
               <div className="kce-card-foot">
                 <b>{kol.name}</b>
-                <span>1 of 1</span>
+                <span>{t("1 of 1")}</span>
               </div>
             </div>
 
@@ -182,11 +192,11 @@ export function KolEnvelope({
               {/* Addressed like a letter: ValueChain is the sender. */}
               <div className="kce-address">
                 <p className="kce-from">
-                  <span>From</span>
+                  <span>{t("From")}</span>
                   <b>ValueChain</b>
                 </p>
                 <p className="kce-to">
-                  <span>To</span>
+                  <span>{t("To")}</span>
                   <b>{kol.name}</b>
                   {handle === undefined ? null : <i>{handle}</i>}
                 </p>
@@ -198,20 +208,24 @@ export function KolEnvelope({
         <div className="kce-copy">
           {done ? (
             <>
-              <p className="kce-eyebrow">A gift from ValueChain · #{kol.n}</p>
-              <h2 id="kce-title">It&rsquo;s yours, {kol.name}.</h2>
+              <p className="kce-eyebrow">{t("A gift from ValueChain")} · #{kol.n}</p>
+              <h2 id="kce-title">{t("It’s yours, {name}.", { name: kol.name })}</h2>
               <p className="kce-lede">
-                Your portrait{share === undefined ? " is" : <> and <Soso size={14}>{share}</Soso> are</>} in
-                this wallet, courtesy of ValueChain. Thank you for showing up.
+                {share === undefined
+                  ? t("Your portrait is in this wallet, courtesy of ValueChain. Thank you for showing up.")
+                  : withNodes(t("Your portrait and {amount} are in this wallet, courtesy of ValueChain. Thank you for showing up."), {
+                      amount: <Soso size={14}>{share}</Soso>,
+                    })}
               </p>
             </>
           ) : (
             <>
-              <p className="kce-eyebrow">A gift from ValueChain · #{kol.n}</p>
-              <h2 id="kce-title">GM, {kol.name}.</h2>
+              <p className="kce-eyebrow">{t("A gift from ValueChain")} · #{kol.n}</p>
+              <h2 id="kce-title">{t("GM, {name}.", { name: kol.name })}</h2>
               <p className="kce-lede">
-                Your one of one is here, drawn for you and nobody else
-                {share === undefined ? "." : ", with SOSO alongside it."}
+                {share === undefined
+                  ? t("Your one of one is here, drawn for you and nobody else.")
+                  : t("Your one of one is here, drawn for you and nobody else, with SOSO alongside it.")}
               </p>
             </>
           )}
@@ -222,7 +236,7 @@ export function KolEnvelope({
             <>
               {portraits === undefined ? null : (
                 <Link className="btn btn-primary btn-block" href={`/token/${portraits}/${kol.n}`} onClick={onClose}>
-                  View your portrait
+                  {t("View your portrait")}
                 </Link>
               )}
               <div className="kce-row">
@@ -237,25 +251,25 @@ export function KolEnvelope({
                     <path d="M16 8V6.5A2.5 2.5 0 0 0 13.5 4h-7A2.5 2.5 0 0 0 4 6.5v7A2.5 2.5 0 0 0 6.5 16H8" />
                   </svg>
                   {picture === "busy"
-                    ? "Drawing…"
+                    ? t("Drawing…")
                     : picture === "copied"
-                      ? "Image copied"
+                      ? t("Image copied")
                       : picture === "saved"
-                        ? "Image saved"
-                        : "Copy image"}
+                        ? t("Image saved")
+                        : t("Copy image")}
                 </button>
                 <a className="btn" href={intent} target="_blank" rel="noreferrer noopener">
-                  Share on X
+                  {t("Share on X")}
                 </a>
               </div>
               <p className="kce-small" aria-live="polite">
                 {picture === "copied"
-                  ? "Now open Share on X and paste it into your post."
+                  ? t("Now open Share on X and paste it into your post.")
                   : picture === "saved"
-                    ? "Saved to your downloads. Attach it to your post on X."
+                    ? t("Saved to your downloads. Attach it to your post on X.")
                     : picture === "failed"
-                      ? "Could not make the image here. Try another browser."
-                      : "Copy your envelope as an image to go with your post."}
+                      ? t("Could not make the image here. Try another browser.")
+                      : t("Copy your envelope as an image to go with your post.")}
               </p>
             </>
           ) : (
@@ -268,14 +282,14 @@ export function KolEnvelope({
                 onClick={() => void rewards.claim(kol.n)}
               >
                 {tx.signing ? (
-                  "Confirm in your wallet…"
+                  t("Confirm in your wallet…")
                 ) : tx.confirming ? (
-                  "Opening your envelope…"
+                  t("Opening your envelope…")
                 ) : share === undefined ? (
-                  "Claim your portrait"
+                  t("Claim your portrait")
                 ) : (
                   <>
-                    Claim
+                    {t("Claim")}
                     <span className="kce-claim-sep" aria-hidden="true" />
                     <Soso size={18}>{share}</Soso>
                   </>
@@ -287,15 +301,15 @@ export function KolEnvelope({
                 confirming={tx.confirming}
                 success={false}
                 error={tx.error}
-                successLabel="Claimed"
+                successLabel={t("Claimed")}
               />
-              {deadline === undefined ? null : <p className="kce-small">Open until {until(deadline)}</p>}
+              {deadline === undefined ? null : <p className="kce-small">{t("Open until {date}", { date: until(deadline) })}</p>}
             </>
           )}
 
           {/* The sponsor, as a sign-off under everything else, in both states. */}
           <p className="kce-sponsor">
-            <span>Sponsored by</span>
+            <span>{t("Sponsored by")}</span>
             <b>ValueChain</b>
           </p>
         </div>

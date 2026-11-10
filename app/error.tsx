@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect } from "react";
+import { useT } from "@/lib/i18n";
 
 /**
  * The route-level error boundary.
@@ -24,6 +25,7 @@ export default function RouteError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const t = useT();
   useEffect(() => {
     // The single place a render failure becomes visible to anything outside the
     // browser. Until an error reporter is wired up this is the console; the
@@ -36,20 +38,20 @@ export default function RouteError({
 
   return (
     <section className="page section state-page">
-      <p className="eyebrow">Something broke</p>
-      <h1>This page didn&rsquo;t load.</h1>
+      <p className="eyebrow">{t("Something broke")}</p>
+      <h1>{t("This page didn’t load.")}</h1>
       <p className="lede">
-        The marketplace reads everything from the chain as you browse, so this is usually a
-        node or gateway that failed to answer rather than anything wrong with your wallet or
-        your pieces. Nothing was changed on chain.
+        {t(
+          "The marketplace reads everything from the chain as you browse, so this is usually a node or gateway that failed to answer rather than anything wrong with your wallet or your pieces. Nothing was changed on chain.",
+        )}
       </p>
 
       <div className="wrap-row state-actions">
         <button type="button" className="btn btn-primary btn-lg" onClick={reset}>
-          Try again
+          {t("Try again")}
         </button>
         <Link className="btn btn-lg" href="/">
-          Go to Explore
+          {t("Go to Explore")}
         </Link>
       </div>
 
@@ -57,7 +59,7 @@ export default function RouteError({
           failure. Useless to them, and the only useful thing they can send. */}
       {error.digest === undefined ? null : (
         <p className="state-digest">
-          Reference <span className="mono">{error.digest}</span>
+          {t("Reference")} <span className="mono">{error.digest}</span>
         </p>
       )}
     </section>

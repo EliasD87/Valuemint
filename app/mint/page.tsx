@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useAllCollections } from "@/hooks/useAllCollections";
 import { mintIndexState } from "@/lib/mintIndex";
 import { formatCount, formatSoso } from "@/lib/format";
+import { useT } from "@/lib/i18n";
 import { CollectionCard, CollectionCardSkeleton } from "@/components/CollectionCard";
 import { useCollectionArt } from "@/hooks/useCollectionArt";
 import { PINNED_COLLECTIONS } from "@/config/featured";
@@ -33,6 +34,7 @@ import "@/styles/home.css";
  *   - and it had no loading state at all. See below.
  */
 export default function Mint() {
+  const t = useT();
   const { collections, isLoading, statePending } = useAllCollections();
 
   /**
@@ -87,8 +89,8 @@ export default function Mint() {
     <section className="page section mint-page">
       <div className="head mint-head">
         <div>
-          <p className="eyebrow">Mint</p>
-          <h2>Collections open right now</h2>
+          <p className="eyebrow">{t("Mint")}</p>
+          <h2>{t("Collections open right now")}</h2>
         </div>
       </div>
 
@@ -100,13 +102,14 @@ export default function Mint() {
         </div>
       ) : state === "empty" ? (
         <div className="market-empty">
-          <h3>Nothing is minting at the moment.</h3>
+          <h3>{t("Nothing is minting at the moment.")}</h3>
           <p className="muted">
-            A collection appears here as soon as its owner opens public minting. If you deployed
-            one, open it from its own page.
+            {t(
+              "A collection appears here as soon as its owner opens public minting. If you deployed one, open it from its own page.",
+            )}
           </p>
           <Link className="btn btn-primary mt-sm" href="/collections">
-            Browse collections
+            {t("Browse collections")}
           </Link>
         </div>
       ) : (
@@ -119,17 +122,17 @@ export default function Mint() {
               symbol={c.symbol}
               address={c.address}
               images={artFor(c.address)}
-              badge={<span className="chip chip-up">Minting</span>}
+              badge={<span className="chip chip-up">{t("Minting")}</span>}
               progress={
                 c.maxSupply !== undefined && c.maxSupply > 0n
                   ? Number(c.totalSupply ?? 0n) / Number(c.maxSupply)
                   : undefined
               }
               stats={[
-                { label: "Price", value: `${formatSoso(c.mintPrice)} SOSO` },
-                { label: "Available", value: formatCount(c.publicMintRemaining) },
+                { label: t("Price"), value: `${formatSoso(c.mintPrice)} SOSO` },
+                { label: t("Available"), value: formatCount(c.publicMintRemaining) },
                 {
-                  label: "Minted",
+                  label: t("Minted"),
                   value:
                     formatCount(c.totalSupply) +
                     (c.maxSupply !== undefined && c.maxSupply > 0n

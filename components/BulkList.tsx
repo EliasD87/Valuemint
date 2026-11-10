@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useBulkList } from "@/hooks/useBulkList";
 import { useSeaportTrade } from "@/hooks/useSeaportTrade";
 import { Soso } from "@/components/Soso";
@@ -10,6 +10,7 @@ import { tierClass } from "@/lib/tokenMetadata";
 import { parseEther } from "viem";
 import { PiecePicker, type PieceChoice } from "@/components/PiecePicker";
 import { chosenPieces, firstPieces } from "@/lib/piecePick";
+import { useT } from "@/lib/i18n";
 import "@/styles/bulklist.css";
 
 /**
@@ -119,6 +120,7 @@ export function BulkList({
   onOpenChange?: (open: boolean) => void;
 }) {
   const { listMany, progress, error, perTransaction, reset } = useBulkList(collection);
+  const t = useT();
 
   /**
    * Approval is per collection and once, so the bulk path needs exactly the
@@ -224,10 +226,15 @@ export function BulkList({
         onClick={() => setOpen(true)}
         title={
           items.length === 1
-            ? "Put this one up for sale"
-            : `List several at once — ${formatCount(BigInt(items.length))} unlisted` +
-              (groups.length > 1 ? ` across ${groups.length} levels` : "") +
-              ", one price per level"
+            ? t("Put this one up for sale")
+            : groups.length > 1
+              ? t("List several at once — {count} unlisted across {levels} levels, one price per level", {
+                  count: formatCount(BigInt(items.length)),
+                  levels: groups.length,
+                })
+              : t("List several at once — {count} unlisted, one price per level", {
+                  count: formatCount(BigInt(items.length)),
+                })
         }
       >
         <span className="bulk-open-mark" aria-hidden="true">
@@ -248,7 +255,7 @@ export function BulkList({
           the tooltip carries the long form, and the panel it opens says it
           again in full before anything is priced.
         */}
-        <span className="bulk-open-text">List {formatCount(BigInt(items.length))}</span>
+        <span className="bulk-open-text">{t("List {count}", { count: formatCount(BigInt(items.length)) })}</span>
       </button>
     );
   }
@@ -260,7 +267,7 @@ export function BulkList({
         are different goods; pricing them together is the mistake this exists to
         make impossible.
       */}
-      <div className="bulk-levels" role="radiogroup" aria-label="Which level to list">
+      <div className="bulk-levels" role="radiogroup" aria-label={t("Which level to list")}>
         {groups.map((g) => (
           <button
             key={g.name}
@@ -278,7 +285,7 @@ export function BulkList({
               if (choosing) setSelected(firstPieces(g.ids, g.ids.length));
             }}
           >
-            {g.name}
+            {t(g.name)}
             <b>{formatCount(BigInt(g.ids.length))}</b>
           </button>
         ))}
@@ -286,7 +293,7 @@ export function BulkList({
 
       <div className="bulk-row">
         <label className="bulk-field">
-          <span>How many</span>
+          <span>{t("How many")}</span>
           <input
             type="number"
             min={1}
@@ -303,12 +310,12 @@ export function BulkList({
             disabled={progress.busy}
           />
           <small>
-            of {formatCount(BigInt(max))} unlisted {chosen.name}
+            {t("of {count} unlisted {level}", { count: formatCount(BigInt(max)), level: t(chosen.name) })}
           </small>
         </label>
 
         <label className="bulk-field">
-          <span>Price each</span>
+          <span>{t("Price each")}</span>
           <input
             type="text"
             inputMode="decimal"
@@ -337,27 +344,31 @@ export function BulkList({
           }}
         >
           {!choosing
-            ? `Choose which ${chosen.name === NO_LEVEL ? "" : `${chosen.name} `}pieces`
+            ? chosen.name === NO_LEVEL
+              ? t("Choose which pieces")
+              : t("Choose which {level} pieces", { level: t(chosen.name) })
             : pickerOpen
-              ? "Hide the list"
-              : "Change which pieces"}
+              ? t("Hide the list")
+              : t("Change which pieces")}
         </button>
       ) : null}
 
       {choosing && !pickerOpen ? (
         <p className="bulk-chosen">
-          Listing{" "}
           {ids.length === 0
-            ? "nothing yet"
+            ? t("Listing nothing yet")
             : ids.length <= 12
-              ? ids.map((id) => `#${id.toString()}`).join(", ")
-              : `${ids.slice(0, 10).map((id) => `#${id.toString()}`).join(", ")} and ${ids.length - 10} more`}
+              ? t("Listing {pieces}", { pieces: ids.map((id) => `#${id.toString()}`).join(", ") })
+              : t("Listing {pieces} and {more} more", {
+                  pieces: ids.slice(0, 10).map((id) => `#${id.toString()}`).join(", "),
+                  more: ids.length - 10,
+                })}
         </p>
       ) : null}
 
       {choosing && pickerOpen ? (
         <PiecePicker
-          label={`${chosen.name} pieces to list`}
+          label={t("{level} pieces to list", { level: t(chosen.name) })}
           pieces={chosen.pieces}
           selected={selected}
           disabled={progress.busy}
@@ -373,44 +384,62 @@ export function BulkList({
           thirteen wallet confirmations and there is no way around that. */}
       <p className="bulk-note">
         {ready ? (
-          <>
-            {formatCount(BigInt(wanted))} <b>{chosen.name}</b>{" "}
-            {wanted === 1 ? "piece" : "pieces"} in{" "}
-            <b>
-              {batches} {batches === 1 ? "transaction" : "transactions"}
-            </b>{" "}
-            &mdash; you confirm each one. You keep{" "}
-            <b>
-              <Soso size={14}>{formatSoso(proceeds ?? 0n)}</Soso>
-            </b>{" "}
-            if every piece sells.
-          </>
+          withSlots(
+            t(
+              wanted === 1
+                ? "{count} {level} piece in {batches} — you confirm each one. You keep {proceeds} if every piece sells."
+                : "{count} {level} pieces in {batches} — you confirm each one. You keep {proceeds} if every piece sells.",
+              { count: formatCount(BigInt(wanted)) },
+            ),
+            {
+              level: <b>{t(chosen.name)}</b>,
+              batches: (
+                <b>
+                  {batches === 1 ? t("1 transaction") : t("{count} transactions", { count: batches })}
+                </b>
+              ),
+              proceeds: (
+                <b>
+                  <Soso size={14}>{formatSoso(proceeds ?? 0n)}</Soso>
+                </b>
+              ),
+            },
+          )
         ) : (
-          <>
-            Only your {chosen.name} pieces go up, at one price. Up to {perTransaction} per
-            transaction.
-          </>
+          t("Only your {level} pieces go up, at one price. Up to {max} per transaction.", {
+            level: t(chosen.name),
+            max: perTransaction,
+          })
         )}
       </p>
 
       {progress.total > 0 ? (
         <p className={error === undefined ? "bulk-progress" : "bulk-progress is-stopped"}>
           {progress.busy
-            ? `Listing… ${progress.done} of ${progress.total} transactions confirmed, ${formatCount(BigInt(progress.listed))} pieces live.`
+            ? t("Listing… {done} of {total} transactions confirmed, {listed} pieces live.", {
+                done: progress.done,
+                total: progress.total,
+                listed: formatCount(BigInt(progress.listed)),
+              })
             : error === undefined
-              ? `Done. ${formatCount(BigInt(progress.listed))} ${progress.listed === 1 ? "piece is" : "pieces are"} listed.`
-              : `Stopped after ${formatCount(BigInt(progress.listed))} of ${formatCount(BigInt(progress.requested))}. Those are listed and stay listed — run it again for the rest.`}
+              ? progress.listed === 1
+                ? t("Done. {count} piece is listed.", { count: formatCount(BigInt(progress.listed)) })
+                : t("Done. {count} pieces are listed.", { count: formatCount(BigInt(progress.listed)) })
+              : t("Stopped after {listed} of {requested}. Those are listed and stay listed — run it again for the rest.", {
+                  listed: formatCount(BigInt(progress.listed)),
+                  requested: formatCount(BigInt(progress.requested)),
+                })}
         </p>
       ) : null}
 
-      {error !== undefined ? <p className="bulk-error">{error.message}</p> : null}
+      {error !== undefined ? <p className="bulk-error">{t(error.message)}</p> : null}
 
       <div className="wrap-row">
         {trade.needsApproval ? (
           /* Once per collection, and it has to come first — Seaport cannot move
              anything until it does, however many orders are validated. */
           <button className="btn btn-primary" disabled={trade.busy} onClick={trade.approve}>
-            {trade.busy ? "Check your wallet…" : "Approve once, then list"}
+            {trade.busy ? t("Check your wallet…") : t("Approve once, then list")}
           </button>
         ) : (
           <button
@@ -422,19 +451,38 @@ export function BulkList({
             }}
           >
             {progress.busy
-              ? "Check your wallet…"
-              : `List ${formatCount(BigInt(wanted))} ${chosen.name}`}
+              ? t("Check your wallet…")
+              : t("List {count} {level}", { count: formatCount(BigInt(wanted)), level: t(chosen.name) })}
           </button>
         )}
         <button className="btn" disabled={progress.busy} onClick={() => setOpen(false)}>
-          Cancel
+          {t("Cancel")}
         </button>
       </div>
 
       <p className="bulk-fine">
-        Only {chosen.name} pieces are listed, all at the same price. Other levels, and{" "}
-        {collectionName} pieces you have already listed, are not touched.
+        {t(
+          "Only {level} pieces are listed, all at the same price. Other levels, and {collection} pieces you have already listed, are not touched.",
+          { level: t(chosen.name), collection: collectionName },
+        )}
       </p>
     </div>
+  );
+}
+
+/**
+ * A translated sentence with markup in it: every `{name}` that `nodes` has an
+ * entry for is replaced by that node, so the sentence stays one key in the
+ * dictionary and the markup survives in either language.
+ */
+function withSlots(text: string, nodes: Record<string, ReactNode>): ReactNode {
+  const parts = text.split(/(\{\w+\})/);
+  return (
+    <>
+      {parts.map((part, i) => {
+        const name = /^\{(\w+)\}$/.exec(part)?.[1];
+        return name !== undefined && name in nodes ? <Fragment key={i}>{nodes[name]}</Fragment> : part;
+      })}
+    </>
   );
 }

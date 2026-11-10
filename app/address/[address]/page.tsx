@@ -7,6 +7,7 @@ import { PortfolioView } from "@/components/PortfolioView";
 import { ShareLink } from "@/components/ShareLink";
 import { deployment } from "@/config/contracts";
 import { shortAddress } from "@/lib/format";
+import { useT } from "@/lib/i18n";
 import "@/styles/home.css";
 import "@/styles/portfolio.css";
 
@@ -29,6 +30,7 @@ export default function AddressPage({
 }: {
   params: Promise<{ address: string }>;
 }) {
+  const t = useT();
   const { address: raw } = use(params);
   const valid = /^0x[0-9a-fA-F]{40}$/.test(raw);
   const target = valid ? (raw as `0x${string}`) : undefined;
@@ -38,10 +40,10 @@ export default function AddressPage({
   if (target === undefined) {
     return (
       <section className="page section market-empty">
-        <h2>That isn&rsquo;t a wallet address.</h2>
-        <p className="muted">A ValueChain address is 0x followed by 40 hex characters.</p>
+        <h2>{t("That isn’t a wallet address.")}</h2>
+        <p className="muted">{t("A ValueChain address is 0x followed by 40 hex characters.")}</p>
         <Link className="btn mt-sm" href="/collections">
-          Browse collections
+          {t("Browse collections")}
         </Link>
       </section>
     );
@@ -54,15 +56,15 @@ export default function AddressPage({
       address={target}
       viewer={viewer}
       own={own}
-      heading={`Wallet ${shortAddress(target, 6)}`}
+      heading={t("Wallet {address}", { address: shortAddress(target, 6) })}
       extra={
         <>
           {own ? (
             <Link className="chip chip-up ph-you" href="/portfolio">
-              This is you &middot; open your portfolio
+              {t("This is you · open your portfolio")}
             </Link>
           ) : null}
-          <ShareLink title={`${shortAddress(target, 6)} on ValueMint`} />
+          <ShareLink title={t("{address} on ValueMint", { address: shortAddress(target, 6) })} />
           {/* Named, not just the icon beside the address: the explorer is
               where someone goes for the wallet's raw transactions, and
               arriving here from a click they may have wanted that. */}
@@ -72,7 +74,7 @@ export default function AddressPage({
             target="_blank"
             rel="noreferrer noopener"
           >
-            View on Mainscan &#8599;
+            {t("View on Mainscan")} &#8599;
           </a>
         </>
       }

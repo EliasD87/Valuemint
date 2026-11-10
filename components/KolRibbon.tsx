@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { KOLS, kolLocal, type Kol } from "@/config/kols";
 import { buildWave, magAt, screenAt, stepOf, yawAt, type Wave } from "@/lib/ribbon";
+import { useT } from "@/lib/i18n";
 import "./KolRibbon.css";
 
 /**
@@ -204,6 +205,7 @@ const EASE = 0.42;
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 
 export function KolRibbon() {
+  const t = useT();
   const frameRef = useRef<HTMLDivElement>(null);
   const beltRef = useRef<HTMLDivElement>(null);
 
@@ -411,7 +413,7 @@ export function KolRibbon() {
         is something to act on.
       */
       role="img"
-      aria-label="Portraits of the SoDEX regulars"
+      aria-label={t("Portraits of the SoDEX regulars")}
     >
       <div className="kr-belt" ref={beltRef}>
         {BELT.map((kol, i) => (

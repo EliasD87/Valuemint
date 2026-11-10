@@ -3,6 +3,7 @@
 import { useAccount } from "wagmi";
 import { PortfolioView } from "@/components/PortfolioView";
 import { ConnectButton } from "@/components/ConnectButton";
+import { useT } from "@/lib/i18n";
 import "@/styles/home.css";
 import "@/styles/portfolio.css";
 
@@ -18,6 +19,7 @@ import "@/styles/portfolio.css";
  * marketplace contracts were checked before removing this: each holds 0 SOSO.
  */
 export default function Portfolio() {
+  const t = useT();
   const { address, isConnected, status } = useAccount();
 
   /**
@@ -28,8 +30,8 @@ export default function Portfolio() {
   if (status === "reconnecting" || status === "connecting") {
     return (
       <section className="page section market-empty" aria-busy="true">
-        <p className="eyebrow">Portfolio</p>
-        <p className="muted">Reconnecting your wallet…</p>
+        <p className="eyebrow">{t("Portfolio")}</p>
+        <p className="muted">{t("Reconnecting your wallet…")}</p>
       </section>
     );
   }
@@ -37,16 +39,15 @@ export default function Portfolio() {
   if (!isConnected || address === undefined) {
     return (
       <section className="page section market-empty">
-        <p className="eyebrow">Portfolio</p>
-        <h2>Connect your wallet to see what you hold.</h2>
+        <p className="eyebrow">{t("Portfolio")}</p>
+        <h2>{t("Connect your wallet to see what you hold.")}</h2>
         <p className="muted">
-          Holdings are read straight from every collection on the chain — nothing is stored on our
-          side.
+          {t("Holdings are read straight from every collection on the chain — nothing is stored on our side.")}
         </p>
-        <ConnectButton>Connect wallet</ConnectButton>
+        <ConnectButton>{t("Connect wallet")}</ConnectButton>
       </section>
     );
   }
 
-  return <PortfolioView address={address} viewer={address} own heading="Portfolio" />;
+  return <PortfolioView address={address} viewer={address} own heading={t("Portfolio")} />;
 }

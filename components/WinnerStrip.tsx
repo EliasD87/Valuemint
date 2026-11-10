@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { AddressLink } from "@/components/AddressLink";
 import type { DrawWinner } from "@/lib/draw";
+import { useT } from "@/lib/i18n";
 import "./WinnerStrip.css";
 
 /**
@@ -35,6 +36,7 @@ export function WinnerStrip({
   shown?: string;
   drawBlock: bigint;
 }) {
+  const tr = useT();
   const track = useRef<HTMLOListElement>(null);
   /* How far along the row is scrolled, and how much of it is in view: the bar under it. */
   const [bar, setBar] = useState({ at: 0, size: 1 });
@@ -72,17 +74,17 @@ export function WinnerStrip({
       <div className="wstrip-head">
         <div>
           <h3 className="wstrip-title">
-            {winners.length} {winners.length === 1 ? "winner" : "winners"}
+            {winners.length === 1 ? tr("{count} winner", { count: winners.length }) : tr("{count} winners", { count: winners.length })}
           </h3>
-          <p className="wstrip-sub">Picked on ValueChain from block {fmt(Number(drawBlock))}. One Cybereator each.</p>
+          <p className="wstrip-sub">{tr("Picked on ValueChain from block {block}. One Cybereator each.", { block: fmt(Number(drawBlock)) })}</p>
         </div>
         <div className="wstrip-nav">
-          <button type="button" aria-label="Previous winners" onClick={() => step(-1)} disabled={ends.start}>
+          <button type="button" aria-label={tr("Previous winners")} onClick={() => step(-1)} disabled={ends.start}>
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="m15 6-6 6 6 6" />
             </svg>
           </button>
-          <button type="button" aria-label="Next winners" onClick={() => step(1)} disabled={ends.end}>
+          <button type="button" aria-label={tr("Next winners")} onClick={() => step(1)} disabled={ends.end}>
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="m9 6 6 6-6 6" />
             </svg>
@@ -90,7 +92,7 @@ export function WinnerStrip({
         </div>
       </div>
 
-      <ol className="wstrip-track" ref={track} tabIndex={0} aria-label="Winners">
+      <ol className="wstrip-track" ref={track} tabIndex={0} aria-label={tr("Winners")}>
         {winners.map((w) => {
           const k = w.wallet.toLowerCase();
           const tx = sent[k];
@@ -101,10 +103,18 @@ export function WinnerStrip({
               <span className="wcard-dash" aria-hidden="true" />
               <span className="wcard-who">
                 <AddressLink address={w.wallet} chars={4} />
-                {me ? <span className="wcard-you">You</span> : null}
+                {me ? <span className="wcard-you">{tr("You")}</span> : null}
               </span>
               <span className="wcard-ticket">
-                Ticket <b>#{fmt(w.ticket)}</b> · held {fmt(w.tickets)}
+                {tr("Ticket {ticket} · held {held}")
+                  .split(/(\{\w+\})/)
+                  .map((part, i) =>
+                    part === "{ticket}" ? (
+                      <b key={i}>#{fmt(w.ticket)}</b>
+                    ) : (
+                      <Fragment key={i}>{part === "{held}" ? fmt(w.tickets) : part}</Fragment>
+                    ),
+                  )}
               </span>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img className="wcard-art" src="/boxes/cybereator.webp" alt="Cybereator" loading="lazy" />
@@ -113,10 +123,10 @@ export function WinnerStrip({
                   <svg viewBox="0 0 24 24" aria-hidden="true">
                     <path d="m5 12 5 5 9-10" />
                   </svg>
-                  Sent
+                  {tr("Sent")}
                 </a>
               ) : (
-                <span className="wcard-pending">Sending soon</span>
+                <span className="wcard-pending">{tr("Sending soon")}</span>
               )}
             </li>
           );

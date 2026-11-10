@@ -12,6 +12,7 @@ import { formatSoso } from "@/lib/format";
 import { MAX_BULK_BUY } from "@/lib/seaport";
 import { boughtNote, goneNote, skippedNote } from "@/lib/bulkBuy";
 import type { SeaportOrder } from "@/hooks/useSeaportOrders";
+import { useT } from "@/lib/i18n";
 import "./BulkBuyBar.css";
 
 /**
@@ -37,6 +38,7 @@ export function BulkBuyBar({
   onDone: () => void;
 }) {
   const { isConnected } = useAccount();
+  const t = useT();
   const fill = useSeaportFill();
   const queryClient = useQueryClient();
   const n = picked.length;
@@ -62,31 +64,67 @@ export function BulkBuyBar({
   const landed = fill.isSuccess && report?.bought !== undefined;
   const inFlight = fill.signing || fill.confirming;
 
+  /**
+   * The same three notes as lib/bulkBuy.ts, each with its own dictionary key.
+   * The lib still decides whether a note is due; the wording here matches it
+   * word for word in English, so only the language changes.
+   */
   const notes = [
-    !landed && !inFlight ? goneNote(gone) : undefined,
-    inFlight && report !== undefined ? skippedNote(report.asked, report.sent) : undefined,
-    landed ? boughtNote(report.asked, report.bought!) : undefined,
+    !landed && !inFlight && goneNote(gone) !== undefined
+      ? gone === 1
+        ? t("1 of your picks was just bought by someone else or taken down, so it is off your list.")
+        : t("{gone} of your picks were just bought by someone else or taken down, so they are off your list.", { gone })
+      : undefined,
+    inFlight && report !== undefined && skippedNote(report.asked, report.sent) !== undefined
+      ? skippedText(report.asked - report.sent, report.sent)
+      : undefined,
+    landed && boughtNote(report.asked, report.bought!) !== undefined
+      ? boughtText(report.asked, report.bought!)
+      : undefined,
   ].filter((s): s is string => s !== undefined);
 
+  function skippedText(skipped: number, sent: number): string {
+    if (skipped === 1) {
+      return sent === 1
+        ? t("1 of your picks has just gone to someone else, so this buys the other one.")
+        : t("1 of your picks has just gone to someone else, so this buys the other {sent}.", { sent });
+    }
+    return sent === 1
+      ? t("{skipped} of your picks have just gone to someone else, so this buys the other one.", { skipped })
+      : t("{skipped} of your picks have just gone to someone else, so this buys the other {sent}.", { skipped, sent });
+  }
+
+  function boughtText(asked: number, bought: number): string {
+    const missed = asked - bought;
+    const got = bought === 1 ? t("1 piece") : t("{count} pieces", { count: bought });
+    return missed === 1
+      ? t("You got {got} of {asked}. Someone else got the other one first, and you were not charged for it.", { got, asked })
+      : t("You got {got} of {asked}. Someone else got the other {missed} first, and you were not charged for them.", {
+          got,
+          asked,
+          missed,
+        });
+  }
+
   return (
-    <div className="bbb" role="region" aria-label="Bulk buy">
+    <div className="bbb" role="region" aria-label={t("Bulk buy")}>
       <div className="bbb-inner">
         <p className="bbb-sum">
           {n === 0 ? (
-            <>Tap the pieces you want. Up to {MAX_BULK_BUY} at once.</>
+            <>{t("Tap the pieces you want. Up to {max} at once.", { max: MAX_BULK_BUY })}</>
           ) : (
             <>
-              <b>{n}</b> {n === 1 ? "piece" : "pieces"} ·{" "}
+              <b>{n}</b> {n === 1 ? t("piece") : t("pieces")} ·{" "}
               <b>
                 <Soso size={14}>{formatSoso(total)}</Soso>
               </b>
-              {n >= MAX_BULK_BUY ? <span className="bbb-cap"> · the most one purchase can carry</span> : null}
+              {n >= MAX_BULK_BUY ? <span className="bbb-cap">{t(" · the most one purchase can carry")}</span> : null}
             </>
           )}
         </p>
         <div className="bbb-acts">
           <button type="button" className="btn btn-sm" onClick={onClear} disabled={n === 0 || fill.busy}>
-            Clear
+            {t("Clear")}
           </button>
           {isConnected ? (
             <button
@@ -96,17 +134,17 @@ export function BulkBuyBar({
               onClick={() => void fill.buyMany(picked)}
             >
               {fill.checking
-                ? "Checking…"
+                ? t("Checking…")
                 : fill.signing
-                  ? "Confirm in wallet…"
+                  ? t("Confirm in wallet…")
                   : fill.confirming
-                    ? "Buying…"
+                    ? t("Buying…")
                     : n === 0
-                      ? "Buy"
-                      : `Buy ${n}`}
+                      ? t("Buy")
+                      : t("Buy {count}", { count: n })}
             </button>
           ) : (
-            <ConnectButton className="btn btn-primary btn-sm">Connect to buy</ConnectButton>
+            <ConnectButton className="btn btn-primary btn-sm">{t("Connect to buy")}</ConnectButton>
           )}
         </div>
       </div>
@@ -122,7 +160,7 @@ export function BulkBuyBar({
           confirming={fill.confirming}
           success={landed}
           error={fill.error}
-          successLabel={`Bought ${report?.bought ?? 0}`}
+          successLabel={t("Bought {count}", { count: report?.bought ?? 0 })}
         />
       </div>
     </div>

@@ -11,6 +11,7 @@ import { Select } from "@/components/Select";
 import { Soso } from "@/components/Soso";
 import { isHidden } from "@/config/hidden";
 import { formatSoso, formatSosoFixed, shortAddress, timeAgo } from "@/lib/format";
+import { useT } from "@/lib/i18n";
 /* `.page`, `.section` and `.dim` live in `home.css`, the same way /market,
    /mint and /portfolio reach them. */
 import "@/styles/home.css";
@@ -109,6 +110,7 @@ export interface StatsSeed {
 }
 
 export function StatsView({ seed }: { seed?: StatsSeed }) {
+  const t = useT();
   const { rows: feed, isLoading, logsUnavailable, logsPartial, refetch } = useActivity(undefined);
   /**
    * Every sale, on its own.
@@ -287,7 +289,7 @@ export function StatsView({ seed }: { seed?: StatsSeed }) {
   const sizers = useMemo(() => {
     const longest = (values: string[]) =>
       [...new Set(values)].sort((a, b) => b.length - a.length).slice(0, 3);
-    const kinds = longest(rows.map((r) => LABEL[r.kind]));
+    const kinds = longest(rows.map((r) => t(LABEL[r.kind])));
     const ids = longest(rows.map((r) => `#${r.tokenId.toString()}`));
     const prices = longest(rows.map((r) => (r.price === undefined ? "" : formatSosoFixed(r.price))));
     const whens = longest(rows.map((r) => when(r.blockNumber)));
@@ -299,12 +301,12 @@ export function StatsView({ seed }: { seed?: StatsSeed }) {
     }));
     // `when` reads `head`, which is in the list.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rows, head]);
+  }, [rows, head, t]);
 
   return (
     <section className="page section pulse">
       <div className="head">
-        <h2 className="pulse-title">ValueMint Stats</h2>
+        <h2 className="pulse-title">{t("ValueMint Stats")}</h2>
       </div>
 
       {logsUnavailable ? null : (
@@ -315,10 +317,10 @@ export function StatsView({ seed }: { seed?: StatsSeed }) {
               size were the loudest element above the data. */}
           <Select
             className="pulse-window"
-            label="Time range"
+            label={t("Time range")}
             value={WINDOWS.find((w) => w.hours === hours)?.value ?? "all"}
             onChange={(v) => setHours(WINDOWS.find((w) => w.value === v)?.hours)}
-            options={WINDOWS.map(({ value, label }) => ({ value, label }))}
+            options={WINDOWS.map(({ value, label }) => ({ value, label: t(label) }))}
           />
 
           {/* The controls are up before the data, so the page has its shape
@@ -329,17 +331,22 @@ export function StatsView({ seed }: { seed?: StatsSeed }) {
             <span className="skeleton pulse-bar" style={{ width: "9rem", height: "11px" }} />
           ) : (
             <span className="pulse-span dim">
-              {rows.length} {rows.length === 1 ? "event" : "events"}
               {stats.span === undefined
-                ? null
+                ? t(rows.length === 1 ? "{count} event" : "{count} events", { count: rows.length })
                 : stats.span < 48
-                  ? ` across ${Math.round(stats.span)} hours`
-                  : ` across ${Math.round(stats.span / 24)} days`}
+                  ? t(rows.length === 1 ? "{count} event across {n} hours" : "{count} events across {n} hours", {
+                      count: rows.length,
+                      n: Math.round(stats.span),
+                    })
+                  : t(rows.length === 1 ? "{count} event across {n} days" : "{count} events across {n} days", {
+                      count: rows.length,
+                      n: Math.round(stats.span / 24),
+                    })}
             </span>
           )}
 
           <button className="pulse-refresh" type="button" onClick={() => void refetch()}>
-            Refresh
+            {t("Refresh")}
           </button>
         </div>
       )}
@@ -350,17 +357,16 @@ export function StatsView({ seed }: { seed?: StatsSeed }) {
         /* "Nothing traded" and "we could not read what traded" are different
            statements, and only the second is ever true after a refused scan. */
         <p className="act-note">
-          Event logs could not be read just now. This is not an empty market &mdash; try
-          again in a moment.
+          {t("Event logs could not be read just now. This is not an empty market — try again in a moment.")}
         </p>
       ) : visible.length === 0 ? (
-        <p className="act-note">Nothing has traded here yet.</p>
+        <p className="act-note">{t("Nothing has traded here yet.")}</p>
       ) : rows.length === 0 ? (
         /* An empty window is a fact about the window, not about the market.
            Saying "nothing has traded" here would be false, and the rows are
            still in memory one click away. */
         <p className="act-note">
-          Nothing traded in this window. The full record has {visible.length} events.
+          {t("Nothing traded in this window. The full record has {count} events.", { count: visible.length })}
         </p>
       ) : (
         <>
@@ -372,7 +378,7 @@ export function StatsView({ seed }: { seed?: StatsSeed }) {
                   2,000 events and undercounts, and a figure that settled low
                   then jumped read as wrong. */}
               <Figure pending={salesLoading}>{stats.sales}</Figure>
-              <span className="pulse-cap">pieces sold</span>
+              <span className="pulse-cap">{t("pieces sold")}</span>
             </li>
             <li>
               {/* The bare figure, with the unit in the caption. `Soso` sets
@@ -382,26 +388,26 @@ export function StatsView({ seed }: { seed?: StatsSeed }) {
                   anyway, and it makes all six figures read alike. */}
               <Figure pending={salesLoading}>{formatSoso(stats.volume, 2)}</Figure>
               {/* "through Seaport" was plumbing showing through the paint. */}
-              <span className="pulse-cap">SOSO settled</span>
+              <span className="pulse-cap">{t("SOSO settled")}</span>
             </li>
             <li>
               <Figure>{stats.listings}</Figure>
-              <span className="pulse-cap">listings written</span>
+              <span className="pulse-cap">{t("listings written")}</span>
             </li>
             <li>
               <Figure>{stats.offers}</Figure>
-              <span className="pulse-cap">offers made</span>
+              <span className="pulse-cap">{t("offers made")}</span>
             </li>
             <li>
               {/* Held until the minters land (lib/minters.ts). Traders alone
                   are most of the figure and none of the claimers, so showing
                   them first meant a number that visibly climbed. */}
               <Figure pending={mintersLoading}>{stats.traders}</Figure>
-              <span className="pulse-cap">wallets involved</span>
+              <span className="pulse-cap">{t("wallets involved")}</span>
             </li>
             <li>
               <Figure>{stats.collections}</Figure>
-              <span className="pulse-cap">collections moving</span>
+              <span className="pulse-cap">{t("collections moving")}</span>
             </li>
           </ul>
 
@@ -412,7 +418,7 @@ export function StatsView({ seed }: { seed?: StatsSeed }) {
 
           <div className="pulse-split">
             <div className="pulse-panel">
-              <p className="pulse-panel-title">What is moving</p>
+              <p className="pulse-panel-title">{t("What is moving")}</p>
               <ul className="pulse-movers">
                 {movers.map((m) => (
                   <li key={m.address}>
@@ -437,7 +443,7 @@ export function StatsView({ seed }: { seed?: StatsSeed }) {
                     </span>
                     {/* The footnote that explained this column is gone; the
                         column explains itself on hover instead. */}
-                    <span className="pm-events dim" title="Sales / total events">
+                    <span className="pm-events dim" title={t("Sales / total events")}>
                       {m.sales}/{m.events}
                     </span>
                   </li>
@@ -446,7 +452,7 @@ export function StatsView({ seed }: { seed?: StatsSeed }) {
             </div>
 
             <div className="pulse-panel">
-              <p className="pulse-panel-title">As it happened</p>
+              <p className="pulse-panel-title">{t("As it happened")}</p>
               {/* The newest few, or — one click — every event in the window,
                   here in the same columns, scrolling inside the panel rather
                   than sending anyone off to another page to read the rest.
@@ -456,7 +462,7 @@ export function StatsView({ seed }: { seed?: StatsSeed }) {
                 className={`ps-scroll${showAll ? " is-open" : ""}`}
                 tabIndex={showAll ? 0 : undefined}
                 role={showAll ? "region" : undefined}
-                aria-label={showAll ? "Every event in this window" : undefined}
+                aria-label={showAll ? t("Every event in this window") : undefined}
               >
                 <ul className="pulse-stream">
                   {/* First, so the last real row keeps `:last-child`. See
@@ -478,7 +484,7 @@ export function StatsView({ seed }: { seed?: StatsSeed }) {
                   ))}
                   {(showAll ? rows : rows.slice(0, STREAM)).map((row) => (
                     <li key={`${row.blockNumber}-${row.logIndex}-${row.kind}-${row.tokenId}`}>
-                      <span className={`act-kind act-kind-${row.kind}`}>{LABEL[row.kind]}</span>
+                      <span className={`act-kind act-kind-${row.kind}`}>{t(LABEL[row.kind])}</span>
                       {/* Collection and token in columns of their own, so the
                           numbers line up down the list instead of trailing
                           names of every length. The name goes to the
@@ -489,7 +495,7 @@ export function StatsView({ seed }: { seed?: StatsSeed }) {
                       {row.collectionOffer === true ? (
                         /* An offer on any piece or a trait names no token: say how
                            many it is for instead of a "#0" that does not exist. */
-                        <span className="ps-id">{row.amount > 1n ? `×${row.amount.toString()}` : "any"}</span>
+                        <span className="ps-id">{row.amount > 1n ? `×${row.amount.toString()}` : t("any")}</span>
                       ) : (
                         <Link className="ps-id" href={`/token/${row.collection}/${row.tokenId}`} prefetch={false}>
                           #{row.tokenId.toString()}
@@ -520,7 +526,7 @@ export function StatsView({ seed }: { seed?: StatsSeed }) {
                     setShowAll((open) => !open);
                   }}
                 >
-                  {showAll ? "Show less" : `Show all ${rows.length} events`}
+                  {showAll ? t("Show less") : t("Show all {count} events", { count: rows.length })}
                   <svg viewBox="0 0 12 12" aria-hidden="true" focusable="false">
                     <path
                       d="M2.5 4.5 6 8l3.5-3.5"
@@ -538,7 +544,7 @@ export function StatsView({ seed }: { seed?: StatsSeed }) {
 
           {logsPartial ? (
             <p className="act-note">
-              Some event types could not be read, so this picture is incomplete.
+              {t("Some event types could not be read, so this picture is incomplete.")}
             </p>
           ) : null}
         </>
@@ -575,14 +581,16 @@ export function StatsView({ seed }: { seed?: StatsSeed }) {
  * better left out than shown climbing to where it will land.
  */
 function Figure({ children, pending = false }: { children: ReactNode; pending?: boolean }) {
+  const t = useT();
   return (
     <span className="pulse-fig">
-      {pending ? <span className="skeleton pulse-fig-wait" aria-label="Loading" /> : children}
+      {pending ? <span className="skeleton pulse-fig-wait" aria-label={t("Loading")} /> : children}
     </span>
   );
 }
 
 function Waiting() {
+  const t = useT();
   const stages = [
     "Reading Seaport's logs",
     "Decoding orders",
@@ -616,7 +624,7 @@ function Waiting() {
     <div className="pulse-waiting">
       <p className="pulse-stage" role="status">
         <i className="pulse-stage-dot" aria-hidden="true" />
-        <span className="pulse-stage-line">{stages[stage % stages.length]}</span>
+        <span className="pulse-stage-line">{t(stages[stage % stages.length]!)}</span>
       </p>
 
       <div className="pulse-ticker pulse-ticker-wait" aria-hidden="true">
@@ -673,6 +681,7 @@ function Ticker({
   rows: ActivityRow[];
   nameFor: (address: string) => string | undefined;
 }) {
+  const t = useT();
   const feed = rows.slice(0, 24);
 
   const item = (row: ActivityRow, index: number) => (
@@ -683,10 +692,10 @@ function Ticker({
         {row.collectionOffer === true
           ? row.amount > 1n
             ? `×${row.amount.toString()}`
-            : "any piece"
+            : t("any piece")
           : `#${row.tokenId.toString()}`}
       </span>
-      {LABEL[row.kind].toLowerCase()}
+      {t(LABEL[row.kind]).toLowerCase()}
       {row.price === undefined ? null : <b>{formatSoso(row.price)} SOSO</b>}
     </span>
   );

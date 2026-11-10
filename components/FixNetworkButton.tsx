@@ -5,6 +5,7 @@ import { useAccount } from "wagmi";
 import { numberToHex } from "viem";
 import { valuechain } from "@/config/chain";
 import { STEADY_RPC } from "@/lib/txError";
+import { useT } from "@/lib/i18n";
 
 /**
  * Point the connected wallet at the ValueChain server that keeps up.
@@ -21,6 +22,7 @@ import { STEADY_RPC } from "@/lib/txError";
  * follow-up says how to change it by hand.
  */
 export function FixNetworkButton() {
+  const t = useT();
   const { connector, isConnected } = useAccount();
   const [state, setState] = useState<"idle" | "asking" | "sent" | "failed">("idle");
 
@@ -51,18 +53,23 @@ export function FixNetworkButton() {
   };
 
   if (state === "sent" || state === "failed") {
+    // One key for the instruction; the server address sits where {url} does.
+    const [before = "", after = ""] = t(
+      "If it did not ask you, change it by hand: wallet settings, Networks, ValueChain, RPC URL {url}. Then try again.",
+    ).split("{url}");
     return (
       <span className="txr-fix-note">
-        {state === "sent" ? "Sent to your wallet. " : "Your wallet did not take the update. "}
-        If it did not ask you, change it by hand: wallet settings, Networks, ValueChain, RPC URL{" "}
-        <b>{STEADY_RPC}</b>. Then try again.
+        {state === "sent" ? t("Sent to your wallet.") : t("Your wallet did not take the update.")}{" "}
+        {before}
+        <b>{STEADY_RPC}</b>
+        {after}
       </span>
     );
   }
 
   return (
     <button type="button" className="btn btn-sm txr-fix" disabled={state === "asking"} onClick={() => void fix()}>
-      {state === "asking" ? "Check your wallet…" : "Switch my wallet to the steadier server"}
+      {state === "asking" ? t("Check your wallet…") : t("Switch my wallet to the steadier server")}
     </button>
   );
 }

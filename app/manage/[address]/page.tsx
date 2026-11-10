@@ -14,6 +14,7 @@ import { ValueChainCollectionAbi, deployment } from "@/config/contracts";
 import { valuechain } from "@/config/chain";
 import { TxResult } from "@/components/TxResult";
 import { formatCount, formatSoso, shortAddress } from "@/lib/format";
+import { useT } from "@/lib/i18n";
 import "@/styles/manage.css";
 
 /**
@@ -25,6 +26,7 @@ import "@/styles/manage.css";
  * controls rather than buttons that would revert.
  */
 export default function ManageCollection({ params }: { params: Promise<{ address: string }> }) {
+  const t = useT();
   const { address: raw } = use(params);
   const { address: viewer } = useAccount();
 
@@ -129,7 +131,7 @@ export default function ManageCollection({ params }: { params: Promise<{ address
   if (!valid) {
     return (
       <section className="page section">
-        <h2>That isn&rsquo;t a contract address.</h2>
+        <h2>{t("That isn’t a contract address.")}</h2>
       </section>
     );
   }
@@ -148,11 +150,10 @@ export default function ManageCollection({ params }: { params: Promise<{ address
   if (owner === undefined) {
     return (
       <section className="page section manage-denied">
-        <p className="eyebrow">Manage</p>
-        <h2>Can&rsquo;t read this collection&rsquo;s owner.</h2>
+        <p className="eyebrow">{t("Manage")}</p>
+        <h2>{t("Can’t read this collection’s owner.")}</h2>
         <p className="muted">
-          Either the chain is unreachable right now, or this address isn&rsquo;t a collection this
-          page can manage. Nothing is shown rather than guessing.
+          {t("Either the chain is unreachable right now, or this address isn’t a collection this page can manage. Nothing is shown rather than guessing.")}
         </p>
       </section>
     );
@@ -161,18 +162,19 @@ export default function ManageCollection({ params }: { params: Promise<{ address
   if (!isOwner) {
     return (
       <section className="page section manage-denied">
-        <p className="eyebrow">Manage</p>
-        <h2>You don&rsquo;t own this collection.</h2>
+        <p className="eyebrow">{t("Manage")}</p>
+        <h2>{t("You don’t own this collection.")}</h2>
         <p className="muted">
-          It belongs to {shortAddress(owner, 6)}. Only its owner can change how it mints — that is
-          enforced by the contract, not by this page.
+          {t("It belongs to {owner}. Only its owner can change how it mints — that is enforced by the contract, not by this page.", {
+            owner: shortAddress(owner, 6),
+          })}
         </p>
         <div className="wrap-row mt-sm">
           <Link className="btn btn-primary" href={`/collection/${raw}`}>
-            View the collection
+            {t("View the collection")}
           </Link>
           <Link className="btn" href="/manage">
-            Your collections
+            {t("Your collections")}
           </Link>
         </div>
       </section>
@@ -188,21 +190,21 @@ export default function ManageCollection({ params }: { params: Promise<{ address
     <section className="page section">
       <div className="head">
         <div>
-          <p className="eyebrow">Manage</p>
-          <h2>{name ?? "Loading…"}</h2>
+          <p className="eyebrow">{t("Manage")}</p>
+          <h2>{name ?? t("Loading…")}</h2>
         </div>
         <Link className="head-link" href={`/collection/${raw}`}>
-          View public page &rarr;
+          {t("View public page")} &rarr;
         </Link>
       </div>
 
       <div className="manage-stats">
-        <Stat label="Symbol" value={symbol ?? "—"} />
-        <Stat label="Minted" value={`${formatCount(totalSupply)} / ${formatCount(maxSupply)}`} />
-        <Stat label="Public taken" value={`${formatCount(publicMinted)} / ${formatCount(publicLimit)}`} />
-        <Stat label="Your reserve left" value={formatCount(reserveLeft)} />
-        <Stat label="Mint price" value={`${formatSoso(mintPrice)} SOSO`} />
-        <Stat label="Per wallet" value={perWallet === 0n ? "No cap" : formatCount(perWallet)} />
+        <Stat label={t("Symbol")} value={symbol ?? "—"} />
+        <Stat label={t("Minted")} value={`${formatCount(totalSupply)} / ${formatCount(maxSupply)}`} />
+        <Stat label={t("Public taken")} value={`${formatCount(publicMinted)} / ${formatCount(publicLimit)}`} />
+        <Stat label={t("Your reserve left")} value={formatCount(reserveLeft)} />
+        <Stat label={t("Mint price")} value={`${formatSoso(mintPrice)} SOSO`} />
+        <Stat label={t("Per wallet")} value={perWallet === 0n ? t("No cap") : formatCount(perWallet)} />
       </div>
 
       <TxResult
@@ -210,24 +212,23 @@ export default function ManageCollection({ params }: { params: Promise<{ address
         confirming={confirming}
         success={isSuccess}
         error={error}
-        successLabel={didLabel}
+        successLabel={t(didLabel)}
       />
 
       <div className="manage-grid">
         {/* --- the switch that matters most --------------------------- */}
         <Card
-          title="Public minting"
+          title={t("Public minting")}
           body={
             open === true
-              ? "Anyone can mint from this collection right now."
-              : "Closed. Nobody but you can mint."
+              ? t("Anyone can mint from this collection right now.")
+              : t("Closed. Nobody but you can mint.")
           }
         >
           {metadataMissing && open !== true ? (
             <>
               <p className="manage-warn">
-                No artwork set. Anyone who mints receives a blank NFT, and it stays blank in their
-                wallet until you add artwork below.
+                {t("No artwork set. Anyone who mints receives a blank NFT, and it stays blank in their wallet until you add artwork below.")}
               </p>
               <label className="manage-check">
                 <input
@@ -235,7 +236,7 @@ export default function ManageCollection({ params }: { params: Promise<{ address
                   checked={openAnyway}
                   onChange={(e) => setOpenAnyway(e.target.checked)}
                 />
-                <span>Open minting without artwork</span>
+                <span>{t("Open minting without artwork")}</span>
               </label>
             </>
           ) : null}
@@ -251,16 +252,16 @@ export default function ManageCollection({ params }: { params: Promise<{ address
               )
             }
           >
-            {busy ? "Working…" : open === true ? "Close minting" : "Open minting"}
+            {busy ? t("Working…") : open === true ? t("Close minting") : t("Open minting")}
           </button>
         </Card>
 
         {/* --- metadata ------------------------------------------------ */}
         <Card
-          title="Artwork"
-          body="Where every piece in this collection gets its picture and name from."
+          title={t("Artwork")}
+          body={t("Where every piece in this collection gets its picture and name from.")}
         >
-          <p className="manage-current mono">{metadataUnknown ? "Cannot be read on this collection" : metadataMissing ? "No artwork set" : currentBase}</p>
+          <p className="manage-current mono">{metadataUnknown ? t("Cannot be read on this collection") : metadataMissing ? t("No artwork set") : currentBase}</p>
           <div className="field">
             <input
               className="input"
@@ -270,7 +271,7 @@ export default function ManageCollection({ params }: { params: Promise<{ address
               spellCheck={false}
             />
             <span className="field-hint">
-              Paste an address that hosts your metadata. Must end with a slash.
+              {t("Paste an address that hosts your metadata. Must end with a slash.")}
             </span>
           </div>
           <button
@@ -278,12 +279,12 @@ export default function ManageCollection({ params }: { params: Promise<{ address
             disabled={busy || baseUri.trim() === "" || !baseUri.trim().endsWith("/")}
             onClick={() => call("setBaseURI", [baseUri.trim()], "Artwork updated")}
           >
-            {busy ? "Working…" : "Update artwork"}
+            {busy ? t("Working…") : t("Update artwork")}
           </button>
         </Card>
 
         {/* --- price --------------------------------------------------- */}
-        <Card title="Mint price" body="What the public pays per token. Takes effect immediately.">
+        <Card title={t("Mint price")} body={t("What the public pays per token. Takes effect immediately.")}>
           <div className="field">
             <input
               className="input"
@@ -292,24 +293,24 @@ export default function ManageCollection({ params }: { params: Promise<{ address
               value={newPrice}
               onChange={(e) => setNewPrice(e.target.value)}
             />
-            <span className="field-hint">In SOSO.</span>
+            <span className="field-hint">{t("In SOSO.")}</span>
           </div>
           <button
             className="btn btn-primary btn-block"
             disabled={busy || newPrice.trim() === "" || Number.isNaN(Number(newPrice))}
             onClick={() => call("setMintPrice", [parseEther(newPrice)], "Price updated")}
           >
-            {busy ? "Working…" : "Update price"}
+            {busy ? t("Working…") : t("Update price")}
           </button>
         </Card>
 
         {/* --- reserve ------------------------------------------------- */}
         <Card
-          title="Mint your reserve"
+          title={t("Mint your reserve")}
           body={
             reserveLeft !== undefined && reserveLeft > 0n
-              ? `${formatCount(reserveLeft)} tokens are reserved for you and cost nothing but gas.`
-              : "You have taken your whole reserve."
+              ? t("{count} tokens are reserved for you and cost nothing but gas.", { count: formatCount(reserveLeft) })
+              : t("You have taken your whole reserve.")
           }
         >
           <div className="manage-pair">
@@ -321,7 +322,7 @@ export default function ManageCollection({ params }: { params: Promise<{ address
                 onChange={(e) => setBatchTo(e.target.value)}
                 spellCheck={false}
               />
-              <span className="field-hint">Recipient. Blank sends to you.</span>
+              <span className="field-hint">{t("Recipient. Blank sends to you.")}</span>
             </div>
             <div className="field">
               <input
@@ -330,7 +331,7 @@ export default function ManageCollection({ params }: { params: Promise<{ address
                 value={batchCount}
                 onChange={(e) => setBatchCount(e.target.value)}
               />
-              <span className="field-hint">How many. Keep to 25 or fewer.</span>
+              <span className="field-hint">{t("How many. Keep to 25 or fewer.")}</span>
             </div>
           </div>
           <button
@@ -353,14 +354,14 @@ export default function ManageCollection({ params }: { params: Promise<{ address
               )
             }
           >
-            {busy ? "Working…" : `Mint ${batchCount || "0"} to wallet`}
+            {busy ? t("Working…") : t("Mint {count} to wallet", { count: batchCount || "0" })}
           </button>
         </Card>
 
         {/* --- proceeds ------------------------------------------------ */}
         <Card
-          title="Proceeds"
-          body="Mint payments accumulate in the contract until you sweep them."
+          title={t("Proceeds")}
+          body={t("Mint payments accumulate in the contract until you sweep them.")}
         >
           <Proceeds collection={collection!} />
           <button
@@ -368,26 +369,26 @@ export default function ManageCollection({ params }: { params: Promise<{ address
             disabled={busy}
             onClick={() => call("withdraw", [viewer], "Withdrawn to your wallet")}
           >
-            {busy ? "Working…" : "Withdraw to my wallet"}
+            {busy ? t("Working…") : t("Withdraw to my wallet")}
           </button>
         </Card>
 
         <Card
-          title="Permanent settings"
-          body="Fixed when the collection was deployed. Nothing can change these — not you, not us."
+          title={t("Permanent settings")}
+          body={t("Fixed when the collection was deployed. Nothing can change these — not you, not us.")}
         >
           <dl className="manage-fixed">
             <div>
-              <dt>Max supply</dt>
+              <dt>{t("Max supply")}</dt>
               <dd className="mono">{formatCount(maxSupply)}</dd>
             </div>
             <div>
-              <dt>Public allocation</dt>
+              <dt>{t("Public allocation")}</dt>
               <dd className="mono">{formatCount(publicLimit)}</dd>
             </div>
             <div>
-              <dt>Max per wallet</dt>
-              <dd className="mono">{perWallet === 0n ? "No cap" : formatCount(perWallet)}</dd>
+              <dt>{t("Max per wallet")}</dt>
+              <dd className="mono">{perWallet === 0n ? t("No cap") : formatCount(perWallet)}</dd>
             </div>
           </dl>
           <a
@@ -396,7 +397,7 @@ export default function ManageCollection({ params }: { params: Promise<{ address
             target="_blank"
             rel="noreferrer noopener"
           >
-            View contract on explorer
+            {t("View contract on explorer")}
           </a>
         </Card>
       </div>
@@ -406,11 +407,12 @@ export default function ManageCollection({ params }: { params: Promise<{ address
 
 /** Mint payments sit as native SOSO on the collection itself until swept. */
 function Proceeds({ collection }: { collection: `0x${string}` }) {
+  const t = useT();
   const { data } = useBalance({ address: collection, query: { refetchInterval: 12_000 } });
 
   return (
     <p className="manage-proceeds mono">
-      {formatSoso(data?.value)} <span className="dim">SOSO held</span>
+      {formatSoso(data?.value)} <span className="dim">{t("SOSO held")}</span>
     </p>
   );
 }

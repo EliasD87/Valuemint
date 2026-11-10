@@ -1,5 +1,6 @@
 "use client";
 
+import { useT } from "@/lib/i18n";
 import "./Steps.css";
 
 /**
@@ -44,8 +45,11 @@ export interface Step {
 }
 
 export function Steps({ label, steps }: { label: string; steps: Step[] }) {
+  /* Callers may pass English or text they already translated; a string with
+     no dictionary entry comes back unchanged, so translating twice is safe. */
+  const t = useT();
   return (
-    <ol className="steps" aria-label={label}>
+    <ol className="steps" aria-label={t(label)}>
       {steps.map((s, i) => (
         <li key={s.label} className={`step is-${s.state}`}>
           {/*
@@ -57,7 +61,7 @@ export function Steps({ label, steps }: { label: string; steps: Step[] }) {
             {s.state === "done" ? "✓" : i + 1}
           </span>
           <span className="step-label" aria-current={s.state === "now" ? "step" : undefined}>
-            {s.label}
+            {t(s.label)}
           </span>
         </li>
       ))}

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { GUIDE_STEPS } from "@/config/guide";
 import { GuideArt } from "@/components/GuideArt";
-import { GuideHowTo } from "@/components/GuideHowTo";
+import { GuideHowTo, GuideNav, GuideText } from "@/components/GuideHowTo";
 import { deployment } from "@/config/contracts";
 import "@/styles/guide.css";
 
@@ -22,7 +22,9 @@ import "@/styles/guide.css";
  *
  * A server component with no hooks and no wallet: it is words and drawings
  * about how the site works, none of which depend on who is reading. That keeps
- * the whole page out of the client bundle.
+ * the whole page out of the client bundle, except the words themselves: the
+ * visitor's language is known only in the browser, so each string is a small
+ * `GuideText` leaf (lib/i18n.tsx).
  */
 
 export const metadata: Metadata = {
@@ -39,28 +41,31 @@ export default function GuidePage() {
     <section className="page section guide">
       <div className="head">
         <div>
-          <p className="eyebrow">Getting started</p>
-          <h2>How ValueMint works</h2>
+          <p className="eyebrow">
+            <GuideText text="Getting started" />
+          </p>
+          <h2>
+            <GuideText text="How ValueMint works" />
+          </h2>
         </div>
         <Link className="head-link" href="/market">
-          Go to the listings &rarr;
+          <GuideText text="Go to the listings" /> &rarr;
         </Link>
       </div>
 
       <p className="guide-intro">
-        What to know before you buy or sell anything here, starting with how to get SOSO
-        into your wallet. None of it takes long.
+        <GuideText text="What to know before you buy or sell anything here, starting with how to get SOSO into your wallet. None of it takes long." />
       </p>
 
       {/* Short enough to skim, and every step is a link you can send someone. */}
-      <nav className="guide-toc" aria-label="The steps">
+      <GuideNav className="guide-toc" label="The steps">
         {GUIDE_STEPS.map((s, i) => (
           <a key={s.id} href={`#${s.id}`}>
             <span aria-hidden="true">{i + 1}</span>
-            {s.title}
+            <GuideText text={s.title} />
           </a>
         ))}
-      </nav>
+      </GuideNav>
 
       <ol className="guide-steps">
         {GUIDE_STEPS.map((s, i) => (
@@ -73,11 +78,21 @@ export default function GuidePage() {
             </div>
 
             <div className="guide-step">
-              <p className="guide-n">Step {i + 1}</p>
-              <h3>{s.title}</h3>
-              <p className="guide-lead">{s.body}</p>
+              <p className="guide-n">
+                <GuideText text="Step {n}" vars={{ n: i + 1 }} />
+              </p>
+              <h3>
+                <GuideText text={s.title} />
+              </h3>
+              <p className="guide-lead">
+                <GuideText text={s.body} />
+              </p>
               {s.howTo === undefined ? null : <GuideHowTo actions={s.howTo} />}
-              {s.more === undefined ? null : <p className="guide-more">{s.more}</p>}
+              {s.more === undefined ? null : (
+                <p className="guide-more">
+                  <GuideText text={s.more} />
+                </p>
+              )}
               {s.clip === undefined ? null : (
                 <video
                   className="guide-clip"
@@ -99,15 +114,23 @@ export default function GuidePage() {
       {/* Where to go next, and nothing else. The summary that used to sit here
           restated four things the reader had just been told, immediately after
           telling them. */}
-      <nav className="guide-end" aria-label="Where to go next">
-        <Link href="/market">Listings</Link>
-        <Link href="/collections">Collections</Link>
-        <Link href="/stats">Stats</Link>
-        <Link href="/activity">Activity</Link>
+      <GuideNav className="guide-end" label="Where to go next">
+        <Link href="/market">
+          <GuideText text="Listings" />
+        </Link>
+        <Link href="/collections">
+          <GuideText text="Collections" />
+        </Link>
+        <Link href="/stats">
+          <GuideText text="Stats" />
+        </Link>
+        <Link href="/activity">
+          <GuideText text="Activity" />
+        </Link>
         <a href={deployment.explorer} target="_blank" rel="noreferrer noopener">
-          Block explorer
+          <GuideText text="Block explorer" />
         </a>
-      </nav>
+      </GuideNav>
     </section>
   );
 }

@@ -6,6 +6,7 @@ import { AddressLink } from "@/components/AddressLink";
 import { Pager, heldDepths } from "@/components/TicketList";
 import { TIERS } from "@/config/tiers";
 import type { Leaderboard } from "@/app/api/trenches/leaderboard/route";
+import { useT } from "@/lib/i18n";
 
 /**
  * Live standings before the snapshot: who holds the most tickets right now
@@ -19,6 +20,7 @@ const fmt = (n: number) => n.toLocaleString("en-US");
 const DEPTH = Object.fromEntries(TIERS.map((t) => [t.n, t]));
 
 export function TicketLeaderboard({ you }: { you?: string }) {
+  const tr = useT();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(0);
@@ -48,9 +50,11 @@ export function TicketLeaderboard({ you }: { you?: string }) {
     <details className="perk-list" open={open} onToggle={(e) => setOpen((e.currentTarget as HTMLDetailsElement).open)}>
       <summary>
         <span>
-          Leaderboard
+          {tr("Leaderboard")}
           <small>
-            {data === undefined ? "Live standings" : `${fmt(data.wallets)} wallets · ${fmt(data.tickets)} tickets right now`}
+            {data === undefined
+              ? tr("Live standings")
+              : tr("{wallets} wallets · {tickets} tickets right now", { wallets: fmt(data.wallets), tickets: fmt(data.tickets) })}
           </small>
         </span>
         <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -66,10 +70,10 @@ export function TicketLeaderboard({ you }: { you?: string }) {
               <path d="m15.5 15.5 5 5" />
             </svg>
             <input
-              aria-label="Find a wallet"
+              aria-label={tr("Find a wallet")}
               type="text"
               spellCheck={false}
-              placeholder="Find a wallet"
+              placeholder={tr("Find a wallet")}
               value={query}
               onChange={(e) => {
                 setQuery(e.target.value);
@@ -79,18 +83,18 @@ export function TicketLeaderboard({ you }: { you?: string }) {
           </label>
         </div>
 
-        {error !== null && data === undefined ? <p className="perk-list-note">Could not read the standings right now.</p> : null}
-        {data === undefined && error === null ? <p className="perk-list-note">Reading the chain…</p> : null}
-        {data !== undefined && rows.length === 0 ? <p className="perk-list-note">No wallet matches that.</p> : null}
+        {error !== null && data === undefined ? <p className="perk-list-note">{tr("Could not read the standings right now.")}</p> : null}
+        {data === undefined && error === null ? <p className="perk-list-note">{tr("Reading the chain…")}</p> : null}
+        {data !== undefined && rows.length === 0 ? <p className="perk-list-note">{tr("No wallet matches that.")}</p> : null}
 
         {rows.length > 0 ? (
-          <div className="perk-list-table perk-board" role="table" aria-label="Leaderboard">
+          <div className="perk-list-table perk-board" role="table" aria-label={tr("Leaderboard")}>
             <div className="perk-list-row is-head" role="row">
               <span role="columnheader">#</span>
-              <span role="columnheader">Wallet</span>
-              <span role="columnheader">Pieces</span>
+              <span role="columnheader">{tr("Wallet")}</span>
+              <span role="columnheader">{tr("Pieces")}</span>
               <span role="columnheader" className="perk-list-count">
-                Tickets
+                {tr("Tickets")}
               </span>
             </div>
             {rows.map((r, i) => {
@@ -107,11 +111,11 @@ export function TicketLeaderboard({ you }: { you?: string }) {
                   </span>
                   <span role="cell" className="perk-list-wallet">
                     <AddressLink address={r.wallet} chars={4} />
-                    {isYou ? <span className="perk-list-you">You</span> : null}
+                    {isYou ? <span className="perk-list-you">{tr("You")}</span> : null}
                   </span>
                   <span role="cell" className="perk-list-pieces">
                     {heldDepths(r.depths).map(([d, n]) => (
-                      <span key={d} className="perk-list-depth" title={`${DEPTH[d]?.name ?? `Depth ${d}`}${n > 1 ? ` ×${n}` : ""}`}>
+                      <span key={d} className="perk-list-depth" title={`${DEPTH[d]?.name ?? tr("Depth {n}", { n: d })}${n > 1 ? ` ×${n}` : ""}`}>
                         <i style={{ background: DEPTH[d]?.colour }} aria-hidden="true" />
                         {d}
                         {n > 1 ? <span>×{n}</span> : null}

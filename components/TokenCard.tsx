@@ -19,6 +19,7 @@ import { bundledArtworkFor, cachedArtwork, soleArtworkFor, thumbnailFor } from "
 import { offersAllowed } from "@/config/kols";
 import { useNextDraw } from "@/hooks/useNextDraw";
 import { DrawBadge } from "@/components/DrawBadge";
+import { useT } from "@/lib/i18n";
 import { GenesisFrame } from "@/components/GenesisFrame";
 import "./TokenCard.css";
 import { Soso } from "@/components/Soso";
@@ -119,6 +120,7 @@ export function TokenCard({
   pick,
   framed = false,
 }: Props) {
+  const t = useT();
   const { isConnected } = useAccount();
   const isYours =
     owner !== undefined &&
@@ -191,7 +193,7 @@ export function TokenCard({
     framed ? (
       <GenesisFrame
         tier={token.tier}
-        sealedLabel={awaitingReveal !== undefined ? `Reveals ${revealShort(awaitingReveal)}` : undefined}
+        sealedLabel={awaitingReveal !== undefined ? t("Reveals {date}", { date: revealShort(awaitingReveal) }) : undefined}
       >
         {art}
       </GenesisFrame>
@@ -232,7 +234,7 @@ export function TokenCard({
       <WarmLink
         href={`/token/${collection}/${token.id}`}
         className="tcard-hit"
-        aria-label={`${token.design ?? collectionName ?? "Token"} #${token.id.toString()}`}
+        aria-label={`${token.design ?? collectionName ?? t("Token")} #${token.id.toString()}`}
       />
       <div className={`tcard-media${framed ? " is-framed" : ""}`}>
         {frame(image !== undefined ? (
@@ -247,7 +249,7 @@ export function TokenCard({
            */
           <Art
             src={image}
-            alt={token.design ?? `${collectionName ?? "Token"} ${token.id}`}
+            alt={token.design ?? `${collectionName ?? t("Token")} ${token.id}`}
             sizes="(max-width: 560px) 50vw, (max-width: 1100px) 33vw, 260px"
             priority={priority}
             /*
@@ -263,7 +265,7 @@ export function TokenCard({
           />
         ) : noMetadata ? (
           <div className="tcard-placeholder tcard-bare">
-            <span>No artwork published</span>
+            <span>{t("No artwork published")}</span>
           </div>
         ) : (
           <div className="tcard-placeholder tcard-loading" aria-hidden="true" />
@@ -282,7 +284,7 @@ export function TokenCard({
         */}
         {/* A framed card names its tier on the nameplate instead. */}
         {framed ? null : token.tier !== undefined ? (
-          <span className={`tcard-ribbon chip-${tier}`}>{token.tier}</span>
+          <span className={`tcard-ribbon chip-${tier}`}>{t(token.tier)}</span>
         ) : awaitingReveal !== undefined ? (
           /*
             A sealed piece has no tier to show, and the slot where every other
@@ -292,12 +294,12 @@ export function TokenCard({
           */
           <span className="tcard-ribbon tcard-ribbon-sealed">
             <SealIcon size={10} />
-            Reveals {revealShort(awaitingReveal)}
+            {t("Reveals {date}", { date: revealShort(awaitingReveal) })}
           </span>
         ) : null}
 
         <div className="tcard-badges">
-          {isYours && markOwned ? <span className="chip chip-up">Yours</span> : null}
+          {isYours && markOwned ? <span className="chip chip-up">{t("Yours")}</span> : null}
         </div>
 
         {/* SoDEX's next Treasure Box draw counts only boxes minted after the
@@ -326,7 +328,7 @@ export function TokenCard({
             <span className="tcard-title">
               {token.design ??
                 (noMetadata ? (
-                  <span className="tcard-fallback-name">{collectionName ?? "Unnamed"}</span>
+                  <span className="tcard-fallback-name">{collectionName ?? t("Unnamed")}</span>
                 ) : (
                   "—"
                 ))}
@@ -356,7 +358,7 @@ export function TokenCard({
               </Soso>
             </span>
           ) : (
-            <span className="tcard-amount is-none">Not listed</span>
+            <span className="tcard-amount is-none">{t("Not listed")}</span>
           )}
         </div>
 
@@ -378,14 +380,14 @@ export function TokenCard({
             {vouched === false ? (
               <span
                 className="tcard-unverified"
-                title="Not created through ValueMint. Check the contract address before buying — anyone can deploy a collection using someone else's name and artwork."
+                title={t("Not created through ValueMint. Check the contract address before buying — anyone can deploy a collection using someone else's name and artwork.")}
               >
-                Unverified
+                {t("Unverified")}
               </span>
             ) : null}
             {listing === undefined && floor !== undefined ? (
               <span className="tcard-floor">
-                Floor{" "}
+                {t("Floor")}{" "}
                 <Soso size={12} unit="">
                   {formatSoso(floor)}
                 </Soso>
@@ -399,19 +401,19 @@ export function TokenCard({
               none would advertise a reveal it never promised.
             */}
             {awaitingReveal !== undefined ? (
-              <span className="tcard-reveal">Design sealed</span>
+              <span className="tcard-reveal">{t("Design sealed")}</span>
             ) : token.edition !== undefined ? (
-              <span>Ed. {token.edition}</span>
+              <span>{t("Ed. {edition}", { edition: token.edition })}</span>
             ) : null}
             {!offersAllowed(collection) ? null : offer !== undefined ? (
               <span className="tcard-offer-best">
-                {offer.count > 1 ? `${offer.count} offers · ` : ""}
-                best <b>{formatSoso(offer.best)}</b>
+                {offer.count > 1 ? t("{count} offers · ", { count: offer.count }) : ""}
+                {t("best")} <b>{formatSoso(offer.best)}</b>
               </span>
             ) : (listing === undefined && floor !== undefined) ||
               awaitingReveal !== undefined ||
               token.edition !== undefined ? null : (
-              <span className="tcard-offer-none">No offers</span>
+              <span className="tcard-offer-none">{t("No offers")}</span>
             )}
           </span>
 
@@ -427,12 +429,12 @@ export function TokenCard({
           <span className="tcard-acts">
             {listing !== undefined && !isYours ? (
               <WarmLink className="tcard-buy-btn" href={`/token/${collection}/${token.id}`}>
-                Buy
+                {t("Buy")}
               </WarmLink>
             ) : null}
             {isConnected && !isYours && offersAllowed(collection) ? (
               <button type="button" className="tcard-offer-btn" onClick={() => setOffering(true)}>
-                Offer
+                {t("Offer")}
               </button>
             ) : null}
           </span>
@@ -445,7 +447,9 @@ export function TokenCard({
           type="button"
           className="tcard-pick"
           aria-pressed={pick.on}
-          aria-label={`${pick.on ? "Remove" : "Add"} ${token.design ?? collectionName ?? "token"} #${token.id.toString()} ${pick.on ? "from" : "to"} the bulk buy`}
+          aria-label={t(pick.on ? "Remove {name} from the bulk buy" : "Add {name} to the bulk buy", {
+            name: `${token.design ?? collectionName ?? t("token")} #${token.id.toString()}`,
+          })}
           onClick={pick.toggle}
         >
           <span className="tcard-pick-mark" aria-hidden="true">

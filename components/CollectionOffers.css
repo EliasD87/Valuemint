@@ -263,3 +263,55 @@
 .co-checking .co-accept-wait {
   margin-left: 0;
 }
+
+/* The rarity ladder as buttons (Cybereator, Treasure Box, Genesis tiers). */
+.co-levels {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(5.5rem, 1fr));
+  gap: 0.4rem;
+}
+.co-level {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm, 8px);
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+  text-align: left;
+}
+.co-level b {
+  font-size: var(--step--1);
+  font-weight: 600;
+}
+.co-level span {
+  font-size: var(--step--2);
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+.co-level-common b { color: var(--common); }
+.co-level-uncommon b { color: var(--uncommon); }
+.co-level-rare b { color: var(--rare); }
+.co-level-epic b { color: var(--epic); }
+.co-level-legendary b { color: var(--legendary); }
+.co-level.is-on {
+  border-color: var(--ink);
+  box-shadow: inset 0 0 0 1px var(--ink);
+}
+.co-level-common.is-on { background: var(--common-wash); border-color: var(--common); box-shadow: inset 0 0 0 1px var(--common); }
+.co-level-uncommon.is-on { background: var(--uncommon-wash); border-color: var(--uncommon); box-shadow: inset 0 0 0 1px var(--uncommon); }
+.co-level-rare.is-on { background: var(--rare-wash); border-color: var(--rare); box-shadow: inset 0 0 0 1px var(--rare); }
+.co-level-epic.is-on { background: var(--epic-wash); border-color: var(--epic); box-shadow: inset 0 0 0 1px var(--epic); }
+.co-level-legendary.is-on { background: var(--legendary-wash); border-color: var(--legendary); box-shadow: inset 0 0 0 1px var(--legendary); }
+.co-level:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.co-advanced-toggle {
+  grid-column: 1 / -1;
+  justify-self: start;
+}

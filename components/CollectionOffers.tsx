@@ -16,7 +16,9 @@ import { whenExpires } from "@/components/Offers";
 import { formatSoso } from "@/lib/format";
 import { currencyLabel, remainingPieces, type SeaportOrder } from "@/lib/seaport";
 import { SellIntoOffer } from "@/components/SellIntoOffer";
+import { useT } from "@/lib/i18n";
 import { CYBEREATOR } from "@/lib/cybereator";
+import { CYBEREATOR_LEVELS } from "@/lib/cybereatorRarity";
 import "./OfferDialog.css";
 import "./CollectionOffers.css";
 
@@ -31,6 +33,8 @@ import "./CollectionOffers.css";
  * Uncommon offer whatever they click.
  */
 export function CollectionOffers({ collection }: { collection: `0x${string}` }) {
+  /* `tr`, not `t`: this file already names trait rows `t`. */
+  const tr = useT();
   const { offers: all, isLoading: loadingOffers } = useCollectionOffers(collection);
   const { offers: traitOffers } = useTraitOffers(collection);
   /* Asked for the snapshots standing offers were made at too, or an offer made
@@ -104,13 +108,13 @@ export function CollectionOffers({ collection }: { collection: `0x${string}` }) 
     */
     if (!trait && myIds.length === 0 && holds === true) {
       return (
-        <Link className="btn btn-sm co-accept" href="/portfolio" title="Accept from your portfolio">
-          Accept
+        <Link className="btn btn-sm co-accept" href="/portfolio" title={tr("Accept from your portfolio")}>
+          {tr("Accept")}
         </Link>
       );
     }
     if (checkingPieces || (trait && checkingTraits)) {
-      return <span className="co-accept-wait" role="status" aria-label="Checking your pieces" />;
+      return <span className="co-accept-wait" role="status" aria-label={tr("Checking your pieces")} />;
     }
     /*
       A batch offer that wants more than one, and a viewer with more than one
@@ -122,7 +126,7 @@ export function CollectionOffers({ collection }: { collection: `0x${string}` }) 
       const most = Math.min(eligible.length, Number(remainingPieces(o)));
       return (
         <button type="button" className="btn btn-sm co-accept" onClick={() => setSelling({ offer: o, label })}>
-          Sell up to {most}
+          {tr("Sell up to {count}", { count: most })}
         </button>
       );
     }
@@ -131,9 +135,9 @@ export function CollectionOffers({ collection }: { collection: `0x${string}` }) 
       <Link
         className="btn btn-sm co-accept"
         href={`/token/${collection}/${id.toString()}`}
-        title={`Accept on your #${id.toString()}`}
+        title={tr("Accept on your #{id}", { id: id.toString() })}
       >
-        Accept
+        {tr("Accept")}
       </Link>
     );
   };
@@ -173,14 +177,14 @@ export function CollectionOffers({ collection }: { collection: `0x${string}` }) 
     offers.find((o) => !isMine(o) && pieceFor(o) !== undefined) ?? offers.find((o) => !isMine(o));
 
   return (
-    <section className="co" aria-label="Collection offers">
+    <section className="co" aria-label={tr("Collection offers")}>
       <div className="co-head">
         <div className="co-title">
-          <span className="co-eyebrow">Collection offers</span>
+          <span className="co-eyebrow">{tr("Collection offers")}</span>
           <span className="co-sub">
             {count > 0 && best !== undefined ? (
               <>
-                {count === 1 ? "1 offer" : `${count} offers`} · best{" "}
+                {count === 1 ? tr("1 offer") : tr("{count} offers", { count })} · {tr("best")}{" "}
                 <Soso size={12} unit={currencyLabel(best.currency)}>
                   {formatSoso(best.priceWei)}
                 </Soso>
@@ -188,17 +192,17 @@ export function CollectionOffers({ collection }: { collection: `0x${string}` }) 
             ) : loadingOffers ? (
               <span className="co-checking" role="status">
                 <span className="co-accept-wait" aria-hidden="true" />
-                Checking offers…
+                {tr("Checking offers…")}
               </span>
             ) : hasTraits ? (
-              "None yet. Offer on a trait and every holder of it can accept."
+              tr("None yet. Offer on a trait and every holder of it can accept.")
             ) : (
-              "None yet. Offer on the collection and any holder can accept."
+              tr("None yet. Offer on the collection and any holder can accept.")
             )}
           </span>
         </div>
         <button type="button" className="btn btn-primary btn-sm" onClick={() => setOpen(true)}>
-          Make an offer
+          {tr("Make an offer")}
         </button>
       </div>
 
@@ -211,15 +215,15 @@ export function CollectionOffers({ collection }: { collection: `0x${string}` }) 
               <li key={g.key} className="co-row">
                 <span className="co-what">
                   {g.type === undefined ? null : <span className="co-type">{g.type}</span>}
-                  <b>{g.value}</b>
+                  <b>{g.type === undefined ? tr(g.value) : g.value}</b>
                 </span>
-                <span className="co-count">{wantedLabel(g.offers)}</span>
+                <span className="co-count">{wantedLabel(g.offers, tr)}</span>
                 <span className="co-best">
                   <Soso size={14} unit={currencyLabel(top.currency)}>
                     {formatSoso(top.priceWei)}
                   </Soso>
                 </span>
-                <span className="co-act">{target === undefined ? null : accept(target, g.type === undefined ? g.value : `${g.type}: ${g.value}`)}</span>
+                <span className="co-act">{target === undefined ? null : accept(target, g.type === undefined ? tr(g.value) : `${g.type}: ${g.value}`)}</span>
               </li>
             );
           })}
@@ -228,7 +232,7 @@ export function CollectionOffers({ collection }: { collection: `0x${string}` }) 
 
       {groups.length > ROWS ? (
         <button type="button" className="co-toggle" onClick={() => setExpanded((v) => !v)} aria-expanded={expanded}>
-          {expanded ? "Show fewer" : `+${groups.length - ROWS} more`}
+          {expanded ? tr("Show fewer") : tr("+{count} more", { count: groups.length - ROWS })}
         </button>
       ) : null}
 
@@ -252,7 +256,7 @@ export function CollectionOffers({ collection }: { collection: `0x${string}` }) 
           loadingTraits={criteria.isLoading}
           sets={criteria.sets}
           bound={criteria.bound}
-          standing={[...anyPiece.map((o) => ({ o, label: "Any piece" })), ...traits.map((t) => ({ o: t.offer, label: traitLabel(t.set) }))]}
+          standing={[...anyPiece.map((o) => ({ o, label: tr("Any piece") })), ...traits.map((t) => ({ o: t.offer, label: traitLabel(t.set) }))]}
           onClose={() => setOpen(false)}
         />
       ) : null}
@@ -269,6 +273,14 @@ const RARITY_FIRST = ["tier", "level", "rarity", "depth"];
 const traitRank = (t: string) => {
   const i = RARITY_FIRST.indexOf(t.toLowerCase());
   return i === -1 ? RARITY_FIRST.length : i;
+};
+
+/** A known ladder in its own order (Common up to Legendary); anything else most common first. */
+const LADDER: readonly string[] = [...CYBEREATOR_LEVELS, "SuperRare"];
+const ladderOrder = (a: TraitSetSummary, b: TraitSetSummary) => {
+  const i = LADDER.indexOf(a.value);
+  const j = LADDER.indexOf(b.value);
+  return i !== -1 && j !== -1 ? i - j : b.count - a.count;
 };
 
 function CollectionOfferDialog({
@@ -295,10 +307,13 @@ function CollectionOfferDialog({
   standing: Array<{ o: SeaportOrder; label: string }>;
   onClose: () => void;
 }) {
+  /* `tr`, not `t`: the trait pickers below call their argument `t`. */
+  const tr = useT();
   const { address } = useAccount();
   /* Never "any" on a collection with traits, and nothing at all until that is known. */
   const scope: "any" | "trait" = hasTraits ? "trait" : "any";
   const undecided = loadingTraits || traitsFailed;
+
   /** Cybereator's bound counts openings, not minted ids (lib/cybereatorSets.ts). */
   const opened = collection.toLowerCase() === CYBEREATOR;
 
@@ -306,12 +321,27 @@ function CollectionOfferDialog({
     () => [...new Set(sets.map((s) => s.traitType))].sort((a, b) => traitRank(a) - traitRank(b)),
     [sets],
   );
+  /*
+    The rarity ladder (Rarity, Tier, Level) is what most bidders mean, so it
+    is a row of buttons; every other trait waits behind "Advanced filters",
+    as on the collection page (owner, 2026-11-10). One offer is one set, so
+    it is one or the other, never both.
+  */
+  const ladderType = types.find((t) => traitRank(t) < RARITY_FIRST.length);
+  const otherTypes = types.filter((t) => t !== ladderType);
+  const [advanced, setAdvanced] = useState(false);
+  const byTrait = ladderType === undefined || advanced;
   const [type, setType] = useState("");
   const [value, setValue] = useState("");
-  const activeType = type !== "" && types.includes(type) ? type : (types[0] ?? "");
+  const [level, setLevel] = useState("");
+  const pickable = ladderType === undefined ? types : otherTypes;
+  const activeType = type !== "" && pickable.includes(type) ? type : (pickable[0] ?? "");
   /** Most common first, which puts a rarity ladder in its own order: Common down to the rarest. */
   const values = sets.filter((s) => s.traitType === activeType).sort((a, b) => b.count - a.count);
-  const chosen = values.find((s) => s.value === value) ?? values[0];
+  const levels = sets.filter((s) => s.traitType === ladderType).sort((a, b) => ladderOrder(a, b));
+  const chosen = byTrait
+    ? (values.find((s) => s.value === value) ?? values[0])
+    : (levels.find((s) => s.value === level) ?? levels[0]);
 
   const trait =
     scope === "trait" && chosen !== undefined
@@ -337,16 +367,47 @@ function CollectionOfferDialog({
 
   const isMine = (maker: string) => address !== undefined && maker.toLowerCase() === address.toLowerCase();
 
+  /* Sentences with a bold trait in the middle, wherever the language puts it. */
+  const [exactBefore, exactAfter = ""] = (
+    chosen === undefined
+      ? ""
+      : tr(chosen.count === 1 ? "Covers exactly the {count} piece with {trait}. A holder of any other piece cannot sell into it." : "Covers exactly the {count} pieces with {trait}. A holder of any other piece cannot sell into it.", {
+          count: chosen.count.toLocaleString(),
+        })
+  ).split("{trait}");
+  const [growingBefore, growingAfter = ""] = (
+    bound === undefined
+      ? ""
+      : tr("Covers every piece with {trait} minted so far, up to #{bound}. Pieces minted after you place the offer aren’t included, and a holder of any other piece cannot sell into it.", {
+          bound: bound.toLocaleString(),
+        })
+  ).split("{trait}");
+  const [openedBefore, openedAfter = ""] = (
+    chosen === undefined
+      ? ""
+      : tr(
+          chosen.count === 1
+            ? "Covers the {count} opened piece with {trait}. Sealed pieces and pieces opened after you place the offer aren’t included, and a holder of any other piece cannot sell into it."
+            : "Covers the {count} opened pieces with {trait}. Sealed pieces and pieces opened after you place the offer aren’t included, and a holder of any other piece cannot sell into it.",
+          { count: chosen.count.toLocaleString() },
+        )
+  ).split("{trait}");
+
+  const countNote = (count: number) =>
+    bound === undefined
+      ? tr(count === 1 ? "{count} piece" : "{count} pieces", { count: count.toLocaleString() })
+      : tr(opened ? "{count} opened" : "{count} minted", { count: count.toLocaleString() });
+
   return createPortal(
     <>
       <div className="od-scrim" onClick={onClose} aria-hidden="true" />
-      <div className="od" role="dialog" aria-modal="true" aria-label="Make a collection offer">
+      <div className="od" role="dialog" aria-modal="true" aria-label={tr("Make a collection offer")}>
         <div className="od-head">
           <div>
-            <p className="od-kicker">Make an offer</p>
-            <h2>On the collection</h2>
+            <p className="od-kicker">{tr("Make an offer")}</p>
+            <h2>{tr("On the collection")}</h2>
           </div>
-          <button type="button" className="od-close" aria-label="Close" onClick={onClose}>
+          <button type="button" className="od-close" aria-label={tr("Close")} onClick={onClose}>
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M6 6l12 12M18 6L6 18" />
             </svg>
@@ -357,18 +418,18 @@ function CollectionOfferDialog({
           {undecided ? (
             <p className="co-scope-note">
               {traitsFailed
-                ? "Could not read this collection's traits just now. Close this and try again in a moment."
-                : "Reading this collection's traits…"}
+                ? tr("Could not read this collection's traits just now. Close this and try again in a moment.")
+                : tr("Reading this collection's traits…")}
             </p>
           ) : (
             <p className="co-scope-note">
               {scope === "trait" ? (
                 <>
-                  <b>By trait.</b> Only holders of pieces with the trait you pick can accept.
+                  <b>{tr("By trait.")}</b> {tr("Only holders of pieces with the trait you pick can accept.")}
                 </>
               ) : (
                 <>
-                  <b>Any piece.</b> Any holder in the collection can accept.
+                  <b>{tr("Any piece.")}</b> {tr("Any holder in the collection can accept.")}
                 </>
               )}
             </p>
@@ -376,50 +437,78 @@ function CollectionOfferDialog({
 
           {scope === "trait" && supported && chosen !== undefined ? (
             <div className="co-pick">
-              <Select
-                label="Trait"
-                value={activeType}
-                onChange={(t) => {
-                  setType(t);
-                  setValue("");
-                }}
-                options={types.map((t) => ({ value: t, label: t }))}
-              />
-              <Select
-                label="Value"
-                value={chosen.value}
-                onChange={setValue}
-                options={values.map((s) => ({
-                  value: s.value,
-                  label: s.value,
-                  note:
-                    bound === undefined
-                      ? `${s.count.toLocaleString()} ${s.count === 1 ? "piece" : "pieces"}`
-                      : `${s.count.toLocaleString()} ${opened ? "opened" : "minted"}`,
-                }))}
-              />
+              {ladderType !== undefined ? (
+                <div className="co-levels" role="radiogroup" aria-label={tr(ladderType)}>
+                  {levels.map((s) => {
+                    const on = !advanced && s.value === chosen.value;
+                    return (
+                      <button
+                        key={s.value}
+                        type="button"
+                        role="radio"
+                        aria-checked={on}
+                        className={`co-level co-level-${s.value.toLowerCase()}${on ? " is-on" : ""}`}
+                        onClick={() => {
+                          setAdvanced(false);
+                          setLevel(s.value);
+                        }}
+                      >
+                        <b>{tr(s.value)}</b>
+                        <span>{countNote(s.count)}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : null}
+              {ladderType !== undefined && otherTypes.length > 0 ? (
+                <button
+                  type="button"
+                  className={`filt co-advanced-toggle${advanced ? " is-on" : ""}`}
+                  aria-expanded={advanced}
+                  onClick={() => setAdvanced((open) => !open)}
+                >
+                  {tr("Advanced filters")}
+                </button>
+              ) : null}
+              {byTrait ? (
+                <>
+                  {ladderType !== undefined ? (
+                    <p className="co-pick-note">{tr("One trait per offer: pick any single part instead of a rarity.")}</p>
+                  ) : null}
+                  <Select
+                    label={tr("Trait")}
+                    value={activeType}
+                    onChange={(t) => {
+                      setType(t);
+                      setValue("");
+                    }}
+                    options={pickable.map((t) => ({ value: t, label: t }))}
+                  />
+                  <Select
+                    label={tr("Value")}
+                    value={chosen.value}
+                    onChange={setValue}
+                    options={values.map((s) => ({ value: s.value, label: s.value, note: countNote(s.count) }))}
+                  />
+                </>
+              ) : null}
               {bound !== undefined && opened ? (
                 /* Cybereator: every piece opened so far with the trait. A
                    sealed piece is never in the set, and pieces opened later
                    are outside it for good. */
                 <p className="co-pick-note">
-                  Covers the {chosen.count.toLocaleString()} opened {chosen.count === 1 ? "piece" : "pieces"} with{" "}
-                  <b>{traitLabel(chosen)}</b>. Sealed pieces and pieces opened after you place the offer
-                  aren&rsquo;t included, and a holder of any other piece cannot sell into it.
+                  {openedBefore}<b>{traitLabel(chosen)}</b>{openedAfter}
                 </p>
               ) : bound === undefined ? (
                 <p className="co-pick-note">
-                  Covers exactly the {chosen.count.toLocaleString()} {chosen.count === 1 ? "piece" : "pieces"} with{" "}
-                  <b>{traitLabel(chosen)}</b>. A holder of any other piece cannot sell into it.
+                  {exactBefore}<b>{traitLabel(chosen)}</b>{exactAfter}
                 </p>
               ) : (
                 /* A growing collection: the set is every piece with the trait
                    minted up to now, burned ones included (they can never be
                    sold). Pieces minted later are outside it for good. */
                 <p className="co-pick-note">
-                  Covers every piece with <b>{traitLabel(chosen)}</b> minted so far, up to #
-                  {bound.toLocaleString()}. Pieces minted after you place the offer aren&rsquo;t
-                  included, and a holder of any other piece cannot sell into it.
+                  {growingBefore}<b>{traitLabel(chosen)}</b>{growingAfter}
                 </p>
               )}
             </div>
@@ -435,8 +524,8 @@ function CollectionOfferDialog({
                     </Soso>
                   </span>
                   <span>
-                    {isMine(o.maker) ? "You" : <AddressLink address={o.maker} chars={4} />} &middot; {label} &middot;{" "}
-                    {whenExpires(o.endTime)}
+                    {isMine(o.maker) ? tr("You") : <AddressLink address={o.maker} chars={4} />} &middot; {label} &middot;{" "}
+                    {whenExpires(o.endTime, tr)}
                   </span>
                 </li>
               ))}
@@ -457,8 +546,8 @@ function CollectionOfferDialog({
  * How much a row of offers stands for: offers, and the pieces they still want
  * when that is more — a batch offer for ten is one offer and ten pieces.
  */
-function wantedLabel(offers: readonly SeaportOrder[]): string {
+function wantedLabel(offers: readonly SeaportOrder[], tr: (text: string, vars?: Record<string, string | number>) => string): string {
   const pieces = offers.reduce((n, o) => n + remainingPieces(o), 0n);
-  const head = offers.length === 1 ? "1 offer" : `${offers.length} offers`;
-  return pieces > BigInt(offers.length) ? `${head} · ${pieces.toString()} wanted` : head;
+  const head = offers.length === 1 ? tr("1 offer") : tr("{count} offers", { count: offers.length });
+  return pieces > BigInt(offers.length) ? tr("{head} · {count} wanted", { head, count: pieces.toString() }) : head;
 }
