@@ -3,7 +3,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { erc20Abi } from "viem";
 import { useReadContract } from "wagmi";
-import { WalletMark } from "@/components/WalletMark";
+import { WalletAvatar } from "@/components/WalletAvatar";
 import { Soso, SosoMark } from "@/components/Soso";
 import { WhereIsMySoso } from "@/components/SosoHelp";
 import { UnwrapDialog } from "@/components/UnwrapDialog";
@@ -112,7 +112,7 @@ export function PortfolioHeader({
   return (
     <section className="ph" aria-label={heading}>
       <div className="ph-id">
-        <WalletMark address={address} size={56} />
+        <WalletAvatar address={address} size={56} />
         <div className="ph-who">
           <h2 className="ph-title">{heading}</h2>
           <div className="ph-addr">

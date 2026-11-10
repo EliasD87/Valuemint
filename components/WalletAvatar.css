@@ -1,0 +1,22 @@
+/*
+ * A wallet's picture (components/WalletAvatar.tsx): its rarest revealed
+ * Cybereator, the sealed cat, or its WalletMark disc. A circle with a hairline
+ * ring, so a pale picture still has an edge on a pale ground; the WalletMark
+ * draws its own ring.
+ */
+.wallet-avatar {
+  position: relative;
+  display: flex;
+  flex: none;
+  width: var(--glyph);
+  height: var(--glyph);
+}
+
+.wallet-avatar img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  box-shadow: 0 0 0 1px var(--line);
+}

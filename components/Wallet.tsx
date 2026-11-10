@@ -200,7 +200,7 @@ export function Wallet() {
           native balance — and not an order's currency, which is the case
           `currencyLabel` exists for and must never be hardcoded.
         */}
-        {address === undefined ? null : <WalletAvatar address={address} size={20} />}
+        {address === undefined ? null : <WalletAvatar address={address} size={20} dot />}
 
         <span className="mono wallet-addr">{tinyAddress(address)}</span>
 
@@ -251,7 +251,7 @@ export function Wallet() {
                   setCopied(true);
                 }}
               >
-                {address === undefined ? null : <WalletAvatar address={address} size={28} />}
+                {address === undefined ? null : <WalletAvatar address={address} size={28} dot />}
                 <span className="mono wallet-copy-addr">{tinyAddress(address)}</span>
                 <span className="wallet-copy-hint">{copied ? t("Copied") : t("Copy")}</span>
               </button>
