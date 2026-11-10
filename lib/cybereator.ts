@@ -17,11 +17,32 @@ export const CYBEREATOR = "0xcd30d4bcaa99e556b70a2c4bdfc4050d26e48d30";
 /** CybereatorOpener: records which token opened in which block. Moves nothing. */
 export const CYBEREATOR_OPENER = "0x8f26671664ad6940df88e70f77a6d24b20c79a15";
 
-/** Where every image lives (Alibaba Cloud OSS, Tokyo). Immutable per URL. */
-export const CYBEREATOR_IMAGE_HOST = "cybereator.oss-ap-northeast-1.aliyuncs.com";
+/**
+ * Cybereator's image CDN (Cloudflare in front of the bucket below), sent by the
+ * team on 2026-11-10. Same paths, same files, a year's cache: measured from
+ * Addis Ababa at 0.4 s for a 1.3 MB PNG once warm, against 2-10 s from Tokyo.
+ */
+export const CYBEREATOR_IMAGE_HOST = "cyber-static.cybereator.com";
 
-/** The sealed picture after the move: the same 6.6 MB GIF as SoDEX's IPFS copy. */
+/** Where every image lives (Alibaba Cloud OSS, Tokyo), and what the metadata still names. */
+export const CYBEREATOR_ORIGIN_HOST = "cybereator.oss-ap-northeast-1.aliyuncs.com";
+
+const ORIGIN_PREFIX = `https://${CYBEREATOR_ORIGIN_HOST}/`;
+
+/**
+ * The same image from the CDN. Metadata, the gallery and older cached
+ * documents name the bucket; every path there is served unchanged by the CDN.
+ * Anything else is returned as it came.
+ */
+export function cybereatorCdn(url: string): string;
+export function cybereatorCdn(url: string | undefined): string | undefined;
+export function cybereatorCdn(url: string | undefined): string | undefined {
+  return url?.startsWith(ORIGIN_PREFIX) ? `https://${CYBEREATOR_IMAGE_HOST}/${url.slice(ORIGIN_PREFIX.length)}` : url;
+}
+
+/** The sealed picture after the move: the same 6.6 MB GIF as SoDEX's IPFS copy, at either address. */
 export const CYBEREATOR_UNOPENED_GIF = `https://${CYBEREATOR_IMAGE_HOST}/images/unopened-v5.gif`;
+export const CYBEREATOR_UNOPENED_GIF_ORIGIN = `${ORIGIN_PREFIX}images/unopened-v5.gif`;
 
 /** Event topics the team named for refreshes (the contracts do not implement ERC-4906). */
 export const CYBEREATOR_TOPICS = {
@@ -73,6 +94,6 @@ export function cybereatorStatus(doc: unknown): string | undefined {
  */
 export function cybereatorThumb(image: string | undefined): string | undefined {
   if (image === undefined) return undefined;
-  const m = /^https:\/\/cybereator\.oss-ap-northeast-1\.aliyuncs\.com\/(286623\/0x[0-9a-fA-F]{40})\/images\/([0-9]+)\.png$/.exec(image);
+  const m = /^https:\/\/(?:cybereator\.oss-ap-northeast-1\.aliyuncs\.com|cyber-static\.cybereator\.com)\/(286623\/0x[0-9a-fA-F]{40})\/images\/([0-9]+)\.png$/.exec(image);
   return m === null ? undefined : `https://${CYBEREATOR_IMAGE_HOST}/${m[1]}/thumbs/${m[2]}.webp`;
 }

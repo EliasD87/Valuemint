@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { CYBEREATOR_IMAGE_HOST } from "@/lib/cybereator";
+import { CYBEREATOR_IMAGE_HOST, CYBEREATOR_ORIGIN_HOST } from "@/lib/cybereator";
 
 /**
  * An artist's image, served from our edge exactly as the artist published it.
@@ -34,7 +34,8 @@ const TIMEOUT_MS = 25_000;
  */
 const MAX_BYTES = 4 * 1024 * 1024;
 
-const ALLOWED_HOSTS: readonly string[] = [CYBEREATOR_IMAGE_HOST];
+/* Both: links made before the CDN (2026-11-10) name the bucket. */
+const ALLOWED_HOSTS: readonly string[] = [CYBEREATOR_IMAGE_HOST, CYBEREATOR_ORIGIN_HOST];
 
 /** The same immutability the source declares, at the edge as well as in the browser. */
 const CACHE = "public, max-age=31536000, s-maxage=31536000, immutable";

@@ -38,9 +38,10 @@ describe("Cybereator artwork", () => {
   });
 
   it("gives lists the 512px WebP thumbnail of a revealed piece", () => {
-    expect(cybereatorThumb(OPENED.image)).toBe(
-      "https://cybereator.oss-ap-northeast-1.aliyuncs.com/286623/0x8f26671664ad6940df88e70f77a6d24b20c79a15/thumbs/123.webp",
-    );
+    /* From their CDN, whichever address the metadata gives the full picture at. */
+    const thumb = "https://cyber-static.cybereator.com/286623/0x8f26671664ad6940df88e70f77a6d24b20c79a15/thumbs/123.webp";
+    expect(cybereatorThumb(OPENED.image)).toBe(thumb);
+    expect(cybereatorThumb(OPENED.image.replace("cybereator.oss-ap-northeast-1.aliyuncs.com", "cyber-static.cybereator.com"))).toBe(thumb);
     expect(thumbnailFor(OPENED.image)).toBe(cybereatorThumb(OPENED.image));
   });
 
@@ -87,11 +88,17 @@ describe("image addresses without a scheme", () => {
   });
 });
 
-describe("serving Cybereator's images from our edge", () => {
-  it("routes their image host through /api/img, unchanged otherwise", async () => {
-    const { cachedArtwork } = await import("@/config/covers");
-    const thumb = "https://cybereator.oss-ap-northeast-1.aliyuncs.com/286623/0x8f26671664ad6940df88e70f77a6d24b20c79a15/thumbs/123.webp";
-    expect(cachedArtwork(thumb)).toBe(`/api/img?url=${encodeURIComponent(thumb)}`);
+describe("serving Cybereator's images from their CDN", () => {
+  it("rewrites the bucket to the CDN, same path, and leaves everything else alone", async () => {
+    const { cachedArtwork, bundledArtworkFor: bundled } = await import("@/config/covers");
+    const path = "286623/0x8f26671664ad6940df88e70f77a6d24b20c79a15/images/123.png";
+    expect(cachedArtwork(`https://cybereator.oss-ap-northeast-1.aliyuncs.com/${path}`)).toBe(
+      `https://cyber-static.cybereator.com/${path}`,
+    );
+    expect(cachedArtwork(`https://cyber-static.cybereator.com/${path}`)).toBe(`https://cyber-static.cybereator.com/${path}`);
+    /* The sealed GIF is our local copy at either address. */
+    expect(bundled("https://cybereator.oss-ap-northeast-1.aliyuncs.com/images/unopened-v5.gif")).toBe("/boxes/cybereator.webp");
+    expect(bundled("https://cyber-static.cybereator.com/images/unopened-v5.gif")).toBe("/boxes/cybereator.webp");
     expect(cachedArtwork("https://ipfs.filebase.io/ipfs/bafy/1.png")).toBe("https://ipfs.filebase.io/ipfs/bafy/1.png");
     expect(cachedArtwork("/boxes/cybereator.webp")).toBe("/boxes/cybereator.webp");
     expect(cachedArtwork(undefined)).toBeUndefined();

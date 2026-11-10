@@ -1,4 +1,4 @@
-import { CYBEREATOR_IMAGE_HOST, CYBEREATOR_UNOPENED_GIF, cybereatorThumb } from "@/lib/cybereator";
+import { CYBEREATOR_ORIGIN_HOST, CYBEREATOR_UNOPENED_GIF, CYBEREATOR_UNOPENED_GIF_ORIGIN, cybereatorCdn, cybereatorThumb } from "@/lib/cybereator";
 
 /**
  * The pictures a collection is known by, named rather than discovered.
@@ -322,6 +322,7 @@ const BUNDLED_BY_URI: Record<string, string> = {
  */
 const BUNDLED_BY_IMAGE: Record<string, string> = {
   [CYBEREATOR_UNOPENED_GIF]: "/boxes/cybereator.webp",
+  [CYBEREATOR_UNOPENED_GIF_ORIGIN]: "/boxes/cybereator.webp",
 };
 
 /**
@@ -356,19 +357,21 @@ export function thumbnailFor(image: string | undefined): string | undefined {
 }
 
 /**
- * An artist's image address, served through our own edge where we cache that host.
+ * An artist's image address, from the fastest place that serves those exact bytes.
  *
- * Cybereator's art lives on a single storage bucket in Tokyo with no CDN, measured
- * at 2-10 s per image from Africa. `/api/img` fetches each file once and serves the
- * same bytes — never resized or re-encoded — from Vercel near every visitor after.
+ * Cybereator's art sits on one storage bucket in Tokyo, measured at 2-10 s per
+ * image from Africa, and its metadata still names that bucket. Its team put a
+ * Cloudflare CDN in front of it (2026-11-10), serving every path unchanged, so
+ * those addresses are rewritten to the CDN. Our own cache (`/api/img`) did
+ * this job before the CDN existed; it is no longer used for them.
  * Any other address is returned unchanged.
  */
 export function cachedArtwork(image: string | undefined): string | undefined {
   if (image === undefined) return undefined;
   try {
-    if (new URL(image).hostname !== CYBEREATOR_IMAGE_HOST) return image;
+    if (new URL(image).hostname !== CYBEREATOR_ORIGIN_HOST) return image;
   } catch {
     return image;
   }
-  return `/api/img?url=${encodeURIComponent(image)}`;
+  return cybereatorCdn(image);
 }
