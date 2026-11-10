@@ -202,7 +202,7 @@ export function CollectionView({ params, seed }: { params: Promise<{ address: st
    * depend on which cards happen to be loaded.
    */
   const isCybereator = (collection ?? "").toLowerCase() === CYBEREATOR;
-  const [seal, setSeal] = useState<SealFilter>("all");
+  const [seal, setSeal] = useState<SealFilter>("opened");
   const opened = useCybereatorOpened(isCybereator);
 
   const shownIds = useMemo(() => {

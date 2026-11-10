@@ -66,8 +66,9 @@ export function TokenTraits({
       <dl className="tt-grid">
         {traits.map((a) => {
           const isDesign = String(a.trait_type).toLowerCase() === "design";
+          const rarity = String(a.trait_type) === "Rarity" ? String(a.value).toLowerCase() : undefined;
           return (
-            <div key={a.trait_type} className="tt-card">
+            <div key={a.trait_type} className={rarity === undefined ? "tt-card" : `tt-card tt-rarity tt-rarity-${rarity}`}>
               <dt className="tt-type">{a.trait_type}</dt>
               <dd className="tt-value">
                 <span className="tt-val">{String(a.value)}</span>
@@ -76,6 +77,8 @@ export function TokenTraits({
                     {minted.toLocaleString()} &middot; {share.toFixed(1)}%
                   </span>
                 ) : null}
+                {/* How much of the collection shares this value, where the source says (Cybereator's catalog). */}
+                {a.odds !== undefined ? <span className="tt-share">{formatOdds(a.odds)}</span> : null}
               </dd>
             </div>
           );
@@ -83,4 +86,13 @@ export function TokenTraits({
       </dl>
     </section>
   );
+}
+
+/** 0.0281 → "2.8%", 0.0004 → "0.04%", so a rare part never reads as 0%. */
+function formatOdds(odds: number): string {
+  const pct = odds * 100;
+  if (pct >= 10) return `${pct.toFixed(0)}%`;
+  if (pct >= 1) return `${pct.toFixed(1)}%`;
+  if (pct >= 0.1) return `${pct.toFixed(2)}%`;
+  return pct === 0 ? "0%" : `${pct.toPrecision(1)}%`;
 }

@@ -38,11 +38,15 @@ export interface TokenMetadata {
   name: string;
   description: string;
   image?: string;
-  attributes: Array<{ trait_type: string; value: string | number }>;
+  /**
+   * `odds` (0-1) is the share of the collection with this value, where a
+   * source says so: Cybereator's, added from its catalog (lib/cybereatorRarity.ts).
+   */
+  attributes: Array<{ trait_type: string; value: string | number; odds?: number }>;
 }
 
 /** A trait entry is only usable if it can be looked up and printed. */
-function readAttribute(raw: unknown): { trait_type: string; value: string | number } | undefined {
+function readAttribute(raw: unknown): { trait_type: string; value: string | number; odds?: number } | undefined {
   if (typeof raw !== "object" || raw === null) return undefined;
 
   const entry = raw as Record<string, unknown>;
@@ -56,8 +60,12 @@ function readAttribute(raw: unknown): { trait_type: string; value: string | numb
 
   // `value` is printed with String(), which would happily turn an object into
   // "[object Object]". Numbers and booleans are fine; anything else is not.
+  const odds =
+    typeof entry.odds === "number" && Number.isFinite(entry.odds) && entry.odds >= 0 && entry.odds <= 1
+      ? { odds: entry.odds }
+      : {};
   if (typeof value === "string" || typeof value === "number") {
-    return { trait_type: name, value };
+    return { trait_type: name, value, ...odds };
   }
   if (typeof value === "boolean") return { trait_type: name, value: value ? "Yes" : "No" };
 
@@ -121,7 +129,7 @@ export function readTokenMetadata(raw: unknown): TokenMetadata | undefined {
   const attributes = Array.isArray(doc.attributes)
     ? doc.attributes
         .map(readAttribute)
-        .filter((a): a is { trait_type: string; value: string | number } => a !== undefined)
+        .filter((a): a is { trait_type: string; value: string | number; odds?: number } => a !== undefined)
     : [];
 
   // A document with no name, no image and no traits describes nothing. Treated

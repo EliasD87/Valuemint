@@ -204,7 +204,7 @@ export default function Market() {
    * listing whether or not its card has loaded.
    */
   const cybereatorChosen = filterTo === `c:${CYBEREATOR}`;
-  const [seal, setSeal] = useState<SealFilter>("all");
+  const [seal, setSeal] = useState<SealFilter>("opened");
   const opened = useCybereatorOpened(cybereatorChosen);
   const isOpened = (t: (typeof listed)[number]) => opened?.has(t.id.toString()) === true;
   const cybereatorListed = cybereatorChosen ? listed.filter((t) => t.collection.toLowerCase() === CYBEREATOR) : [];

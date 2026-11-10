@@ -34,5 +34,12 @@ export function proxyableDoc(raw: string): boolean {
 
 /** The `/api/doc` address for a document, or undefined if it must be fetched directly. */
 export function proxiedDocUrl(raw: string): string | undefined {
-  return proxyableDoc(raw) ? `/api/doc?url=${encodeURIComponent(raw)}` : undefined;
+  if (!proxyableDoc(raw)) return undefined;
+  /*
+    `r=2` for cybereator.com: the documents gained a Rarity trait and per-trait
+    odds on 2026-11-10, and browsers already held a day-long copy without them.
+    A new address is a new cache entry, so every visitor gets the new shape at once.
+  */
+  const version = raw.startsWith("https://cybereator.com/") ? "&r=2" : "";
+  return `/api/doc?url=${encodeURIComponent(raw)}${version}`;
 }

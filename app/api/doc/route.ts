@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { proxyableDoc } from "@/lib/docProxy";
-import { cybereatorStatus, isCybereatorDoc } from "@/lib/cybereator";
+import { CYBEREATOR_IMAGE_HOST, cybereatorStatus, isCybereatorDoc } from "@/lib/cybereator";
+import { enrichCybereatorDoc, type CybereatorCatalog } from "@/lib/cybereatorRarity";
 
 /**
  * One token document from a listed third-party host, cached at the edge
@@ -94,9 +95,23 @@ export async function GET(request: Request): Promise<NextResponse> {
   }
 
   const status = upstream.status;
+
+  /*
+    A revealed Cybereator gets its rarity added here, once, from its team's
+    catalog (lib/cybereatorRarity.ts). If the catalog cannot be read just now
+    the document goes out without it and is cached for seconds, not a month,
+    so the next visitor's request tries again.
+  */
+  let enriched = true;
+  if (upstream.ok && isCybereatorDoc(target) && cybereatorStatus(body) === undefined) {
+    const withRarity = await addRarity(body);
+    if (withRarity === undefined) enriched = false;
+    else body = withRarity;
+  }
+
   const cache = upstream.ok
     ? isCybereatorDoc(target)
-      ? cybereatorStatus(body) === undefined
+      ? cybereatorStatus(body) === undefined && enriched
         ? CACHE_FINAL
         : CACHE_PENDING
       : changesInPlace(target)
@@ -106,4 +121,32 @@ export async function GET(request: Request): Promise<NextResponse> {
       ? CACHE_MISSING
       : "no-store";
   return NextResponse.json(body, { status, headers: { "cache-control": cache } });
+}
+
+/** Each catalog version, read once per server instance; it never changes (its path carries the version). */
+const catalogs = new Map<string, Promise<CybereatorCatalog | undefined>>();
+
+function catalogFor(version: string): Promise<CybereatorCatalog | undefined> {
+  let pending = catalogs.get(version);
+  if (pending === undefined) {
+    pending = fetch(`https://${CYBEREATOR_IMAGE_HOST}/catalog/${version}/catalog.json`, {
+      signal: AbortSignal.timeout(15_000),
+      redirect: "error",
+    })
+      .then(async (res) => (res.ok ? ((await res.json()) as CybereatorCatalog) : undefined))
+      .catch(() => undefined);
+    pending.then((c) => {
+      if (c === undefined) catalogs.delete(version);
+    });
+    catalogs.set(version, pending);
+  }
+  return pending;
+}
+
+async function addRarity(body: unknown): Promise<unknown | undefined> {
+  const version = (body as { rules_version?: unknown } | null)?.rules_version;
+  if (typeof version !== "string" || !/^[0-9a-f]{6,64}$/i.test(version)) return undefined;
+  const catalog = await catalogFor(version);
+  if (catalog === undefined) return undefined;
+  return enrichCybereatorDoc(body as { attributes?: unknown }, catalog);
 }

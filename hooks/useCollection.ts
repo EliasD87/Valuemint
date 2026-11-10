@@ -5,6 +5,7 @@ import { useReadContract, useReadContracts } from "wagmi";
 import { ValueChainCollectionAbi, deployment } from "@/config/contracts";
 import { resolveMediaUrl } from "@/lib/format";
 import { fetchTokenMetadata, type TokenMetadata } from "@/lib/tokenMetadata";
+import { proxiedDocUrl } from "@/lib/docProxy";
 
 const collection = { address: deployment.collection, abi: ValueChainCollectionAbi } as const;
 
@@ -94,7 +95,12 @@ export function useTokenMetadata(
       const url = resolveMediaUrl(uri as string);
       if (url === undefined) throw new Error("Token has no metadata URI");
 
-      return fetchTokenMetadata(url, 20_000);
+      /*
+        Through our edge where we proxy the host (lib/docProxy.ts), as the cards
+        do. Fetched directly, a Cybereator token page missed the Rarity and
+        odds `/api/doc` adds (2026-11-10), and paid their slow server every time.
+      */
+      return fetchTokenMetadata(proxiedDocUrl(url) ?? url, 20_000);
     },
   });
 

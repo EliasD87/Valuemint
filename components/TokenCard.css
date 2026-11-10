@@ -751,3 +751,6 @@
   background: var(--accent);
   color: var(--accent-ink);
 }
+
+/* Cybereator's Gold class, as a solid ribbon like the other tiers. */
+.tcard-ribbon.chip-gold { background: var(--legendary); }
