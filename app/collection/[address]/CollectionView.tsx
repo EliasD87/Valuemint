@@ -16,7 +16,7 @@ import { useGenericTokens } from "@/hooks/useGenericTokens";
 import { useTokenIds } from "@/hooks/useTokenIds";
 import { MintPanel } from "@/components/MintPanel";
 import { useNarrow } from "@/hooks/useNarrow";
-import { CollectionOffers, useCollectionOfferCount } from "@/components/CollectionOffers";
+import { CollectionOffers, MakeCollectionOffer, useCollectionOfferCount } from "@/components/CollectionOffers";
 import { TokenCard, TokenCardSkeleton } from "@/components/TokenCard";
 import { formatCount } from "@/lib/format";
 import { isFilterable } from "@/lib/traitRoles";
@@ -510,6 +510,7 @@ export function CollectionView({ params, seed }: { params: Promise<{ address: st
         {...((name ?? seed?.name) === undefined ? {} : { name: (name ?? seed?.name) as string })}
         {...((symbol ?? seed?.symbol) === undefined ? {} : { symbol: (symbol ?? seed?.symbol) as string })}
         supply={shownSupply}
+        {...(offersOk && collection !== undefined ? { action: <MakeCollectionOffer collection={collection} /> } : {})}
       />
 
       <CollectionStats

@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { avatarFor, coverFor } from "@/config/covers";
 import { heroFor } from "@/config/heroes";
@@ -43,11 +44,14 @@ export function CollectionHero({
   name,
   symbol,
   supply,
+  action,
 }: {
   address: `0x${string}`;
   name?: string;
   symbol?: string;
   supply?: bigint;
+  /** The page's primary action, first beside Share: "Make an offer". */
+  action?: ReactNode;
 }) {
   const t = useT();
   const hero = heroFor(address);
@@ -200,6 +204,7 @@ export function CollectionHero({
             </h2>
 
             <div className="ch-actions">
+              {action}
               <ShareLink title={name ?? undefined} />
               <Link className="ch-back" href="/collections">
                 {t("All collections")}

@@ -68,11 +68,44 @@ export function useCollectionOfferCount(collection: `0x${string}` | undefined): 
   return anyPiece.length + traits.length;
 }
 
+/**
+ * "Make an offer" on the collection, and the dialog it opens.
+ *
+ * Its own component so the collection header can carry one too (owner,
+ * 2026-11-11): with the board behind the Offers tab, a bidder should not have
+ * to find the tab to bid. The trait sets are the board's own request, shared
+ * through its cache, so a second button asks nothing more.
+ */
+export function MakeCollectionOffer({ collection }: { collection: `0x${string}` }) {
+  const tr = useT();
+  const { offers: traitOffers } = useTraitOffers(collection);
+  const criteria = useCriteriaSets(collection, boundsOf(traitOffers));
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button type="button" className="btn btn-primary btn-sm" onClick={() => setOpen(true)}>
+        {tr("Make an offer")}
+      </button>
+      {open ? (
+        <CollectionOfferDialog
+          collection={collection}
+          supported={criteria.supported}
+          hasTraits={criteria.supported && criteria.sets.length > 0}
+          traitsFailed={criteria.isError}
+          loadingTraits={criteria.isLoading}
+          sets={criteria.sets}
+          bound={criteria.bound}
+          onClose={() => setOpen(false)}
+        />
+      ) : null}
+    </>
+  );
+}
+
 export function CollectionOffers({ collection }: { collection: `0x${string}` }) {
   /* `tr`, not `t`: this file already names trait rows `t`. */
   const tr = useT();
   const { anyPiece, traits, traitOffers, criteria, loadingOffers } = useStandingOffers(collection);
-  const [open, setOpen] = useState(false);
 
   /**
    * A way to take an offer from here: the viewer's own piece that qualifies,
@@ -227,9 +260,7 @@ export function CollectionOffers({ collection }: { collection: `0x${string}` }) 
             )}
           </span>
         </div>
-        <button type="button" className="btn btn-primary btn-sm" onClick={() => setOpen(true)}>
-          {tr("Make an offer")}
-        </button>
+        <MakeCollectionOffer collection={collection} />
       </div>
 
       {groups.length === 0 ? null : (
@@ -267,18 +298,6 @@ export function CollectionOffers({ collection }: { collection: `0x${string}` }) 
         />
       ) : null}
 
-      {open ? (
-        <CollectionOfferDialog
-          collection={collection}
-          supported={criteria.supported}
-          hasTraits={hasTraits}
-          traitsFailed={criteria.isError}
-          loadingTraits={criteria.isLoading}
-          sets={criteria.sets}
-          bound={criteria.bound}
-          onClose={() => setOpen(false)}
-        />
-      ) : null}
     </section>
   );
 }
