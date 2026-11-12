@@ -93,12 +93,12 @@ export const HELD_BACK: Record<string, HeldBack> = {
     commitmentTx: "0x3763dc71d4c82ce6830634ac4e0220bc1e2a72d387b243000fae813d4fd0a27f",
     /* The manifest Genesis points at since the second partial reveal: #1-#86 published. */
     hiddenCid: "QmZkFWdCNJFPNsjvjus9AZ6quJxU3AVgrCVWSCT8BCHKt5",
-    /* Set by the owner, 2026-09-23, as 2 October; moved by the owner to
-       15 October on 2026-10-02 for the pieces still unminted after the first
-       reveal, to 30 October on 2026-10-19, and to 10 November on 2026-10-28.
-       Revealing is one setBaseURI, so the date can always be beaten, never
-       missed. */
-    revealBy: "2026-11-10",
+    /* No date (owner, 2026-11-12). It was set to 2 October, then moved to
+       15 October, 30 October and 10 November; the owner removed it after
+       10 November passed. Every minted piece is revealed (#1-#86, checked on
+       chain that day), so what is left, #87-#100, reveals when the last one
+       is minted: revealing them unminted would show which design each id
+       carries, and mints go in id order. */
   },
 };
 

@@ -76,7 +76,10 @@ export function SealedNotice({ collection }: { collection: `0x${string}` | undef
       </span>
       <div className="ur-notice-text">
         <p className="ur-notice-title" id="ur-notice-title">
-          {tr("{count} pieces are sealed, revealed {when}", { count: held.count, when: revealLong(held) })}
+          {/* No date: its own sentence, so each language can say "at mint-out" its own way. */}
+          {held.revealBy === undefined
+            ? tr("{count} pieces are sealed, revealed when the last one is minted", { count: held.count })
+            : tr("{count} pieces are sealed, revealed {when}", { count: held.count, when: revealLong(held) })}
         </p>
         {canMint ? (
           <p className="ur-notice-lead">
@@ -136,7 +139,11 @@ export function Unrevealed({ collection }: { collection: `0x${string}` | undefin
 
   const when = revealLong(held);
   /* The bold count sits wherever the language puts it. */
-  const [oneOfBefore, oneOfAfter = ""] = tr("One of {count} sealed pieces. Yours is revealed {when}.", { when }).split("{count}");
+  const [oneOfBefore, oneOfAfter = ""] = (
+    held.revealBy === undefined
+      ? tr("One of {count} sealed pieces. Yours is revealed when the last one is minted.")
+      : tr("One of {count} sealed pieces. Yours is revealed {when}.", { when })
+  ).split("{count}");
 
   return (
     <section className="ur" aria-labelledby="ur-title">

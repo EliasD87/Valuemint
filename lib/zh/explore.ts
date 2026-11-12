@@ -273,4 +273,7 @@ export const ZH_EXPLORE: Record<string, string> = {
   "for an unopened piece · ": "针对未开盒藏品 · ",
   "any Cybereator still sealed when it is sold to you": "成交时仍未开盒的任意 Cybereator",
   "Covers any Cybereator still sealed when it is sold to you. If a piece is opened before the sale, the chain refuses it and your offer stays up.": "覆盖成交时仍未开盒的任意 Cybereator。如果藏品在成交前已开盒，链上会拒绝这笔成交，你的出价继续有效。",
+  "{count} pieces are sealed, revealed when the last one is minted": "{count} 件藏品尚未揭示，将在最后一件铸造完成时揭示",
+  "One of {count} sealed pieces. Yours is revealed when the last one is minted.": "{count} 件未揭示藏品之一。你的藏品将在最后一件铸造完成时揭示。",
+  "Reveals at mint-out": "全部铸造完成时揭示",
 };

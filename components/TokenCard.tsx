@@ -234,7 +234,7 @@ function TokenCardView({
     framed ? (
       <GenesisFrame
         tier={token.tier}
-        sealedLabel={awaitingReveal !== undefined ? t("Reveals {date}", { date: revealShort(awaitingReveal) }) : undefined}
+        sealedLabel={awaitingReveal !== undefined ? (awaitingReveal.revealBy === undefined ? t("Reveals at mint-out") : t("Reveals {date}", { date: revealShort(awaitingReveal) })) : undefined}
       >
         {art}
       </GenesisFrame>
@@ -335,7 +335,7 @@ function TokenCardView({
           */
           <span className="tcard-ribbon tcard-ribbon-sealed">
             <SealIcon size={10} />
-            {t("Reveals {date}", { date: revealShort(awaitingReveal) })}
+            {(awaitingReveal.revealBy === undefined ? t("Reveals at mint-out") : t("Reveals {date}", { date: revealShort(awaitingReveal) }))}
           </span>
         ) : null}
 
