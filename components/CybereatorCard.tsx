@@ -99,8 +99,8 @@ export function CybereatorCard({
       el.style.setProperty("--px", `${(x * 100).toFixed(1)}%`);
       el.style.setProperty("--py", `${(y * 100).toFixed(1)}%`);
       /* The foil band crosses the card as the pointer does, never parking off it. */
-      el.style.setProperty("--fx", `${(33 + x * 34).toFixed(1)}%`);
-      el.style.setProperty("--fy", `${(33 + y * 34).toFixed(1)}%`);
+      el.style.setProperty("--fx", `${(26 + x * 48).toFixed(1)}%`);
+      el.style.setProperty("--fy", `${(26 + y * 48).toFixed(1)}%`);
       el.style.setProperty("--rx", `${((0.5 - y) * 7).toFixed(2)}deg`);
       el.style.setProperty("--ry", `${((x - 0.5) * 9).toFixed(2)}deg`);
       el.classList.add("is-live");

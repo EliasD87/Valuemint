@@ -173,7 +173,7 @@
   --cy-well: #e7e5e0;
   --cy-dot: rgba(14, 14, 16, 0.11);
   --cy-edge: rgba(14, 14, 16, 0.1);
-  --cy-glare: rgba(255, 255, 255, 0.32);
+  --cy-glare: rgba(255, 255, 255, 0.42);
   --cy-foil-1: #ff6b8a;
   --cy-foil-2: #ffc46b;
   --cy-foil-3: #8ef0a0;
@@ -185,9 +185,9 @@
   --cy-gold-3: #f2e08a;
   --cy-gold-4: #9aa83c;
   --cy-foil-blend: multiply;
-  --cy-foil-rare: 0.22;
-  --cy-foil-epic: 0.3;
-  --cy-foil-legendary: 0.34;
+  --cy-foil-rare: 0.26;
+  --cy-foil-epic: 0.36;
+  --cy-foil-legendary: 0.42;
 
   /* --- inverted band, for the hero and footer ---------------------------- */
   /* In dark mode these lift *above* the page ground instead of below it, so
@@ -408,7 +408,7 @@
   --cy-well: #1d1d21;
   --cy-dot: rgba(255, 255, 255, 0.075);
   --cy-edge: rgba(255, 255, 255, 0.12);
-  --cy-glare: rgba(255, 255, 255, 0.08);
+  --cy-glare: rgba(255, 255, 255, 0.11);
   --cy-foil-1: #ff3d6e;
   --cy-foil-2: #ffb02e;
   --cy-foil-3: #3ee87a;
@@ -420,9 +420,9 @@
   --cy-gold-3: #f0dc6a;
   --cy-gold-4: #7f9a1e;
   --cy-foil-blend: color-dodge;
-  --cy-foil-rare: 0.26;
-  --cy-foil-epic: 0.36;
-  --cy-foil-legendary: 0.42;
+  --cy-foil-rare: 0.3;
+  --cy-foil-epic: 0.42;
+  --cy-foil-legendary: 0.5;
 
   --dark: #17171b;
   --dark-2: #202026;

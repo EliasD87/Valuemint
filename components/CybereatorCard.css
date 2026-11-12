@@ -192,14 +192,14 @@
 
 /*
  * A band, not a wash (owner, 2026-11-12: "should not cover all that space at
- * a time"): the colour sits in the middle 6% of a gradient four times the
- * card's size, so a stripe about a quarter of the card wide carries it at
- * once, and the pointer slides it across.
+ * a time", then "way too reduced"): the colour sits in the middle 12% of a
+ * gradient three times the card's size, so a band about a third of the
+ * card wide carries it at once, and the pointer slides it across.
  */
 .cyc-foil {
   mix-blend-mode: var(--cy-foil-blend);
-  background-size: 400% 400%;
-  background-position: var(--fx, 42%) var(--fy, 40%);
+  background-size: 300% 300%;
+  background-position: var(--fx, 40%) var(--fy, 36%);
   transition: background-position 600ms var(--ease);
   -webkit-mask-image: radial-gradient(circle, var(--ink) 0.9px, color-mix(in srgb, var(--ink) 55%, transparent) 1.35px);
   mask-image: radial-gradient(circle, var(--ink) 0.9px, color-mix(in srgb, var(--ink) 55%, transparent) 1.35px);
@@ -214,14 +214,14 @@
 .cyc-epic .cyc-foil {
   background-image: linear-gradient(
     115deg,
-    transparent 46.6%,
-    var(--cy-foil-1) 47.6%,
-    var(--cy-foil-2) 48.6%,
-    var(--cy-foil-3) 49.6%,
-    var(--cy-foil-4) 50.6%,
-    var(--cy-foil-5) 51.6%,
-    var(--cy-foil-6) 52.6%,
-    transparent 53.6%
+    transparent 43.5%,
+    var(--cy-foil-1) 45.5%,
+    var(--cy-foil-2) 47.3%,
+    var(--cy-foil-3) 49.1%,
+    var(--cy-foil-4) 50.9%,
+    var(--cy-foil-5) 52.7%,
+    var(--cy-foil-6) 54.5%,
+    transparent 56.5%
   );
 }
 .cyc-rare .cyc-foil {
@@ -235,19 +235,19 @@
   opacity: var(--cy-foil-legendary);
   background-image: linear-gradient(
     115deg,
-    transparent 46.4%,
-    var(--cy-gold-1) 47.6%,
-    var(--cy-gold-2) 48.8%,
+    transparent 43.5%,
+    var(--cy-gold-1) 45.5%,
+    var(--cy-gold-2) 47.7%,
     var(--cy-gold-3) 50%,
-    var(--cy-gold-4) 51.2%,
-    var(--cy-gold-1) 52.4%,
-    transparent 53.6%
+    var(--cy-gold-4) 52.3%,
+    var(--cy-gold-1) 54.5%,
+    transparent 56.5%
   );
 }
 
 /* A soft light where the pointer is, on every card. */
 .cyc-glare {
-  background: radial-gradient(circle at var(--px, 50%) var(--py, 30%), var(--cy-glare), transparent 28%);
+  background: radial-gradient(circle at var(--px, 50%) var(--py, 30%), var(--cy-glare), transparent 36%);
   opacity: 0;
   transition: opacity var(--med);
 }
