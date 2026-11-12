@@ -34,9 +34,11 @@ const FOIL = new Set(["rare", "epic", "legendary"]);
  * Offer, the "Yours" badge, bulk picking — is unchanged, only the look is
  * Cybereator's.
  *
- * Cheap on a grid of sixty: the pointer writes four custom properties on the
- * card itself, once per frame, and nothing re-renders. Touch and reduced
- * motion get the card still, the foil resting at a fixed angle.
+ * Cheap on a grid of sixty: the pointer writes custom properties on the card
+ * itself, once per frame, and nothing re-renders; the foil moves by transform
+ * alone. At rest the foil is faint and drifts a little; under the mouse it
+ * shines, follows, and stays where the mouse left it. Touch gets no tilt;
+ * reduced motion gets nothing moving.
  */
 export function CybereatorCard({
   token,
@@ -98,9 +100,9 @@ export function CybereatorCard({
       const y = Math.min(1, Math.max(0, (clientY - r.top) / r.height));
       el.style.setProperty("--px", `${(x * 100).toFixed(1)}%`);
       el.style.setProperty("--py", `${(y * 100).toFixed(1)}%`);
-      /* The foil band crosses the card as the pointer does, never parking off it. */
-      el.style.setProperty("--fx", `${(26 + x * 48).toFixed(1)}%`);
-      el.style.setProperty("--fy", `${(26 + y * 48).toFixed(1)}%`);
+      /* The foil band crosses the card against the pointer, never parking off it. */
+      el.style.setProperty("--tx", `${((0.5 - x) * 32).toFixed(1)}%`);
+      el.style.setProperty("--ty", `${((0.5 - y) * 32).toFixed(1)}%`);
       el.style.setProperty("--rx", `${((0.5 - y) * 7).toFixed(2)}deg`);
       el.style.setProperty("--ry", `${((x - 0.5) * 9).toFixed(2)}deg`);
       el.classList.add("is-live");
@@ -110,7 +112,8 @@ export function CybereatorCard({
     cancelAnimationFrame(frame.current);
     const el = card.current;
     if (el === null) return;
-    for (const p of ["--px", "--py", "--fx", "--fy", "--rx", "--ry"]) el.style.removeProperty(p);
+    /* The tilt and the light go; the foil stays where the pointer left it. */
+    for (const p of ["--px", "--py", "--rx", "--ry"]) el.style.removeProperty(p);
     el.classList.remove("is-live");
   };
 
@@ -209,8 +212,13 @@ export function CybereatorCard({
       </div>
 
       {/* Over the art and the plate, under the buttons; it never takes a click. */}
-      {foil ? <span className="cyc-foil" aria-hidden="true" /> : null}
+      {foil ? (
+        <span className="cyc-foil" aria-hidden="true">
+          <span className="cyc-foil-band" />
+        </span>
+      ) : null}
       <span className="cyc-glare" aria-hidden="true" />
+      <span className="cyc-sweep" aria-hidden="true" />
 
       {pick === undefined ? null : (
         <button

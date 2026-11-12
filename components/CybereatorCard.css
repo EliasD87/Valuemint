@@ -179,7 +179,8 @@
 /*
  * Over the art and the plate, under the buttons, never taking a click. It
  * prints through the dot grid like the reference: full strength on the dots,
- * half between them. Resting at a fixed angle; under a mouse it follows.
+ * half between them. Faint and drifting at rest; under a mouse it shines and
+ * follows, and stays where the mouse left it.
  */
 .cyc-foil,
 .cyc-glare {
@@ -193,25 +194,122 @@
 /*
  * A band, not a wash (owner, 2026-11-12: "should not cover all that space at
  * a time", then "way too reduced"): the colour sits in the middle 12% of a
- * gradient three times the card's size, so a band about a third of the
- * card wide carries it at once, and the pointer slides it across.
+ * gradient three times the card's size (.cyc-foil-band), so a band about a
+ * third of the card wide carries it at once.
+ *
+ * It moves two ways, both on the compositor so a grid of them costs no
+ * repaints: `translate`, set from the pointer and LEFT where the pointer
+ * left it rather than springing back; and `transform`, a drift on its own
+ * (same day: "needs to move without the mouse moving", then "should not be
+ * that slow"). The drift is cybereator.com's own (its gallery's holo-idle):
+ * seven seconds a pass, about a quarter of the card each way, paused while
+ * the pointer has the card and resumed from there.
  */
+/*
+ * Faint at rest, full under the pointer (owner, 2026-11-12: "more subtle but
+ * on hover its fully shining"). One factor scales every level, so the three
+ * strengths in tokens.css stay the hover look.
+ */
+.cyc {
+  --foil-k: 0.35;
+}
+.cyc:hover {
+  --foil-k: 1;
+}
+
 .cyc-foil {
+  overflow: hidden;
   mix-blend-mode: var(--cy-foil-blend);
-  background-size: 300% 300%;
-  background-position: var(--fx, 40%) var(--fy, 36%);
-  transition: background-position 600ms var(--ease);
+  transition: opacity 320ms var(--ease);
   -webkit-mask-image: radial-gradient(circle, var(--ink) 0.9px, color-mix(in srgb, var(--ink) 55%, transparent) 1.35px);
   mask-image: radial-gradient(circle, var(--ink) 0.9px, color-mix(in srgb, var(--ink) 55%, transparent) 1.35px);
   -webkit-mask-size: 4px 4px;
   mask-size: 4px 4px;
 }
-.cyc.is-live .cyc-foil {
+.cyc-foil-band {
+  position: absolute;
+  top: -100%;
+  left: -100%;
+  width: 300%;
+  height: 300%;
+  translate: var(--tx, 6.7%) var(--ty, 9.3%);
+  transition: translate 600ms var(--ease);
+  animation: cyc-drift 7s ease-in-out infinite alternate;
+}
+.cyc:hover .cyc-foil-band {
+  animation-play-state: paused;
+}
+/* While the pointer drives it, the band follows at once. */
+.cyc.is-live .cyc-foil-band {
   transition: none;
 }
+@keyframes cyc-drift {
+  from {
+    transform: translate(-8%, -5.3%);
+  }
+  to {
+    transform: translate(8%, 5.3%);
+  }
+}
+/* Not every foil card in step. */
+.cyc:nth-child(3n + 2) .cyc-foil-band {
+  animation-delay: -2.3s;
+}
+.cyc:nth-child(3n + 3) .cyc-foil-band {
+  animation-delay: -4.6s;
+}
 
-.cyc-rare .cyc-foil,
-.cyc-epic .cyc-foil {
+/*
+ * The light that crosses every card now and then, foil or not, as on
+ * cybereator.com's cards: a soft slanted streak, across in under three
+ * seconds, then a rest, seven and a half seconds a round. Gone while the
+ * pointer has the card, where the glare takes over. Staggered, so a grid
+ * glints here and there rather than all at once.
+ */
+.cyc-sweep {
+  position: absolute;
+  z-index: 1;
+  top: -20%;
+  bottom: -20%;
+  left: -60%;
+  width: 60%;
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--cy-sweep) 45%,
+    color-mix(in srgb, var(--cy-sweep) 30%, transparent) 55%,
+    transparent
+  );
+  transform: translateX(0) skewX(-14deg);
+  animation: cyc-sweep 7.5s ease-in-out infinite;
+  transition: opacity 300ms var(--ease);
+}
+.cyc:hover .cyc-sweep {
+  opacity: 0;
+  animation-play-state: paused;
+}
+.cyc:nth-child(4n + 2) .cyc-sweep {
+  animation-delay: -1.9s;
+}
+.cyc:nth-child(4n + 3) .cyc-sweep {
+  animation-delay: -3.8s;
+}
+.cyc:nth-child(4n + 4) .cyc-sweep {
+  animation-delay: -5.6s;
+}
+@keyframes cyc-sweep {
+  0%,
+  62% {
+    transform: translateX(0) skewX(-14deg);
+  }
+  to {
+    transform: translateX(380%) skewX(-14deg);
+  }
+}
+
+.cyc-rare .cyc-foil-band,
+.cyc-epic .cyc-foil-band {
   background-image: linear-gradient(
     115deg,
     transparent 43.5%,
@@ -225,14 +323,16 @@
   );
 }
 .cyc-rare .cyc-foil {
-  opacity: var(--cy-foil-rare);
+  opacity: calc(var(--cy-foil-rare) * var(--foil-k));
 }
 .cyc-epic .cyc-foil {
-  opacity: var(--cy-foil-epic);
+  opacity: calc(var(--cy-foil-epic) * var(--foil-k));
 }
 
 .cyc-legendary .cyc-foil {
-  opacity: var(--cy-foil-legendary);
+  opacity: calc(var(--cy-foil-legendary) * var(--foil-k));
+}
+.cyc-legendary .cyc-foil-band {
   background-image: linear-gradient(
     115deg,
     transparent 43.5%,
@@ -259,8 +359,12 @@
   .cyc:hover {
     transform: none;
   }
-  .cyc-foil {
+  .cyc-foil-band {
+    animation: none;
     transition: none;
+  }
+  .cyc-sweep {
+    display: none;
   }
 }
 
