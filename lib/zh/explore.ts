@@ -257,6 +257,9 @@ export const ZH_EXPLORE: Record<string, string> = {
   "No offers": "暂无出价",
   Buy: "购买",
   Offer: "出价",
+  /* The Cybereator card (components/CybereatorCard.tsx). */
+  "No. {id}": "编号 {id}",
+  Opening: "开盒中",
   Token: "代币",
   token: "代币",
   Unnamed: "未命名",

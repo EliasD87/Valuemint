@@ -1,0 +1,298 @@
+/*
+ * The Cybereator card (components/CybereatorCard.tsx): printed card stock,
+ * the art inset, number and race · rarity on the plate below, and a foil on
+ * Rare and up. Layered on `.tcard` for the link, the buttons and bulk
+ * picking; everything visual is here. Colours are the `--cy-*` tokens.
+ */
+
+.cyc {
+  padding: 7px;
+  border-radius: var(--r-md);
+  border-color: var(--cy-edge);
+  background-color: var(--cy-card);
+  /* The printed dot grid, as on the reference card. */
+  background-image: radial-gradient(var(--cy-dot) 0.8px, transparent 1.25px);
+  background-size: 5px 5px;
+  transition:
+    transform 480ms var(--ease),
+    box-shadow var(--med),
+    border-color var(--fast);
+}
+
+/* Lifted and turned toward the pointer; the angles come from the card itself. */
+.cyc:hover {
+  border-color: var(--cy-edge);
+  transform: perspective(900px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)) translateY(-3px);
+}
+/* While the pointer drives it, follow at once rather than easing behind. */
+.cyc.is-live {
+  transition:
+    transform 90ms linear,
+    box-shadow var(--med),
+    border-color var(--fast);
+}
+
+/* ------------------------------------------------------------------ art */
+
+.cyc-art {
+  position: relative;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: calc(var(--r-md) - 6px);
+  background: var(--cy-well);
+}
+.cyc-art::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow: inset 0 0 0 1px var(--cy-edge);
+}
+.cyc-art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* ---------------------------------------------------------------- plate */
+
+.cyc-plate {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 0.75rem 0.3rem 0.1rem;
+  min-width: 0;
+}
+
+.cyc-line {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.cyc-no {
+  font-size: var(--step-1);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.cyc-price {
+  display: inline-flex;
+  align-items: center;
+  font-size: var(--step-0);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+  white-space: nowrap;
+}
+.cyc-price.is-none {
+  font-size: var(--step--2);
+  font-weight: 500;
+  color: var(--ink-3);
+}
+
+/* RACE · RARITY, spaced out in small capitals; the rarity in its own colour. */
+.cyc-kind {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.45em;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 0.625rem;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--ink-3);
+}
+.cyc-kind i {
+  font-style: normal;
+  color: var(--ink-4);
+}
+.cyc-level {
+  font-weight: 600;
+  color: var(--ink-2);
+}
+.cyc-level-common { color: var(--common); }
+.cyc-level-uncommon { color: var(--uncommon); }
+.cyc-level-rare { color: var(--rare); }
+.cyc-level-epic { color: var(--epic); }
+.cyc-level-legendary { color: var(--legendary); }
+.cyc-level.is-sealed { color: var(--warn); }
+
+.cyc-kind-wait {
+  display: inline-block;
+  width: 46%;
+  height: 0.7rem;
+}
+
+
+.cyc-foot {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  min-height: 2.6rem;
+  margin-top: auto;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--cy-edge);
+  font-size: var(--step--3);
+}
+/* The rule keeps its distance from the kind line, whatever the plate's height. */
+.cyc-plate > .cyc-line:nth-child(2) {
+  margin-bottom: 0.4rem;
+}
+.cyc-offers {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+}
+.cyc-offers b {
+  font-weight: 600;
+  color: var(--ink);
+}
+/* Best offer, then the floor, dot-separated. */
+.cyc-offers > * + *::before {
+  content: "·";
+  margin: 0 0.35rem;
+  color: var(--ink-4);
+}
+.cyc-offers-none {
+  color: var(--ink-3);
+}
+
+/* ----------------------------------------------------------------- foil */
+
+/*
+ * Over the art and the plate, under the buttons, never taking a click. It
+ * prints through the dot grid like the reference: full strength on the dots,
+ * half between them. Resting at a fixed angle; under a mouse it follows.
+ */
+.cyc-foil,
+.cyc-glare {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+/*
+ * A band, not a wash (owner, 2026-11-12: "should not cover all that space at
+ * a time"): the colour sits in the middle 6% of a gradient four times the
+ * card's size, so a stripe about a quarter of the card wide carries it at
+ * once, and the pointer slides it across.
+ */
+.cyc-foil {
+  mix-blend-mode: var(--cy-foil-blend);
+  background-size: 400% 400%;
+  background-position: var(--fx, 42%) var(--fy, 40%);
+  transition: background-position 600ms var(--ease);
+  -webkit-mask-image: radial-gradient(circle, var(--ink) 0.9px, color-mix(in srgb, var(--ink) 55%, transparent) 1.35px);
+  mask-image: radial-gradient(circle, var(--ink) 0.9px, color-mix(in srgb, var(--ink) 55%, transparent) 1.35px);
+  -webkit-mask-size: 4px 4px;
+  mask-size: 4px 4px;
+}
+.cyc.is-live .cyc-foil {
+  transition: none;
+}
+
+.cyc-rare .cyc-foil,
+.cyc-epic .cyc-foil {
+  background-image: linear-gradient(
+    115deg,
+    transparent 46.6%,
+    var(--cy-foil-1) 47.6%,
+    var(--cy-foil-2) 48.6%,
+    var(--cy-foil-3) 49.6%,
+    var(--cy-foil-4) 50.6%,
+    var(--cy-foil-5) 51.6%,
+    var(--cy-foil-6) 52.6%,
+    transparent 53.6%
+  );
+}
+.cyc-rare .cyc-foil {
+  opacity: var(--cy-foil-rare);
+}
+.cyc-epic .cyc-foil {
+  opacity: var(--cy-foil-epic);
+}
+
+.cyc-legendary .cyc-foil {
+  opacity: var(--cy-foil-legendary);
+  background-image: linear-gradient(
+    115deg,
+    transparent 46.4%,
+    var(--cy-gold-1) 47.6%,
+    var(--cy-gold-2) 48.8%,
+    var(--cy-gold-3) 50%,
+    var(--cy-gold-4) 51.2%,
+    var(--cy-gold-1) 52.4%,
+    transparent 53.6%
+  );
+}
+
+/* A soft light where the pointer is, on every card. */
+.cyc-glare {
+  background: radial-gradient(circle at var(--px, 50%) var(--py, 30%), var(--cy-glare), transparent 28%);
+  opacity: 0;
+  transition: opacity var(--med);
+}
+.cyc.is-live .cyc-glare {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cyc:hover {
+    transform: none;
+  }
+  .cyc-foil {
+    transition: none;
+  }
+}
+
+/* --------------------------------------------------------------- phones */
+
+@media (max-width: 700px) {
+  .cyc {
+    padding: 5px;
+  }
+  .cyc-art {
+    border-radius: calc(var(--r-md) - 7px);
+  }
+  .cyc-plate {
+    gap: 0.2rem;
+    padding: 0.55rem 0.2rem 0;
+  }
+  .cyc-no {
+    font-size: var(--step-0);
+  }
+  .cyc-price {
+    font-size: var(--step--1);
+  }
+  .cyc-kind {
+    font-size: 0.5625rem;
+    letter-spacing: 0.12em;
+  }
+  .cyc-foot {
+    min-height: 2.2rem;
+    padding-top: 0.4rem;
+  }
+  /* Two buttons leave no room for the line that says nothing. */
+  .cyc-foot:has(.tcard-buy-btn):has(.tcard-offer-btn) .cyc-offers-none {
+    display: none;
+  }
+}

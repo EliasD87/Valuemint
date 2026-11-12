@@ -21,6 +21,8 @@ import { useNextDraw } from "@/hooks/useNextDraw";
 import { DrawBadge } from "@/components/DrawBadge";
 import { useT } from "@/lib/i18n";
 import { GenesisFrame } from "@/components/GenesisFrame";
+import { CybereatorCard } from "@/components/CybereatorCard";
+import { CYBEREATOR } from "@/lib/cybereator";
 import "./TokenCard.css";
 import { Soso } from "@/components/Soso";
 
@@ -145,7 +147,16 @@ function sameCard(a: Props, b: Props): boolean {
 
 export const TokenCard = memo(TokenCardView, sameCard);
 
-function TokenCardView({
+/**
+ * Cybereator has a card of its own (components/CybereatorCard.tsx, owner
+ * 2026-11-12); every other collection gets the one below. Two components
+ * rather than a branch inside one, so neither carries the other's hooks.
+ */
+function TokenCardView(props: Props) {
+  return props.collection.toLowerCase() === CYBEREATOR ? <CybereatorCard {...props} /> : <GenericCard {...props} />;
+}
+
+function GenericCard({
   token,
   collection,
   collectionName,
