@@ -255,11 +255,11 @@ export function CollectionView({ params, seed }: { params: Promise<{ address: st
     const out = [...ids];
     for (const id of listedIds) if (!seen.has(id.toString())) (seen.add(id.toString()), out.push(id));
     /* "Opened" shows every opened piece, not only those in the first window. */
-    if (seal === "opened" && opened !== undefined) {
+    if (isCybereator && seal === "opened" && opened !== undefined) {
       for (const id of opened) if (!seen.has(id)) (seen.add(id), out.push(BigInt(id)));
     }
     return out;
-  }, [ids, listedIds, seal, opened]);
+  }, [ids, listedIds, seal, opened, isCybereator]);
 
   /**
    * Only while the items tab is open.
@@ -293,7 +293,8 @@ export function CollectionView({ params, seed }: { params: Promise<{ address: st
     const priceOf = (id: bigint) => bestListings.get(`${prefix}${id}`)?.priceWei;
     const rosterOrder = ROSTER_ORDERED.has((collection ?? "").toLowerCase());
     const rows = shownIds.filter(
-      (id) => seal === "all" || (opened !== undefined && (seal === "opened") === opened.has(id.toString())),
+      /* Opened / Sealed is Cybereator's alone; every other collection shows everything. */
+      (id) => !isCybereator || seal === "all" || (opened !== undefined && (seal === "opened") === opened.has(id.toString())),
     );
     return rows.sort((a, b) => {
       if (sort === "id-asc") return a < b ? -1 : a > b ? 1 : 0;
@@ -314,7 +315,7 @@ export function CollectionView({ params, seed }: { params: Promise<{ address: st
       const n = pa < pb ? -1 : pa > pb ? 1 : 0;
       return sort === "price-asc" ? n : -n;
     });
-  }, [shownIds, seal, opened, sort, bestListings, collection]);
+  }, [shownIds, seal, opened, sort, bestListings, collection, isCybereator]);
 
   /** How many cards are drawn; grows a page at a time as the reader scrolls. */
   const [visible, setVisible] = useState(PAGE);
