@@ -9,9 +9,11 @@ const ZONE = "0x00000000000000000000000000000000005ea1ed";
 vi.mock("@/lib/cybereator", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/cybereator")>()),
   CYBEREATOR_SEALED_ZONE: "0x00000000000000000000000000000000005ea1ed",
+  CYBEREATOR_OPENED_ZONE: "0x0000000000000000000000000000000000093e4d",
 }));
+const OPENED_ZONE = "0x0000000000000000000000000000000000093e4d";
 
-const { OrderType, buildOffer, isSealedOnlyBid, readOrder, unsafeReason } = await import("./seaport");
+const { OrderType, buildOffer, isOpenedOnlyBid, isSealedOnlyBid, readOrder, unsafeReason } = await import("./seaport");
 const { CYBEREATOR } = await import("@/lib/cybereator");
 
 const BIDDER = "0x1111111111111111111111111111111111111111" as const;
@@ -87,5 +89,24 @@ describe("Unopened (sealed-only) Cybereator offers", () => {
       totalOriginalConsiderationItems: 1n,
     };
     expect(unsafeReason(listing)).toBe("order-names-a-zone");
+  });
+
+  it("Any opened: built with its own zone, passes, reads back as openedOnly and never as Unopened", () => {
+    for (const q of [1n, 3n]) {
+      const p = buildOffer({ bidder: BIDDER, collection: cyber, priceWei: TEN, openedOnly: true, ...(q > 1n ? { quantity: q } : {}) });
+      expect(p.zone).toBe(OPENED_ZONE);
+      expect(p.orderType).toBe(q > 1n ? OrderType.PARTIAL_RESTRICTED : OrderType.FULL_RESTRICTED);
+      expect(unsafeReason(p)).toBeUndefined();
+      expect(isOpenedOnlyBid(p)).toBe(true);
+      expect(isSealedOnlyBid(p)).toBe(false);
+      const read = readOrder(p)!;
+      expect(read.openedOnly).toBe(true);
+      expect(read.sealedOnly).toBeUndefined();
+    }
+    expect(() => buildOffer({ bidder: BIDDER, collection: cyber, priceWei: TEN, openedOnly: true, sealedOnly: true })).toThrow();
+    expect(() => buildOffer({ bidder: BIDDER, collection: OTHER, priceWei: TEN, openedOnly: true })).toThrow();
+    const p = buildOffer({ bidder: BIDDER, collection: cyber, priceWei: TEN, openedOnly: true });
+    expect(unsafeReason({ ...p, orderType: OrderType.FULL_OPEN })).toBeDefined();
+    expect(unsafeReason({ ...p, consideration: p.consideration.map((c, i) => (i === 0 ? { ...c, token: OTHER } : c)) })).toBeDefined();
   });
 });

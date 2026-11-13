@@ -201,7 +201,7 @@ export function OfferInbox({
       const matches = holdings.filter(
         (h) =>
           h.collection.toLowerCase() === offer.collection.toLowerCase() &&
-          (offer.tokenId === undefined ? anyApplies(h.id, h.collection) : offer.tokenId === h.id),
+          (offer.tokenId === undefined ? anyApplies(h.id, h.collection, offer.openedOnly === true) : offer.tokenId === h.id),
       );
       const match = matches[0];
       if (match === undefined) continue;
@@ -482,7 +482,7 @@ function InboxRow({
           {row.trait !== undefined
             ? tr("for {trait} · ", { trait: row.trait })
             : offer.tokenId === undefined
-              ? tr(offer.sealedOnly === true ? "for an unopened piece · " : "for any piece · ")
+              ? tr(offer.sealedOnly === true ? "for an unopened piece · " : offer.openedOnly === true ? "for an opened piece · " : "for any piece · ")
               : ""}
           {offer.amount > 1n ? tr("wants {count} · ", { count: remainingPieces(offer).toString() }) : ""}
           {withSlots(tr("from {maker}"), { maker: <AddressLink address={offer.maker} chars={4} /> })} ·{" "}
@@ -577,7 +577,7 @@ function InboxRow({
           offer={offer}
           eligible={row.choices.map((c) => c.token.id)}
           bounds={bounds}
-          label={row.trait ?? (offer.sealedOnly === true ? "Unopened" : "Any piece")}
+          label={row.trait ?? (offer.sealedOnly === true ? "Unopened" : offer.openedOnly === true ? "Any opened" : "Any piece")}
           onClose={() => {
             setSellingMany(false);
             // Whatever was sold has left the wallet: re-read the pieces and the book.

@@ -205,7 +205,7 @@ export function Offers({
                 <span className="offers-who">
                   {mineRow ? t("You") : <AddressLink address={o.maker} chars={4} />}
                   <span className="offers-when">
-                    {o.trait !== undefined ? `${o.trait} · ` : o.tokenId === undefined ? t(o.sealedOnly === true ? "Unopened · " : "any piece · ") : ""}
+                    {o.trait !== undefined ? `${o.trait} · ` : o.tokenId === undefined ? t(o.sealedOnly === true ? "Unopened · " : o.openedOnly === true ? "Any opened · " : "any piece · ") : ""}
                     {o.amount > 1n
                       ? t("{left} of {total} wanted · ", {
                           left: remainingPieces(o).toString(),

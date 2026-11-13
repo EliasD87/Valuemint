@@ -280,3 +280,4 @@
 .co-ladder-legendary .sel-value { color: var(--legendary); }
 /* "Unopened" (Cybereator): the sealed colour, as on the Opened / Sealed filter. */
 .co-ladder-unopened .sel-value { color: var(--warn); }
+.co-ladder-anyopened .sel-value { color: var(--up); }

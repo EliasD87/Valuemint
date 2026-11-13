@@ -29,6 +29,18 @@ export const CYBEREATOR_OPENER = "0x8f26671664ad6940df88e70f77a6d24b20c79a15";
 export const CYBEREATOR_SEALED_ZONE: `0x${string}` | undefined = "0x96c865b0ce2c0419ecdb0e572cd221f939fe80b1";
 
 /**
+ * OpenedOnlyZone (contracts/contracts/OpenedOnlyZone.sol): the guard behind
+ * "Any opened" offers, the mirror of the one above. It refuses any fill that
+ * delivers a piece the opener does NOT report as opened, so a piece opened
+ * after the offer was placed can still accept it (owner, 2026-11-13: a fixed
+ * list left those holders out). No owner, no admin.
+ *
+ * Undefined until it is deployed (contracts/scripts/deploy-opened-zone.ts);
+ * the site offers "Any opened" only once this is set, lower-case.
+ */
+export const CYBEREATOR_OPENED_ZONE: `0x${string}` | undefined = undefined;
+
+/**
  * Cybereator's image CDN (Cloudflare in front of the bucket below), sent by the
  * team on 2026-11-10. Same paths, same files, a year's cache: measured from
  * Addis Ababa at 0.4 s for a 1.3 MB PNG once warm, against 2-10 s from Tokyo.

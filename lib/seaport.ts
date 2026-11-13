@@ -1,6 +1,6 @@
 import { zeroAddress, zeroHash, type Address, type Hex } from "viem";
 import { deployment } from "@/config/contracts";
-import { CYBEREATOR, CYBEREATOR_SEALED_ZONE } from "@/lib/cybereator";
+import { CYBEREATOR, CYBEREATOR_OPENED_ZONE, CYBEREATOR_SEALED_ZONE } from "@/lib/cybereator";
 
 /**
  * The one zone an order may name: Cybereator's SealedOnlyZone, and only on the
@@ -8,6 +8,17 @@ import { CYBEREATOR, CYBEREATOR_SEALED_ZONE } from "@/lib/cybereator";
  * until it is deployed, and then no order may name any zone at all.
  */
 export const SEALED_ZONE: Address | undefined = CYBEREATOR_SEALED_ZONE as Address | undefined;
+
+/** The second one: Cybereator's OpenedOnlyZone, on the same shape ("Any opened"). */
+export const OPENED_ZONE: Address | undefined = CYBEREATOR_OPENED_ZONE as Address | undefined;
+
+/** Which guard an order names, if it is one of ours. */
+function guardOf(zone: Address): "sealed" | "opened" | undefined {
+  const z = zone.toLowerCase();
+  if (SEALED_ZONE !== undefined && z === SEALED_ZONE.toLowerCase()) return "sealed";
+  if (OPENED_ZONE !== undefined && z === OPENED_ZONE.toLowerCase()) return "opened";
+  return undefined;
+}
 
 /**
  * Building Seaport orders.
@@ -235,6 +246,11 @@ interface OfferInput {
    * which refuses any piece already opened.
    */
   sealedOnly?: boolean;
+  /**
+   * Cybereator only, likewise: an "Any opened" offer, restricted to
+   * OPENED_ZONE, which refuses any piece not yet opened at the moment of sale.
+   */
+  openedOnly?: boolean;
   /** What the bidder pays for ONE piece, fee included. */
   priceWei: bigint;
   /**
@@ -289,11 +305,19 @@ export function buildOffer(input: OfferInput): OrderParameters {
   const fee = splitFee(input.priceWei).fee * quantity;
   const total = input.priceWei * quantity;
   const sealedOnly = input.sealedOnly === true;
+  const openedOnly = input.openedOnly === true;
+  if (sealedOnly && openedOnly) throw new Error("An offer is Unopened or Any opened, not both.");
   if (sealedOnly) {
     if (SEALED_ZONE === undefined) throw new Error("Unopened offers are not available yet.");
     if (!anyToken || input.criteria !== undefined) throw new Error("An Unopened offer is on any sealed piece, not a token or a trait.");
     if (input.collection.toLowerCase() !== CYBEREATOR) throw new Error("Unopened offers are for Cybereator only.");
   }
+  if (openedOnly) {
+    if (OPENED_ZONE === undefined) throw new Error("Any opened offers are not available yet.");
+    if (!anyToken || input.criteria !== undefined) throw new Error("An Any opened offer is on any opened piece, not a token or a trait.");
+    if (input.collection.toLowerCase() !== CYBEREATOR) throw new Error("Any opened offers are for Cybereator only.");
+  }
+  const guard = sealedOnly ? SEALED_ZONE : openedOnly ? OPENED_ZONE : undefined;
 
   const consideration: ConsiderationItem[] = [
     {
@@ -326,8 +350,8 @@ export function buildOffer(input: OfferInput): OrderParameters {
 
   return {
     offerer: input.bidder,
-    /* Restricted only for an Unopened offer: that is what makes Seaport ask the zone. */
-    zone: sealedOnly ? SEALED_ZONE! : ZONE,
+    /* Restricted only for a guarded offer: that is what makes Seaport ask the zone. */
+    zone: guard ?? ZONE,
     offer: [
       {
         itemType: ItemType.ERC20,
@@ -338,7 +362,7 @@ export function buildOffer(input: OfferInput): OrderParameters {
       },
     ],
     consideration,
-    orderType: sealedOnly
+    orderType: guard !== undefined
       ? quantity > 1n
         ? OrderType.PARTIAL_RESTRICTED
         : OrderType.FULL_RESTRICTED
@@ -420,6 +444,8 @@ export interface ReadOrder {
    * this before calling one "any piece".
    */
   sealedOnly?: true;
+  /** An "Any opened" offer (`isOpenedOnlyBid`): any Cybereator already opened at the moment of sale. */
+  openedOnly?: true;
 }
 
 /**
@@ -601,11 +627,12 @@ export function unsafeReason(p: OrderParameters): UnsafeReason | undefined {
     refuse a fill delivering an opened piece; `isSealedOnlyBid` checks the rest
     of the shape, and the bid rules below still apply to it in full.
   */
-  const sealed = SEALED_ZONE !== undefined && p.zone.toLowerCase() === SEALED_ZONE.toLowerCase();
+  /* "sealed" here means either guard: SealedOnlyZone or OpenedOnlyZone, same shape. */
+  const sealed = guardOf(p.zone) !== undefined;
   if (p.zone !== zeroAddress && !sealed) return "order-names-a-zone";
   if (p.zoneHash !== zeroHash) return "order-names-a-zone";
   if (sealed) {
-    if (!isSealedOnlyBid(p)) return "order-names-a-zone";
+    if (!isGuardedBid(p)) return "order-names-a-zone";
   } else if (p.orderType !== OrderType.FULL_OPEN && p.orderType !== OrderType.PARTIAL_OPEN) {
     return "order-type-unsupported";
   }
@@ -813,7 +840,17 @@ export const isSafeOrder = (p: OrderParameters): boolean => unsafeReason(p) === 
  * repeated here; `unsafeReason` applies them to this shape like any other bid.
  */
 export function isSealedOnlyBid(p: OrderParameters): boolean {
-  if (SEALED_ZONE === undefined || p.zone.toLowerCase() !== SEALED_ZONE.toLowerCase()) return false;
+  return guardOf(p.zone) === "sealed" && isGuardedBid(p);
+}
+
+/** The same for an "Any opened" bid: OPENED_ZONE on exactly that shape. */
+export function isOpenedOnlyBid(p: OrderParameters): boolean {
+  return guardOf(p.zone) === "opened" && isGuardedBid(p);
+}
+
+/** The shape both guarded bids share, whichever of our two zones it names. */
+function isGuardedBid(p: OrderParameters): boolean {
+  if (guardOf(p.zone) === undefined) return false;
   if (p.zoneHash !== zeroHash) return false;
   if (p.orderType !== OrderType.FULL_RESTRICTED && p.orderType !== OrderType.PARTIAL_RESTRICTED) return false;
   if (p.offer.length !== 1 || p.offer[0]!.itemType !== ItemType.ERC20) return false;
@@ -913,6 +950,7 @@ export function readOrder(p: OrderParameters): ReadOrder | undefined {
       amount: pieces,
       endTime: p.endTime,
       ...(isSealedOnlyBid(p) ? { sealedOnly: true as const } : {}),
+      ...(isOpenedOnlyBid(p) ? { openedOnly: true as const } : {}),
     };
   }
 

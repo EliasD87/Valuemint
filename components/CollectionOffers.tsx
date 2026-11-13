@@ -12,7 +12,7 @@ import { OfferForm, useCollectionOfferTarget } from "@/components/OfferForm";
 import { Select } from "@/components/Select";
 import { Soso } from "@/components/Soso";
 import { formatSoso } from "@/lib/format";
-import { SEALED_ZONE, currencyLabel, remainingPieces, type SeaportOrder } from "@/lib/seaport";
+import { OPENED_ZONE, SEALED_ZONE, currencyLabel, remainingPieces, type SeaportOrder } from "@/lib/seaport";
 import { SellIntoOffer } from "@/components/SellIntoOffer";
 import { useT } from "@/lib/i18n";
 import { CYBEREATOR } from "@/lib/cybereator";
@@ -144,7 +144,7 @@ export function CollectionOffers({ collection }: { collection: `0x${string}` }) 
   /** Every piece the viewer holds that this offer can take. */
   const piecesFor = (o: SeaportOrder): bigint[] => {
     if (isMine(o)) return [];
-    if (o.criteria === undefined || o.criteria === 0n) return myIds.filter((id) => anyApplies(id));
+    if (o.criteria === undefined || o.criteria === 0n) return myIds.filter((id) => anyApplies(id, undefined, o.openedOnly === true));
     const key = rootKey(o.criteria);
     return myIds.filter((_, n) => memberships[n]?.data?.has(key) === true);
   };
@@ -214,9 +214,11 @@ export function CollectionOffers({ collection }: { collection: `0x${string}` }) 
     const byKey = new Map<string, { key: string; type?: string; value: string; offers: SeaportOrder[] }>();
     /* An Unopened offer (sealedOnly) is its own row: it is not "any piece". */
     const unopenedOffers = anyPiece.filter((o) => o.sealedOnly === true);
-    const plainOffers = anyPiece.filter((o) => o.sealedOnly !== true);
+    const anyOpenedOffers = anyPiece.filter((o) => o.openedOnly === true);
+    const plainOffers = anyPiece.filter((o) => o.sealedOnly !== true && o.openedOnly !== true);
     if (plainOffers.length > 0) byKey.set("any", { key: "any", value: "Any piece", offers: plainOffers });
     if (unopenedOffers.length > 0) byKey.set("unopened", { key: "unopened", value: "Unopened", offers: unopenedOffers });
+    if (anyOpenedOffers.length > 0) byKey.set("anyopened", { key: "anyopened", value: "Any opened", offers: anyOpenedOffers });
     for (const { offer, set } of traits) {
       const key = traitLabel(set);
       const g = byKey.get(key) ?? { key, type: set.traitType, value: set.value, offers: [] };
@@ -311,6 +313,8 @@ const RARITY_FIRST = ["tier", "level", "rarity", "depth"];
 
 /** The rarity dropdown's value for Cybereator's "Unopened"; no trait value looks like it. */
 const UNOPENED = "__unopened__";
+/** The same for "Any opened" (OpenedOnlyZone). */
+const ANY_OPENED = "__anyopened__";
 const traitRank = (t: string) => {
   const i = RARITY_FIRST.indexOf(t.toLowerCase());
   return i === -1 ? RARITY_FIRST.length : i;
@@ -379,19 +383,30 @@ function CollectionOfferDialog({
   const canUnopened = opened && SEALED_ZONE !== undefined;
   const [unopenedPicked, setUnopenedPicked] = useState(false);
   const unopened = canUnopened && unopenedPicked;
+  /*
+    "Any opened" (owner, 2026-11-13): asked of the opener at the moment of
+    sale, so a piece opened after the offer was placed can still accept it.
+    It replaces the fixed-list "Rarity: Any", which left those holders out.
+  */
+  const canAnyOpened = opened && OPENED_ZONE !== undefined;
+  const [anyOpenedPicked, setAnyOpenedPicked] = useState(false);
+  const anyOpened = canAnyOpened && anyOpenedPicked;
+  const guard: false | "sealed" | "opened" = unopened ? "sealed" : anyOpened ? "opened" : false;
   const activeType = type !== "" && types.includes(type) ? type : (types[0] ?? "");
   /** Most common first, which puts a rarity ladder in its own order: Common down to the rarest. */
   const values = sets.filter((s) => s.traitType === activeType).sort((a, b) => b.count - a.count);
-  const levels = sets.filter((s) => s.traitType === ladderType).sort((a, b) => ladderOrder(a, b));
+  const levels = sets
+    .filter((s) => s.traitType === ladderType && !(canAnyOpened && s.value === "Any"))
+    .sort((a, b) => ladderOrder(a, b));
   const chosen = byTrait
     ? (values.find((s) => s.value === value) ?? values[0])
     : (levels.find((s) => s.value === level) ?? levels[0]);
 
   const trait =
-    scope === "trait" && chosen !== undefined && !unopened
+    scope === "trait" && chosen !== undefined && guard === false
       ? { root: chosen.root, label: traitLabel(chosen), count: chosen.count, bound }
       : undefined;
-  const target = useCollectionOfferTarget(collection, trait, unopened);
+  const target = useCollectionOfferTarget(collection, trait, guard);
 
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
@@ -489,14 +504,16 @@ function CollectionOfferDialog({
                 <div className="co-ladder">
                   <Select
                     label={tr(ladderType)}
-                    className={`co-ladder-pick co-ladder-${unopened ? "unopened" : chosen.value.toLowerCase()}`}
-                    value={unopened ? UNOPENED : chosen.value}
+                    className={`co-ladder-pick co-ladder-${unopened ? "unopened" : anyOpened ? "anyopened" : chosen.value.toLowerCase()}`}
+                    value={unopened ? UNOPENED : anyOpened ? ANY_OPENED : chosen.value}
                     onChange={(v) => {
                       setUnopenedPicked(v === UNOPENED);
-                      if (v !== UNOPENED) setLevel(v);
+                      setAnyOpenedPicked(v === ANY_OPENED);
+                      if (v !== UNOPENED && v !== ANY_OPENED) setLevel(v);
                     }}
                     options={[
                       ...(canUnopened ? [{ value: UNOPENED, label: tr("Unopened"), note: tr("sealed only") }] : []),
+                      ...(canAnyOpened ? [{ value: ANY_OPENED, label: tr("Any opened"), note: tr("any rarity") }] : []),
                       ...levels.map((s) => ({ value: s.value, label: tr(s.value), note: countNote(s.count) })),
                     ]}
                   />
@@ -524,6 +541,10 @@ function CollectionOfferDialog({
               {unopened ? (
                 <p className="co-pick-note">
                   {tr("Covers any Cybereator still sealed when it is sold to you. If a piece is opened before the sale, the chain refuses it and your offer stays up.")}
+                </p>
+              ) : anyOpened ? (
+                <p className="co-pick-note">
+                  {tr("Covers any Cybereator already opened when it is sold to you, any rarity, including pieces opened after you place the offer. A sealed piece is refused on chain.")}
                 </p>
               ) : bound !== undefined && opened ? (
                 /* Cybereator: every piece opened so far with the trait. A

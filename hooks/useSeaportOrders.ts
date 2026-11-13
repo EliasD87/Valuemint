@@ -736,7 +736,9 @@ export function useOffersForToken(collection: Address | undefined, tokenId: bigi
         .filter((o) => o.kind === "offer" && o.fillable)
         .filter((o) => sameAddress(o.collection, collection))
         .filter((o) =>
-          o.tokenId === undefined ? tokenId !== undefined && anyApplies(tokenId) : tokenId !== undefined && o.tokenId === tokenId,
+          o.tokenId === undefined
+            ? tokenId !== undefined && anyApplies(tokenId, undefined, o.openedOnly === true)
+            : tokenId !== undefined && o.tokenId === tokenId,
         )
         .sort((a, b) => (b.priceWei > a.priceWei ? 1 : b.priceWei < a.priceWei ? -1 : 0)),
     [orders, collection, tokenId, anyApplies],

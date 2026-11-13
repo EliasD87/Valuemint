@@ -43,13 +43,17 @@ export type SealFilter = "all" | "opened" | "sealed";
  *
  * Every other collection: always.
  */
-export function useAnyPieceApplies(collection: string | undefined): (tokenId: bigint, pieceCollection?: string) => boolean {
+export function useAnyPieceApplies(
+  collection: string | undefined,
+): (tokenId: bigint, pieceCollection?: string, openedOnly?: boolean) => boolean {
   const watching = collection === undefined || collection.toLowerCase() === CYBEREATOR;
   const opened = useCybereatorOpened(watching);
   return useCallback(
-    (tokenId: bigint, pieceCollection?: string) => {
+    (tokenId: bigint, pieceCollection?: string, openedOnly = false) => {
       const c = (pieceCollection ?? collection)?.toLowerCase();
-      if (c !== CYBEREATOR) return true;
+      if (c !== CYBEREATOR) return !openedOnly;
+      /* An "Any opened" offer (OpenedOnlyZone) is the reverse: opened pieces only. */
+      if (openedOnly) return opened !== undefined && opened.has(tokenId.toString());
       return opened !== undefined && !opened.has(tokenId.toString());
     },
     [collection, opened],
