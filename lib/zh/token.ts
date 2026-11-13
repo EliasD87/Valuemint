@@ -484,12 +484,4 @@ export const ZH_TOKEN: Record<string, string> = {
   "Trait offer": "特征出价",
   "{left} of {total} left · ": "{total} 件剩余 {left} 件 · ",
   "Withdrawing…": "撤回中…",
-  "1 older offer for this rarity doesn't include this piece: it was opened after the offer was placed.": "有 1 个较早的同稀有度出价不包含这件藏品：它是在该出价之后才开盒的。",
-  "{count} older offers for this rarity don't include this piece: it was opened after they were placed.": "有 {count} 个较早的同稀有度出价不包含这件藏品：它是在这些出价之后才开盒的。",
-  "Covers the first {bound} opened · {behind} opened since can't accept it": "覆盖最早开盒的 {bound} 件 · 之后开盒的 {behind} 件无法接受",
-  Update: "更新",
-  "Update this offer": "更新这个出价",
-  "Places a new Any opened offer, which every opened piece can accept, including ones opened later. Then withdraws this one: two wallet prompts.": "先发布一个新的任意已开盒出价，所有已开盒藏品都能接受，包括之后才开盒的。然后撤回这个出价：钱包会提示两次。",
-  "Places the same offer over the {count} pieces opened now, then withdraws this one: two wallet prompts.": "按目前已开盒的 {count} 件重新发布相同的出价，然后撤回这个出价：钱包会提示两次。",
-  "This trait is not offered right now. Withdraw the offer instead.": "目前无法对这个特征出价。请改为撤回出价。",
 };

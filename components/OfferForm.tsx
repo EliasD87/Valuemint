@@ -90,11 +90,8 @@ export function OfferForm({
   replacing,
   onDone,
   onPlaced,
-  initial,
 }: {
   target: OfferTarget;
-  /** Start from these, e.g. when an older offer is being re-placed (MyOffers "Update"). */
-  initial?: { amount?: string; count?: string };
   /** True when the connected wallet already has a standing offer here. */
   replacing: boolean;
   onDone: () => void;
@@ -105,10 +102,10 @@ export function OfferForm({
   onPlaced?: () => void;
 }) {
   const tr = useT();
-  const [amount, setAmount] = useState(initial?.amount ?? "");
+  const [amount, setAmount] = useState("");
   const [days, setDays] = useState(7);
   /** How many pieces, as typed. Only on a batch-capable target; blank reads as one. */
-  const [count, setCount] = useState(initial?.count ?? "1");
+  const [count, setCount] = useState("1");
   const quantity = target.batch === true ? clampQuantity(count) : 1n;
 
   /**

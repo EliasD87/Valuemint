@@ -1,18 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
-import { createPortal } from "react-dom";
-import { formatEther } from "viem";
+import { useMemo } from "react";
 import { useOrdersBy } from "@/hooks/useSeaportOrders";
 import { useSeaportTrade } from "@/hooks/useSeaportTrade";
-import { boundsOf, rootKey, traitLabel, useCriteriaSets, type TraitSetSummary } from "@/hooks/useCriteria";
-import { boundOfSalt } from "@/lib/criteria";
-import { CYBEREATOR } from "@/lib/cybereator";
-import { OPENED_ZONE } from "@/lib/seaport";
-import { OfferForm, useCollectionOfferTarget } from "@/components/OfferForm";
-import "@/components/OfferDialog.css";
-import "@/components/CollectionOffers.css";
+import { boundsOf, rootKey, traitLabel, useCriteriaSets } from "@/hooks/useCriteria";
 import { useAllCollections } from "@/hooks/useAllCollections";
 import type { SeaportOrder } from "@/hooks/useSeaportOrders";
 import { formatSosoFixed, shortAddress } from "@/lib/format";
@@ -179,28 +171,8 @@ function OfferRow({ order, name, own }: { order: SeaportOrder; name: string; own
    * it. It is never called "Any piece".
    */
   const isTrait = order.criteria !== undefined && order.criteria !== 0n;
-  const { byRoot, bound: currentBound, sets: currentSets } = useCriteriaSets(
-    isTrait ? order.collection : undefined,
-    boundsOf([order]),
-  );
+  const { byRoot } = useCriteriaSets(isTrait ? order.collection : undefined, boundsOf([order]));
   const set = isTrait ? byRoot.get(rootKey(order.criteria!)) : undefined;
-
-  /*
-    A Cybereator trait offer is a fixed list: the pieces opened when it was
-    placed (2026-11-13). Holders of pieces opened since see it nowhere and
-    asked why, so its maker is told how far behind it is, and can update it:
-    the same trait over everything opened now, or "Any opened" for Any.
-  */
-  const offerBound = isTrait ? boundOfSalt(order.params.salt) : undefined;
-  const behind =
-    order.collection.toLowerCase() === CYBEREATOR &&
-    set !== undefined &&
-    offerBound !== undefined &&
-    currentBound !== undefined &&
-    currentBound > offerBound
-      ? currentBound - offerBound
-      : 0n;
-  const [updating, setUpdating] = useState(false);
   const piece =
     order.tokenId !== undefined
       ? `#${order.tokenId.toString()}`
@@ -216,14 +188,6 @@ function OfferRow({ order, name, own }: { order: SeaportOrder; name: string; own
     <>
       <b>{piece}</b>
       <span className="tr-l2 tr-coll">{name}</span>
-      {behind > 0n ? (
-        <span className="tr-l2">
-          {t("Covers the first {bound} opened · {behind} opened since can't accept it", {
-            bound: offerBound!.toString(),
-            behind: behind.toString(),
-          })}
-        </span>
-      ) : null}
     </>
   );
 
@@ -264,16 +228,6 @@ function OfferRow({ order, name, own }: { order: SeaportOrder; name: string; own
 
       {own ? (
         <td className="tr-act">
-          {behind > 0n ? (
-            <button
-              type="button"
-              className="btn btn-sm btn-primary act-withdraw"
-              disabled={trade.busy}
-              onClick={() => setUpdating(true)}
-            >
-              {t("Update")}
-            </button>
-          ) : null}
           <button
             type="button"
             className="btn btn-sm act-withdraw"
@@ -282,109 +236,8 @@ function OfferRow({ order, name, own }: { order: SeaportOrder; name: string; own
           >
             {trade.busy ? t("Withdrawing…") : t("Withdraw")}
           </button>
-          {updating && set !== undefined && currentBound !== undefined ? (
-            <UpdateOffer
-              order={order}
-              set={set}
-              currentSets={currentSets}
-              currentBound={currentBound}
-              onPlaced={() => {
-                setUpdating(false);
-                /* The new offer is on chain; now take the old one down. */
-                trade.cancelOrder(order);
-              }}
-              onClose={() => setUpdating(false)}
-            />
-          ) : null}
         </td>
       ) : null}
     </tr>
-  );
-}
-
-/**
- * Re-place a Cybereator trait offer over everything opened now.
- *
- * The new offer goes up first, through the ordinary offer form (same price
- * each, same pieces still wanted), so the bidder is never left without a bid
- * and the form's own wrap and allowance steps apply. Only once it is placed is
- * the old one withdrawn: a second wallet prompt. "Rarity: Any" becomes "Any
- * opened", which never falls behind again.
- */
-function UpdateOffer({
-  order,
-  set,
-  currentSets,
-  currentBound,
-  onPlaced,
-  onClose,
-}: {
-  order: SeaportOrder;
-  set: TraitSetSummary;
-  currentSets: TraitSetSummary[];
-  currentBound: bigint;
-  onPlaced: () => void;
-  onClose: () => void;
-}) {
-  const t = useT();
-  const isAny = set.traitType === "Rarity" && set.value === "Any";
-  const guard: false | "opened" = isAny && OPENED_ZONE !== undefined ? "opened" : false;
-  const fresh = guard === false ? currentSets.find((s) => s.traitType === set.traitType && s.value === set.value) : undefined;
-  const trait =
-    fresh === undefined
-      ? undefined
-      : { root: fresh.root, label: traitLabel(fresh), count: fresh.count, bound: currentBound };
-  const target = useCollectionOfferTarget(order.collection, trait, guard);
-  const usable = guard !== false || trait !== undefined;
-
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [onClose]);
-  if (!mounted) return null;
-
-  return createPortal(
-    <>
-      <div className="od-scrim" onClick={onClose} aria-hidden="true" />
-      <div className="od" role="dialog" aria-modal="true" aria-label={t("Update this offer")}>
-        <div className="od-head">
-          <div>
-            <p className="od-kicker">{t("Update this offer")}</p>
-            <h2>{guard === "opened" ? t("Any opened") : traitLabel(set)}</h2>
-          </div>
-          <button type="button" className="od-close" aria-label={t("Close")} onClick={onClose}>
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M6 6l12 12M18 6L6 18" />
-            </svg>
-          </button>
-        </div>
-        <div className="od-body">
-          <p className="co-pick-note">
-            {guard === "opened"
-              ? t("Places a new Any opened offer, which every opened piece can accept, including ones opened later. Then withdraws this one: two wallet prompts.")
-              : t("Places the same offer over the {count} pieces opened now, then withdraws this one: two wallet prompts.", {
-                  count: currentBound.toString(),
-                })}
-          </p>
-          {usable ? (
-            <OfferForm
-              target={target}
-              replacing
-              onDone={() => undefined}
-              onPlaced={onPlaced}
-              initial={{ amount: formatEther(order.priceWei), count: remainingPieces(order).toString() }}
-            />
-          ) : (
-            <p className="co-pick-note">{t("This trait is not offered right now. Withdraw the offer instead.")}</p>
-          )}
-        </div>
-      </div>
-    </>,
-    document.body,
   );
 }
