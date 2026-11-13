@@ -4,6 +4,7 @@ import { CYBEREATOR } from "@/lib/cybereator";
 import { CYBEREATOR_LEVELS } from "@/lib/cybereatorRarity";
 import { useCybereatorOpened, type SealFilter } from "@/hooks/useCybereatorOpened";
 import { useCriteriaSets } from "@/hooks/useCriteria";
+import { useCybereatorRarity } from "@/hooks/useCybereatorRarity";
 import type { CollectionFiguresSeed } from "@/lib/collectionFigures";
 import { Fragment, use, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
@@ -280,6 +281,26 @@ export function CollectionView({ params, seed }: { params: Promise<{ address: st
   const filtering = Object.values(traitFilter).some((v) => v !== "");
 
   /**
+   * Cybereator's Rarity filter, answered from the server's rarity list
+   * (2026-11-13) rather than by reading every opened piece's document first.
+   * It used to show "nothing matches" and then trickle cards in one by one.
+   */
+  const rarityMap = useCybereatorRarity(isCybereator);
+  const rarityPick = isCybereator ? (traitFilter.Rarity ?? "") : "";
+  /** The filters that still need documents: every trait, bar Cybereator's Rarity. */
+  const docFilters = useMemo(
+    () => Object.entries(traitFilter).filter(([type, v]) => v !== "" && !(isCybereator && type === "Rarity")),
+    [traitFilter, isCybereator],
+  );
+  /**
+   * The view is not knowable yet: the opened list, or the rarity list a
+   * filter needs, has not arrived. The grid shows loading cards, never
+   * "nothing here", for that second or two.
+   */
+  const viewPending =
+    isCybereator && ((seal !== "all" && opened === undefined) || (rarityPick !== "" && rarityMap === undefined));
+
+  /**
    * The grid in its final order, before any document is read (2026-11-10).
    *
    * The Opened / Sealed filter and every sort need only the opened list and
@@ -294,7 +315,9 @@ export function CollectionView({ params, seed }: { params: Promise<{ address: st
     const rosterOrder = ROSTER_ORDERED.has((collection ?? "").toLowerCase());
     const rows = shownIds.filter(
       /* Opened / Sealed is Cybereator's alone; every other collection shows everything. */
-      (id) => !isCybereator || seal === "all" || (opened !== undefined && (seal === "opened") === opened.has(id.toString())),
+      (id) =>
+        (!isCybereator || seal === "all" || (opened !== undefined && (seal === "opened") === opened.has(id.toString()))) &&
+        (rarityPick === "" || rarityMap?.get(id.toString()) === rarityPick),
     );
     return rows.sort((a, b) => {
       if (sort === "id-asc") return a < b ? -1 : a > b ? 1 : 0;
@@ -315,7 +338,7 @@ export function CollectionView({ params, seed }: { params: Promise<{ address: st
       const n = pa < pb ? -1 : pa > pb ? 1 : 0;
       return sort === "price-asc" ? n : -n;
     });
-  }, [shownIds, seal, opened, sort, bestListings, collection, isCybereator]);
+  }, [shownIds, seal, opened, sort, bestListings, collection, isCybereator, rarityPick, rarityMap]);
 
   /** How many cards are drawn; grows a page at a time as the reader scrolls. */
   const [visible, setVisible] = useState(PAGE);
@@ -340,7 +363,7 @@ export function CollectionView({ params, seed }: { params: Promise<{ address: st
   const docIds = useMemo(() => {
     const key = (collection ?? "").toLowerCase();
     if (requested.current.key !== key) requested.current = { key, ids: [], seen: new Set() };
-    const want = filtering ? orderedIds : orderedIds.slice(0, visible);
+    const want = docFilters.length > 0 ? orderedIds : orderedIds.slice(0, visible);
     const r = requested.current;
     let grew = false;
     for (const id of want) {
@@ -349,7 +372,7 @@ export function CollectionView({ params, seed }: { params: Promise<{ address: st
     }
     if (grew) r.ids = [...r.ids];
     return r.ids;
-  }, [collection, orderedIds, visible, filtering]);
+  }, [collection, orderedIds, visible, docFilters]);
 
   const { tokens, isLoading } = useGenericTokens(collection, tab === "items" ? docIds : []);
 
@@ -427,7 +450,7 @@ export function CollectionView({ params, seed }: { params: Promise<{ address: st
    * whose traits match. Only the first `visible` are drawn (`rendered`).
    */
   const shown = useMemo(() => {
-    const active = Object.entries(traitFilter).filter(([, v]) => v !== "");
+    const active = docFilters;
     const byId = new Map(tokens.map((t) => [t.id.toString(), t]));
     const out: typeof tokens = [];
     for (const id of orderedIds) {
@@ -442,7 +465,7 @@ export function CollectionView({ params, seed }: { params: Promise<{ address: st
       }
     }
     return out;
-  }, [tokens, orderedIds, traitFilter]);
+  }, [tokens, orderedIds, docFilters]);
   const rendered = shown.slice(0, visible);
   const moreToDraw = shown.length > visible;
 
@@ -680,7 +703,7 @@ export function CollectionView({ params, seed }: { params: Promise<{ address: st
                     {tr("It’s a valid ERC-721 and its tokens can still be traded, but it doesn’t implement the optional Enumerable extension, so there’s no way to walk its contents from the chain alone. Open a token directly if you know its id.")}
                   </p>
                 </div>
-              ) : (!supplyKnown || isLoading || findingIds) && tokens.length === 0 ? (
+              ) : viewPending || ((!supplyKnown || isLoading || findingIds) && tokens.length === 0) ? (
                 <div className="grid-tokens">
                   {Array.from({ length: 8 }, (_, i) => (
                     <TokenCardSkeleton key={i} />

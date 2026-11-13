@@ -7,7 +7,7 @@ import { tokenDocument, tokenIdsOf } from "@/lib/tokenDocument";
 import { isTransientRpcError, withRpcRetry } from "@/lib/rpcRetry";
 import { CYBEREATOR } from "@/lib/cybereator";
 import { readOpenings } from "@/lib/cybereatorOpenings";
-import { agreedOpenings, cybereatorGroups, parseGallery, type GalleryPiece } from "@/lib/cybereatorSets";
+import { agreedOpenings, cybereatorGroups, galleryLevel, parseGallery, type GalleryPiece } from "@/lib/cybereatorSets";
 
 /**
  * The token sets trait offers are made over: for one collection, every piece
@@ -408,4 +408,21 @@ async function cybereatorSetsOf(bound?: bigint): Promise<TraitSets> {
     while (cybereatorAt.size > AT_BOUND_KEPT) cybereatorAt.delete(cybereatorAt.keys().next().value!);
   }
   return { sets, bound: BigInt(current) };
+}
+
+/**
+ * Every opened Cybereator's rarity, by token id: what the collection page
+ * filters on (2026-11-13). The same agreed openings the offer sets come from,
+ * so a filter and an offer can never disagree about what is an Epic. A piece
+ * cybereator.com does not class (a one-of-one) is simply absent.
+ */
+export async function cybereatorRarities(): Promise<{ bound: number; rarity: Record<string, string> }> {
+  await cybereatorSetsOf();
+  const agreed = cybereatorNow?.agreed ?? [];
+  const rarity: Record<string, string> = {};
+  for (const p of agreed) {
+    const level = galleryLevel(p);
+    if (level !== undefined) rarity[p.id.toString()] = level;
+  }
+  return { bound: agreed.length, rarity };
 }
