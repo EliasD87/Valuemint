@@ -12,6 +12,7 @@ import { CYBEREATOR } from "@/lib/cybereator";
 import { OPENED_ZONE } from "@/lib/seaport";
 import { OfferForm, useCollectionOfferTarget } from "@/components/OfferForm";
 import "@/components/OfferDialog.css";
+import "@/components/CollectionOffers.css";
 import { useAllCollections } from "@/hooks/useAllCollections";
 import type { SeaportOrder } from "@/hooks/useSeaportOrders";
 import { formatSosoFixed, shortAddress } from "@/lib/format";
