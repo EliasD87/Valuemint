@@ -35,10 +35,11 @@ export const CYBEREATOR_SEALED_ZONE: `0x${string}` | undefined = "0x96c865b0ce2c
  * after the offer was placed can still accept it (owner, 2026-11-13: a fixed
  * list left those holders out). No owner, no admin.
  *
- * Undefined until it is deployed (contracts/scripts/deploy-opened-zone.ts);
+ * Deployed 2026-11-13, block 16,864,401 (contracts/scripts/deploy-opened-zone.ts),
+ * bytecode checked against the tested build on both RPC nodes;
  * the site offers "Any opened" only once this is set, lower-case.
  */
-export const CYBEREATOR_OPENED_ZONE: `0x${string}` | undefined = undefined;
+export const CYBEREATOR_OPENED_ZONE: `0x${string}` | undefined = "0xcd16dce14845d4b2792f377943c571fc0b7fffcb";
 
 /**
  * Cybereator's image CDN (Cloudflare in front of the bucket below), sent by the
