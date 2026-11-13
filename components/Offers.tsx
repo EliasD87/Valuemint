@@ -1,9 +1,11 @@
 "use client";
 
+import { useCybereatorRarity } from "@/hooks/useCybereatorRarity";
+import { CYBEREATOR } from "@/lib/cybereator";
 import { useEffect, useMemo } from "react";
 import { useAccount } from "wagmi";
 import { useOffersForToken, useOwnOfferExposure, useTraitOffers } from "@/hooks/useSeaportOrders";
-import { boundsOf, rootKey, traitLabel, useTokenCriteria } from "@/hooks/useCriteria";
+import { boundsOf, rootKey, traitLabel, useCriteriaSets, useTokenCriteria } from "@/hooks/useCriteria";
 import { useSeaportFill, useSeaportTrade } from "@/hooks/useSeaportTrade";
 import { useCanPayFeeInWsoso } from "@/hooks/useWsoso";
 import { formatSoso } from "@/lib/format";
@@ -92,6 +94,29 @@ export function Offers({
     );
   }, [direct, traitAll, memberships]);
 
+  /*
+    Cybereator rarity offers are fixed lists of the pieces opened when they
+    were placed (2026-11-13). Holders of pieces opened later saw offers on the
+    collection and none on their own piece, and asked why. This counts the
+    ones that would match this piece's rarity but predate its opening, so the
+    page can say so instead of looking broken.
+  */
+  const isCybereator = collection.toLowerCase() === CYBEREATOR;
+  const rarityMap = useCybereatorRarity(isCybereator);
+  const { byRoot: setNames } = useCriteriaSets(isCybereator ? collection : undefined, boundsOf(traitAll));
+  const olderMissing = useMemo(() => {
+    if (!isCybereator || rarityMap === undefined || loadingMemberships) return 0;
+    const mine = rarityMap.get(tokenId.toString());
+    if (mine === undefined) return 0;
+    return traitAll.filter((o) => {
+      if (o.criteria === undefined || o.criteria === 0n) return false;
+      const key = rootKey(o.criteria);
+      if (memberships.has(key)) return false;
+      const name = setNames.get(key);
+      return name !== undefined && name.traitType === "Rarity" && (name.value === "Any" || name.value === mine);
+    }).length;
+  }, [isCybereator, rarityMap, loadingMemberships, tokenId, traitAll, memberships, setNames]);
+
   /** Only accept and withdraw run from here; the form owns its own writes. */
   const trade = useSeaportTrade(collection);
   const fill = useSeaportFill();
@@ -156,6 +181,17 @@ export function Offers({
           </span>
         ) : null}
       </div>
+
+      {olderMissing > 0 ? (
+        <p className="offers-empty">
+          {t(
+            olderMissing === 1
+              ? "1 older offer for this rarity doesn't include this piece: it was opened after the offer was placed."
+              : "{count} older offers for this rarity don't include this piece: it was opened after they were placed.",
+            { count: olderMissing },
+          )}
+        </p>
+      ) : null}
 
       {mustApproveToken && best !== undefined ? (
         <p className="offers-approve-note">
