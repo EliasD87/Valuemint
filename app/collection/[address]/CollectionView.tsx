@@ -297,6 +297,12 @@ export function CollectionView({ params, seed }: { params: Promise<{ address: st
    * filter needs, has not arrived. The grid shows loading cards, never
    * "nothing here", for that second or two.
    */
+  /**
+   * The view holds every piece it can: Cybereator under "Opened" (all opened
+   * pieces are added, whatever the id window) or under a Rarity (the server's
+   * full list; sealed pieces have none). Paging the id window adds nothing.
+   */
+  const viewComplete = isCybereator && docFilters.length === 0 && (rarityPick !== "" || seal === "opened");
   const viewPending =
     isCybereator && ((seal !== "all" && opened === undefined) || (rarityPick !== "" && rarityMap === undefined));
 
@@ -806,7 +812,25 @@ export function CollectionView({ params, seed }: { params: Promise<{ address: st
                 or without a button under it, because the sixty-card cap used to be
                 completely silent and that was the worse half of the problem.
               */}
-              {supply !== undefined && ids.length > 0 && ids.length < Number(supply) ? (
+              {/*
+                Cybereator under "Opened" or a Rarity is already complete
+                (2026-11-21): every opened piece is in the view whatever the id
+                window, and rarities come from the server's full list. "Searched
+                120 of 3,972" and "Load 60 more" there described a search that
+                no longer happens, so it says how many there are instead, and
+                the grid draws the rest as you scroll.
+              */}
+              {viewComplete ? (
+                !viewPending && shown.length > 0 ? (
+                  <div className="coll-more">
+                    <p className="coll-more-count">
+                      {tr(shown.length === 1 ? "{count} piece" : "{count} pieces", {
+                        count: shown.length.toLocaleString(),
+                      })}
+                    </p>
+                  </div>
+                ) : null
+              ) : supply !== undefined && ids.length > 0 && ids.length < Number(supply) ? (
                 <div className="coll-more">
                   <p className="coll-more-count">
                     {/*
