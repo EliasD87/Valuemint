@@ -470,3 +470,43 @@
     grid-template-columns: repeat(4, 1fr);
   }
 }
+
+/* --- apply to create (components/CreatorApply.tsx) ------------------------ */
+
+.capply {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+  width: 100%;
+  max-width: 34rem;
+  margin-top: 1.25rem;
+  padding: clamp(1.1rem, 3vw, 1.6rem);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+}
+
+.capply-title {
+  font-size: var(--step-1);
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.capply-label {
+  font-size: var(--step--1);
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.capply .field-hint.capply-bad {
+  color: var(--danger);
+}
+
+.capply > .btn-primary {
+  align-self: flex-start;
+}
+
+.capply-sent {
+  gap: 0.6rem;
+  align-items: flex-start;
+}

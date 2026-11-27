@@ -24,6 +24,7 @@ import { canCreate, creationLimit } from "@/config/creators";
 import { Select } from "@/components/Select";
 import "@/styles/create.css";
 import { ConnectButton } from "@/components/ConnectButton";
+import { CreatorApply } from "@/components/CreatorApply";
 import { useT } from "@/lib/i18n";
 
 /**
@@ -133,16 +134,16 @@ function CreateClosed() {
         worry. A visitor who finds this page wants to know whether to come
         back, not what a pause does to a contract.
       */}
-      <h2>{tr("Creating a collection is temporarily closed.")}</h2>
-      <p className="muted">{tr("It will be back soon.")}</p>
-      <div className="wrap-row mt-md">
-        <Link className="btn btn-primary" href="/collections">
-          {tr("Browse collections")}
-        </Link>
-        <Link className="btn" href="/market">
-          {tr("Go to the market")}
-        </Link>
-      </div>
+      {/*
+        Creating is open to approved creators (config/creators.ts) since
+        2026-11-27, and the way in is this application (owner, same day:
+        "like the KOLs application thing").
+      */}
+      <h2>{tr("Creating collections is open to approved creators.")}</h2>
+      <p className="muted">
+        {tr("Tell us about your collection and sign with the wallet you would create from. We review every application.")}
+      </p>
+      <CreatorApply />
     </section>
   );
 }

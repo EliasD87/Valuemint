@@ -341,3 +341,32 @@ create table if not exists kol_applications (
 
 alter table kol_applications enable row level security;
 revoke all on kol_applications from anon, authenticated;
+
+-- ---------------------------------------------------------------------------
+-- Creator applications
+-- ---------------------------------------------------------------------------
+
+-- People asking to create collections, from the form on /create via
+-- /api/creator-apply. Like kol_applications, this is the only copy: do not
+-- truncate it with the index.
+--
+-- One row per wallet (lowercase); applying again from the same wallet updates
+-- the row. `signature` is the wallet's signature over the message in
+-- lib/creatorApply.ts. `status` is for the owner's review: new, accepted,
+-- declined. Accepting someone also means adding their wallet to
+-- config/creators.ts; the status column alone grants nothing.
+create table if not exists creator_applications (
+  wallet           text primary key,
+  x_handle         text not null,
+  collection_name  text not null,
+  about            text not null,
+  link             text,
+  signed_at        timestamptz not null,
+  signature        text not null,
+  status           text not null default 'new',
+  created_at       timestamptz not null default now(),
+  updated_at       timestamptz not null default now()
+);
+
+alter table creator_applications enable row level security;
+revoke all on creator_applications from anon, authenticated;
