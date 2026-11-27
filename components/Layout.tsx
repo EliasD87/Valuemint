@@ -90,11 +90,15 @@ const NAV: NavEntry[] = [
 export function Layout({ children }: { children: ReactNode }) {
   const t = useT();
   const pathname = usePathname();
-  /* Approved creators (config/creators.ts) also get Create and Manage. */
+  /*
+    Create is for everyone: approved creators (config/creators.ts) get the
+    wizard there, everyone else the application form (owner, 2026-11-27).
+    Manage only for approved creators.
+  */
   const { address: viewer } = useAccount();
   const nav: NavEntry[] = canCreate(viewer)
     ? [...NAV, { to: "/create", label: "Create" }, { to: "/manage", label: "Manage" }]
-    : NAV;
+    : [...NAV, { to: "/create", label: "Create" }];
   const [menuOpen, setMenuOpen] = useState(false);
   const menuButton = useRef<HTMLButtonElement>(null);
   const panel = useRef<HTMLDivElement>(null);
