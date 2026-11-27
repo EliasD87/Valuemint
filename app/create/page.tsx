@@ -18,6 +18,7 @@ import {
 } from "@/config/contracts";
 import { valuechain } from "@/config/chain";
 import { CLAIM_HEADERS, contentDigest, fileHash, uploadMessage } from "@/lib/uploadClaim";
+import { UPLOAD_BUDGET_BYTES, shrinkAll } from "@/lib/shrinkArtwork";
 import { TxResult } from "@/components/TxResult";
 import { canCreate, creationLimit } from "@/config/creators";
 import { Select } from "@/components/Select";
@@ -172,6 +173,7 @@ function Create() {
 
   const [signing, setSigning] = useState(false);
   const [pinning, setPinning] = useState(false);
+  const [preparing, setPreparing] = useState(false);
   const [problem, setProblem] = useState<string | undefined>(undefined);
   const fileInput = useRef<HTMLInputElement>(null);
 
@@ -306,6 +308,29 @@ function Create() {
         return;
       }
 
+      /*
+        Shrunk here, in the browser, before anything is signed: Vercel refuses
+        a request body over 4.5 MB before /api/pin ever sees it. The signature
+        and the manifest both name these bytes and these names, not the originals.
+      */
+      setPreparing(true);
+      let uploads: Array<{ file: Blob; name: string }>;
+      try {
+        uploads = await shrinkAll(designs);
+      } finally {
+        setPreparing(false);
+      }
+      const uploadBytes = uploads.reduce((n, u) => n + u.file.size, 0);
+      if (uploadBytes > UPLOAD_BUDGET_BYTES) {
+        setProblem(
+          tr("Your artwork is {size} MB after compression, and the upload limit is {limit} MB in total. Use fewer images, or smaller ones (large GIFs are kept as they are).", {
+            size: (uploadBytes / 1_000_000).toFixed(1),
+            limit: (UPLOAD_BUDGET_BYTES / 1_000_000).toFixed(1),
+          }),
+        );
+        return;
+      }
+
       // Serialised once and reused verbatim. Re-stringifying for the digest
       // would risk a different key order than the body actually carries, and
       // the signature would no longer match on the server.
@@ -313,8 +338,8 @@ function Create() {
         collectionName: name.trim(),
         description: description.trim(),
         seed,
-        designs: designs.map((d) => ({
-          file: d.pinnedName,
+        designs: designs.map((d, i) => ({
+          file: uploads[i]?.name ?? d.pinnedName,
           name: d.name,
           count: d.count,
           ...(d.tier === "" ? {} : { tier: d.tier }),
@@ -340,9 +365,9 @@ function Create() {
         const digest = await contentDigest(
           configJson,
           await Promise.all(
-            designs.map(async (d) => ({
-              name: d.pinnedName,
-              hash: await fileHash(await d.file.arrayBuffer()),
+            uploads.map(async (u) => ({
+              name: u.name,
+              hash: await fileHash(await u.file.arrayBuffer()),
             })),
           ),
         );
@@ -369,7 +394,7 @@ function Create() {
       setPinning(true);
       try {
         const form = new FormData();
-        for (const d of designs) form.append("images", d.file, d.pinnedName);
+        for (const u of uploads) form.append("images", u.file, u.name);
         form.append("config", configJson);
 
         const res = await fetch("/api/pin", {
@@ -382,8 +407,20 @@ function Create() {
           },
           body: form,
         });
-        const body = await res.json();
-        if (!res.ok) throw new Error(body.error ?? tr("Upload failed."));
+        /*
+          Not every answer is ours. Vercel's own refusals (413 for a body that
+          is too large, 504 for a timeout) are plain text, and reading them as
+          JSON put "Unexpected token 'R'" in front of a creator.
+        */
+        const body = (await res.json().catch(() => ({}))) as { error?: string; baseUri?: string };
+        if (!res.ok) {
+          throw new Error(
+            body.error ??
+              (res.status === 413
+                ? tr("The artwork is too large to upload in one go. Use fewer images, or smaller ones.")
+                : tr("Upload failed.")),
+          );
+        }
         baseUri = body.baseUri as string;
       } catch (e) {
         setProblem(e instanceof Error ? e.message : tr("Upload failed."));
@@ -543,7 +580,7 @@ function Create() {
     );
   }
 
-  const busy = signing || pinning || txSigning || confirming;
+  const busy = preparing || signing || pinning || txSigning || confirming;
 
   return (
     <section className="page section">
@@ -735,7 +772,9 @@ function Create() {
               </button>
             ) : (
               <button className="btn btn-primary btn-lg" disabled={busy || problems.length > 0} onClick={create}>
-                {signing
+                {preparing
+                ? tr("Preparing artwork…")
+                : signing
                 ? tr("Sign to authorise…")
                 : pinning
                   ? tr("Uploading artwork…")
