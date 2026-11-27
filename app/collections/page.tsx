@@ -7,6 +7,7 @@ import { ValueChainCollectionAbi, deployment } from "@/config/contracts";
 import { COLLECTIONS_PAGE_PINNED, MAIN_COLLECTIONS } from "@/config/featured";
 import { KNOWN_COLLECTIONS } from "@/config/known";
 import { isHidden } from "@/config/hidden";
+import { CREATORS } from "@/config/creators";
 import { CREATE_ENABLED } from "@/config/features";
 import { useRegistry } from "@/hooks/useRegistry";
 import { useDiscoveredCollections } from "@/hooks/useDiscovery";
@@ -112,8 +113,16 @@ export default function Collections() {
   });
 
   const isMain = (address: string) => MAIN_COLLECTIONS.some((m) => m.toLowerCase() === address.toLowerCase());
-  const main = all.filter((c) => isMain(c.address));
-  const more = all.filter((c) => !isMain(c.address));
+  /*
+    A collection an approved creator made here (config/creators.ts) shows in
+    the main grid from the moment it exists, minted or not (owner,
+    2026-11-27). Behind "See more" a creator could not find their own new
+    collection and would reasonably think it had failed.
+  */
+  const byCreator = (c: { creator?: string; fromFactory: boolean }) =>
+    c.fromFactory && c.creator !== undefined && CREATORS.includes(c.creator.toLowerCase());
+  const main = all.filter((c) => isMain(c.address) || byCreator(c));
+  const more = all.filter((c) => !isMain(c.address) && !byCreator(c));
 
   const statsFor = (i: number) => {
     const at = (n: number) => {
