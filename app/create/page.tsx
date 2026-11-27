@@ -5,6 +5,7 @@ import Link from "next/link";
 import { getAddress, parseEther, parseEventLogs } from "viem";
 import {
   useAccount,
+  useReadContracts,
   useSignMessage,
 } from "wagmi";
 import { useSwitchToChain, useWriteContract } from "@/hooks/useChainWrite";
@@ -13,11 +14,12 @@ import {
   ValueChainCollectionAbi,
   ValueChainCollectionFactoryAbi,
   deployment,
+  legacyFactories,
 } from "@/config/contracts";
 import { valuechain } from "@/config/chain";
 import { CLAIM_HEADERS, contentDigest, fileHash, uploadMessage } from "@/lib/uploadClaim";
 import { TxResult } from "@/components/TxResult";
-import { CREATE_ENABLED } from "@/config/features";
+import { canCreate, creationLimit } from "@/config/creators";
 import { Select } from "@/components/Select";
 import "@/styles/create.css";
 import { ConnectButton } from "@/components/ConnectButton";
@@ -71,8 +73,41 @@ const STEPS = ["Basics", "Artwork", "Sale", "Review"] as const;
  * not a merge.
  */
 export default function CreatePage() {
-  if (!CREATE_ENABLED) return <CreateClosed />;
+  /* Closed to everyone but approved creators (config/creators.ts). */
+  const { address } = useAccount();
+  /* At most CREATOR_LIMIT collections each, counted from the factories; /api/pin enforces it too. */
+  const limit = creationLimit(address);
+  const { data: made } = useReadContracts({
+    contracts: [deployment.factory, ...legacyFactories].map((factory) => ({
+      address: factory as `0x${string}`,
+      abi: ValueChainCollectionFactoryAbi,
+      functionName: "collectionsOf" as const,
+      args: [address!] as const,
+    })),
+    query: { enabled: address !== undefined && limit !== undefined },
+  });
+  const count = made?.reduce((n, r) => n + (r.status === "success" ? (r.result as readonly string[]).length : 0), 0);
+
+  if (!canCreate(address)) return <CreateClosed />;
+  if (limit !== undefined && count !== undefined && count >= limit) return <CreateLimitReached limit={limit} />;
   return <Create />;
+}
+
+/** An approved creator who has made their allowance of collections. */
+function CreateLimitReached({ limit }: { limit: number }) {
+  const tr = useT();
+  return (
+    <section className="page section market-empty">
+      <p className="eyebrow">{tr("Create")}</p>
+      <h2>{tr("You have created {count} collections, the most allowed for now.", { count: limit })}</h2>
+      <p className="muted">{tr("You can still manage the ones you made.")}</p>
+      <div className="wrap-row mt-md">
+        <Link className="btn btn-primary" href="/manage">
+          {tr("Manage your collections")}
+        </Link>
+      </div>
+    </section>
+  );
 }
 
 /**

@@ -296,4 +296,7 @@ export const ZH_STATS: Record<string, string> = {
   "Steps to place this offer": "出价步骤",
   Wrap: "包装",
   Allow: "授权",
+  "You have created {count} collections, the most allowed for now.": "你已创建 {count} 个合集，这是目前允许的上限。",
+  "You can still manage the ones you made.": "你仍然可以管理已创建的合集。",
+  "Manage your collections": "管理你的合集",
 };

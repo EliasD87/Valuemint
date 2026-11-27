@@ -1,4 +1,6 @@
 import "server-only";
+import { canCreate, creationLimit } from "@/config/creators";
+import { deployment, legacyFactories, ValueChainCollectionFactoryAbi } from "@/config/contracts";
 import { limiter } from "@/lib/rateLimit";
 import {
   createPublicClient,
@@ -68,6 +70,24 @@ const client = createPublicClient({
     { rank: false },
   ),
 });
+
+/**
+ * How many collections a wallet has created, across the current factory and
+ * every earlier one. The current factory must answer; an old one that does not
+ * (or has no such function) counts as none.
+ */
+async function collectionsMadeBy(address: `0x${string}`): Promise<number> {
+  const read = (factory: string) =>
+    client.readContract({
+      address: factory as `0x${string}`,
+      abi: ValueChainCollectionFactoryAbi,
+      functionName: "collectionsOf",
+      args: [address],
+    }) as Promise<readonly string[]>;
+  const current = await read(deployment.factory);
+  const older = await Promise.all(legacyFactories.map((f) => read(f).catch(() => [] as readonly string[])));
+  return current.length + older.reduce((n, list) => n + list.length, 0);
+}
 
 /**
  * Signatures already spent — in the shared store, not in this lambda's memory.
@@ -198,6 +218,31 @@ export async function authoriseUpload(input: {
     // Either the signer is not who they claim, or the upload was altered after
     // signing - the digest is part of the message, so both look the same here.
     return { ok: false, status: 401, error: "That signature does not match this upload." };
+  }
+
+  // --- approved creators only (config/creators.ts) ---------------------------
+  // Checked here, after the signature proves who is asking, because the page
+  // hiding /create is not a lock: anyone could post to this route directly.
+  if (!canCreate(recovered)) {
+    return { ok: false, status: 403, error: "This wallet is not approved to create collections yet." };
+  }
+  /* And at most CREATOR_LIMIT collections each, counted from the factories. */
+  const limit = creationLimit(recovered);
+  if (limit !== undefined) {
+    let made: number;
+    try {
+      made = await collectionsMadeBy(getAddress(recovered));
+    } catch {
+      // Fail closed, like the balance check below.
+      return { ok: false, status: 503, error: "Could not reach ValueChain to check your collections just now. Try again in a moment." };
+    }
+    if (made >= limit) {
+      return {
+        ok: false,
+        status: 403,
+        error: `This wallet has already created ${limit} collections, the most allowed for now.`,
+      };
+    }
   }
 
   // --- stake ----------------------------------------------------------------

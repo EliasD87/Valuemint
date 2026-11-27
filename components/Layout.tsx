@@ -1,5 +1,7 @@
 "use client";
 
+import { canCreate } from "@/config/creators";
+import { useAccount } from "wagmi";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useVerifiedContracts } from "@/hooks/useVerifiedContracts";
@@ -88,6 +90,11 @@ const NAV: NavEntry[] = [
 export function Layout({ children }: { children: ReactNode }) {
   const t = useT();
   const pathname = usePathname();
+  /* Approved creators (config/creators.ts) also get Create and Manage. */
+  const { address: viewer } = useAccount();
+  const nav: NavEntry[] = canCreate(viewer)
+    ? [...NAV, { to: "/create", label: "Create" }, { to: "/manage", label: "Manage" }]
+    : NAV;
   const [menuOpen, setMenuOpen] = useState(false);
   const menuButton = useRef<HTMLButtonElement>(null);
   const panel = useRef<HTMLDivElement>(null);
@@ -178,7 +185,7 @@ export function Layout({ children }: { children: ReactNode }) {
           </Link>
 
           <nav className="nav" aria-label={t("Primary")}>
-            {NAV.map((entry) =>
+            {nav.map((entry) =>
               isGroup(entry) ? (
                 <NavMenu key={entry.label} group={entry} isActive={isActive} />
               ) : (
@@ -265,7 +272,7 @@ export function Layout({ children }: { children: ReactNode }) {
 
         <nav className="drawer-nav" aria-label={t("Primary")}>
           {/* Flat on a phone (owner, 2026-10-24): a group's pages are rows like the rest, not folded. */}
-          {NAV.flatMap((entry) => (isGroup(entry) ? entry.items : [entry])).map((item) => (
+          {nav.flatMap((entry) => (isGroup(entry) ? entry.items : [entry])).map((item) => (
             <DrawerLink key={item.to} item={item} active={isActive(item)} />
           ))}
         </nav>

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { CREATE_ENABLED } from "@/config/features";
+import { canCreate } from "@/config/creators";
 import { useAccount } from "wagmi";
 import { useOwnedCollections } from "@/hooks/useAllCollections";
 import { formatCount, formatSoso } from "@/lib/format";
@@ -66,7 +66,7 @@ export default function Manage() {
           <p className="eyebrow">{t("Manage")}</p>
           <h2>{t("Your collections")}</h2>
         </div>
-        {CREATE_ENABLED ? (
+        {canCreate(address) ? (
           <Link className="btn btn-primary" href="/create">
             {t("Create another")}
           </Link>
@@ -102,7 +102,7 @@ export default function Manage() {
           <p className="muted">
             {t("A collection with nothing minted still appears — supply is not what decides this.")}
           </p>
-          {CREATE_ENABLED ? (
+          {canCreate(address) ? (
             <Link className="btn btn-primary mt-sm" href="/create">
               {t("Create a collection")}
             </Link>
